@@ -1,0 +1,13 @@
+[package]
+name = "swift-bridge"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[workspace]
+members = [
+  "crates/swift-bridge-macro",
+  "crates/swift-bridge-build",
+  "crates/swift-integration-tests"
+]
