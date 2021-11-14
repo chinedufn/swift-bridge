@@ -1,8 +1,18 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
+use syn::parse_macro_input;
+mod module;
+use quote::quote;
+
+use self::module::Module;
+
+#[proc_macro_attribute]
+pub fn bridge(
+    _args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let module = parse_macro_input!(input as Module);
+
+    let tokens = quote! {
+        #module
+    };
+    tokens.into()
 }

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+swift-bridge-macro = {path = "crates/swift-bridge-macro"}
 
 [workspace]
 members = [

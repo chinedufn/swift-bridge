@@ -1,5 +1,4 @@
 use std::ffi::c_void;
-use std::marker::PhantomData;
 use std::str::Utf8Error;
 
 extern "C" {

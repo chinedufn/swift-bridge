@@ -2,6 +2,8 @@
 
 #![deny(missing_docs)]
 
+pub use swift_bridge_macro::bridge;
+
 // The underlying T gets dropped when this is dropped.
 #[doc(hidden)]
 #[repr(C)]

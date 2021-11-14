@@ -29,7 +29,12 @@ pub struct ARustStack {
     stack: Vec<u8>,
 }
 
+#[swift_bridge::bridge]
 mod ffi {
+    //
+}
+
+mod __ffi_generated {
     use super::*;
     use swift_bridge::{OwnedPtrToRust, RefPtrToRust};
 
