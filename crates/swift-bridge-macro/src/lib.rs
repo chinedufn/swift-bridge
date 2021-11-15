@@ -4,6 +4,9 @@ use quote::quote;
 
 use self::module::Module;
 
+#[cfg(test)]
+mod test_utils;
+
 #[proc_macro_attribute]
 pub fn bridge(
     _args: proc_macro::TokenStream,

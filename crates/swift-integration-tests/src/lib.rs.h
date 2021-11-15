@@ -1,7 +1,7 @@
 #include <stdint.h>
 
-//int16_t foo(void);
 void run_string_tests(void);
+void run_opaque_swift_class_tests(void);
 
 typedef struct __ARustStack __ARustStack;
 

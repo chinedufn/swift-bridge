@@ -2,6 +2,7 @@
 
 #![deny(missing_docs)]
 
+use std::os::raw::c_void;
 pub use swift_bridge_macro::bridge;
 
 // The underlying T gets dropped when this is dropped.
@@ -9,6 +10,13 @@ pub use swift_bridge_macro::bridge;
 #[repr(C)]
 pub struct OwnedPtrToRust<T> {
     pub ptr: *mut T,
+}
+
+// The underlying T gets dropped when this is dropped.
+#[doc(hidden)]
+#[repr(C)]
+pub struct OwnedPtrToSwift {
+    pub ptr: *mut c_void,
 }
 
 // The underlying T does not get dropped when this is dropped.

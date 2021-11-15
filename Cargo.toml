@@ -10,5 +10,6 @@ swift-bridge-macro = {path = "crates/swift-bridge-macro"}
 members = [
   "crates/swift-bridge-macro",
   "crates/swift-bridge-build",
+  "crates/swift-bridge-ir",
   "crates/swift-integration-tests"
 ]

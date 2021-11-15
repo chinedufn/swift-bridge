@@ -29,10 +29,45 @@ mod ffi {
     unsafe extern "Swift" {
         type FileSystemClient;
 
-        fn new_file_system_client() -> UnmanagedPtr<FileSystemClient>;
+        fn new_file_system_client() -> UnmanagedPointer<FileSystemClient>;
 
         fn read(&self, filename: &str) -> Vec<u8>;
     }
+}
+
+struct Stack {
+    s: Vec<u8>
+}
+```
+
+```rust
+#[swift_bridge::bridge]
+struct SmallNumberVector {
+    vec: Vec<u8>
+}
+
+#[derive(Debug)]
+struct TooLarge;
+
+#[swift_bridge::bridge]
+impl SmallNumberVector {
+	pub fn new () -> Self {
+		SmallNumberVector {
+		    vec: vec![]
+		}
+	}
+
+	pub fn try_push (&mut self, val: u8) -> Result<(), TooLarge> {
+		if val < 20 {
+		    self.vec.push(val);
+		    Ok()
+		} else {
+		    Err(TooLarge)
+		}
+	}
+}
+
+impl std::fmt::Display for TooLarge {
 }
 ```
 
