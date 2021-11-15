@@ -7,10 +7,18 @@
 
 #![deny(missing_docs)]
 
+use crate::extern_rust::ExternRustSection;
 use proc_macro2::Ident;
 use syn::{ForeignItemType, Token, Type};
 
 mod extern_rust;
+mod extern_swift;
+
+mod errors;
+mod parse;
+
+#[cfg(test)]
+mod test_utils;
 
 /// Represents a type definition within an `extern "Rust"` module, as well as all of its methods.
 ///
@@ -38,31 +46,24 @@ mod extern_rust;
 /// ```
 struct SwiftBridgeModule {
     name: Ident,
-    extern_rusts: Vec<ExternRustSection>,
-}
-
-struct ExternRustSection {
-    types: Vec<ExternRustSectionType>,
-    free_functions: Vec<ExternRustSectionFn>,
-}
-
-struct ExternRustSectionType {
-    ty: ForeignItemType,
-    funcs: Vec<TypeFunction>,
-}
-
-struct FunctionOnType {
-    ty: ForeignItemType,
+    extern_rust: Vec<ExternRustSection>,
 }
 
 /// A method or static method associated with a type.
-struct TypeFunction {
-    ty: ForeignItemType,
-    self_: Option<MethodSelf>,
-    func: ExternRustSectionFn,
+///
+/// fn bar (&self);
+/// fn buzz (self: &Foo) -> u8;
+///
+/// #\[swift_bridge(associated_to = Foo)]
+/// fn new () -> Foo;
+///
+/// ... etc
+struct TypeMethod {
+    this: Option<MethodSelf>,
+    func: ExternFn,
 }
 
-struct ExternRustSectionFn {
+struct ExternFn {
     fn_name: Ident,
     args: Vec<(Ident, Type)>,
     ret: Type,
