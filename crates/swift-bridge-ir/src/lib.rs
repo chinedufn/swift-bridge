@@ -8,17 +8,22 @@
 #![deny(missing_docs)]
 
 use crate::extern_rust::ExternRustSection;
-use proc_macro2::Ident;
-use syn::{ForeignItemType, Token, Type};
+use proc_macro2::{Ident, TokenStream};
+use quote::{quote, quote_spanned};
+use syn::spanned::Spanned;
+use syn::{ForeignItemFn, PatType, Receiver, ReturnType, Token, Type};
 
 mod extern_rust;
 mod extern_swift;
 
 mod errors;
 mod parse;
+mod to_tokens;
 
 #[cfg(test)]
 mod test_utils;
+
+const SWIFT_BRIDGE_PREFIX: &'static str = "__swift_bridge__";
 
 /// Represents a type definition within an `extern "Rust"` module, as well as all of its methods.
 ///
@@ -59,14 +64,72 @@ struct SwiftBridgeModule {
 ///
 /// ... etc
 struct TypeMethod {
-    this: Option<MethodSelf>,
+    this: Option<SelfDesc>,
     func: ExternFn,
 }
 
+impl TypeMethod {
+    /// ty_declaration is the `SomeType` in `type SomeType`
+    fn rust_tokens(&self, ty_declaration: &Ident) -> TokenStream {
+        let sig = &self.func.func.sig;
+        let fn_name = &sig.ident;
+
+        let export_name = format!(
+            "{}${}${}",
+            SWIFT_BRIDGE_PREFIX,
+            ty_declaration.to_string(),
+            fn_name.to_string()
+        );
+
+        let this = self.this.as_ref().map(|_| {
+            quote! { this: swift_bridge::OwnedPtrToRust<super::SomeType>, }
+        });
+
+        let inner = if let Some(this) = self.this.as_ref() {
+            if let Some(reference) = this.reference {
+                let maybe_mut = &this.mutability;
+
+                quote! {
+                    let this = unsafe { #reference #maybe_mut *this.ptr };
+                    this.#fn_name()
+                }
+            } else {
+                todo!()
+            }
+        } else {
+            quote! {
+                let val = super::#ty_declaration::#fn_name();
+                let val = Box::into_raw(Box::new(val));
+                swift_bridge::OwnedPtrToRust::new(val)
+            }
+        };
+
+        let prefixed_fn_name = Ident::new(
+            &format!("{}_{}", ty_declaration.to_string(), fn_name.to_string()),
+            fn_name.span(),
+        );
+
+        let output = match sig.output.clone() {
+            ReturnType::Default => {
+                quote! {}
+            }
+            ReturnType::Type(_arrow, ty) => {
+                quote_spanned! {ty.span()=> -> swift_bridge::OwnedPtrToRust<super::#ty> }
+            }
+        };
+
+        quote! {
+            #[no_mangle]
+            #[export_name = #export_name]
+            pub extern "C" fn #prefixed_fn_name (#this ) #output {
+                #inner
+            }
+        }
+    }
+}
+
 struct ExternFn {
-    fn_name: Ident,
-    args: Vec<(Ident, Type)>,
-    ret: Type,
+    func: ForeignItemFn,
 }
 
 // &self
@@ -74,8 +137,16 @@ struct ExternFn {
 // self: &Receiver
 // self: &mutReceiver
 // self
-struct MethodSelf {
-    reference: Option<Token![&]>,
-    mutability: Option<Token![mut]>,
-    receiver: ForeignItemType,
+pub(crate) struct SelfDesc {
+    pub reference: Option<Token![&]>,
+    pub mutability: Option<Token![mut]>,
+}
+
+impl From<Receiver> for SelfDesc {
+    fn from(r: Receiver) -> Self {
+        SelfDesc {
+            reference: r.reference.map(|r| r.0),
+            mutability: r.mutability,
+        }
+    }
 }

@@ -1,13 +1,14 @@
 use proc_macro2::Ident;
-use syn::Error;
 use syn::LitStr;
+use syn::Token;
+use syn::{Error, Receiver};
 
 pub(crate) enum ParseError {
     /// `extern {}`
     AbiNameMissing {
         /// `extern {}`
         ///  ------
-        extern_ident: Ident,
+        extern_token: Token![extern],
     },
     /// `extern "Foo" {}`
     AbiNameInvalid {
@@ -17,13 +18,15 @@ pub(crate) enum ParseError {
     },
     /// `fn foo (&self)`
     ///           ----
-    AmbiguousSelf { self_ident: Ident },
+    AmbiguousSelf { self_: Receiver },
 }
 
 impl Into<syn::Error> for ParseError {
     fn into(self) -> Error {
         match self {
-            ParseError::AbiNameMissing { extern_ident } => Error::new_spanned(
+            ParseError::AbiNameMissing {
+                extern_token: extern_ident,
+            } => Error::new_spanned(
                 extern_ident,
                 format!(
                     r#"extern modules must have their abi set to "Rust" or "Swift".
@@ -38,7 +41,7 @@ extern "Swift" {{ ... }}
                 abi_name,
                 r#"Invalid abi name. Must be either "Rust" or "Swift"."#,
             ),
-            ParseError::AmbiguousSelf { self_ident } => Error::new_spanned(
+            ParseError::AmbiguousSelf { self_: self_ident } => Error::new_spanned(
                 self_ident,
                 r#"Could not infer a type for self. Try specifying the type:
 self: SomeType

@@ -1,4 +1,5 @@
 use crate::{ExternFn, TypeMethod};
+use proc_macro2::Span;
 use syn::ForeignItemType;
 
 pub(crate) struct ExternRustSection {
@@ -13,4 +14,13 @@ pub(crate) struct ExternRustSectionType {
     /// fn buzz (self: &Foo) -> u8;
     /// ... etc
     pub methods: Vec<TypeMethod>,
+}
+
+impl ExternRustSectionType {
+    pub fn new(ty: ForeignItemType) -> Self {
+        ExternRustSectionType {
+            ty,
+            methods: vec![],
+        }
+    }
 }

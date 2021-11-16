@@ -17,14 +17,14 @@ impl ParseErrors {
         self.errors.push(error);
     }
 
-    pub fn combine_all(&mut self) -> Result<(), syn::Error> {
+    pub fn combine_all(mut self) -> Result<(), syn::Error> {
         if self.errors.len() == 0 {
             return Ok(());
         }
 
         let mut errors = self.errors.drain(..);
 
-        let mut combined_errors = errors.next().unwrap().into();
+        let mut combined_errors: syn::Error = errors.next().unwrap().into();
 
         while let Some(next) = errors.next() {
             combined_errors.combine(next.into());

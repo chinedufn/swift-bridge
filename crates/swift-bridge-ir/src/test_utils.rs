@@ -16,6 +16,31 @@ Right Tokens:
     )
 }
 
+pub fn assert_tokens_contain(outer: &TokenStream, inner: &TokenStream) {
+    let outer_vec = token_stream_to_vec(&outer);
+    let inner_vec = token_stream_to_vec(inner);
+
+    let is_contained = outer_vec
+        .into_iter()
+        .collect::<String>()
+        .contains(&inner_vec.into_iter().collect::<String>());
+
+    assert!(
+        is_contained,
+        r#"
+Outer tokens do not contain the inner tokens. 
+
+Outer Tokens:
+{}
+
+Inner Tokens:
+{}
+"#,
+        outer.to_string(),
+        inner.to_string()
+    )
+}
+
 fn token_stream_to_vec(tokens: &TokenStream) -> Vec<String> {
     tokens
         .clone()
