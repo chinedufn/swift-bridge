@@ -52,9 +52,22 @@ const SWIFT_BRIDGE_PREFIX: &'static str = "__swift_bridge__";
 ///     }
 /// }
 /// ```
-struct SwiftBridgeModule {
+pub struct SwiftBridgeModule {
     name: Ident,
     extern_rust: Vec<ExternRustSection>,
+}
+
+impl SwiftBridgeModule {
+    /// Generate the contents of a Swift file based on the contents of this module.
+    pub fn generate_swift(&self) -> String {
+        let mut swift = "".to_string();
+
+        for section in &self.extern_rust {
+            swift += &section.generate_swift();
+        }
+
+        swift
+    }
 }
 
 /// A method or associated function associated with a type.

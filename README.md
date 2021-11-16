@@ -34,10 +34,6 @@ mod ffi {
         fn read(&self, filename: &str) -> Vec<u8>;
     }
 }
-
-struct Stack {
-    s: Vec<u8>
-}
 ```
 
 ## To Test
@@ -56,7 +52,7 @@ cargo test --all
 ## See Also
 
 - [cxx](https://github.com/dtolnay/cxx)
-  - Heavily inspired the approach of annotating a module with a macro, among other things.
+  - Heavily inspired the annotated module approach, among other things.
 
 - [Rust on iOS](https://mozilla.github.io/firefox-browser-architecture/experiments/2017-09-06-rust-on-ios.html)
-  - A blog post by Mozilla that explains how to run Rust on iOS
+  - A blog post by Mozilla that explains how to run Rust on iOS.
