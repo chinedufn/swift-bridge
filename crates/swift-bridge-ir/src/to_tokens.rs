@@ -348,7 +348,7 @@ mod tests {
         todo!(
             r#"
 Split the generating of the return type tokens into a submodule..
-Then add tests for whether or not we convert the type (i.e. to a OwnedPtrToRust.. RustString.. or
+Then add tests for whether or not we convert the type (i.e. to a *mut c_void.. RustString.. or
 something else)
 "#
         )

@@ -68,6 +68,17 @@ impl SwiftBridgeModule {
 
         swift
     }
+
+    /// Generate the contents of a C header file based on the contents of this module.
+    pub fn generate_c_header(&self) -> String {
+        let mut c_header = "".to_string();
+
+        for section in &self.extern_rust {
+            c_header += &section.generate_c_header();
+        }
+
+        c_header
+    }
 }
 
 /// A method or associated function associated with a type.
@@ -265,6 +276,72 @@ impl ParsedExternFn {
                 }
             }
         }
+    }
+
+    // fn foo (&self, arg1: u8, arg2: u32)
+    //  becomes..
+    // void* self, uint8_t u8, uint32_t arg2
+    fn to_c_header_params(&self) -> String {
+        let mut params = vec![];
+        let inputs = &self.func.sig.inputs;
+        for arg in inputs {
+            match arg {
+                FnArg::Receiver(_receiver) => params.push("void* self".to_string()),
+                FnArg::Typed(pat_ty) => {
+                    let pat = &pat_ty.pat;
+
+                    let ty = if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                        built_in.to_c().to_string()
+                    } else {
+                        pat.to_token_stream().to_string()
+                    };
+
+                    let arg_name = pat_ty.pat.to_token_stream().to_string();
+                    params.push(format!("{} {}", ty, arg_name));
+                }
+            };
+        }
+
+        if params.len() == 0 {
+            "void".to_string()
+        } else {
+            params.join(", ")
+        }
+    }
+
+    fn to_c_header_return(&self) -> &'static str {
+        match &self.func.sig.output {
+            ReturnType::Default => "void",
+            ReturnType::Type(_, ty) => {
+                if let Some(ty) = BuiltInType::with_type(&ty) {
+                    ty.to_c()
+                } else {
+                    "void*"
+                }
+            }
+        }
+    }
+
+    fn contains_ints(&self) -> bool {
+        if let ReturnType::Type(_, ty) = &self.func.sig.output {
+            if let Some(ty) = BuiltInType::with_type(&ty) {
+                if ty.is_int() {
+                    return true;
+                }
+            }
+        }
+
+        for param in &self.func.sig.inputs {
+            if let FnArg::Typed(pat_ty) = param {
+                if let Some(ty) = BuiltInType::with_type(&pat_ty.ty) {
+                    if ty.is_int() {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        false
     }
 }
 

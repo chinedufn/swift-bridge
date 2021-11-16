@@ -1,8 +1,10 @@
 use crate::{ParsedExternFn, TypeMethod, SWIFT_BRIDGE_PREFIX};
 use syn::ForeignItemType;
 
+mod generate_c_header;
 mod generate_swift;
 
+#[derive(Default)]
 pub(crate) struct ExternRustSection {
     pub types: Vec<ExternRustSectionType>,
     pub freestanding_fns: Vec<ParsedExternFn>,

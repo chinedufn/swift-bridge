@@ -30,9 +30,7 @@ fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
     let file: File = syn::parse_str(file)?;
 
     let mut generated = GeneratedFromSwiftBridgeModule {
-        c_header: r#"#include <stdint.h>
-"#
-        .to_string(),
+        c_header: "".to_string(),
         swift: "".to_string(),
     };
 
@@ -47,10 +45,14 @@ fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
                     .any(|a| a.path.to_token_stream().to_string() == "swift_bridge :: bridge")
                 {
                     let module: SwiftBridgeModule = syn::parse2(module.to_token_stream())?;
-                    let swift = module.generate_swift();
 
+                    let swift = module.generate_swift();
                     generated.swift += &swift;
                     generated.swift += "\n\n";
+
+                    let c_header = module.generate_c_header();
+                    generated.c_header += &c_header;
+                    generated.c_header += "\n\n";
                 }
             }
             _ => {}
@@ -77,6 +79,8 @@ mod tests {
     #[test]
     fn foo() {
         let generated = parse_file(MOCK_FILE).unwrap();
+        dbg!(&generated);
+        todo!("Delete this test.. just a scratchpad..")
     }
 
     const MOCK_FILE: &'static str = r#"

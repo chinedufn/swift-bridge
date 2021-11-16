@@ -23,13 +23,13 @@ impl BuiltInType {
     pub fn with_type(ty: &Type) -> Option<Self> {
         match ty {
             Type::Path(path) => {
-                Self::with_str(path.path.segments.to_token_stream().to_string().as_str()) 
+                Self::with_str(path.path.segments.to_token_stream().to_string().as_str())
             }
             _ => None,
         }
     }
-    
-    pub fn with_str (string: &str) -> Option<BuiltInType> {
+
+    pub fn with_str(string: &str) -> Option<BuiltInType> {
         let ty = match string {
             "u8" => BuiltInType::U8,
             "i8" => BuiltInType::I8,
@@ -45,10 +45,9 @@ impl BuiltInType {
             "isize" => BuiltInType::Isize,
             "f32" => BuiltInType::F32,
             "f64" => BuiltInType::F64,
-            _ => return None,           
+            _ => return None,
         };
-        return Some(ty)
-        
+        return Some(ty);
     }
 
     pub fn to_swift(&self) -> &'static str {
@@ -67,6 +66,43 @@ impl BuiltInType {
             BuiltInType::F64 => "Double",
             BuiltInType::Usize => "UInt",
             BuiltInType::Isize => "Int",
+        }
+    }
+
+    pub fn to_c(&self) -> &'static str {
+        match self {
+            BuiltInType::U8 => "uint8_t",
+            BuiltInType::I8 => "int8_t",
+            BuiltInType::U16 => "uint16_t",
+            BuiltInType::I16 => "int16_t",
+            BuiltInType::U32 => "uint32_t",
+            BuiltInType::I32 => "int32_t",
+            BuiltInType::U64 => "uint64_t",
+            BuiltInType::I64 => "int64_t",
+            BuiltInType::U128 => "uint128_t",
+            BuiltInType::I128 => "i128_t",
+            BuiltInType::F32 => "float",
+            BuiltInType::F64 => "double",
+            BuiltInType::Usize => "uintptr_t",
+            BuiltInType::Isize => "intptr_t",
+        }
+    }
+
+    pub fn is_int(&self) -> bool {
+        match self {
+            BuiltInType::U8
+            | BuiltInType::I8
+            | BuiltInType::U16
+            | BuiltInType::I16
+            | BuiltInType::U32
+            | BuiltInType::I32
+            | BuiltInType::U64
+            | BuiltInType::I64
+            | BuiltInType::U128
+            | BuiltInType::I128
+            | BuiltInType::Usize
+            | BuiltInType::Isize => true,
+            _ => false,
         }
     }
 }
