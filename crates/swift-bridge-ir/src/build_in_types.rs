@@ -23,27 +23,32 @@ impl BuiltInType {
     pub fn with_type(ty: &Type) -> Option<Self> {
         match ty {
             Type::Path(path) => {
-                let ty = match path.path.segments.to_token_stream().to_string().as_str() {
-                    "u8" => BuiltInType::U8,
-                    "i8" => BuiltInType::I8,
-                    "u16" => BuiltInType::U16,
-                    "i16" => BuiltInType::I16,
-                    "u32" => BuiltInType::U32,
-                    "i32" => BuiltInType::I32,
-                    "u64" => BuiltInType::U64,
-                    "i64" => BuiltInType::I64,
-                    "u128" => BuiltInType::U128,
-                    "i128" => BuiltInType::I128,
-                    "usize" => BuiltInType::Usize,
-                    "isize" => BuiltInType::Isize,
-                    "f32" => BuiltInType::F32,
-                    "f64" => BuiltInType::F64,
-                    _ => return None,
-                };
-                Some(ty)
+                Self::with_str(path.path.segments.to_token_stream().to_string().as_str()) 
             }
             _ => None,
         }
+    }
+    
+    pub fn with_str (string: &str) -> Option<BuiltInType> {
+        let ty = match string {
+            "u8" => BuiltInType::U8,
+            "i8" => BuiltInType::I8,
+            "u16" => BuiltInType::U16,
+            "i16" => BuiltInType::I16,
+            "u32" => BuiltInType::U32,
+            "i32" => BuiltInType::I32,
+            "u64" => BuiltInType::U64,
+            "i64" => BuiltInType::I64,
+            "u128" => BuiltInType::U128,
+            "i128" => BuiltInType::I128,
+            "usize" => BuiltInType::Usize,
+            "isize" => BuiltInType::Isize,
+            "f32" => BuiltInType::F32,
+            "f64" => BuiltInType::F64,
+            _ => return None,           
+        };
+        return Some(ty)
+        
     }
 
     pub fn to_swift(&self) -> &'static str {

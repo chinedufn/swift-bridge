@@ -1,8 +1,8 @@
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::Span;
 use quote::ToTokens;
 use syn::Token;
 use syn::{Error, Receiver};
-use syn::{LitStr, Type};
+use syn::{ForeignItemType, LitStr};
 
 pub(crate) enum ParseError {
     /// `extern {}`
@@ -23,6 +23,9 @@ pub(crate) enum ParseError {
     /// fn foo (bar: &Bar);
     /// If Bar wasn't declared using a `type Bar` declaration.
     UndeclaredType { ty: String, span: Span },
+    /// Declared a type that we already support.
+    /// Example: `type u32`
+    DeclaredBuiltInType { ty: ForeignItemType },
 }
 
 impl Into<syn::Error> for ParseError {
@@ -60,6 +63,14 @@ self: &mut SomeType
                     ty
                 );
                 Error::new(span, message)
+            }
+            ParseError::DeclaredBuiltInType { ty } => {
+                let message = format!(
+                    r#"Type {} is already supported
+"#,
+                    ty.to_token_stream().to_string()
+                );
+                Error::new_spanned(ty, message)
             }
         }
     }

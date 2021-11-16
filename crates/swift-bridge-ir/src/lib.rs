@@ -12,7 +12,7 @@ use crate::extern_rust::ExternRustSection;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItemFn, PatType, Receiver, ReturnType, Token, Type};
+use syn::{FnArg, ForeignItemFn, Receiver, ReturnType, Token};
 
 mod extern_rust;
 mod extern_swift;
@@ -57,7 +57,7 @@ struct SwiftBridgeModule {
     extern_rust: Vec<ExternRustSection>,
 }
 
-/// A method or static method associated with a type.
+/// A method or associated function associated with a type.
 ///
 /// fn bar (&self);
 /// fn buzz (self: &Foo) -> u8;
@@ -69,6 +69,7 @@ struct SwiftBridgeModule {
 struct TypeMethod {
     this: Option<SelfRefMut>,
     func: ParsedExternFn,
+    is_initializer: bool,
 }
 
 impl TypeMethod {
@@ -219,6 +220,25 @@ impl ParsedExternFn {
         quote! {
             #(#args),*
         }
+    }
+
+    // fn foo (&self, arg1: u8, arg2: u32)
+    //  becomes..
+    // ptr, arg1, arg2
+    fn to_swift_call_args(&self) -> String {
+        let mut args = vec![];
+        let inputs = &self.func.sig.inputs;
+        for arg in inputs {
+            match arg {
+                FnArg::Receiver(_receiver) => args.push("ptr".to_string()),
+                FnArg::Typed(pat_ty) => {
+                    let pat = &pat_ty.pat;
+                    args.push(pat.to_token_stream().to_string());
+                }
+            };
+        }
+
+        args.join(", ")
     }
 
     fn to_swift_return(&self) -> String {
