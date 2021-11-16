@@ -7,7 +7,10 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
-use syn::{FnArg, ForeignItem, ForeignItemFn, Item, ItemMod, Pat, PatType, Receiver, Token, Type};
+use syn::{
+    FnArg, ForeignItem, ForeignItemFn, Item, ItemMod, Pat, PatType, Receiver, Token, Type,
+    TypeReference,
+};
 
 impl Parse for SwiftBridgeModule {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -84,123 +87,19 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                     let first_input = func.sig.inputs.iter().next();
 
                                     if let Some(first) = first_input {
-                                        match first {
-                                            FnArg::Receiver(recv) => {
-                                                let method_self: SelfDesc = recv.clone().into();
-
-                                                if rust_types.len() == 1 {
-                                                    let ty =
-                                                        rust_types.iter_mut().next().unwrap().1;
-                                                    ty.methods.push(TypeMethod {
-                                                        this: Some(method_self),
-                                                        func: ExternFn { func },
-                                                    });
-                                                } else {
-                                                    errors.push(ParseError::AmbiguousSelf {
-                                                        self_: recv.clone(),
-                                                    });
-                                                }
-                                            }
-                                            FnArg::Typed(arg) => {
-                                                match arg.pat.deref() {
-                                                    Pat::Ident(pat_ident) => {
-                                                        if pat_ident.ident.to_string() == "self" {
-                                                            let self_ty = arg.ty.deref();
-
-                                                            match self_ty {
-                                                                Type::Path(path) => {
-                                                                    let self_ty_string = path
-                                                                        .path
-                                                                        .segments
-                                                                        .to_token_stream()
-                                                                        .to_string();
-
-                                                                    if let Some(ty) = rust_types
-                                                                        .get_mut(&self_ty_string)
-                                                                    {
-                                                                        ty.methods
-                                                                            .push(TypeMethod {
-                                                                            this: Some(SelfDesc {
-                                                                                reference: None,
-                                                                                mutability: None,
-                                                                            }),
-                                                                            func: ExternFn { func },
-                                                                        });
-                                                                    } else {
-                                                                        todo!("Handle type not present in this extern")
-                                                                    }
-                                                                }
-                                                                Type::Reference(type_ref) => {
-                                                                    let self_ty =
-                                                                        type_ref.elem.deref();
-
-                                                                    match self_ty {
-                                                                        Type::Path(path) => {
-                                                                            let self_ty_string = path
-                                                                               .path
-                                                                               .segments
-                                                                               .to_token_stream()
-                                                                               .to_string();
-
-                                                                            if let Some(ty) =
-                                                                                rust_types.get_mut(
-                                                                                    &self_ty_string,
-                                                                                )
-                                                                            {
-                                                                                ty.methods
-                                                                                   .push(TypeMethod {
-                                                                                       this: Some(
-                                                                                           SelfDesc {
-                                                                                               reference: Some(type_ref.and_token),
-                                                                                               mutability: type_ref.mutability
-                                                                                           },
-                                                                                       ),
-                                                                                       func: ExternFn { func },
-                                                                                   });
-                                                                            } else {
-                                                                                todo!("Handle type not present in this extern")
-                                                                            }
-                                                                        }
-                                                                        _ => {
-                                                                            todo!("Add a test that hits this block..")
-                                                                        }
-                                                                    };
-                                                                }
-                                                                _ => {}
-                                                            };
-                                                        } else {
-                                                            free_functions.push(ExternFn { func });
-                                                        }
-                                                    }
-                                                    _ => {}
-                                                };
-                                            }
-                                        }
+                                        parse_function_with_inputs(
+                                            first,
+                                            func.clone(),
+                                            &mut rust_types,
+                                            &mut free_functions,
+                                            &mut errors,
+                                        )?;
                                     } else {
-                                        let mut associated_to = None;
-
-                                        for attr in func.attrs.iter() {
-                                            let attr: SwiftBridgeAttr = attr.parse_args()?;
-
-                                            match attr {
-                                                SwiftBridgeAttr::AssociatedTo(ty) => {
-                                                    associated_to = Some(ty);
-                                                }
-                                            }
-                                        }
-
-                                        if let Some(associated_to) = associated_to {
-                                            rust_types
-                                                .get_mut(&associated_to.to_string())
-                                                .unwrap()
-                                                .methods
-                                                .push(TypeMethod {
-                                                    this: None,
-                                                    func: ExternFn { func },
-                                                })
-                                        } else {
-                                            free_functions.push(ExternFn { func });
-                                        }
+                                        parse_function_no_inputs(
+                                            func.clone(),
+                                            &mut rust_types,
+                                            &mut free_functions,
+                                        )?;
                                     }
                                 }
                                 ForeignItem::Type(foreign_ty) => {
@@ -221,7 +120,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                     }
                     _ => {
                         //
-                        todo!("Return an error that the module may only contain `extern` blocks.")
+                        todo!("Push an error that the module may only contain `extern` blocks.")
                     }
                 };
             }
@@ -238,6 +137,122 @@ impl Parse for SwiftBridgeModuleAndErrors {
             ));
         }
     }
+}
+
+// Parse a function that doesn't have self or any other arguments.
+fn parse_function_no_inputs(
+    func: ForeignItemFn,
+    rust_types: &mut HashMap<String, ExternRustSectionType>,
+    free_functions: &mut Vec<ExternFn>,
+) -> syn::Result<()> {
+    let mut associated_to = None;
+
+    for attr in func.attrs.iter() {
+        let attr: SwiftBridgeAttr = attr.parse_args()?;
+
+        match attr {
+            SwiftBridgeAttr::AssociatedTo(ty) => {
+                associated_to = Some(ty);
+            }
+        }
+    }
+
+    if let Some(associated_to) = associated_to {
+        rust_types
+            .get_mut(&associated_to.to_string())
+            .unwrap()
+            .methods
+            .push(TypeMethod {
+                this: None,
+                func: ExternFn { func },
+            })
+    } else {
+        free_functions.push(ExternFn { func });
+    }
+
+    Ok(())
+}
+
+// Parse a function that has inputs (i.e. perhaps self or arguments)
+fn parse_function_with_inputs(
+    first: &FnArg,
+    func: ForeignItemFn,
+    rust_types: &mut HashMap<String, ExternRustSectionType>,
+    free_functions: &mut Vec<ExternFn>,
+    errors: &mut ParseErrors,
+) -> syn::Result<()> {
+    match first {
+        FnArg::Receiver(recv) => {
+            let method_self: SelfDesc = recv.clone().into();
+
+            if rust_types.len() == 1 {
+                let ty = rust_types.iter_mut().next().unwrap().1;
+                ty.methods.push(TypeMethod {
+                    this: Some(method_self),
+                    func: ExternFn { func },
+                });
+            } else {
+                errors.push(ParseError::AmbiguousSelf {
+                    self_: recv.clone(),
+                });
+            }
+        }
+        FnArg::Typed(arg) => {
+            match arg.pat.deref() {
+                Pat::Ident(pat_ident) => {
+                    if pat_ident.ident.to_string() == "self" {
+                        let self_ty = arg.ty.deref();
+
+                        match self_ty {
+                            Type::Path(_path) => {
+                                parse_method(func.clone(), rust_types, None, self_ty);
+                            }
+                            Type::Reference(type_ref) => {
+                                let self_ty = type_ref.elem.deref();
+
+                                parse_method(func.clone(), rust_types, Some(type_ref), self_ty);
+                            }
+                            _ => {}
+                        };
+                    } else {
+                        free_functions.push(ExternFn { func });
+                    }
+                }
+                _ => {}
+            };
+        }
+    };
+
+    Ok(())
+}
+
+// Parse a function that has `self`
+fn parse_method(
+    func: ForeignItemFn,
+    rust_types: &mut HashMap<String, ExternRustSectionType>,
+    type_ref: Option<&TypeReference>,
+    self_ty: &Type,
+) {
+    match self_ty {
+        Type::Path(path) => {
+            let self_ty_string = path.path.segments.to_token_stream().to_string();
+
+            if let Some(ty) = rust_types.get_mut(&self_ty_string) {
+                ty.methods.push(TypeMethod {
+                    this: type_ref.map(|type_ref| SelfDesc {
+                        reference: Some(type_ref.and_token),
+                        mutability: type_ref.mutability,
+                    }),
+                    func: ExternFn { func },
+                });
+            } else {
+                todo!("Handle type not present in this extern push pushing a ParseError")
+            }
+        }
+        _ => {
+            todo!("Add a test that hits this block..")
+        }
+    };
 }
 
 enum SwiftBridgeAttr {
