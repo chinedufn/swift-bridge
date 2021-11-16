@@ -1,5 +1,6 @@
 use crate::errors::{ParseError, ParseErrors};
 use crate::extern_rust::{ExternRustSection, ExternRustSectionType};
+use crate::support_types::SupportedType;
 use crate::{ExternFn, SelfDesc, SwiftBridgeModule, TypeMethod};
 use proc_macro2::Ident;
 use quote::ToTokens;
@@ -99,50 +100,16 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
                                     for arg in func.sig.inputs.iter() {
                                         if let FnArg::Typed(pat_ty) = arg {
-                                            // FIXME: Normalize with code below
-
-                                            let (ty_string, ty_span) = match pat_ty.ty.deref() {
-                                                Type::Path(path) => (
-                                                    path.path.to_token_stream().to_string(),
-                                                    path.path.span(),
-                                                ),
-                                                Type::Reference(ref_ty) => (
-                                                    ref_ty.elem.to_token_stream().to_string(),
-                                                    ref_ty.elem.span(),
-                                                ),
-                                                _ => todo!("Handle other type possibilities"),
-                                            };
-
-                                            if !rust_types.contains_key(&ty_string) {
-                                                errors.push(ParseError::UndeclaredType {
-                                                    ty: ty_string,
-                                                    span: ty_span,
-                                                });
-                                            }
+                                            check_supported_type(
+                                                &pat_ty.ty,
+                                                &mut rust_types,
+                                                &mut errors,
+                                            );
                                         }
                                     }
 
                                     if let ReturnType::Type(_, ty) = &func.sig.output {
-                                        // FIXME: Normalize with code above
-
-                                        let (ty_string, ty_span) = match ty.deref() {
-                                            Type::Path(path) => (
-                                                path.path.to_token_stream().to_string(),
-                                                path.path.span(),
-                                            ),
-                                            Type::Reference(ref_ty) => (
-                                                ref_ty.elem.to_token_stream().to_string(),
-                                                ref_ty.elem.span(),
-                                            ),
-                                            _ => todo!("Handle other type possibilities"),
-                                        };
-
-                                        if !rust_types.contains_key(&ty_string) {
-                                            errors.push(ParseError::UndeclaredType {
-                                                ty: ty_string,
-                                                span: ty_span,
-                                            });
-                                        }
+                                        check_supported_type(ty, &mut rust_types, &mut errors);
                                     }
 
                                     let first_input = func.sig.inputs.iter().next();
@@ -199,6 +166,29 @@ impl Parse for SwiftBridgeModuleAndErrors {
                 "Only modules and impl blocks are supported.",
             ));
         }
+    }
+}
+
+fn check_supported_type(
+    ty: &Type,
+    rust_types: &mut HashMap<String, ExternRustSectionType>,
+    errors: &mut ParseErrors,
+) {
+    let (ty_string, ty_span) = match ty.deref() {
+        Type::Path(path) => (path.path.to_token_stream().to_string(), path.path.span()),
+        Type::Reference(ref_ty) => (
+            ref_ty.elem.to_token_stream().to_string(),
+            ref_ty.elem.span(),
+        ),
+        Type::Ptr(ptr) => (ptr.elem.to_token_stream().to_string(), ptr.elem.span()),
+        _ => todo!("Handle other type possibilities"),
+    };
+
+    if !rust_types.contains_key(&ty_string) && SupportedType::with_type(ty).is_none() {
+        errors.push(ParseError::UndeclaredType {
+            ty: ty_string,
+            span: ty_span,
+        });
     }
 }
 

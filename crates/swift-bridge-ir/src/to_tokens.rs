@@ -258,7 +258,7 @@ mod tests {
             #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$new"]
             pub extern "C" fn SomeType_new ()  {
-                 super::SomeType::new(foo)
+                 super::SomeType::new()
             }
         };
 
@@ -307,8 +307,8 @@ mod tests {
         };
         let expected = quote! {
             #[no_mangle]
-            #[export_name = "__swift_bridge__$SomeType$increment"]
-            pub extern "C" fn SomeType_increment (
+            #[export_name = "__swift_bridge__$SomeType$message"]
+            pub extern "C" fn SomeType_message (
                 this: swift_bridge::OwnedPtrToRust<super::SomeType>,
                 val: u8
             ) {

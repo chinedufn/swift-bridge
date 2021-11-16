@@ -8,10 +8,11 @@
 #![deny(missing_docs)]
 
 use crate::extern_rust::ExternRustSection;
+use crate::support_types::SupportedType;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
-use syn::{ForeignItemFn, PatType, Receiver, ReturnType, Token, Type};
+use syn::{FnArg, ForeignItemFn, PatType, Receiver, ReturnType, Token, Type};
 
 mod extern_rust;
 mod extern_swift;
@@ -19,6 +20,8 @@ mod extern_swift;
 mod errors;
 mod parse;
 mod to_tokens;
+
+mod support_types;
 
 #[cfg(test)]
 mod test_utils;
@@ -85,22 +88,52 @@ impl TypeMethod {
             quote! { this: swift_bridge::OwnedPtrToRust<super::SomeType>, }
         });
 
+        let mut args = vec![];
+        let mut arg_var_names = vec![];
+        for arg in &sig.inputs {
+            // We don't worry about the Receiver since it was is pulled out and stored
+            // separately during parsing.
+            if let FnArg::Typed(arg) = arg {
+                args.push(arg);
+                arg_var_names.push(&arg.pat);
+            }
+        }
+
+        let call_fn = quote! {
+            #fn_name(#(#arg_var_names),*)
+        };
+
         let inner = if let Some(this) = self.this.as_ref() {
             if let Some(reference) = this.reference {
                 let maybe_mut = &this.mutability;
 
                 quote! {
                     let this = unsafe { #reference #maybe_mut *this.ptr };
-                    this.#fn_name()
+                    this.#call_fn
                 }
             } else {
                 todo!()
             }
         } else {
-            quote! {
-                let val = super::#ty_declaration::#fn_name();
-                let val = Box::into_raw(Box::new(val));
-                swift_bridge::OwnedPtrToRust::new(val)
+            match &sig.output {
+                ReturnType::Default => {
+                    quote! {
+                        super::#ty_declaration::#call_fn
+                    }
+                }
+                ReturnType::Type(_arrow, ty) => {
+                    if SupportedType::with_type(&ty).is_some() {
+                        quote! {
+                            super::#ty_declaration::#call_fn
+                        }
+                    } else {
+                        quote! {
+                            let val = super::#ty_declaration::#call_fn;
+                            let val = Box::into_raw(Box::new(val));
+                            swift_bridge::OwnedPtrToRust::new(val)
+                        }
+                    }
+                }
             }
         };
 
@@ -109,19 +142,23 @@ impl TypeMethod {
             fn_name.span(),
         );
 
-        let output = match sig.output.clone() {
+        let output = match &sig.output {
             ReturnType::Default => {
                 quote! {}
             }
-            ReturnType::Type(_arrow, ty) => {
-                quote_spanned! {ty.span()=> -> swift_bridge::OwnedPtrToRust<super::#ty> }
+            ReturnType::Type(arrow, ty) => {
+                if let Some(_supported) = SupportedType::with_type(&ty) {
+                    quote! {#arrow #ty}
+                } else {
+                    quote_spanned! {ty.span()=> -> swift_bridge::OwnedPtrToRust<super::#ty> }
+                }
             }
         };
 
         quote! {
             #[no_mangle]
             #[export_name = #export_name]
-            pub extern "C" fn #prefixed_fn_name (#this ) #output {
+            pub extern "C" fn #prefixed_fn_name (#this #(#args),* ) #output {
                 #inner
             }
         }
