@@ -7,9 +7,10 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
+use syn::spanned::Spanned;
 use syn::{
-    FnArg, ForeignItem, ForeignItemFn, Item, ItemMod, Pat, PatType, Receiver, Token, Type,
-    TypeReference,
+    FnArg, ForeignItem, ForeignItemFn, Item, ItemMod, Pat, PatType, Receiver, ReturnType, Token,
+    Type, TypeReference,
 };
 
 impl Parse for SwiftBridgeModule {
@@ -84,22 +85,84 @@ impl Parse for SwiftBridgeModuleAndErrors {
                         for foreign_mod_item in foreign_mod.items {
                             match foreign_mod_item {
                                 ForeignItem::Fn(func) => {
+                                    let mut associated_to = None;
+
+                                    for attr in func.attrs.iter() {
+                                        let attr: SwiftBridgeAttr = attr.parse_args()?;
+
+                                        match attr {
+                                            SwiftBridgeAttr::AssociatedTo(ty) => {
+                                                associated_to = Some(ty);
+                                            }
+                                        }
+                                    }
+
+                                    for arg in func.sig.inputs.iter() {
+                                        if let FnArg::Typed(pat_ty) = arg {
+                                            // FIXME: Normalize with code below
+
+                                            let (ty_string, ty_span) = match pat_ty.ty.deref() {
+                                                Type::Path(path) => (
+                                                    path.path.to_token_stream().to_string(),
+                                                    path.path.span(),
+                                                ),
+                                                Type::Reference(ref_ty) => (
+                                                    ref_ty.elem.to_token_stream().to_string(),
+                                                    ref_ty.elem.span(),
+                                                ),
+                                                _ => todo!("Handle other type possibilities"),
+                                            };
+
+                                            if !rust_types.contains_key(&ty_string) {
+                                                errors.push(ParseError::UndeclaredType {
+                                                    ty: ty_string,
+                                                    span: ty_span,
+                                                });
+                                            }
+                                        }
+                                    }
+
+                                    if let ReturnType::Type(_, ty) = &func.sig.output {
+                                        // FIXME: Normalize with code above
+
+                                        let (ty_string, ty_span) = match ty.deref() {
+                                            Type::Path(path) => (
+                                                path.path.to_token_stream().to_string(),
+                                                path.path.span(),
+                                            ),
+                                            Type::Reference(ref_ty) => (
+                                                ref_ty.elem.to_token_stream().to_string(),
+                                                ref_ty.elem.span(),
+                                            ),
+                                            _ => todo!("Handle other type possibilities"),
+                                        };
+
+                                        if !rust_types.contains_key(&ty_string) {
+                                            errors.push(ParseError::UndeclaredType {
+                                                ty: ty_string,
+                                                span: ty_span,
+                                            });
+                                        }
+                                    }
+
                                     let first_input = func.sig.inputs.iter().next();
 
                                     if let Some(first) = first_input {
                                         parse_function_with_inputs(
                                             first,
                                             func.clone(),
+                                            associated_to,
                                             &mut rust_types,
                                             &mut free_functions,
                                             &mut errors,
                                         )?;
                                     } else {
-                                        parse_function_no_inputs(
+                                        parse_function(
                                             func.clone(),
+                                            associated_to,
                                             &mut rust_types,
                                             &mut free_functions,
-                                        )?;
+                                        );
                                     }
                                 }
                                 ForeignItem::Type(foreign_ty) => {
@@ -139,24 +202,13 @@ impl Parse for SwiftBridgeModuleAndErrors {
     }
 }
 
-// Parse a function that doesn't have self or any other arguments.
-fn parse_function_no_inputs(
+// Parse a freestanding or associated function.
+fn parse_function(
     func: ForeignItemFn,
+    associated_to: Option<Ident>,
     rust_types: &mut HashMap<String, ExternRustSectionType>,
     free_functions: &mut Vec<ExternFn>,
-) -> syn::Result<()> {
-    let mut associated_to = None;
-
-    for attr in func.attrs.iter() {
-        let attr: SwiftBridgeAttr = attr.parse_args()?;
-
-        match attr {
-            SwiftBridgeAttr::AssociatedTo(ty) => {
-                associated_to = Some(ty);
-            }
-        }
-    }
-
+) {
     if let Some(associated_to) = associated_to {
         rust_types
             .get_mut(&associated_to.to_string())
@@ -169,14 +221,13 @@ fn parse_function_no_inputs(
     } else {
         free_functions.push(ExternFn { func });
     }
-
-    Ok(())
 }
 
 // Parse a function that has inputs (i.e. perhaps self or arguments)
 fn parse_function_with_inputs(
     first: &FnArg,
     func: ForeignItemFn,
+    associated_to: Option<Ident>,
     rust_types: &mut HashMap<String, ExternRustSectionType>,
     free_functions: &mut Vec<ExternFn>,
     errors: &mut ParseErrors,
@@ -214,6 +265,8 @@ fn parse_function_with_inputs(
                             }
                             _ => {}
                         };
+                    } else if let Some(associated_to) = associated_to {
+                        parse_function(func, Some(associated_to), rust_types, free_functions);
                     } else {
                         free_functions.push(ExternFn { func });
                     }
@@ -355,10 +408,6 @@ mod tests {
             quote! { fn bar (self: Foo); },
             quote! { fn bar (self: &Foo); },
             quote! { fn bar (self: &mut Foo); },
-            quote! {
-                #[swift_bridge(associated_to = Foo)]
-                fn bar ();
-            },
         ];
 
         for fn_definition in tests {
@@ -386,9 +435,53 @@ mod tests {
         }
     }
 
+    /// Verify that we can parse an associated function.
+    #[test]
+    fn parse_associated_function() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(associated_to = Foo)]
+                    fn bar ();
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let ty = &module.extern_rust[0].types[0];
+        assert_eq!(ty.ty.ident.to_string(), "Foo");
+
+        assert_eq!(ty.methods.len(), 1,);
+    }
+
+    /// Verify that we can parse an associated function that has arguments.
+    #[test]
+    fn associated_function_with_args() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(associated_to = Foo)]
+                    fn bar (arg: u8);
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let ty = &module.extern_rust[0].types[0];
+        assert_eq!(ty.ty.ident.to_string(), "Foo");
+
+        assert_eq!(ty.methods.len(), 1,);
+    }
+
     /// Verify that we can parse a freestanding Rust function declaration.
     #[test]
-    fn parse_rust_freestanding_function_no_args() {
+    fn rust_freestanding_function_no_args() {
         let tokens = quote! {
             mod foo {
                 extern "Rust" {
@@ -404,7 +497,7 @@ mod tests {
 
     /// Verify that we can parse a freestanding Rust function declaration that has one arg.
     #[test]
-    fn parse_rust_freestanding_function_one_arg() {
+    fn rust_freestanding_function_one_arg() {
         let tokens = quote! {
             mod foo {
                 extern "Rust" {
@@ -416,6 +509,64 @@ mod tests {
         let module = parse_ok(tokens);
 
         assert_eq!(module.extern_rust[0].free_functions.len(), 1);
+    }
+
+    /// Verify that if a freestanding function has argument types that were not declared in the
+    /// module we return an error.
+    #[test]
+    fn freestanding_function_argument_undeclared_type() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    fn a (bar: Bar);
+                    fn b (bar: &Bar);
+                    fn c (bar: &mut Bar);
+                    // Counts as two errors.
+                    fn d (multiple: Bar, args: Bar);
+                }
+            }
+        };
+        let errors = parse_errors(tokens);
+        assert_eq!(errors.len(), 5);
+
+        for error in errors.iter() {
+            match error {
+                ParseError::UndeclaredType { ty, span: _ } => {
+                    assert_eq!(ty, "Bar");
+                }
+                _ => panic!(),
+            }
+        }
+    }
+
+    /// Verify that if a freestanding function returns a type that was not declared in the module
+    /// we return an error.
+    #[test]
+    fn freestanding_function_returns_undeclared_type() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    fn a () -> Bar;
+                    fn a () -> &Bar;
+                    fn a () -> &mut Bar;
+                }
+            }
+        };
+        let errors = parse_errors(tokens);
+        assert_eq!(errors.len(), 3);
+
+        for error in errors.iter() {
+            match error {
+                ParseError::UndeclaredType { ty, span: _ } => {
+                    assert_eq!(ty, "Bar");
+                }
+                _ => panic!(),
+            }
+        }
     }
 
     /// Verify that if an extern Rust block has more than one type, we push errors for any methods
@@ -475,16 +626,6 @@ mod tests {
 
         assert_eq!(types[0].methods.len(), 2);
         assert_eq!(types[1].methods.len(), 1);
-    }
-
-    #[test]
-    fn todo() {
-        todo!(
-            r#"
-Lots more tests.. Add tests for all of the todo!()'s in the parse method..
-First refactor out the parser into smaller pieces.. then more exhaustively test these pieces.
-        "#
-        )
     }
 
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {

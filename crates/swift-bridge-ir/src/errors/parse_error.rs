@@ -1,7 +1,8 @@
-use proc_macro2::Ident;
-use syn::LitStr;
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::ToTokens;
 use syn::Token;
 use syn::{Error, Receiver};
+use syn::{LitStr, Type};
 
 pub(crate) enum ParseError {
     /// `extern {}`
@@ -19,6 +20,9 @@ pub(crate) enum ParseError {
     /// `fn foo (&self)`
     ///           ----
     AmbiguousSelf { self_: Receiver },
+    /// fn foo (bar: &Bar);
+    /// If Bar wasn't declared using a `type Bar` declaration.
+    UndeclaredType { ty: String, span: Span },
 }
 
 impl Into<syn::Error> for ParseError {
@@ -49,6 +53,14 @@ self: &SomeType
 self: &mut SomeType
 "#,
             ),
+            ParseError::UndeclaredType { ty, span } => {
+                let message = format!(
+                    r#"Type must be declared with `type {}`.
+"#,
+                    ty
+                );
+                Error::new(span, message)
+            }
         }
     }
 }

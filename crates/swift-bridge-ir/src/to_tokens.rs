@@ -92,6 +92,30 @@ mod tests {
     use quote::quote;
     use syn::parse_quote;
 
+    /// Verify that we generate a function that frees the memory behind an opaque pointer to a Rust
+    /// type.
+    #[test]
+    fn free_opaque_rust_type() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    type SomeType;
+                }
+            }
+        };
+        let expected = quote! {
+            mod __swift_bridge__foo {
+                #[no_mangle]
+                #[export_name = "__swift_bridge__$SomeType$_free"]
+                pub extern "C" fn SomeType__free (this: swift_bridge::OwnedPtrToRust<super::SomeType>) {
+                    drop(this);
+                }
+            }
+        };
+
+        assert_tokens_eq(&parse_ok(start).to_token_stream(), &expected);
+    }
+
     /// Verify that we generate tokens for a freestanding Rust function with no arguments.
     #[test]
     fn freestanding_rust_function_no_args() {
@@ -138,23 +162,22 @@ mod tests {
         assert_tokens_eq(&parse_ok(start).to_token_stream(), &expected);
     }
 
-    /// Verify that we generate a function that frees the memory behind an opaque pointer to a Rust
-    /// type.
+    /// Verify that we generate tokens for a freestanding Rust function with a return type.
     #[test]
-    fn free_opaque_rust_type() {
+    fn freestanding_with_return_type() {
         let start = quote! {
             mod foo {
                 extern "Rust" {
-                    type SomeType;
+                    fn some_function () -> *const u8;
                 }
             }
         };
         let expected = quote! {
             mod __swift_bridge__foo {
                 #[no_mangle]
-                #[export_name = "__swift_bridge__$SomeType$_free"]
-                pub extern "C" fn SomeType__free (this: swift_bridge::OwnedPtrToRust<super::SomeType>) {
-                    drop(this);
+                #[export_name = "__swift_bridge__$some_function"]
+                pub extern "C" fn some_function () -> *const u8 {
+                    super::some_function()
                 }
             }
         };
@@ -191,6 +214,60 @@ mod tests {
         assert_tokens_eq(&tokens, &expected);
     }
 
+    /// Verify that we generate tokens for a static method that have arguments.
+    #[test]
+    fn associated_static_method_one_arg() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    type SomeType;
+
+                    #[swift_bridge(associated_to = SomeType)]
+                    fn new (foo: u8) -> u8;
+                }
+            }
+        };
+        let expected = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$SomeType$new"]
+            pub extern "C" fn SomeType_new (foo: u8) -> u8 {
+                super::SomeType::new(foo)
+            }
+        };
+
+        let module = parse_ok(start);
+        let tokens = module.extern_rust[0].types[0].methods[0]
+            .rust_tokens(&Ident::new("SomeType", Span::call_site()));
+        assert_tokens_eq(&tokens, &expected);
+    }
+
+    /// Verify that we generate tokens for a static method that does not have a return type.
+    #[test]
+    fn associated_static_method_no_return_type() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    type SomeType;
+
+                    #[swift_bridge(associated_to = SomeType)]
+                    fn new ();
+                }
+            }
+        };
+        let expected = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$SomeType$new"]
+            pub extern "C" fn SomeType_new ()  {
+                 super::SomeType::new(foo)
+            }
+        };
+
+        let module = parse_ok(start);
+        let tokens = module.extern_rust[0].types[0].methods[0]
+            .rust_tokens(&Ident::new("SomeType", Span::call_site()));
+        assert_tokens_eq(&tokens, &expected);
+    }
+
     /// Verify that we generate the tokens for exposing an associated method.
     #[test]
     fn associated_method_no_args() {
@@ -208,6 +285,35 @@ mod tests {
             pub extern "C" fn SomeType_increment (this: swift_bridge::OwnedPtrToRust<super::SomeType>,) {
                 let this = unsafe { &mut *this.ptr };
                 this.increment()
+            }
+        };
+
+        let module = parse_ok(start);
+        let tokens = module.extern_rust[0].types[0].methods[0]
+            .rust_tokens(&Ident::new("SomeType", Span::call_site()));
+        assert_tokens_eq(&tokens, &expected);
+    }
+
+    /// Verify that we generate the tokens for exposing an associated method.
+    #[test]
+    fn associated_method_one_args() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    type SomeType;
+                    fn message (&self, val: u8);
+                }
+            }
+        };
+        let expected = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$SomeType$increment"]
+            pub extern "C" fn SomeType_increment (
+                this: swift_bridge::OwnedPtrToRust<super::SomeType>,
+                val: u8
+            ) {
+                let this = unsafe { &*this.ptr };
+                this.message(val)
             }
         };
 
@@ -235,6 +341,17 @@ mod tests {
         let tokens = module.to_token_stream();
 
         assert_tokens_contain(&tokens, &quote! { SomeType_new });
+    }
+
+    #[test]
+    fn todo() {
+        todo!(
+            r#"
+Split the generating of the return type tokens into a submodule..
+Then add tests for whether or not we convert the type (i.e. to a OwnedPtrToRust.. RustString.. or
+something else)
+"#
+        )
     }
 
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
