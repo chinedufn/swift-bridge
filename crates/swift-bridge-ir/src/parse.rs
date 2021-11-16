@@ -1,7 +1,7 @@
+use crate::build_in_types::BuiltInType;
 use crate::errors::{ParseError, ParseErrors};
 use crate::extern_rust::{ExternRustSection, ExternRustSectionType};
-use crate::support_types::SupportedType;
-use crate::{ExternFn, SelfDesc, SwiftBridgeModule, TypeMethod};
+use crate::{ParsedExternFn, SelfRefMut, SwiftBridgeModule, TypeMethod};
 use proc_macro2::Ident;
 use quote::ToTokens;
 use std::cmp::Ordering;
@@ -144,7 +144,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
                         let section = ExternRustSection {
                             types: rust_types.into_values().collect(),
-                            free_functions,
+                            freestanding_fns: free_functions,
                         };
                         extern_rust.push(section);
                     }
@@ -184,7 +184,7 @@ fn check_supported_type(
         _ => todo!("Handle other type possibilities"),
     };
 
-    if !rust_types.contains_key(&ty_string) && SupportedType::with_type(ty).is_none() {
+    if !rust_types.contains_key(&ty_string) && BuiltInType::with_type(ty).is_none() {
         errors.push(ParseError::UndeclaredType {
             ty: ty_string,
             span: ty_span,
@@ -197,7 +197,7 @@ fn parse_function(
     func: ForeignItemFn,
     associated_to: Option<Ident>,
     rust_types: &mut HashMap<String, ExternRustSectionType>,
-    free_functions: &mut Vec<ExternFn>,
+    free_functions: &mut Vec<ParsedExternFn>,
 ) {
     if let Some(associated_to) = associated_to {
         rust_types
@@ -206,10 +206,10 @@ fn parse_function(
             .methods
             .push(TypeMethod {
                 this: None,
-                func: ExternFn { func },
+                func: ParsedExternFn { func },
             })
     } else {
-        free_functions.push(ExternFn { func });
+        free_functions.push(ParsedExternFn { func });
     }
 }
 
@@ -219,18 +219,18 @@ fn parse_function_with_inputs(
     func: ForeignItemFn,
     associated_to: Option<Ident>,
     rust_types: &mut HashMap<String, ExternRustSectionType>,
-    free_functions: &mut Vec<ExternFn>,
+    free_functions: &mut Vec<ParsedExternFn>,
     errors: &mut ParseErrors,
 ) -> syn::Result<()> {
     match first {
         FnArg::Receiver(recv) => {
-            let method_self: SelfDesc = recv.clone().into();
+            let method_self: SelfRefMut = recv.clone().into();
 
             if rust_types.len() == 1 {
                 let ty = rust_types.iter_mut().next().unwrap().1;
                 ty.methods.push(TypeMethod {
                     this: Some(method_self),
-                    func: ExternFn { func },
+                    func: ParsedExternFn { func },
                 });
             } else {
                 errors.push(ParseError::AmbiguousSelf {
@@ -258,7 +258,7 @@ fn parse_function_with_inputs(
                     } else if let Some(associated_to) = associated_to {
                         parse_function(func, Some(associated_to), rust_types, free_functions);
                     } else {
-                        free_functions.push(ExternFn { func });
+                        free_functions.push(ParsedExternFn { func });
                     }
                 }
                 _ => {}
@@ -282,11 +282,11 @@ fn parse_method(
 
             if let Some(ty) = rust_types.get_mut(&self_ty_string) {
                 ty.methods.push(TypeMethod {
-                    this: type_ref.map(|type_ref| SelfDesc {
+                    this: type_ref.map(|type_ref| SelfRefMut {
                         reference: Some(type_ref.and_token),
                         mutability: type_ref.mutability,
                     }),
-                    func: ExternFn { func },
+                    func: ParsedExternFn { func },
                 });
             } else {
                 todo!("Handle type not present in this extern push pushing a ParseError")
@@ -482,7 +482,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        assert_eq!(module.extern_rust[0].free_functions.len(), 1);
+        assert_eq!(module.extern_rust[0].freestanding_fns.len(), 1);
     }
 
     /// Verify that we can parse a freestanding Rust function declaration that has one arg.
@@ -498,7 +498,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        assert_eq!(module.extern_rust[0].free_functions.len(), 1);
+        assert_eq!(module.extern_rust[0].freestanding_fns.len(), 1);
     }
 
     /// Verify that if a freestanding function has argument types that were not declared in the

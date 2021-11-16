@@ -104,3 +104,12 @@ func len(this: UnsafeMutableRawPointer) -> UInt {
     let stack: ASwiftStack = Unmanaged.fromOpaque(this).takeUnretainedValue()
     return stack.len()
 }
+
+// Scratchpad
+public class Foo {
+    private var ptr: OwnedPtrToRust
+    
+    init() {
+        fatalError("No swift_bridge(constructor) attribute provided.")
+    }
+}

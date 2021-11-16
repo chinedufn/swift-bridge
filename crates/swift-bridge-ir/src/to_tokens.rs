@@ -14,7 +14,7 @@ impl ToTokens for SwiftBridgeModule {
         let mut generated = vec![];
 
         for rust_section in &self.extern_rust {
-            for freefunc in &rust_section.free_functions {
+            for freefunc in &rust_section.freestanding_fns {
                 let sig = &freefunc.func.sig;
                 let export_name = format!("{}${}", SWIFT_BRIDGE_PREFIX, sig.ident.to_string());
 
@@ -69,7 +69,7 @@ impl ToTokens for SwiftBridgeModule {
                 generated.push(free);
 
                 for type_method in &ty.methods {
-                    generated.push(type_method.rust_tokens(&ty.ty.ident));
+                    generated.push(type_method.extern_rust_tokens(&ty.ty.ident));
                 }
             }
         }
@@ -210,7 +210,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -237,7 +237,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -264,7 +264,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -282,7 +282,7 @@ mod tests {
         let expected = quote! {
             #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$increment"]
-            pub extern "C" fn SomeType_increment (this: swift_bridge::OwnedPtrToRust<super::SomeType>,) {
+            pub extern "C" fn SomeType_increment (this: swift_bridge::OwnedPtrToRust<super::SomeType>) {
                 let this = unsafe { &mut *this.ptr };
                 this.increment()
             }
@@ -290,7 +290,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -319,7 +319,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
         assert_tokens_eq(&tokens, &expected);
     }
 

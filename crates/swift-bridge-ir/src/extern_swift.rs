@@ -1,9 +1,9 @@
-use crate::{ExternFn, TypeMethod};
+use crate::{ParsedExternFn, TypeMethod};
 use syn::ForeignItemType;
 
 pub struct ExternSwiftSection {
     types: Vec<ExternSwiftSectionType>,
-    free_functions: Vec<ExternFn>,
+    free_functions: Vec<ParsedExternFn>,
 }
 
 struct ExternSwiftSectionType {
