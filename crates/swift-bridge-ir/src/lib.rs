@@ -83,27 +83,6 @@ impl SwiftBridgeModule {
     }
 }
 
-/// A method or associated function associated with a type.
-///
-/// fn bar (&self);
-/// fn buzz (self: &Foo) -> u8;
-///
-/// #\[swift_bridge(associated_to = Foo)]
-/// fn new () -> Foo;
-///
-/// ... etc
-struct TypeMethod {
-    func: ParsedExternFn,
-    is_initializer: bool,
-}
-
-impl TypeMethod {
-    fn extern_rust_tokens(&self, ty_declaration: &Ident) -> TokenStream {
-        self.func
-            .to_extern_rust_function_tokens(Some(ty_declaration))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

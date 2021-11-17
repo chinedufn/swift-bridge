@@ -1,7 +1,7 @@
 use crate::build_in_types::BuiltInType;
 use crate::errors::{ParseError, ParseErrors};
 use crate::extern_rust::{ExternRustSection, ExternRustSectionType};
-use crate::{ParsedExternFn, SwiftBridgeModule, TypeMethod};
+use crate::{ParsedExternFn, SwiftBridgeModule};
 use proc_macro2::Ident;
 use quote::ToTokens;
 use std::cmp::Ordering;
@@ -200,8 +200,8 @@ fn parse_function(
             .get_mut(&associated_to.to_string())
             .unwrap()
             .methods
-            .push(TypeMethod {
-                func: ParsedExternFn { func },
+            .push(ParsedExternFn {
+                func,
                 is_initializer: attributes.initializes,
             })
     } else if attributes.initializes {
@@ -218,12 +218,15 @@ fn parse_function(
             return;
         }
 
-        ty.unwrap().methods.push(TypeMethod {
-            func: ParsedExternFn { func },
+        ty.unwrap().methods.push(ParsedExternFn {
+            func,
             is_initializer: attributes.initializes,
         })
     } else {
-        free_functions.push(ParsedExternFn { func });
+        free_functions.push(ParsedExternFn {
+            func,
+            is_initializer: false,
+        });
     }
 }
 
@@ -240,8 +243,8 @@ fn parse_function_with_inputs(
         FnArg::Receiver(recv) => {
             if rust_types.len() == 1 {
                 let ty = rust_types.iter_mut().next().unwrap().1;
-                ty.methods.push(TypeMethod {
-                    func: ParsedExternFn { func },
+                ty.methods.push(ParsedExternFn {
+                    func,
                     is_initializer: attributes.initializes,
                 });
             } else {
@@ -278,7 +281,10 @@ fn parse_function_with_inputs(
                     } else if attributes.initializes {
                         parse_function(func, attributes, rust_types, free_functions, errors);
                     } else {
-                        free_functions.push(ParsedExternFn { func });
+                        free_functions.push(ParsedExternFn {
+                            func,
+                            is_initializer: false,
+                        });
                     }
                 }
                 _ => {}
@@ -302,8 +308,8 @@ fn parse_method(
             let self_ty_string = path.path.segments.to_token_stream().to_string();
 
             if let Some(ty) = rust_types.get_mut(&self_ty_string) {
-                ty.methods.push(TypeMethod {
-                    func: ParsedExternFn { func },
+                ty.methods.push(ParsedExternFn {
+                    func,
                     is_initializer: attributes.initializes,
                 });
             } else {

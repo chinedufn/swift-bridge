@@ -1,4 +1,4 @@
-use crate::{ParsedExternFn, TypeMethod, SWIFT_BRIDGE_PREFIX};
+use crate::ParsedExternFn;
 use syn::ForeignItemType;
 
 mod generate_c_header;
@@ -16,7 +16,7 @@ pub(crate) struct ExternRustSectionType {
     /// fn bar (&self);
     /// fn buzz (self: &Foo) -> u8;
     /// ... etc
-    pub methods: Vec<TypeMethod>,
+    pub methods: Vec<ParsedExternFn>,
 }
 
 impl ExternRustSectionType {

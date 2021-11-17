@@ -47,7 +47,7 @@ impl ExternRustSection {
             header += "\n";
 
             for method in ty.methods.iter() {
-                header += &declare_func(&method.func, Some(&ty.ty.ident), &mut bookkeeping);
+                header += &declare_func(&method, Some(&ty.ty.ident), &mut bookkeeping);
             }
         }
 

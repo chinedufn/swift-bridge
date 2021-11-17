@@ -136,7 +136,7 @@ mod tests {
         assert_eq!(methods.len(), 6);
 
         for method in methods {
-            assert_eq!(method.func.to_swift_param_names_and_types(), "");
+            assert_eq!(method.to_swift_param_names_and_types(), "");
         }
     }
 

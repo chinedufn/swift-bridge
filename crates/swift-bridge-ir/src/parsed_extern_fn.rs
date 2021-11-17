@@ -8,13 +8,26 @@ use syn::{FnArg, ForeignItemFn, Lifetime, Pat, ReturnType, Token, Type};
 
 mod to_swift;
 
+/// A method or associated function associated with a type.
+///
+/// fn bar (&self);
+/// fn buzz (self: &Foo) -> u8;
+///
+/// #\[swift_bridge(init)\]
+/// fn new () -> Foo;
+///
+/// ... etc
 pub(crate) struct ParsedExternFn {
     pub func: ForeignItemFn,
+    pub is_initializer: bool,
 }
 
 impl ParsedExternFn {
-    pub fn new(func: ForeignItemFn) -> Self {
-        ParsedExternFn { func }
+    pub fn new(func: ForeignItemFn, is_initializer: bool) -> Self {
+        ParsedExternFn {
+            func,
+            is_initializer,
+        }
     }
 
     pub fn is_method(&self) -> bool {
@@ -416,9 +429,7 @@ mod tests {
 
         for method in methods {
             assert_tokens_contain(
-                &method
-                    .func
-                    .to_rust_param_names_and_types(Some(&Ident::new("Foo", Span::call_site()))),
+                &method.to_rust_param_names_and_types(Some(&Ident::new("Foo", Span::call_site()))),
                 &quote! { this },
             );
         }
@@ -446,7 +457,7 @@ mod tests {
         assert_eq!(methods.len(), 6);
 
         for method in methods {
-            let rust_call_args = &method.func.to_rust_call_args();
+            let rust_call_args = &method.to_rust_call_args();
             assert_eq!(
                 rust_call_args.to_string(),
                 "",

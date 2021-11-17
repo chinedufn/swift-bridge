@@ -38,7 +38,7 @@ impl ToTokens for SwiftBridgeModule {
                 generated.push(free);
 
                 for type_method in &ty.methods {
-                    generated.push(type_method.extern_rust_tokens(&ty.ty.ident));
+                    generated.push(type_method.to_extern_rust_function_tokens(Some(&ty.ty.ident)));
                 }
             }
         }
@@ -230,7 +230,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .to_extern_rust_function_tokens(Some(&Ident::new("SomeType", Span::call_site())));
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -257,7 +257,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .to_extern_rust_function_tokens(Some(&Ident::new("SomeType", Span::call_site())));
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -284,7 +284,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .to_extern_rust_function_tokens(Some(&Ident::new("SomeType", Span::call_site())));
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -312,7 +312,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .extern_rust_tokens(&Ident::new("MyType", Span::call_site()));
+            .to_extern_rust_function_tokens(Some(&Ident::new("MyType", Span::call_site())));
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -341,7 +341,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .to_extern_rust_function_tokens(Some(&Ident::new("SomeType", Span::call_site())));
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -369,7 +369,7 @@ mod tests {
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .to_extern_rust_function_tokens(Some(&Ident::new("SomeType", Span::call_site())));
         assert_tokens_eq(&tokens, &expected);
     }
 

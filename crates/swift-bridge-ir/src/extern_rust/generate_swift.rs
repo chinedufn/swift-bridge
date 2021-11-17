@@ -44,13 +44,13 @@ func {fn_name} ({params}){ret} {{
             for type_method in &ty.methods {
                 // TODO: Normalize with freestanding func codegen above
 
-                let fn_name = type_method.func.sig.ident.to_string();
-                let params = type_method.func.to_swift_param_names_and_types();
-                let call_args = type_method.func.to_swift_call_args();
+                let fn_name = type_method.sig.ident.to_string();
+                let params = type_method.to_swift_param_names_and_types();
+                let call_args = type_method.to_swift_call_args();
                 let call_fn = format!("{}({})", fn_name, call_args);
 
                 let maybe_static_class_func =
-                    if !type_method.func.is_method() && !type_method.is_initializer {
+                    if !type_method.is_method() && !type_method.is_initializer {
                         "class "
                     } else {
                         ""
@@ -59,7 +59,7 @@ func {fn_name} ({params}){ret} {{
                 let maybe_return = if type_method.is_initializer {
                     "".to_string()
                 } else {
-                    type_method.func.to_swift_return()
+                    type_method.to_swift_return()
                 };
 
                 let (swift_class_func_name, maybe_assign_to_ptr) = if type_method.is_initializer {
