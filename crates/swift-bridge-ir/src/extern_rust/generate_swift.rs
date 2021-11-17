@@ -285,7 +285,7 @@ public class Foo {
         assert_eq!(generated.trim(), expected.trim());
     }
 
-    /// Verify that we can generate a class method.
+    /// Verify that we can generate an instance method.
     #[test]
     fn instance_method() {
         let tokens = quote! {
@@ -314,6 +314,42 @@ public class Foo {
 
     bar() {
         __swift_bridge__$Foo$bar(ptr)
+    }
+}
+"#;
+
+        assert_eq!(generated.trim(), expected.trim());
+    }
+
+    /// Verify that we can generate a Swift instance method with an argument to a declared type.
+    #[test]
+    fn instance_method_with_declared_type_arg() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    fn bar(&self, other: &Foo);
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.extern_rust[0].generate_swift();
+
+        let expected = r#"
+public class Foo {
+    private var ptr: UnsafeMutableRawPointer
+
+    init() {
+        fatalError("No #[swift_bridge(constructor)] was defined in the extern "Rust" module.")
+    }
+
+    deinit {
+        __swift_bridge__$Foo$_free(ptr)
+    }
+
+    bar(other: Foo) {
+        __swift_bridge__$Foo$bar(ptr, other.ptr)
     }
 }
 "#;

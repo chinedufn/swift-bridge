@@ -1,6 +1,7 @@
 use crate::build_in_types::BuiltInType;
 use crate::parsed_extern_fn::ParsedExternFn;
 use quote::ToTokens;
+use std::ops::Deref;
 use syn::{FnArg, ReturnType};
 
 impl ParsedExternFn {
@@ -10,7 +11,6 @@ impl ParsedExternFn {
         for arg in &self.func.sig.inputs {
             match arg {
                 FnArg::Receiver(receiver) => {
-                    // FIXME: Change tests to not all use SomeType so that this fails...
                     // Needs to be based on  receiver.reference and receiver.mutability..
                     // let this = quote! { this: swift_bridge::OwnedPtrToRust<super::SomeType> };
                     // params.push(this);
@@ -21,7 +21,12 @@ impl ParsedExternFn {
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
                         params.push(format!("{}: {}", arg_name, built_in.to_swift()));
                     } else {
-                        todo!("Add tests for generating functions for unsupported types")
+                        // &mut Foo -> "& mut Foo"
+                        let ty = pat_ty.ty.to_token_stream().to_string();
+                        // Remove all references "&" and mut keywords.
+                        let ty = ty.split_whitespace().last().unwrap();
+
+                        params.push(format!("{}: {}", arg_name, ty));
                     };
                 }
             };
@@ -41,7 +46,12 @@ impl ParsedExternFn {
                 FnArg::Receiver(_receiver) => args.push("ptr".to_string()),
                 FnArg::Typed(pat_ty) => {
                     let pat = &pat_ty.pat;
-                    args.push(pat.to_token_stream().to_string());
+
+                    if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                        args.push(pat.to_token_stream().to_string());
+                    } else {
+                        args.push(format!("{}.ptr", pat.to_token_stream().to_string()));
+                    };
                 }
             };
         }
@@ -91,6 +101,56 @@ mod tests {
 
         for idx in 0..3 {
             assert_eq!(functions[idx].to_swift_return(), "*mut c_void");
+        }
+    }
+
+    /// Verify that we always use the corresponding class name for an argument of a custom type.
+    #[test]
+    fn strips_references_from_params_with_declared_type() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type Foo;
+                    fn make1 (other: Foo);
+                    fn make2 (other: &Foo);
+                    fn make3 (other: &mut Foo);
+                }
+            }
+        };
+        let module = parse_ok(tokens);
+        let functions = &module.extern_rust[0].freestanding_fns;
+        assert_eq!(functions.len(), 3);
+
+        for idx in 0..3 {
+            assert_eq!(
+                functions[idx].to_swift_param_names_and_types(),
+                "other: Foo"
+            );
+        }
+    }
+
+    /// Verify that we use the `.ptr` field on a class instance when calling a Rust function from
+    /// Swift.
+    #[test]
+    fn calls_args_uses_pointer_from_class_instances() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type Foo;
+                    fn make1 (other: Foo);
+                    fn make2 (other: &Foo);
+                    fn make3 (other: &mut Foo);
+                }
+            }
+        };
+        let module = parse_ok(tokens);
+        let functions = &module.extern_rust[0].freestanding_fns;
+        assert_eq!(functions.len(), 3);
+
+        for idx in 0..3 {
+            assert_eq!(functions[idx].to_swift_call_args(), "other.ptr");
         }
     }
 

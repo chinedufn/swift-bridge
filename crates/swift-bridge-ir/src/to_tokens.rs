@@ -30,7 +30,8 @@ impl ToTokens for SwiftBridgeModule {
                 let free = quote! {
                     #[no_mangle]
                     #[export_name = #export_name]
-                    pub extern "C" fn #func_name (this: swift_bridge::OwnedPtrToRust<super::#this>) {
+                    pub extern "C" fn #func_name (this: *mut super::#this) {
+                        let this = unsafe { Box::from_raw(this) };
                         drop(this);
                     }
                 };
@@ -47,7 +48,6 @@ impl ToTokens for SwiftBridgeModule {
                 #(#generated)*
             }
         };
-        dbg!(&t);
         t.to_tokens(tokens);
     }
 }
@@ -75,7 +75,10 @@ mod tests {
             mod __swift_bridge__foo {
                 #[no_mangle]
                 #[export_name = "__swift_bridge__$SomeType$_free"]
-                pub extern "C" fn SomeType__free (this: swift_bridge::OwnedPtrToRust<super::SomeType>) {
+                pub extern "C" fn SomeType__free (
+                    this: *mut super::SomeType
+                ) {
+                    let this = unsafe { Box::from_raw(this) };
                     drop(this);
                 }
             }
@@ -128,6 +131,32 @@ mod tests {
         };
 
         assert_tokens_eq(&parse_ok(start).to_token_stream(), &expected);
+    }
+
+    /// Verify that we generate tokens for a freestanding Rust function with an argument of a
+    /// declared type.
+    #[test]
+    fn freestanding_func_with_declared_type_arg() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    type MyType;
+                    fn some_function (bar: &MyType);
+                }
+            }
+        };
+        let expected = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function (
+                bar: *mut std::mem::ManuallyDrop<super::MyType>
+            ) {
+                let bar = & unsafe { Box::from_raw(bar) };
+                super::some_function(bar)
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
     }
 
     /// Verify that we generate tokens for a freestanding Rust function with a return type.
@@ -265,23 +294,25 @@ mod tests {
         let start = quote! {
             mod foo {
                 extern "Rust" {
-                    type SomeType;
+                    type MyType;
                     fn increment (&mut self);
                 }
             }
         };
         let expected = quote! {
             #[no_mangle]
-            #[export_name = "__swift_bridge__$SomeType$increment"]
-            pub extern "C" fn __swift_bridge__SomeType_increment (this: swift_bridge::OwnedPtrToRust<super::SomeType>) {
-                let this = unsafe { &mut *this.ptr };
+            #[export_name = "__swift_bridge__$MyType$increment"]
+            pub extern "C" fn __swift_bridge__MyType_increment (
+                this: *mut std::mem::ManuallyDrop<super::MyType>
+            ) {
+                let mut this = unsafe { Box::from_raw(this) };
                 this.increment()
             }
         };
 
         let module = parse_ok(start);
         let tokens = module.extern_rust[0].types[0].methods[0]
-            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
+            .extern_rust_tokens(&Ident::new("MyType", Span::call_site()));
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -300,11 +331,39 @@ mod tests {
             #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$message"]
             pub extern "C" fn __swift_bridge__SomeType_message (
-                this: swift_bridge::OwnedPtrToRust<super::SomeType>,
+                this: *mut std::mem::ManuallyDrop<super::SomeType>,
                 val: u8
             ) {
-                let this = unsafe { &*this.ptr };
+                let this = unsafe { Box::from_raw(this) };
                 this.message(val)
+            }
+        };
+
+        let module = parse_ok(start);
+        let tokens = module.extern_rust[0].types[0].methods[0]
+            .extern_rust_tokens(&Ident::new("SomeType", Span::call_site()));
+        assert_tokens_eq(&tokens, &expected);
+    }
+
+    /// Verify that we do not wrap the type in manually drop if the method uses owned self.
+    #[test]
+    fn associated_method_drops_owned_self() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    type SomeType;
+                    fn consume (self);
+                }
+            }
+        };
+        let expected = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$SomeType$consume"]
+            pub extern "C" fn __swift_bridge__SomeType_consume (
+                this: *mut super::SomeType
+            ) {
+                let this = unsafe { Box::from_raw(this) };
+                (*this).consume()
             }
         };
 

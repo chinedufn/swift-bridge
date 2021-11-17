@@ -25,6 +25,8 @@
 //
 // 8. Start implementing more core types (ints .. Vec<T> .. etc)
 
+use std::mem::ManuallyDrop;
+
 pub struct ARustStack {
     stack: Vec<u8>,
 }
@@ -36,11 +38,11 @@ mod ffi {
 
         fn new_stack() -> ARustStack;
 
-        // fn push(&mut self, val: u8);
-        // fn pop(self: &mut ARustStack);
-        //
-        // fn as_ptr(&self) -> *const u8;
-        // fn len(&self) -> usize;
+        fn push(&mut self, val: u8);
+        fn pop(self: &mut ARustStack);
+
+        fn as_ptr(&self) -> *const u8;
+        fn len(&self) -> usize;
     }
 }
 
