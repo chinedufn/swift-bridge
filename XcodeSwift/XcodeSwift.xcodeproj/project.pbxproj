@@ -91,7 +91,7 @@
 		228FE5C82740DB6A00805D9E = {
 			isa = PBXGroup;
 			children = (
-				228FE5FF2740DB8200805D9E /* Bridge */,
+				228FE5FF2740DB8200805D9E /* Headers */,
 				228FE5D32740DB6A00805D9E /* XcodeSwift */,
 				228FE5E52740DB6D00805D9E /* XcodeSwiftTests */,
 				228FE5EF2740DB6D00805D9E /* XcodeSwiftUITests */,
@@ -151,13 +151,13 @@
 			path = XcodeSwiftUITests;
 			sourceTree = "<group>";
 		};
-		228FE5FF2740DB8200805D9E /* Bridge */ = {
+		228FE5FF2740DB8200805D9E /* Headers */ = {
 			isa = PBXGroup;
 			children = (
 				228FE6002740DC0C00805D9E /* lib.rs.h */,
 				228FE6012740DC2000805D9E /* BridgingHeader.h */,
 			);
-			path = Bridge;
+			path = Headers;
 			sourceTree = "<group>";
 		};
 		228FE6022740DC7900805D9E /* Frameworks */ = {
@@ -516,7 +516,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.XcodeSwift;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Bridge/BridgingHeader.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Headers/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -544,7 +544,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.XcodeSwift;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Bridge/BridgingHeader.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Headers/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -569,7 +569,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.XcodeSwiftTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Bridge/BridgingHeader.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Headers/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/XcodeSwift.app/Contents/MacOS/XcodeSwift";
 			};
@@ -595,7 +595,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.XcodeSwiftTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Bridge/BridgingHeader.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Headers/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/XcodeSwift.app/Contents/MacOS/XcodeSwift";
 			};

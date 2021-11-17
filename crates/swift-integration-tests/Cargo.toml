@@ -3,8 +3,13 @@ name = "swift-integration-tests"
 version = "0.1.0"
 edition = "2021"
 
+build = "build.rs"
+
 [lib]
 crate-type = ["staticlib"]
+
+[build-dependencies]
+swift-bridge-build = {path = "../swift-bridge-build"}
 
 [dependencies]
 swift-bridge = {path = "../../"}

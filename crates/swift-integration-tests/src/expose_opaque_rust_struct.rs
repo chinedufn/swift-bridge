@@ -29,20 +29,20 @@ pub struct ARustStack {
     stack: Vec<u8>,
 }
 
-// #[swift_bridge::bridge]
-// mod ffi {
-//     extern "Rust" {
-//         type ARustStack;
-//
-//         fn new() -> ARustStack;
-//
-//         fn push(&mut self, val: u8);
-//         fn pop(self: &mut ARustStack);
-//
-//         fn as_ptr(&self) -> *const u8;
-//         fn len(&self) -> usize;
-//     }
-// }
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        type ARustStack;
+
+        fn new() -> ARustStack;
+
+        fn push(&mut self, val: u8);
+        fn pop(self: &mut ARustStack);
+
+        fn as_ptr(&self) -> *const u8;
+        fn len(&self) -> usize;
+    }
+}
 
 mod __ffi_generated {
     use super::*;

@@ -4,6 +4,13 @@
 
 `swift-bridge` generates code that helps you call Swift from Rust and vice versa.
 
+## TODO's
+
+- Delete bridging header from Xcode
+- Look up how to programatically set the linking settings.
+  Our docs can recommend that as well as show how to manually set them
+- Delete c header code generation
+
 ## Quick Peek
 
 - Write instructions on going from 0 to most basic iOS app

@@ -15,6 +15,11 @@ public func runOpaqueSwiftClassTests () {
     run_opaque_swift_class_tests()
 }
 
+@_silgen_name("fooBar")
+func fooBar () -> UInt8 {
+    return 5
+}
+
 // FIXME: Rename to ARustStack when we generate this code.. have the user facing types Swift types use
 //  real type names, and C header underlying types use
 public class ARustStack {

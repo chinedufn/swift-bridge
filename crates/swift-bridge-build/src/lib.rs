@@ -10,9 +10,18 @@ use swift_bridge_ir::SwiftBridgeModule;
 use syn::__private::ToTokens;
 use syn::{File, Item};
 
-fn bridges(rust_source_files: impl IntoIterator<Item = impl AsRef<Path>>) -> Build {
+/// Parse rust sources files for `#\[swift_bridge::bridge\]` headers and generate the corresponding
+/// Swift files.
+pub fn parse_bridges(
+    rust_source_files: impl IntoIterator<Item = impl AsRef<Path>>,
+    out_dir: impl AsRef<Path>,
+) {
+    let out_dir = out_dir.as_ref();
+
     for rust_file in rust_source_files.into_iter() {
-        let file = std::fs::read_to_string(rust_file.as_ref()).unwrap();
+        let rust_file: &Path = rust_file.as_ref();
+
+        let file = std::fs::read_to_string(rust_file).unwrap();
         let generated = parse_file(&file).unwrap();
 
         // TODO: .. Ok... what to do with this generated C header and Swift..?
@@ -21,6 +30,12 @@ fn bridges(rust_source_files: impl IntoIterator<Item = impl AsRef<Path>>) -> Bui
         // And add the Swift file to the project
         // For now let's just write them to a hard coded place on disk and see everything work..
         // then we can use variables instead of hard coded paths.
+
+        let swift_header_file_name = rust_file.with_extension("swift");
+        let swift_header_file_name = swift_header_file_name.file_name().unwrap();
+        let swift_header_file = out_dir.join(swift_header_file_name);
+
+        std::fs::write(&swift_header_file, generated.swift).unwrap();
     }
 
     unimplemented!()
@@ -30,7 +45,6 @@ fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
     let file: File = syn::parse_str(file)?;
 
     let mut generated = GeneratedFromSwiftBridgeModule {
-        c_header: "".to_string(),
         swift: "".to_string(),
     };
 
@@ -49,10 +63,6 @@ fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
                     let swift = module.generate_swift();
                     generated.swift += &swift;
                     generated.swift += "\n\n";
-
-                    let c_header = module.generate_c_header();
-                    generated.c_header += &c_header;
-                    generated.c_header += "\n\n";
                 }
             }
             _ => {}
@@ -64,12 +74,7 @@ fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
 
 #[derive(Debug)]
 struct GeneratedFromSwiftBridgeModule {
-    c_header: String,
     swift: String,
-}
-
-struct Build {
-    //
 }
 
 #[cfg(test)]
