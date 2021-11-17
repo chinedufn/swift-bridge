@@ -15,7 +15,7 @@ impl ToTokens for SwiftBridgeModule {
 
         for rust_section in &self.extern_rust {
             for freefunc in &rust_section.freestanding_fns {
-                generated.push(freefunc.to_extern_rust_function_tokens(None, None));
+                generated.push(freefunc.to_extern_rust_function_tokens(None));
             }
 
             for ty in &rust_section.types {

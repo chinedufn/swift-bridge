@@ -1,10 +1,10 @@
 use crate::build_in_types::BuiltInType;
-use crate::{SelfRefMut, SWIFT_BRIDGE_PREFIX};
+use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItemFn, Pat, PatType, ReturnType, Type};
+use syn::{FnArg, ForeignItemFn, Lifetime, Pat, ReturnType, Token, Type};
 
 mod to_swift;
 
@@ -15,6 +15,30 @@ pub(crate) struct ParsedExternFn {
 impl ParsedExternFn {
     pub fn new(func: ForeignItemFn) -> Self {
         ParsedExternFn { func }
+    }
+
+    pub fn is_method(&self) -> bool {
+        self.func.sig.receiver().is_some()
+    }
+
+    pub fn self_reference(&self) -> Option<(Token![&], Option<Lifetime>)> {
+        match self.func.sig.receiver()? {
+            FnArg::Receiver(receiver) => receiver.reference.clone(),
+            FnArg::Typed(pat_ty) => match pat_ty.ty.deref() {
+                Type::Reference(type_ref) => Some((type_ref.and_token, type_ref.lifetime.clone())),
+                _ => None,
+            },
+        }
+    }
+
+    pub fn self_mutability(&self) -> Option<Token![mut]> {
+        match self.func.sig.receiver()? {
+            FnArg::Receiver(receiver) => receiver.mutability,
+            FnArg::Typed(pat_ty) => match pat_ty.ty.deref() {
+                Type::Reference(type_ref) => type_ref.mutability,
+                _ => None,
+            },
+        }
     }
 }
 
@@ -30,11 +54,7 @@ impl ParsedExternFn {
     /// }
     /// ```
     // FIXME: Combine this and host_type into one struct
-    pub fn to_extern_rust_function_tokens(
-        &self,
-        this: Option<SelfRefMut>,
-        host_type: Option<&Ident>,
-    ) -> TokenStream {
+    pub fn to_extern_rust_function_tokens(&self, host_type: Option<&Ident>) -> TokenStream {
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
 
@@ -47,9 +67,9 @@ impl ParsedExternFn {
             #fn_name ( #call_args )
         };
 
-        let inner = if let Some(this) = this.as_ref() {
-            if let Some(reference) = this.reference {
-                let maybe_mut = &this.mutability;
+        let inner = if self.is_method() {
+            if let Some(reference) = self.self_reference() {
+                let maybe_mut = self.self_mutability();
 
                 quote! {
                     let #maybe_mut this = unsafe { Box::from_raw(this) };
@@ -458,10 +478,7 @@ mod tests {
         let module = parse_ok(tokens);
         let function = &module.extern_rust[0].freestanding_fns[0];
 
-        assert_tokens_eq(
-            &function.to_extern_rust_function_tokens(None, None),
-            &expected_fn,
-        );
+        assert_tokens_eq(&function.to_extern_rust_function_tokens(None), &expected_fn);
     }
 
     #[test]

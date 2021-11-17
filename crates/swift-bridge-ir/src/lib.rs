@@ -93,7 +93,6 @@ impl SwiftBridgeModule {
 ///
 /// ... etc
 struct TypeMethod {
-    this: Option<SelfRefMut>,
     func: ParsedExternFn,
     is_initializer: bool,
 }
@@ -101,22 +100,7 @@ struct TypeMethod {
 impl TypeMethod {
     fn extern_rust_tokens(&self, ty_declaration: &Ident) -> TokenStream {
         self.func
-            .to_extern_rust_function_tokens(self.this, Some(ty_declaration))
-    }
-}
-
-#[derive(Copy, Clone)]
-pub(crate) struct SelfRefMut {
-    pub reference: Option<Token![&]>,
-    pub mutability: Option<Token![mut]>,
-}
-
-impl From<Receiver> for SelfRefMut {
-    fn from(r: Receiver) -> Self {
-        SelfRefMut {
-            reference: r.reference.map(|r| r.0),
-            mutability: r.mutability,
-        }
+            .to_extern_rust_function_tokens(Some(ty_declaration))
     }
 }
 

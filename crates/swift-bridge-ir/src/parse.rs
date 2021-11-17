@@ -1,7 +1,7 @@
 use crate::build_in_types::BuiltInType;
 use crate::errors::{ParseError, ParseErrors};
 use crate::extern_rust::{ExternRustSection, ExternRustSectionType};
-use crate::{ParsedExternFn, SelfRefMut, SwiftBridgeModule, TypeMethod};
+use crate::{ParsedExternFn, SwiftBridgeModule, TypeMethod};
 use proc_macro2::Ident;
 use quote::ToTokens;
 use std::cmp::Ordering;
@@ -201,7 +201,6 @@ fn parse_function(
             .unwrap()
             .methods
             .push(TypeMethod {
-                this: None,
                 func: ParsedExternFn { func },
                 is_initializer: attributes.initializes,
             })
@@ -220,7 +219,6 @@ fn parse_function(
         }
 
         ty.unwrap().methods.push(TypeMethod {
-            this: None,
             func: ParsedExternFn { func },
             is_initializer: attributes.initializes,
         })
@@ -240,12 +238,9 @@ fn parse_function_with_inputs(
 ) -> syn::Result<()> {
     match first {
         FnArg::Receiver(recv) => {
-            let method_self: SelfRefMut = recv.clone().into();
-
             if rust_types.len() == 1 {
                 let ty = rust_types.iter_mut().next().unwrap().1;
                 ty.methods.push(TypeMethod {
-                    this: Some(method_self),
                     func: ParsedExternFn { func },
                     is_initializer: attributes.initializes,
                 });
@@ -308,10 +303,6 @@ fn parse_method(
 
             if let Some(ty) = rust_types.get_mut(&self_ty_string) {
                 ty.methods.push(TypeMethod {
-                    this: type_ref.map(|type_ref| SelfRefMut {
-                        reference: Some(type_ref.and_token),
-                        mutability: type_ref.mutability,
-                    }),
                     func: ParsedExternFn { func },
                     is_initializer: attributes.initializes,
                 });

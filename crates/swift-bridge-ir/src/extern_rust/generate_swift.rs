@@ -50,7 +50,7 @@ func {fn_name} ({params}){ret} {{
                 let call_fn = format!("{}({})", fn_name, call_args);
 
                 let maybe_static_class_func =
-                    if type_method.this.is_none() && !type_method.is_initializer {
+                    if !type_method.func.is_method() && !type_method.is_initializer {
                         "class "
                     } else {
                         ""
