@@ -34,14 +34,18 @@ mod ffi {
     extern "Rust" {
         type ARustStack;
 
-        fn new() -> ARustStack;
+        fn new_stack() -> ARustStack;
 
-        fn push(&mut self, val: u8);
-        fn pop(self: &mut ARustStack);
-
-        fn as_ptr(&self) -> *const u8;
-        fn len(&self) -> usize;
+        // fn push(&mut self, val: u8);
+        // fn pop(self: &mut ARustStack);
+        //
+        // fn as_ptr(&self) -> *const u8;
+        // fn len(&self) -> usize;
     }
+}
+
+pub fn new_stack() -> ARustStack {
+    ARustStack::new()
 }
 
 mod __ffi_generated {

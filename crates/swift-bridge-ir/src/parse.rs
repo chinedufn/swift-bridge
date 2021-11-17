@@ -659,6 +659,23 @@ mod tests {
         }
     }
 
+    /// Verify that a freestanding function can return a declared type.
+    #[test]
+    fn freestanding_function_return_declared_type() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                extern "Rust" {
+                    type Bar;
+
+                    fn a () -> Bar;
+                }
+            }
+        };
+        let module = parse_ok(tokens);
+        assert_eq!(module.extern_rust[0].freestanding_fns.len(), 1);
+    }
+
     /// Verify that if a freestanding function returns a type that was not declared in the module
     /// we return an error.
     #[test]

@@ -37,8 +37,6 @@ pub fn parse_bridges(
 
         std::fs::write(&swift_header_file, generated.swift).unwrap();
     }
-
-    unimplemented!()
 }
 
 fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {

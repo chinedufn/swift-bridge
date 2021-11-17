@@ -15,7 +15,7 @@ impl ToTokens for SwiftBridgeModule {
 
         for rust_section in &self.extern_rust {
             for freefunc in &rust_section.freestanding_fns {
-                let sig = &freefunc.func.sig;
+                let sig = &freefunc.sig;
                 let export_name = format!("{}${}", SWIFT_BRIDGE_PREFIX, sig.ident.to_string());
 
                 let fn_name = &sig.ident;
@@ -90,7 +90,6 @@ mod tests {
     use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
     use proc_macro2::Span;
     use quote::quote;
-    use syn::parse_quote;
 
     /// Verify that we generate a function that frees the memory behind an opaque pointer to a Rust
     /// type.
@@ -183,6 +182,29 @@ mod tests {
         };
 
         assert_tokens_eq(&parse_ok(start).to_token_stream(), &expected);
+    }
+
+    /// Verify that we generate tokens for a freestanding function that returns a declared type.
+    #[test]
+    fn freestanding_function_return_declared_type() {
+        let start = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+                    fn some_function () -> Foo;
+                }
+            }
+        };
+        let expected_func = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn some_function () -> *mut std::ffi::c_void {
+                super::some_function()
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
     }
 
     /// Verify that we generate tokens for a static method that's associated to a type.
@@ -355,7 +377,7 @@ something else)
     }
 
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
-        let module_and_errors: SwiftBridgeModuleAndErrors = parse_quote!(#tokens);
+        let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
         module_and_errors.module
     }
 }

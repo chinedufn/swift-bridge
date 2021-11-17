@@ -7,7 +7,7 @@ impl ExternRustSection {
         let mut swift = "".to_string();
 
         for freestanding in &self.freestanding_fns {
-            let fn_name = freestanding.func.sig.ident.to_string();
+            let fn_name = freestanding.sig.ident.to_string();
 
             let params = freestanding.to_swift_param_names_and_types();
             let ret = freestanding.to_swift_return();
@@ -41,7 +41,7 @@ func {fn_name} ({params}){ret} {{
     }"#;
 
             for type_method in &ty.methods {
-                let fn_name = type_method.func.func.sig.ident.to_string();
+                let fn_name = type_method.func.sig.ident.to_string();
                 let params = type_method.func.to_swift_param_names_and_types();
                 let call_args = type_method.func.to_swift_call_args();
                 let call_fn = format!("{}({})", fn_name, call_args);

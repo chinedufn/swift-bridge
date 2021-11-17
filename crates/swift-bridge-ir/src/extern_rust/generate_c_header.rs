@@ -32,7 +32,7 @@ impl ExternRustSection {
 
                 // FIXME: Normalize with code below
                 let ret = method.func.to_c_header_return();
-                let name = method.func.func.sig.ident.to_string();
+                let name = method.func.sig.ident.to_string();
                 let params = method.func.to_c_header_params();
 
                 let declaration = format!(
@@ -49,7 +49,7 @@ impl ExternRustSection {
         for freestanding in self.freestanding_fns.iter() {
             // FIXME: Normalize with code above
             let ret = freestanding.to_c_header_return();
-            let name = freestanding.func.sig.ident.to_string();
+            let name = freestanding.sig.ident.to_string();
             let params = freestanding.to_c_header_params();
 
             if !contains_ints {

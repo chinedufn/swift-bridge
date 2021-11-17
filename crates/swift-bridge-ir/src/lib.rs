@@ -9,6 +9,7 @@
 
 use crate::build_in_types::BuiltInType;
 use crate::extern_rust::ExternRustSection;
+use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
@@ -22,6 +23,7 @@ mod parse;
 mod to_tokens;
 
 mod build_in_types;
+mod parsed_extern_fn;
 
 #[cfg(test)]
 mod test_utils;
@@ -98,264 +100,12 @@ struct TypeMethod {
 
 impl TypeMethod {
     fn extern_rust_tokens(&self, ty_declaration: &Ident) -> TokenStream {
-        let sig = &self.func.func.sig;
-        let fn_name = &sig.ident;
-
-        let export_name = self.func.link_name(ty_declaration);
-
-        let params = self.func.to_rust_param_names_and_types();
-        let call_args = self.func.to_rust_call_args();
-
-        let call_fn = quote! {
-            #fn_name ( #call_args )
-        };
-
-        let inner = if let Some(this) = self.this.as_ref() {
-            if let Some(reference) = this.reference {
-                let maybe_mut = &this.mutability;
-
-                quote! {
-                    let this = unsafe { #reference #maybe_mut *this.ptr };
-                    this.#call_fn
-                }
-            } else {
-                todo!()
-            }
-        } else {
-            match &sig.output {
-                ReturnType::Default => {
-                    quote! {
-                        super::#ty_declaration::#call_fn
-                    }
-                }
-                ReturnType::Type(_arrow, ty) => {
-                    if BuiltInType::with_type(&ty).is_some() {
-                        quote! {
-                            super::#ty_declaration::#call_fn
-                        }
-                    } else {
-                        quote! {
-                            let val = super::#ty_declaration::#call_fn;
-                            let val = Box::into_raw(Box::new(val));
-                            swift_bridge::OwnedPtrToRust::new(val)
-                        }
-                    }
-                }
-            }
-        };
-
-        let prefixed_fn_name = Ident::new(
-            &format!("{}_{}", ty_declaration.to_string(), fn_name.to_string()),
-            fn_name.span(),
-        );
-
-        let output = match &sig.output {
-            ReturnType::Default => {
-                quote! {}
-            }
-            ReturnType::Type(arrow, ty) => {
-                if let Some(_supported) = BuiltInType::with_type(&ty) {
-                    quote! {#arrow #ty}
-                } else {
-                    quote_spanned! {ty.span()=> -> swift_bridge::OwnedPtrToRust<super::#ty> }
-                }
-            }
-        };
-
-        quote! {
-            #[no_mangle]
-            #[export_name = #export_name]
-            pub extern "C" fn #prefixed_fn_name ( #params ) #output {
-                #inner
-            }
-        }
+        self.func
+            .to_extern_rust_function_tokens(self.this, Some(ty_declaration))
     }
 }
 
-struct ParsedExternFn {
-    func: ForeignItemFn,
-}
-
-impl ParsedExternFn {
-    fn to_rust_param_names_and_types(&self) -> TokenStream {
-        let mut params = vec![];
-        let inputs = &self.func.sig.inputs;
-        for arg in inputs {
-            match arg {
-                FnArg::Receiver(receiver) => {
-                    // FIXME: Change tests to not all use SomeType so that this fails...
-                    // Needs to be based on  receiver.reference and receiver.mutability..
-                    let this = quote! { this: swift_bridge::OwnedPtrToRust<super::SomeType> };
-                    params.push(this);
-                }
-                FnArg::Typed(pat_ty) => {
-                    params.push(quote! {#pat_ty});
-                }
-            };
-        }
-
-        quote! {
-            #(#params),*
-        }
-    }
-
-    fn to_swift_param_names_and_types(&self) -> String {
-        let mut params: Vec<String> = vec![];
-
-        for arg in &self.func.sig.inputs {
-            match arg {
-                FnArg::Receiver(receiver) => {
-                    // FIXME: Change tests to not all use SomeType so that this fails...
-                    // Needs to be based on  receiver.reference and receiver.mutability..
-                    // let this = quote! { this: swift_bridge::OwnedPtrToRust<super::SomeType> };
-                    // params.push(this);
-                }
-                FnArg::Typed(pat_ty) => {
-                    let arg_name = pat_ty.pat.to_token_stream().to_string();
-
-                    if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                        params.push(format!("{}: {}", arg_name, built_in.to_swift()));
-                    } else {
-                        todo!("Add tests for generating functions for unsupported types")
-                    };
-                }
-            };
-        }
-
-        params.join(", ")
-    }
-
-    // fn foo (&self, arg1: u8, arg2: u32)
-    //  becomes..
-    // arg1, arg2
-    fn to_rust_call_args(&self) -> TokenStream {
-        let mut args = vec![];
-        let inputs = &self.func.sig.inputs;
-        for arg in inputs {
-            match arg {
-                FnArg::Receiver(_receiver) => {}
-                FnArg::Typed(pat_ty) => {
-                    let pat = &pat_ty.pat;
-                    args.push(quote! {#pat});
-                }
-            };
-        }
-
-        quote! {
-            #(#args),*
-        }
-    }
-
-    // fn foo (&self, arg1: u8, arg2: u32)
-    //  becomes..
-    // ptr, arg1, arg2
-    fn to_swift_call_args(&self) -> String {
-        let mut args = vec![];
-        let inputs = &self.func.sig.inputs;
-        for arg in inputs {
-            match arg {
-                FnArg::Receiver(_receiver) => args.push("ptr".to_string()),
-                FnArg::Typed(pat_ty) => {
-                    let pat = &pat_ty.pat;
-                    args.push(pat.to_token_stream().to_string());
-                }
-            };
-        }
-
-        args.join(", ")
-    }
-
-    fn to_swift_return(&self) -> String {
-        match &self.func.sig.output {
-            ReturnType::Default => "".to_string(),
-            ReturnType::Type(_, ty) => {
-                if let Some(built_in) = BuiltInType::with_type(&ty) {
-                    format!(" -> {}", built_in.to_swift())
-                } else {
-                    todo!("Handle non built in types")
-                }
-            }
-        }
-    }
-
-    // fn foo (&self, arg1: u8, arg2: u32)
-    //  becomes..
-    // void* self, uint8_t u8, uint32_t arg2
-    fn to_c_header_params(&self) -> String {
-        let mut params = vec![];
-        let inputs = &self.func.sig.inputs;
-        for arg in inputs {
-            match arg {
-                FnArg::Receiver(_receiver) => params.push("void* self".to_string()),
-                FnArg::Typed(pat_ty) => {
-                    let pat = &pat_ty.pat;
-
-                    let ty = if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                        built_in.to_c().to_string()
-                    } else {
-                        pat.to_token_stream().to_string()
-                    };
-
-                    let arg_name = pat_ty.pat.to_token_stream().to_string();
-                    params.push(format!("{} {}", ty, arg_name));
-                }
-            };
-        }
-
-        if params.len() == 0 {
-            "void".to_string()
-        } else {
-            params.join(", ")
-        }
-    }
-
-    fn to_c_header_return(&self) -> &'static str {
-        match &self.func.sig.output {
-            ReturnType::Default => "void",
-            ReturnType::Type(_, ty) => {
-                if let Some(ty) = BuiltInType::with_type(&ty) {
-                    ty.to_c()
-                } else {
-                    "void*"
-                }
-            }
-        }
-    }
-
-    fn contains_ints(&self) -> bool {
-        if let ReturnType::Type(_, ty) = &self.func.sig.output {
-            if let Some(ty) = BuiltInType::with_type(&ty) {
-                if ty.is_int() {
-                    return true;
-                }
-            }
-        }
-
-        for param in &self.func.sig.inputs {
-            if let FnArg::Typed(pat_ty) = param {
-                if let Some(ty) = BuiltInType::with_type(&pat_ty.ty) {
-                    if ty.is_int() {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        false
-    }
-}
-
-impl ParsedExternFn {
-    pub(crate) fn link_name(&self, ty_declaration: &Ident) -> String {
-        format!(
-            "{}${}${}",
-            SWIFT_BRIDGE_PREFIX,
-            ty_declaration.to_string(),
-            self.func.sig.ident.to_string()
-        )
-    }
-}
-
+#[derive(Copy, Clone)]
 pub(crate) struct SelfRefMut {
     pub reference: Option<Token![&]>,
     pub mutability: Option<Token![mut]>,
