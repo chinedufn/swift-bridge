@@ -393,17 +393,6 @@ mod tests {
         assert_tokens_contain(&tokens, &quote! { SomeType_new });
     }
 
-    #[test]
-    fn todo() {
-        todo!(
-            r#"
-Split the generating of the return type tokens into a submodule..
-Then add tests for whether or not we convert the type (i.e. to a *mut c_void.. RustString.. or
-something else)
-"#
-        )
-    }
-
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
         let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
         module_and_errors.module

@@ -75,9 +75,20 @@ impl ParsedExternFn {
                     }
                 }
                 ReturnType::Type(_arrow, ty) => {
-                    if BuiltInType::with_type(&ty).is_some() {
-                        quote! {
-                            super:: #host_type_segment #call_fn
+                    if let Some(ty) = BuiltInType::with_type(&ty) {
+                        match ty {
+                            BuiltInType::RefSlice(_ref_slice) => {
+                                quote! {
+                                    swift_bridge::RustSlice::from_slice(
+                                        super:: #host_type_segment #call_fn
+                                    )
+                                }
+                            }
+                            _ => {
+                                quote! {
+                                    super:: #host_type_segment #call_fn
+                                }
+                            }
                         }
                     } else {
                         quote! {
@@ -138,12 +149,13 @@ impl ParsedExternFn {
             fn_name.span(),
         );
 
-        let output = match &sig.output {
+        let ret = match &sig.output {
             ReturnType::Default => {
                 quote! {}
             }
             ReturnType::Type(arrow, ty) => {
-                if let Some(_supported) = BuiltInType::with_type(&ty) {
+                if let Some(built_in) = BuiltInType::with_type(&ty) {
+                    let ty = built_in.to_extern_rust_ident(ty.span());
                     quote! {#arrow #ty}
                 } else {
                     quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }
@@ -154,7 +166,7 @@ impl ParsedExternFn {
         quote! {
             #[no_mangle]
             #[export_name = #export_name]
-            pub extern "C" fn #prefixed_fn_name ( #params ) #output {
+            pub extern "C" fn #prefixed_fn_name ( #params ) #ret {
                 #inner
             }
         }
@@ -310,7 +322,7 @@ impl ParsedExternFn {
     pub fn contains_ints(&self) -> bool {
         if let ReturnType::Type(_, ty) = &self.func.sig.output {
             if let Some(ty) = BuiltInType::with_type(&ty) {
-                if ty.is_int() {
+                if ty.needs_include_int_header() {
                     return true;
                 }
             }
@@ -319,7 +331,7 @@ impl ParsedExternFn {
         for param in &self.func.sig.inputs {
             if let FnArg::Typed(pat_ty) = param {
                 if let Some(ty) = BuiltInType::with_type(&pat_ty.ty) {
-                    if ty.is_int() {
+                    if ty.needs_include_int_header() {
                         return true;
                     }
                 }
@@ -357,7 +369,7 @@ impl Deref for ParsedExternFn {
 mod tests {
     use super::*;
     use crate::parse::SwiftBridgeModuleAndErrors;
-    use crate::test_utils::assert_tokens_contain;
+    use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
     use crate::SwiftBridgeModule;
     use proc_macro2::Span;
 
@@ -422,6 +434,45 @@ mod tests {
                 method.func.to_token_stream()
             );
         }
+    }
+
+    /// Verify that we convert &[T] -> swift_bridge::RustSlice<T>
+    #[test]
+    fn converts_slice_to_rust_slice() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    fn make_slice () -> &'static [u8];
+                }
+            }
+        };
+        let expected_fn = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$make_slice"]
+            pub extern "C" fn __swift_bridge__make_slice() -> swift_bridge::RustSlice<u8> {
+                swift_bridge::RustSlice::from_slice(super::make_slice())
+            }
+        };
+
+        let module = parse_ok(tokens);
+        let function = &module.extern_rust[0].freestanding_fns[0];
+
+        assert_tokens_eq(
+            &function.to_extern_rust_function_tokens(None, None),
+            &expected_fn,
+        );
+    }
+
+    #[test]
+    fn todo() {
+        todo!(
+            r#"
+Refactor this file
+Make the wrapping of the return type pass through the samw machinery.. so that we always wrap
+slices.
+        "#
+        )
     }
 
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {

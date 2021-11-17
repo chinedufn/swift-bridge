@@ -10,6 +10,7 @@
 - Look up how to programatically set the linking settings.
   Our docs can recommend that as well as show how to manually set them
 - Delete c header code generation
+- Rename to swiftxx to pay homage to cxx
 
 ## Quick Peek
 

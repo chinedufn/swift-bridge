@@ -27,8 +27,8 @@ class OpaqueRustStructTests: XCTestCase {
         stack.push(10)
         XCTAssertEqual(stack.len(), 2)
         
-        XCTAssertEqual(stack.asUnsafeBufferPointer()[0], 5)
-        XCTAssertEqual(stack.asUnsafeBufferPointer()[1], 10)
+        XCTAssertEqual(stack.as_slice()[0], 5)
+        XCTAssertEqual(stack.as_slice()[1], 10)
         
         stack.pop()
         XCTAssertEqual(stack.len(), 1)

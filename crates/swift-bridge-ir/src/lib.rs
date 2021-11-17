@@ -119,3 +119,13 @@ impl From<Receiver> for SelfRefMut {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn foo() {
+        //
+    }
+}

@@ -53,10 +53,6 @@ func fooBar () -> UInt8 {
 //
 //        let buf = UnsafeBufferPointer(start: start, count: Int(len))
 //
-//        for b in buf {
-//            print(b)
-//        }
-//
 //        return buf
 //    }
 //}

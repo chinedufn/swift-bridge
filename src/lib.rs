@@ -26,6 +26,23 @@ pub struct RefPtrToRust<T> {
     pub ptr: *mut T,
 }
 
+#[doc(hidden)]
+#[repr(C)]
+pub struct RustSlice<T> {
+    pub start: *const T,
+    pub len: usize,
+}
+
+#[doc(hidden)]
+impl<T> RustSlice<T> {
+    pub fn from_slice(slice: &[T]) -> Self {
+        RustSlice {
+            start: slice.as_ptr(),
+            len: slice.len(),
+        }
+    }
+}
+
 impl<T> OwnedPtrToRust<T> {
     pub fn new(ptr: *mut T) -> Self {
         OwnedPtrToRust { ptr }

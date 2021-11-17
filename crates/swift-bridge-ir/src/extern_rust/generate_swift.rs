@@ -48,7 +48,6 @@ func {fn_name} ({params}){ret} {{
                 let params = type_method.func.to_swift_param_names_and_types();
                 let call_args = type_method.func.to_swift_call_args();
                 let call_fn = format!("{}({})", fn_name, call_args);
-                let ret = type_method.func.to_swift_return();
 
                 let maybe_static_class_func =
                     if type_method.this.is_none() && !type_method.is_initializer {
@@ -57,6 +56,12 @@ func {fn_name} ({params}){ret} {{
                         ""
                     };
 
+                let maybe_return = if type_method.is_initializer {
+                    "".to_string()
+                } else {
+                    type_method.func.to_swift_return()
+                };
+
                 let (swift_class_func_name, maybe_assign_to_ptr) = if type_method.is_initializer {
                     ("init".to_string(), "ptr = ")
                 } else {
@@ -64,14 +69,14 @@ func {fn_name} ({params}){ret} {{
                 };
 
                 let func_definition = format!(
-                    r#"    {maybe_static_class_func}{swift_class_func_name}({params}){ret} {{
+                    r#"    {maybe_static_class_func}{swift_class_func_name}({params}){maybe_ret} {{
         {maybe_assign_to_ptr}{prefix}${type_name}${call_fn}
     }}"#,
                     maybe_static_class_func = maybe_static_class_func,
                     maybe_assign_to_ptr = maybe_assign_to_ptr,
                     swift_class_func_name = swift_class_func_name,
                     params = params,
-                    ret = ret,
+                    maybe_ret = maybe_return,
                     prefix = SWIFT_BRIDGE_PREFIX,
                     type_name = type_name,
                     call_fn = call_fn
@@ -188,6 +193,29 @@ func foo (_ bar: UInt8) {
         let expected = r#"
 func foo () -> UInt32 {
     __swift_bridge__$foo()
+} 
+"#;
+
+        assert_eq!(generated.trim(), expected.trim());
+    }
+
+    /// Verify that we can convert a slice reference into an UnsafeBufferPointer
+    #[test]
+    fn freestanding_func_return_ref_byte_slice() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    fn foo () -> &[u8];
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.extern_rust[0].generate_swift();
+
+        let expected = r#"
+func foo () -> UnsafeBufferPointer<UInt8> {
+    let slice = __swift_bridge__$foo()
+    return UnsafeBufferPointer(start: slice.start, len: slice.len)
 } 
 "#;
 

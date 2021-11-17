@@ -1,5 +1,8 @@
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
-use syn::Type;
+use quote::{quote, quote_spanned};
+use std::ops::Deref;
+use syn::{Path, Type, TypeReference};
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum BuiltInType {
@@ -17,12 +20,25 @@ pub(crate) enum BuiltInType {
     Isize,
     F32,
     F64,
-    Pointer(BuiltInTypePointer),
+    Pointer(BuiltInPointer),
+    RefSlice(BuiltInRefSlice),
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) struct BuiltInTypePointer {
+pub(crate) struct BuiltInReference {
+    pub mutable: bool,
+    pub ty: Box<BuiltInType>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) struct BuiltInPointer {
     pub kind: PointerKind,
+    pub ty: Box<BuiltInType>,
+}
+
+/// &[T]
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) struct BuiltInRefSlice {
     pub ty: Box<BuiltInType>,
 }
 
@@ -46,12 +62,17 @@ impl BuiltInType {
                 };
 
                 Self::with_type(&ptr.elem).map(|ty| {
-                    Self::Pointer(BuiltInTypePointer {
+                    Self::Pointer(BuiltInPointer {
                         kind,
                         ty: Box::new(ty),
                     })
                 })
             }
+            Type::Reference(ty_ref) => match ty_ref.elem.deref() {
+                Type::Slice(slice) => Self::with_type(&slice.elem)
+                    .map(|ty| Self::RefSlice(BuiltInRefSlice { ty: Box::new(ty) })),
+                _ => None,
+            },
             _ => None,
         }
     }
@@ -77,6 +98,42 @@ impl BuiltInType {
         return Some(ty);
     }
 
+    pub fn to_extern_rust_ident(&self, span: Span) -> TokenStream {
+        let ty = match self {
+            BuiltInType::U8 => quote! {u8},
+            BuiltInType::I8 => quote! { i8 },
+            BuiltInType::U16 => quote! { u16 },
+            BuiltInType::I16 => quote! { i16 },
+            BuiltInType::U32 => quote! { u32 },
+            BuiltInType::I32 => quote! { i32 },
+            BuiltInType::U64 => quote! { u64 },
+            BuiltInType::I64 => quote! { i64 },
+            BuiltInType::U128 => quote! { u128 },
+            BuiltInType::I128 => quote! { i128 },
+            BuiltInType::F32 => quote! { f32 },
+            BuiltInType::F64 => quote! { f64 },
+            BuiltInType::Usize => quote! { usize },
+            BuiltInType::Isize => quote! { isize },
+            BuiltInType::Pointer(ptr) => {
+                let ty = ptr.ty.to_extern_rust_ident(span);
+                match ptr.kind {
+                    PointerKind::Const => {
+                        quote! {*const #ty }
+                    }
+                    PointerKind::Mut => {
+                        quote! {*mut #ty }
+                    }
+                }
+            }
+            BuiltInType::RefSlice(slice) => {
+                let ty = slice.ty.to_extern_rust_ident(span);
+                quote! {swift_bridge::RustSlice<#ty>}
+            }
+        };
+
+        quote_spanned!(span=> #ty)
+    }
+
     pub fn to_swift(&self) -> String {
         match self {
             BuiltInType::U8 => "UInt8".to_string(),
@@ -95,6 +152,9 @@ impl BuiltInType {
             BuiltInType::Isize => "Int".to_string(),
             BuiltInType::Pointer(ptr) => {
                 format!("UnsafeMutablePointer<{}>", ptr.ty.to_swift())
+            }
+            BuiltInType::RefSlice(slice) => {
+                format!("UnsafeBufferPointer<{}>", slice.ty.to_swift())
             }
         }
     }
@@ -119,10 +179,13 @@ impl BuiltInType {
             BuiltInType::Pointer(ptr) => {
                 format!("{}*", ptr.ty.to_c())
             }
+            BuiltInType::RefSlice(slice) => {
+                format!("RustSlice_{}", slice.ty.to_c())
+            }
         }
     }
 
-    pub fn is_int(&self) -> bool {
+    pub fn needs_include_int_header(&self) -> bool {
         match self {
             BuiltInType::U8
             | BuiltInType::I8
@@ -136,6 +199,8 @@ impl BuiltInType {
             | BuiltInType::I128
             | BuiltInType::Usize
             | BuiltInType::Isize => true,
+            BuiltInType::Pointer(ptr) => ptr.ty.needs_include_int_header(),
+            BuiltInType::RefSlice(slice) => slice.ty.needs_include_int_header(),
             _ => false,
         }
     }
@@ -167,14 +232,14 @@ mod tests {
             (quote! {f64}, BuiltInType::F64),
             (
                 quote! {*const u8},
-                BuiltInType::Pointer(BuiltInTypePointer {
+                BuiltInType::Pointer(BuiltInPointer {
                     kind: PointerKind::Const,
                     ty: Box::new(BuiltInType::U8),
                 }),
             ),
             (
                 quote! {*mut f64},
-                BuiltInType::Pointer(BuiltInTypePointer {
+                BuiltInType::Pointer(BuiltInPointer {
                     kind: PointerKind::Mut,
                     ty: Box::new(BuiltInType::F64),
                 }),

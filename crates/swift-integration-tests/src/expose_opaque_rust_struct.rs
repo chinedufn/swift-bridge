@@ -34,13 +34,16 @@ mod ffi {
     extern "Rust" {
         type ARustStack;
 
-        fn new_stack() -> ARustStack;
+        // fn new_stack() -> ARustStack;
+        //
+        // fn push(&mut self, val: u8);
+        // fn pop(self: &mut ARustStack);
+        //
+        // fn as_ptr(&self) -> *const u8;
+        // fn len(&self) -> usize;
 
-        fn push(&mut self, val: u8);
-        fn pop(self: &mut ARustStack);
-
-        fn as_ptr(&self) -> *const u8;
-        fn len(&self) -> usize;
+        // TODO: Plan slice support ..
+        fn as_slice(&self) -> &[u8];
     }
 }
 
@@ -115,5 +118,9 @@ impl ARustStack {
 
     fn len(&self) -> usize {
         self.stack.len()
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        self.stack.as_slice()
     }
 }
