@@ -100,25 +100,26 @@ impl BuiltInType {
     }
 
     // FIXME: Delete this
-    pub fn to_c(&self) -> &'static str {
-        // match self {
-        //     BuiltInType::U8 => "uint8_t",
-        //     BuiltInType::I8 => "int8_t",
-        //     BuiltInType::U16 => "uint16_t",
-        //     BuiltInType::I16 => "int16_t",
-        //     BuiltInType::U32 => "uint32_t",
-        //     BuiltInType::I32 => "int32_t",
-        //     BuiltInType::U64 => "uint64_t",
-        //     BuiltInType::I64 => "int64_t",
-        //     BuiltInType::U128 => "uint128_t",
-        //     BuiltInType::I128 => "i128_t",
-        //     BuiltInType::F32 => "float",
-        //     BuiltInType::F64 => "double",
-        //     BuiltInType::Usize => "uintptr_t",
-        //     BuiltInType::Isize => "intptr_t",
-        //     _ => todo!()
-        // }
-        unimplemented!("Delete this")
+    pub fn to_c(&self) -> String {
+        match self {
+            BuiltInType::U8 => "uint8_t".to_string(),
+            BuiltInType::I8 => "int8_t".to_string(),
+            BuiltInType::U16 => "uint16_t".to_string(),
+            BuiltInType::I16 => "int16_t".to_string(),
+            BuiltInType::U32 => "uint32_t".to_string(),
+            BuiltInType::I32 => "int32_t".to_string(),
+            BuiltInType::U64 => "uint64_t".to_string(),
+            BuiltInType::I64 => "int64_t".to_string(),
+            BuiltInType::U128 => "uint128_t".to_string(),
+            BuiltInType::I128 => "i128_t".to_string(),
+            BuiltInType::F32 => "float".to_string(),
+            BuiltInType::F64 => "double".to_string(),
+            BuiltInType::Usize => "uintptr_t".to_string(),
+            BuiltInType::Isize => "intptr_t".to_string(),
+            BuiltInType::Pointer(ptr) => {
+                format!("{}*", ptr.ty.to_c())
+            }
+        }
     }
 
     pub fn is_int(&self) -> bool {

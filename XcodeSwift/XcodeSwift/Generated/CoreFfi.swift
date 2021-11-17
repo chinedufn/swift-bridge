@@ -15,6 +15,8 @@ public class SwiftString {
     }
 }
 
+
+
 @_cdecl("swift_bridge$unstable$swift_string$new")
 public func swift_string_new(ptr: UnsafeMutablePointer<UInt8>, len: UInt) -> UnsafeMutableRawPointer {
     let bytes = UnsafeBufferPointer(start: ptr, count: Int(len))

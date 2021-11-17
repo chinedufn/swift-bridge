@@ -7,6 +7,7 @@ impl ExternRustSection {
         let mut swift = "".to_string();
 
         for freestanding in &self.freestanding_fns {
+            // TODO: Normalize with method codegen above
             let fn_name = freestanding.sig.ident.to_string();
 
             let params = freestanding.to_swift_param_names_and_types();
@@ -37,14 +38,17 @@ func {fn_name} ({params}){ret} {{
             let mut instance_methods = vec![];
 
             let default_init = r#"    init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern "Rust" module.")
+        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }"#;
 
             for type_method in &ty.methods {
+                // TODO: Normalize with freestanding func codegen above
+
                 let fn_name = type_method.func.sig.ident.to_string();
                 let params = type_method.func.to_swift_param_names_and_types();
                 let call_args = type_method.func.to_swift_call_args();
                 let call_fn = format!("{}({})", fn_name, call_args);
+                let ret = type_method.func.to_swift_return();
 
                 let maybe_static_class_func =
                     if type_method.this.is_none() && !type_method.is_initializer {
@@ -54,19 +58,20 @@ func {fn_name} ({params}){ret} {{
                     };
 
                 let (swift_class_func_name, maybe_assign_to_ptr) = if type_method.is_initializer {
-                    ("init", "ptr = ")
+                    ("init".to_string(), "ptr = ")
                 } else {
-                    (fn_name.as_str(), "")
+                    (format!("func {}", fn_name.as_str()), "")
                 };
 
                 let func_definition = format!(
-                    r#"    {maybe_static_class_func}{swift_class_func_name}({params}) {{
+                    r#"    {maybe_static_class_func}{swift_class_func_name}({params}){ret} {{
         {maybe_assign_to_ptr}{prefix}${type_name}${call_fn}
     }}"#,
                     maybe_static_class_func = maybe_static_class_func,
                     maybe_assign_to_ptr = maybe_assign_to_ptr,
                     swift_class_func_name = swift_class_func_name,
                     params = params,
+                    ret = ret,
                     prefix = SWIFT_BRIDGE_PREFIX,
                     type_name = type_name,
                     call_fn = call_fn
@@ -158,7 +163,7 @@ func foo () {
         let generated = module.extern_rust[0].generate_swift();
 
         let expected = r#"
-func foo (bar: UInt8) {
+func foo (_ bar: UInt8) {
     __swift_bridge__$foo(bar)
 } 
 "#;
@@ -207,7 +212,7 @@ public class Foo {
     private var ptr: UnsafeMutableRawPointer
 
     init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern "Rust" module.")
+        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }
 
     deinit {
@@ -272,7 +277,7 @@ public class Foo {
 public class Foo {
     private var ptr: UnsafeMutableRawPointer
 
-    init(val: UInt8) {
+    init(_ val: UInt8) {
         ptr = __swift_bridge__$Foo$new(val)
     }
 
@@ -305,14 +310,50 @@ public class Foo {
     private var ptr: UnsafeMutableRawPointer
 
     init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern "Rust" module.")
+        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }
 
     deinit {
         __swift_bridge__$Foo$_free(ptr)
     }
 
-    bar() {
+    func bar() {
+        __swift_bridge__$Foo$bar(ptr)
+    }
+}
+"#;
+
+        assert_eq!(generated.trim(), expected.trim());
+    }
+
+    /// Verify that we can generate an instance method that has a return value.
+    #[test]
+    fn instance_method_with_return() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    fn bar(&self) -> u8;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.extern_rust[0].generate_swift();
+
+        let expected = r#"
+public class Foo {
+    private var ptr: UnsafeMutableRawPointer
+
+    init() {
+        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
+    }
+
+    deinit {
+        __swift_bridge__$Foo$_free(ptr)
+    }
+
+    func bar() -> UInt8 {
         __swift_bridge__$Foo$bar(ptr)
     }
 }
@@ -341,14 +382,14 @@ public class Foo {
     private var ptr: UnsafeMutableRawPointer
 
     init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern "Rust" module.")
+        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }
 
     deinit {
         __swift_bridge__$Foo$_free(ptr)
     }
 
-    bar(other: Foo) {
+    func bar(_ other: Foo) {
         __swift_bridge__$Foo$bar(ptr, other.ptr)
     }
 }
@@ -378,14 +419,14 @@ public class Foo {
     private var ptr: UnsafeMutableRawPointer
 
     init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern "Rust" module.")
+        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }
 
     deinit {
         __swift_bridge__$Foo$_free(ptr)
     }
 
-    class bar() {
+    class func bar() {
         __swift_bridge__$Foo$bar()
     }
 }

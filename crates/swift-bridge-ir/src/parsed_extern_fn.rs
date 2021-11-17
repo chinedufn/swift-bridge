@@ -268,14 +268,21 @@ impl ParsedExternFn {
                 FnArg::Typed(pat_ty) => {
                     let pat = &pat_ty.pat;
 
-                    let ty = if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                        built_in.to_c().to_string()
-                    } else {
-                        pat.to_token_stream().to_string()
-                    };
+                    match pat.deref() {
+                        Pat::Ident(pat_ident) if pat_ident.ident.to_string() == "self" => {
+                            params.push("void* self".to_string());
+                        }
+                        _ => {
+                            let ty = if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                                built_in.to_c().to_string()
+                            } else {
+                                pat.to_token_stream().to_string()
+                            };
 
-                    let arg_name = pat_ty.pat.to_token_stream().to_string();
-                    params.push(format!("{} {}", ty, arg_name));
+                            let arg_name = pat_ty.pat.to_token_stream().to_string();
+                            params.push(format!("{} {}", ty, arg_name));
+                        }
+                    };
                 }
             };
         }
@@ -287,14 +294,14 @@ impl ParsedExternFn {
         }
     }
 
-    pub fn to_c_header_return(&self) -> &'static str {
+    pub fn to_c_header_return(&self) -> String {
         match &self.func.sig.output {
-            ReturnType::Default => "void",
+            ReturnType::Default => "void".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(ty) = BuiltInType::with_type(&ty) {
                     ty.to_c()
                 } else {
-                    "void*"
+                    "void*".to_string()
                 }
             }
         }

@@ -9,5 +9,6 @@
 #define BridgingHeader_h
 
 #include "lib.rs.h"
+#include "expose_opaque_rust_struct.h"
 
 #endif /* BridgingHeader_h */

@@ -31,11 +31,15 @@ pub fn parse_bridges(
         // For now let's just write them to a hard coded place on disk and see everything work..
         // then we can use variables instead of hard coded paths.
 
-        let swift_header_file_name = rust_file.with_extension("swift");
-        let swift_header_file_name = swift_header_file_name.file_name().unwrap();
-        let swift_header_file = out_dir.join(swift_header_file_name);
+        let c_header_file_name = rust_file.with_extension("h");
+        let c_header_file_name = c_header_file_name.file_name().unwrap();
+        let c_header_file = out_dir.join(c_header_file_name);
+        std::fs::write(&c_header_file, generated.c_header).unwrap();
 
-        std::fs::write(&swift_header_file, generated.swift).unwrap();
+        let swift_file_name = rust_file.with_extension("swift");
+        let swift_file_name = swift_file_name.file_name().unwrap();
+        let swift_file = out_dir.join(swift_file_name);
+        std::fs::write(&swift_file, generated.swift).unwrap();
     }
 }
 
@@ -43,6 +47,7 @@ fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
     let file: File = syn::parse_str(file)?;
 
     let mut generated = GeneratedFromSwiftBridgeModule {
+        c_header: "".to_string(),
         swift: "".to_string(),
     };
 
@@ -58,6 +63,10 @@ fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
                 {
                     let module: SwiftBridgeModule = syn::parse2(module.to_token_stream())?;
 
+                    let c_header = module.generate_c_header();
+                    generated.c_header += &c_header;
+                    generated.c_header += "\n\n";
+
                     let swift = module.generate_swift();
                     generated.swift += &swift;
                     generated.swift += "\n\n";
@@ -72,6 +81,7 @@ fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
 
 #[derive(Debug)]
 struct GeneratedFromSwiftBridgeModule {
+    c_header: String,
     swift: String,
 }
 

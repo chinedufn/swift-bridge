@@ -2,34 +2,41 @@ use crate::build_in_types::BuiltInType;
 use crate::parsed_extern_fn::ParsedExternFn;
 use quote::ToTokens;
 use std::ops::Deref;
-use syn::{FnArg, ReturnType};
+use syn::{FnArg, Pat, ReturnType};
 
 impl ParsedExternFn {
     pub fn to_swift_param_names_and_types(&self) -> String {
         let mut params: Vec<String> = vec![];
 
         for arg in &self.func.sig.inputs {
-            match arg {
-                FnArg::Receiver(receiver) => {
-                    // Needs to be based on  receiver.reference and receiver.mutability..
-                    // let this = quote! { this: swift_bridge::OwnedPtrToRust<super::SomeType> };
-                    // params.push(this);
+            let param = match arg {
+                FnArg::Receiver(_receiver) => {
+                    continue;
                 }
                 FnArg::Typed(pat_ty) => {
+                    match pat_ty.pat.deref() {
+                        Pat::Ident(pat) if pat.ident.to_string() == "self" => {
+                            continue;
+                        }
+                        _ => {}
+                    };
+
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                        params.push(format!("{}: {}", arg_name, built_in.to_swift()));
+                        format!("{}: {}", arg_name, built_in.to_swift())
                     } else {
                         // &mut Foo -> "& mut Foo"
                         let ty = pat_ty.ty.to_token_stream().to_string();
                         // Remove all references "&" and mut keywords.
                         let ty = ty.split_whitespace().last().unwrap();
 
-                        params.push(format!("{}: {}", arg_name, ty));
-                    };
+                        format!("{}: {}", arg_name, ty)
+                    }
                 }
             };
+
+            params.push(format!("_ {}", param))
         }
 
         params.join(", ")
@@ -66,7 +73,7 @@ impl ParsedExternFn {
                 if let Some(built_in) = BuiltInType::with_type(&ty) {
                     format!(" -> {}", built_in.to_swift())
                 } else {
-                    format!("*mut c_void")
+                    format!(" -> UnsafeMutableRawPointer")
                 }
             }
         }
@@ -100,7 +107,36 @@ mod tests {
         assert_eq!(functions.len(), 3);
 
         for idx in 0..3 {
-            assert_eq!(functions[idx].to_swift_return(), "*mut c_void");
+            assert_eq!(
+                functions[idx].to_swift_return(),
+                " -> UnsafeMutableRawPointer"
+            );
+        }
+    }
+
+    /// Verify that we ignore self when generating Swift function params.
+    #[test]
+    fn excludes_self_from_params() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type Foo;
+                    fn make1 (self);
+                    fn make2 (&self);
+                    fn make3 (&mut self);
+                    fn make4 (self: Foo);
+                    fn make5 (self: &Foo);
+                    fn make6 (self: &mut Foo);
+                }
+            }
+        };
+        let module = parse_ok(tokens);
+        let methods = &module.extern_rust[0].types[0].methods;
+        assert_eq!(methods.len(), 6);
+
+        for method in methods {
+            assert_eq!(method.func.to_swift_param_names_and_types(), "");
         }
     }
 
@@ -125,7 +161,7 @@ mod tests {
         for idx in 0..3 {
             assert_eq!(
                 functions[idx].to_swift_param_names_and_types(),
-                "other: Foo"
+                "_ other: Foo"
             );
         }
     }

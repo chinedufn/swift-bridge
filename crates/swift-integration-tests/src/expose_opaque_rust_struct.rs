@@ -25,8 +25,6 @@
 //
 // 8. Start implementing more core types (ints .. Vec<T> .. etc)
 
-use std::mem::ManuallyDrop;
-
 pub struct ARustStack {
     stack: Vec<u8>,
 }
