@@ -16,14 +16,16 @@ Right Tokens:
     )
 }
 
+/// Converts both token streams to strings, removes all of the whitespace then checks that the outer
+/// token stream contains the inner one.
 pub fn assert_tokens_contain(outer: &TokenStream, inner: &TokenStream) {
-    let outer_vec = token_stream_to_vec(&outer);
-    let inner_vec = token_stream_to_vec(inner);
+    let outer_string = outer.to_string();
+    let outer_string = outer_string.replace(" ", "").replace("\n", "");
 
-    let is_contained = outer_vec
-        .into_iter()
-        .collect::<String>()
-        .contains(&inner_vec.into_iter().collect::<String>());
+    let inner_string = inner.to_string();
+    let inner_string = inner_string.replace(" ", "").replace("\n", "");
+
+    let is_contained = outer_string.contains(&inner_string);
 
     assert!(
         is_contained,

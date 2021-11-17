@@ -38,7 +38,6 @@ impl ParsedExternFn {
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
 
-        let host_type = host_type.unwrap();
         let export_name = self.link_name(host_type);
 
         let params = self.to_rust_param_names_and_types();
@@ -60,30 +59,43 @@ impl ParsedExternFn {
                 todo!()
             }
         } else {
+            let host_type_segment = if let Some(h) = &host_type {
+                quote! {#h::}
+            } else {
+                quote! {}
+            };
+
             match &sig.output {
                 ReturnType::Default => {
                     quote! {
-                        super::#host_type::#call_fn
+                        super:: #host_type_segment #call_fn
                     }
                 }
                 ReturnType::Type(_arrow, ty) => {
                     if BuiltInType::with_type(&ty).is_some() {
                         quote! {
-                            super::#host_type::#call_fn
+                            super:: #host_type_segment #call_fn
                         }
                     } else {
                         quote! {
-                            let val = super::#host_type::#call_fn;
-                            let val = Box::into_raw(Box::new(val));
-                            swift_bridge::OwnedPtrToRust::new(val)
+                            let val = super:: #host_type_segment #call_fn;
+                            Box::into_raw(Box::new(val)) as *mut std::ffi::c_void
                         }
                     }
                 }
             }
         };
 
+        let host_type_prefix = host_type
+            .map(|h| format!("{}_", h.to_string()))
+            .unwrap_or_default();
         let prefixed_fn_name = Ident::new(
-            &format!("{}_{}", host_type.to_string(), fn_name.to_string()),
+            &format!(
+                "{}{}{}",
+                SWIFT_BRIDGE_PREFIX,
+                host_type_prefix,
+                fn_name.to_string()
+            ),
             fn_name.span(),
         );
 
@@ -95,7 +107,7 @@ impl ParsedExternFn {
                 if let Some(_supported) = BuiltInType::with_type(&ty) {
                     quote! {#arrow #ty}
                 } else {
-                    quote_spanned! {ty.span()=> -> swift_bridge::OwnedPtrToRust<super::#ty> }
+                    quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }
                 }
             }
         };
@@ -220,11 +232,15 @@ impl ParsedExternFn {
 }
 
 impl ParsedExternFn {
-    pub fn link_name(&self, ty_declaration: &Ident) -> String {
+    pub fn link_name(&self, host_type: Option<&Ident>) -> String {
+        let host_type = host_type
+            .map(|h| format!("${}", h.to_string()))
+            .unwrap_or("".to_string());
+
         format!(
-            "{}${}${}",
+            "{}{}${}",
             SWIFT_BRIDGE_PREFIX,
-            ty_declaration.to_string(),
+            host_type,
             self.func.sig.ident.to_string()
         )
     }
