@@ -192,8 +192,7 @@ mod tests {
             #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function () -> *mut std::ffi::c_void {
-                let val = super::some_function();
-                Box::into_raw(Box::new(val)) as *mut std::ffi::c_void
+                Box::into_raw(Box::new(super::some_function())) as *mut std::ffi::c_void
             }
         };
 
@@ -217,8 +216,7 @@ mod tests {
             #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$new"]
             pub extern "C" fn __swift_bridge__SomeType_new () -> *mut std::ffi::c_void {
-                let val = super::SomeType::new();
-                 Box::into_raw(Box::new(val)) as *mut std::ffi::c_void
+                Box::into_raw(Box::new(super::SomeType::new())) as *mut std::ffi::c_void
             }
         };
 
@@ -296,8 +294,7 @@ mod tests {
             pub extern "C" fn __swift_bridge__MyType_increment (
                 this: *mut std::mem::ManuallyDrop<super::MyType>
             ) {
-                let mut this = unsafe { Box::from_raw(this) };
-                this.increment()
+                (unsafe { Box::from_raw(this) }).increment()
             }
         };
 
@@ -324,8 +321,7 @@ mod tests {
                 this: *mut std::mem::ManuallyDrop<super::SomeType>,
                 val: u8
             ) {
-                let this = unsafe { Box::from_raw(this) };
-                this.message(val)
+                (unsafe { Box::from_raw(this) }).message(val)
             }
         };
 
@@ -351,8 +347,7 @@ mod tests {
             pub extern "C" fn __swift_bridge__SomeType_consume (
                 this: *mut super::SomeType
             ) {
-                let this = unsafe { Box::from_raw(this) };
-                (*this).consume()
+                (* unsafe { Box::from_raw(this) }).consume()
             }
         };
 

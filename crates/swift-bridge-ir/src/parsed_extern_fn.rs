@@ -89,18 +89,15 @@ impl ParsedExternFn {
         };
 
         let inner = if self.is_method() {
-            if let Some(reference) = self.self_reference() {
-                let maybe_mut = self.self_mutability();
-
-                quote! {
-                    let #maybe_mut this = unsafe { Box::from_raw(this) };
-                    this.#call_fn
-                }
+            let maybe_mut = self.self_mutability();
+            let maybe_deref = if self.self_reference().is_some() {
+                quote! {}
             } else {
-                quote! {
-                    let this = unsafe { Box::from_raw(this) };
-                    (*this).#call_fn
-                }
+                quote! {*}
+            };
+
+            quote! {
+                (#maybe_deref unsafe { Box::from_raw(this) } ).#call_fn
             }
         } else {
             let host_type_segment = if let Some(h) = &host_type {
@@ -133,8 +130,7 @@ impl ParsedExternFn {
                         }
                     } else {
                         quote! {
-                            let val = super:: #host_type_segment #call_fn;
-                            Box::into_raw(Box::new(val)) as *mut std::ffi::c_void
+                            Box::into_raw( Box::new( super:: #host_type_segment #call_fn )) as *mut std::ffi::c_void
                         }
                     }
                 }
@@ -505,8 +501,8 @@ mod tests {
         todo!(
             r#"
 Refactor this file
-Make the wrapping of the return type pass through the samw machinery.. so that we always wrap
-slices.
+Make all the wrapping of the return type pass through the same machinery
+Wrap slices in RustSlice::from_slice
         "#
         )
     }
