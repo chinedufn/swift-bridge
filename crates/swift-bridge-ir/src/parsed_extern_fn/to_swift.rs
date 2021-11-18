@@ -103,7 +103,7 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        let functions = &module.extern_rust[0].functions;
+        let functions = &module.functions;
         assert_eq!(functions.len(), 3);
 
         for idx in 0..3 {
@@ -132,7 +132,7 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        let methods = &module.extern_rust[0].functions;
+        let methods = &module.functions;
         assert_eq!(methods.len(), 6);
 
         for method in methods {
@@ -155,7 +155,7 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        let functions = &module.extern_rust[0].functions;
+        let functions = &module.functions;
         assert_eq!(functions.len(), 3);
 
         for idx in 0..3 {
@@ -182,7 +182,7 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        let functions = &module.extern_rust[0].functions;
+        let functions = &module.functions;
         assert_eq!(functions.len(), 3);
 
         for idx in 0..3 {

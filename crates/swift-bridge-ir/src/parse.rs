@@ -1,6 +1,5 @@
 use crate::build_in_types::BuiltInType;
 use crate::errors::{ParseError, ParseErrors};
-use crate::extern_rust::ExternRustSection;
 use crate::{ParsedExternFn, SwiftBridgeModule};
 use proc_macro2::Ident;
 use quote::ToTokens;
@@ -26,7 +25,7 @@ use syn::{
 //
 // ## Implementation
 //
-// - Remove `.extern_rusts` and instead add Vec<ForeignItemType> and Vec<ParsedExternFn> to
+// - (DONE) Remove `.extern_rusts` and instead add Vec<ForeignItemType> and Vec<ParsedExternFn> to
 //    SwiftBridgeModule
 //
 // - Add `.abi` to `ParsedExternFn`
@@ -67,7 +66,8 @@ impl Parse for SwiftBridgeModuleAndErrors {
         if let Ok(item_mod) = input.parse::<ItemMod>() {
             let module_name = item_mod.ident;
 
-            let mut extern_rust = vec![];
+            let mut functions = vec![];
+            let mut module_types_lookup: HashMap<String, ForeignItemType> = HashMap::new();
 
             for outer_mod_item in item_mod.content.unwrap().1 {
                 match outer_mod_item {
@@ -78,9 +78,6 @@ impl Parse for SwiftBridgeModuleAndErrors {
                             });
                             continue;
                         }
-
-                        let mut type_lookup: HashMap<String, ForeignItemType> = HashMap::new();
-                        let mut parsed_functions = vec![];
 
                         let abi_name = foreign_mod.abi.name.unwrap();
 
@@ -114,7 +111,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                         });
                                     }
 
-                                    type_lookup.insert(ty_name, foreign_ty);
+                                    module_types_lookup.insert(ty_name, foreign_ty);
                                 }
                                 ForeignItem::Fn(func) => {
                                     let mut attributes = SwiftBridgeAttributes::default();
@@ -128,14 +125,18 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                         if let FnArg::Typed(pat_ty) = arg {
                                             check_supported_type(
                                                 &pat_ty.ty,
-                                                &mut type_lookup,
+                                                &mut module_types_lookup,
                                                 &mut errors,
                                             );
                                         }
                                     }
 
                                     if let ReturnType::Type(_, ty) = &func.sig.output {
-                                        check_supported_type(ty, &mut type_lookup, &mut errors);
+                                        check_supported_type(
+                                            ty,
+                                            &mut module_types_lookup,
+                                            &mut errors,
+                                        );
                                     }
 
                                     let first_input = func.sig.inputs.iter().next();
@@ -145,29 +146,23 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                             first,
                                             func.clone(),
                                             &attributes,
-                                            &mut type_lookup,
-                                            &mut parsed_functions,
+                                            &mut module_types_lookup,
+                                            &mut functions,
                                             &mut errors,
                                         )?;
                                     } else {
                                         let f = parse_function(
                                             func.clone(),
                                             &attributes,
-                                            &mut type_lookup,
+                                            &mut module_types_lookup,
                                             &mut errors,
                                         );
-                                        parsed_functions.push(f);
+                                        functions.push(f);
                                     }
                                 }
                                 _ => {}
                             }
                         }
-
-                        let section = ExternRustSection {
-                            types: type_lookup.into_values().collect(),
-                            functions: parsed_functions,
-                        };
-                        extern_rust.push(section);
                     }
                     _ => {
                         //
@@ -178,7 +173,8 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
             let module = SwiftBridgeModule {
                 name: module_name,
-                extern_rust,
+                types: module_types_lookup.into_values().collect(),
+                functions,
             };
             Ok(SwiftBridgeModuleAndErrors { module, errors })
         } else {
@@ -251,14 +247,14 @@ fn parse_function_with_inputs(
     func: ForeignItemFn,
     attributes: &SwiftBridgeAttributes,
     type_lookup: &mut HashMap<String, ForeignItemType>,
-    parsed_functions: &mut Vec<ParsedExternFn>,
+    functions: &mut Vec<ParsedExternFn>,
     errors: &mut ParseErrors,
 ) -> syn::Result<()> {
     match first {
         FnArg::Receiver(recv) => {
             if type_lookup.len() == 1 {
                 let ty = type_lookup.iter_mut().next().unwrap().1;
-                parsed_functions.push(ParsedExternFn {
+                functions.push(ParsedExternFn {
                     func,
                     is_initializer: attributes.initializes,
                     associated_type: Some(ty.clone()),
@@ -281,8 +277,7 @@ fn parse_function_with_inputs(
                                     func.clone(),
                                     attributes,
                                     type_lookup,
-                                    None,
-                                    parsed_functions,
+                                    functions,
                                     self_ty,
                                 );
                             }
@@ -293,8 +288,7 @@ fn parse_function_with_inputs(
                                     func.clone(),
                                     attributes,
                                     type_lookup,
-                                    Some(type_ref),
-                                    parsed_functions,
+                                    functions,
                                     self_ty,
                                 );
                             }
@@ -302,12 +296,12 @@ fn parse_function_with_inputs(
                         };
                     } else if let Some(associated_to) = &attributes.associated_to {
                         let f = parse_function(func, attributes, type_lookup, errors);
-                        parsed_functions.push(f);
+                        functions.push(f);
                     } else if attributes.initializes {
                         let f = parse_function(func, attributes, type_lookup, errors);
-                        parsed_functions.push(f);
+                        functions.push(f);
                     } else {
-                        parsed_functions.push(ParsedExternFn {
+                        functions.push(ParsedExternFn {
                             func,
                             is_initializer: false,
                             associated_type: None,
@@ -327,8 +321,7 @@ fn parse_method(
     func: ForeignItemFn,
     attributes: &SwiftBridgeAttributes,
     type_lookup: &mut HashMap<String, ForeignItemType>,
-    type_ref: Option<&TypeReference>,
-    parsed_functions: &mut Vec<ParsedExternFn>,
+    functions: &mut Vec<ParsedExternFn>,
     self_ty: &Type,
 ) {
     match self_ty {
@@ -336,7 +329,7 @@ fn parse_method(
             let self_ty_string = path.path.segments.to_token_stream().to_string();
 
             if let Some(ty) = type_lookup.get_mut(&self_ty_string) {
-                parsed_functions.push(ParsedExternFn {
+                functions.push(ParsedExternFn {
                     func,
                     is_initializer: attributes.initializes,
                     associated_type: Some(ty.clone()),
@@ -460,7 +453,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        assert_eq!(module.extern_rust[0].types[0].ident.to_string(), "Foo");
+        assert_eq!(module.types[0].ident.to_string(), "Foo");
     }
 
     /// Verify that we return an error if the declared type is a built in type.
@@ -504,11 +497,11 @@ mod tests {
 
             let module = parse_ok(tokens);
 
-            let ty = &module.extern_rust[0].types[0];
+            let ty = &module.types[0];
             assert_eq!(ty.ident.to_string(), "Foo");
 
             assert_eq!(
-                module.extern_rust[0].functions.len(),
+                module.functions.len(),
                 1,
                 "Failed not parse {} into an associated method.",
                 quote! {#fn_definition}.to_string()
@@ -532,10 +525,10 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        let ty = &module.extern_rust[0].types[0];
+        let ty = &module.types[0];
         assert_eq!(ty.ident.to_string(), "Foo");
 
-        assert_eq!(module.extern_rust[0].functions.len(), 1,);
+        assert_eq!(module.functions.len(), 1,);
     }
 
     /// Verify that we can parse an associated function that has arguments.
@@ -554,10 +547,10 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        let ty = &module.extern_rust[0].types[0];
+        let ty = &module.types[0];
         assert_eq!(ty.ident.to_string(), "Foo");
 
-        assert_eq!(module.extern_rust[0].functions.len(), 1,);
+        assert_eq!(module.functions.len(), 1,);
     }
 
     /// Verify that we can parse an init function.
@@ -576,7 +569,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        let func = &module.extern_rust[0].functions[0];
+        let func = &module.functions[0];
         assert!(func.is_initializer);
     }
 
@@ -596,7 +589,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        let func = &module.extern_rust[0].functions[0];
+        let func = &module.functions[0];
         assert!(func.is_initializer);
     }
 
@@ -636,7 +629,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        assert_eq!(module.extern_rust[0].functions.len(), 1);
+        assert_eq!(module.functions.len(), 1);
     }
 
     /// Verify that we can parse a freestanding Rust function declaration that has one arg.
@@ -652,7 +645,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        assert_eq!(module.extern_rust[0].functions.len(), 1);
+        assert_eq!(module.functions.len(), 1);
     }
 
     /// Verify that if a freestanding function has argument types that were not declared in the
@@ -699,7 +692,7 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        assert_eq!(module.extern_rust[0].functions.len(), 1);
+        assert_eq!(module.functions.len(), 1);
     }
 
     /// Verify that if a freestanding function returns a type that was not declared in the module
@@ -777,10 +770,10 @@ mod tests {
 
         let mut module = parse_ok(tokens);
 
-        let types = &mut module.extern_rust[0].types;
+        let types = &mut module.types;
         types.sort_by(|a, b| a.ident.to_string().cmp(&b.ident.to_string()).reverse());
 
-        let functions = &module.extern_rust[0].functions;
+        let functions = &module.functions;
 
         for (ty_name, expected_count) in vec![("SomeType", 2), ("AnotherType", 1)] {
             assert_eq!(

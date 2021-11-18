@@ -9,28 +9,24 @@ impl ToTokens for SwiftBridgeModule {
 
         let mut generated = vec![];
 
-        for rust_section in &self.extern_rust {
-            for freefunc in &rust_section.functions {
-                generated.push(freefunc.to_extern_rust_function_tokens());
-            }
+        for func in &self.functions {
+            generated.push(func.to_extern_rust_function_tokens());
+        }
 
-            for ty in &rust_section.types {
-                let export_name =
-                    format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
-                let func_name =
-                    Ident::new(&format!("{}__free", ty.ident.to_string()), ty.ident.span());
-                let this = &ty.ident;
+        for ty in &self.types {
+            let export_name = format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
+            let func_name = Ident::new(&format!("{}__free", ty.ident.to_string()), ty.ident.span());
+            let this = &ty.ident;
 
-                let free = quote! {
-                    #[no_mangle]
-                    #[export_name = #export_name]
-                    pub extern "C" fn #func_name (this: *mut super::#this) {
-                        let this = unsafe { Box::from_raw(this) };
-                        drop(this);
-                    }
-                };
-                generated.push(free);
-            }
+            let free = quote! {
+                #[no_mangle]
+                #[export_name = #export_name]
+                pub extern "C" fn #func_name (this: *mut super::#this) {
+                    let this = unsafe { Box::from_raw(this) };
+                    drop(this);
+                }
+            };
+            generated.push(free);
         }
 
         let t = quote! {
@@ -216,7 +212,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -242,7 +238,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -268,7 +264,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -294,7 +290,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -321,7 +317,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -347,7 +343,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 

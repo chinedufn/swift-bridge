@@ -443,7 +443,7 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        let methods = &module.extern_rust[0].functions;
+        let methods = &module.functions;
         assert_eq!(methods.len(), 6);
 
         for method in methods {
@@ -469,7 +469,7 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        let methods = &module.extern_rust[0].functions;
+        let methods = &module.functions;
         assert_eq!(methods.len(), 6);
 
         for method in methods {
@@ -499,7 +499,7 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        let methods = &module.extern_rust[0].functions;
+        let methods = &module.functions;
         assert_eq!(methods.len(), 3);
 
         for method in methods {
@@ -533,7 +533,7 @@ mod tests {
         };
 
         let module = parse_ok(tokens);
-        let function = &module.extern_rust[0].functions[0];
+        let function = &module.functions[0];
 
         assert_tokens_eq(&function.to_extern_rust_function_tokens(), &expected_fn);
     }

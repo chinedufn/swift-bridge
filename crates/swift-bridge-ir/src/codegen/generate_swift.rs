@@ -1,9 +1,8 @@
-use crate::extern_rust::ExternRustSection;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::SWIFT_BRIDGE_PREFIX;
+use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use std::collections::HashMap;
 
-impl ExternRustSection {
+impl SwiftBridgeModule {
     /// Gererate the corresponding Swift code for an `extern "Rust"` module.
     pub fn generate_swift(&self) -> String {
         let mut swift = "".to_string();
@@ -174,7 +173,7 @@ mod tests {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 func foo() {
@@ -196,7 +195,7 @@ func foo() {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 func foo(_ bar: UInt8) {
@@ -219,7 +218,7 @@ func foo(_ bar: UInt8) {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 func foo() -> UInt32 {
@@ -241,7 +240,7 @@ func foo() -> UInt32 {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 func foo() -> UnsafeBufferPointer<UInt8> {
@@ -264,7 +263,7 @@ func foo() -> UnsafeBufferPointer<UInt8> {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 public class Foo {
@@ -297,7 +296,7 @@ public class Foo {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 public class Foo {
@@ -330,7 +329,7 @@ public class Foo {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 public class Foo {
@@ -362,7 +361,7 @@ public class Foo {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 public class Foo {
@@ -398,7 +397,7 @@ public class Foo {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 public class Foo {
@@ -434,7 +433,7 @@ public class Foo {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 public class Foo {
@@ -471,7 +470,7 @@ public class Foo {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.extern_rust[0].generate_swift();
+        let generated = module.generate_swift();
 
         let expected = r#"
 public class Foo {

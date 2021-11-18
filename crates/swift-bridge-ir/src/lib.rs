@@ -7,16 +7,10 @@
 
 #![deny(missing_docs)]
 
-use crate::build_in_types::BuiltInType;
-use crate::extern_rust::ExternRustSection;
-use crate::parsed_extern_fn::ParsedExternFn;
-use proc_macro2::{Ident, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
-use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItemFn, Receiver, ReturnType, Token};
+use proc_macro2::Ident;
+use syn::ForeignItemType;
 
-mod extern_rust;
-mod extern_swift;
+use crate::parsed_extern_fn::ParsedExternFn;
 
 mod errors;
 mod parse;
@@ -24,6 +18,8 @@ mod to_tokens;
 
 mod build_in_types;
 mod parsed_extern_fn;
+
+mod codegen;
 
 #[cfg(test)]
 mod test_utils;
@@ -56,31 +52,8 @@ const SWIFT_BRIDGE_PREFIX: &'static str = "__swift_bridge__";
 /// ```
 pub struct SwiftBridgeModule {
     name: Ident,
-    extern_rust: Vec<ExternRustSection>,
-}
-
-impl SwiftBridgeModule {
-    /// Generate the contents of a Swift file based on the contents of this module.
-    pub fn generate_swift(&self) -> String {
-        let mut swift = "".to_string();
-
-        for section in &self.extern_rust {
-            swift += &section.generate_swift();
-        }
-
-        swift
-    }
-
-    /// Generate the contents of a C header file based on the contents of this module.
-    pub fn generate_c_header(&self) -> String {
-        let mut c_header = "".to_string();
-
-        for section in &self.extern_rust {
-            c_header += &section.generate_c_header();
-        }
-
-        c_header
-    }
+    types: Vec<ForeignItemType>,
+    functions: Vec<ParsedExternFn>,
 }
 
 #[cfg(test)]
