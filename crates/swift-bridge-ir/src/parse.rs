@@ -9,8 +9,7 @@ use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
 use syn::{
-    FnArg, ForeignItem, ForeignItemFn, ForeignItemType, Item, ItemMod, Pat, ReturnType, Token,
-    Type, TypeReference,
+    FnArg, ForeignItem, ForeignItemFn, ForeignItemType, Item, ItemMod, Pat, ReturnType, Token, Type,
 };
 
 // Ok so we need to handle Swift sections now
@@ -28,9 +27,9 @@ use syn::{
 // - (DONE) Remove `.extern_rusts` and instead add Vec<ForeignItemType> and Vec<ParsedExternFn> to
 //    SwiftBridgeModule
 //
-// - Add `.abi` to `ParsedExternFn`
+// - (DONE) Add `.host_lang` to `ParsedExternFn`
 //
-// - Add tests for generating extern c linked freestanding function
+// - (DONE) Add tests for generating extern c linked freestanding function
 //
 // - Add tests for generating struct Foo(*mut c_void) for `type Foo`
 //
@@ -54,7 +53,9 @@ pub(crate) struct SwiftBridgeModuleAndErrors {
     pub errors: ParseErrors,
 }
 
-pub(crate) enum AbiLang {
+/// The language that a bridge function's implementation lives in.
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum HostLang {
     Rust,
     Swift,
 }
@@ -81,9 +82,9 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
                         let abi_name = foreign_mod.abi.name.unwrap();
 
-                        let abi_name = match abi_name.value().as_str() {
-                            "Rust" => AbiLang::Rust,
-                            "Swift" => AbiLang::Swift,
+                        let host_lang = match abi_name.value().as_str() {
+                            "Rust" => HostLang::Rust,
+                            "Swift" => HostLang::Swift,
                             _ => {
                                 errors.push(ParseError::AbiNameInvalid { abi_name });
                                 continue;
@@ -146,6 +147,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                             first,
                                             func.clone(),
                                             &attributes,
+                                            host_lang,
                                             &mut module_types_lookup,
                                             &mut functions,
                                             &mut errors,
@@ -154,6 +156,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                         let f = parse_function(
                                             func.clone(),
                                             &attributes,
+                                            host_lang,
                                             &mut module_types_lookup,
                                             &mut errors,
                                         );
@@ -213,6 +216,7 @@ fn check_supported_type(
 fn parse_function(
     func: ForeignItemFn,
     attributes: &SwiftBridgeAttributes,
+    host_lang: HostLang,
     type_lookup: &mut HashMap<String, ForeignItemType>,
     errors: &mut ParseErrors,
 ) -> ParsedExternFn {
@@ -237,6 +241,7 @@ fn parse_function(
     ParsedExternFn {
         func,
         is_initializer: attributes.initializes,
+        host_lang,
         associated_type,
     }
 }
@@ -246,6 +251,7 @@ fn parse_function_with_inputs(
     first: &FnArg,
     func: ForeignItemFn,
     attributes: &SwiftBridgeAttributes,
+    host_lang: HostLang,
     type_lookup: &mut HashMap<String, ForeignItemType>,
     functions: &mut Vec<ParsedExternFn>,
     errors: &mut ParseErrors,
@@ -258,6 +264,7 @@ fn parse_function_with_inputs(
                     func,
                     is_initializer: attributes.initializes,
                     associated_type: Some(ty.clone()),
+                    host_lang,
                 });
             } else {
                 errors.push(ParseError::AmbiguousSelf {
@@ -276,6 +283,7 @@ fn parse_function_with_inputs(
                                 parse_method(
                                     func.clone(),
                                     attributes,
+                                    host_lang,
                                     type_lookup,
                                     functions,
                                     self_ty,
@@ -287,6 +295,7 @@ fn parse_function_with_inputs(
                                 parse_method(
                                     func.clone(),
                                     attributes,
+                                    host_lang,
                                     type_lookup,
                                     functions,
                                     self_ty,
@@ -295,16 +304,17 @@ fn parse_function_with_inputs(
                             _ => {}
                         };
                     } else if let Some(associated_to) = &attributes.associated_to {
-                        let f = parse_function(func, attributes, type_lookup, errors);
+                        let f = parse_function(func, attributes, host_lang, type_lookup, errors);
                         functions.push(f);
                     } else if attributes.initializes {
-                        let f = parse_function(func, attributes, type_lookup, errors);
+                        let f = parse_function(func, attributes, host_lang, type_lookup, errors);
                         functions.push(f);
                     } else {
                         functions.push(ParsedExternFn {
                             func,
                             is_initializer: false,
                             associated_type: None,
+                            host_lang,
                         });
                     }
                 }
@@ -320,6 +330,7 @@ fn parse_function_with_inputs(
 fn parse_method(
     func: ForeignItemFn,
     attributes: &SwiftBridgeAttributes,
+    host_lang: HostLang,
     type_lookup: &mut HashMap<String, ForeignItemType>,
     functions: &mut Vec<ParsedExternFn>,
     self_ty: &Type,
@@ -333,6 +344,7 @@ fn parse_method(
                     func,
                     is_initializer: attributes.initializes,
                     associated_type: Some(ty.clone()),
+                    host_lang,
                 });
             } else {
                 todo!("Handle type not present in this extern push pushing a ParseError")
@@ -776,6 +788,43 @@ mod tests {
         let functions = &module.functions;
 
         for (ty_name, expected_count) in vec![("SomeType", 2), ("AnotherType", 1)] {
+            assert_eq!(
+                functions
+                    .iter()
+                    .filter(|f| f.associated_type.as_ref().unwrap().ident == ty_name)
+                    .count(),
+                expected_count
+            );
+        }
+    }
+
+    /// Verify that if we have multiple externs types can be inferred within each.
+    #[test]
+    fn infer_type_with_multiple_externs() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type SomeType;
+
+                    fn a (&self);
+                }
+
+                extern "Rust" {
+                    type AnotherType;
+
+                    fn b (&self);
+                }
+            }
+        };
+
+        let mut module = parse_ok(tokens);
+
+        let types = &mut module.types;
+        types.sort_by(|a, b| a.ident.to_string().cmp(&b.ident.to_string()).reverse());
+
+        let functions = &module.functions;
+
+        for (ty_name, expected_count) in vec![("SomeType", 1), ("AnotherType", 1)] {
             assert_eq!(
                 functions
                     .iter()

@@ -1,5 +1,5 @@
 use crate::build_in_types::BuiltInType;
-use crate::parse::AbiLang;
+use crate::parse::HostLang;
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
@@ -22,6 +22,7 @@ pub(crate) struct ParsedExternFn {
     pub func: ForeignItemFn,
     pub associated_type: Option<ForeignItemType>,
     pub is_initializer: bool,
+    pub host_lang: HostLang,
 }
 
 impl ParsedExternFn {
@@ -423,7 +424,6 @@ mod tests {
     use crate::parse::SwiftBridgeModuleAndErrors;
     use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
     use crate::SwiftBridgeModule;
-    use proc_macro2::Span;
 
     /// Verify that we rename `self` parameters to `this`
     #[test]
@@ -477,7 +477,7 @@ mod tests {
             assert_eq!(
                 rust_call_args.to_string(),
                 "",
-                "{:#?}",
+                "\n Function Tokens:\n{:#?}",
                 method.func.to_token_stream()
             );
         }
@@ -507,7 +507,7 @@ mod tests {
             assert_eq!(
                 rust_call_args.to_string(),
                 "*Box::from_raw(arg)",
-                "{:#?}",
+                "\nFunction tokens:\n{:#?}",
                 method.func.to_token_stream()
             );
         }
