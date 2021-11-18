@@ -1,6 +1,6 @@
 use crate::build_in_types::BuiltInType;
 use crate::parse::HostLang;
-use crate::SWIFT_BRIDGE_PREFIX;
+use crate::{BridgedType, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
@@ -21,7 +21,7 @@ mod to_swift;
 /// ... etc
 pub(crate) struct ParsedExternFn {
     pub func: ForeignItemFn,
-    pub associated_type: Option<ForeignItemType>,
+    pub associated_type: Option<BridgedType>,
     pub is_initializer: bool,
     pub host_lang: HostLang,
 }

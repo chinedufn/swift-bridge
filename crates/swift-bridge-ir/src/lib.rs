@@ -7,7 +7,9 @@
 
 #![deny(missing_docs)]
 
+use crate::parse::HostLang;
 use proc_macro2::Ident;
+use std::ops::Deref;
 use syn::ForeignItemType;
 
 use crate::parsed_extern_fn::ParsedExternFn;
@@ -52,8 +54,22 @@ const SWIFT_BRIDGE_PREFIX: &'static str = "__swift_bridge__";
 /// ```
 pub struct SwiftBridgeModule {
     name: Ident,
-    types: Vec<ForeignItemType>,
+    types: Vec<BridgedType>,
     functions: Vec<ParsedExternFn>,
+}
+
+#[derive(Clone)]
+struct BridgedType {
+    ty: ForeignItemType,
+    host_lang: HostLang,
+}
+
+impl Deref for BridgedType {
+    type Target = ForeignItemType;
+
+    fn deref(&self) -> &Self::Target {
+        &self.ty
+    }
 }
 
 #[cfg(test)]

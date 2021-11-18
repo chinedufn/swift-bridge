@@ -1,6 +1,6 @@
 use crate::build_in_types::BuiltInType;
 use crate::errors::{ParseError, ParseErrors};
-use crate::{ParsedExternFn, SwiftBridgeModule};
+use crate::{BridgedType, ParsedExternFn, SwiftBridgeModule};
 use proc_macro2::Ident;
 use quote::ToTokens;
 use std::cmp::Ordering;
@@ -60,10 +60,12 @@ pub(crate) struct SwiftBridgeModuleAndErrors {
     pub errors: ParseErrors,
 }
 
-/// The language that a bridge function's implementation lives in.
+/// The language that a bridge type or function's implementation lives in.
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum HostLang {
+    /// The type or function is defined Rust.
     Rust,
+    /// The type or function is defined Swift.
     Swift,
 }
 
@@ -121,9 +123,13 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                         });
                                     }
 
+                                    let bridged_type = BridgedType {
+                                        ty: foreign_ty.clone(),
+                                        host_lang,
+                                    };
                                     all_type_declarations
-                                        .insert(ty_name.clone(), foreign_ty.clone());
-                                    local_type_declarations.insert(ty_name, foreign_ty);
+                                        .insert(ty_name.clone(), bridged_type.clone());
+                                    local_type_declarations.insert(ty_name, bridged_type);
                                 }
                                 ForeignItem::Fn(func) => {
                                     let mut attributes = SwiftBridgeAttributes::default();
@@ -203,7 +209,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
 fn check_supported_type(
     ty: &Type,
-    type_lookup: &mut HashMap<String, ForeignItemType>,
+    type_lookup: &mut HashMap<String, BridgedType>,
     errors: &mut ParseErrors,
 ) {
     let (ty_string, ty_span) = match ty.deref() {
@@ -229,7 +235,7 @@ fn parse_function(
     func: ForeignItemFn,
     attributes: &SwiftBridgeAttributes,
     host_lang: HostLang,
-    type_lookup: &mut HashMap<String, ForeignItemType>,
+    type_lookup: &mut HashMap<String, BridgedType>,
     errors: &mut ParseErrors,
 ) -> ParsedExternFn {
     let associated_type = if let Some(associated_to) = &attributes.associated_to {
@@ -264,8 +270,8 @@ fn parse_function_with_inputs(
     func: ForeignItemFn,
     attributes: &SwiftBridgeAttributes,
     host_lang: HostLang,
-    all_type_declarations: &mut HashMap<String, ForeignItemType>,
-    local_type_declarations: &mut HashMap<String, ForeignItemType>,
+    all_type_declarations: &mut HashMap<String, BridgedType>,
+    local_type_declarations: &mut HashMap<String, BridgedType>,
     functions: &mut Vec<ParsedExternFn>,
     errors: &mut ParseErrors,
 ) -> syn::Result<()> {
@@ -356,7 +362,7 @@ fn parse_method(
     func: ForeignItemFn,
     attributes: &SwiftBridgeAttributes,
     host_lang: HostLang,
-    type_lookup: &mut HashMap<String, ForeignItemType>,
+    type_lookup: &mut HashMap<String, BridgedType>,
     functions: &mut Vec<ParsedExternFn>,
     self_ty: &Type,
 ) {
