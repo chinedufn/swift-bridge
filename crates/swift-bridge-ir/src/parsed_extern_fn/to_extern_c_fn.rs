@@ -29,11 +29,12 @@ impl ParsedExternFn {
     // FIXME: Combine this and host_type into one struct
     pub fn to_extern_c_function_tokens(&self) -> TokenStream {
         let link_name = self.link_name();
-        let params = self.to_rust_param_names_and_types();
+
+        let params = self.to_extern_c_param_names_and_types();
 
         let prefixed_fn_name = self.prefixed_fn_name();
 
-        let ret = self.return_type();
+        let ret = self.rust_return_type();
 
         match self.host_lang {
             HostLang::Rust => {
@@ -54,26 +55,6 @@ impl ParsedExternFn {
                 }
             }
         }
-    }
-
-    fn return_type(&self) -> TokenStream {
-        let sig = &self.func.sig;
-
-        let ret = match &sig.output {
-            ReturnType::Default => {
-                quote! {}
-            }
-            ReturnType::Type(arrow, ty) => {
-                if let Some(built_in) = BuiltInType::with_type(&ty) {
-                    let ty = built_in.to_extern_rust_ident(ty.span());
-                    quote! {#arrow #ty}
-                } else {
-                    quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }
-                }
-            }
-        };
-
-        ret
     }
 
     fn inner_tokens(&self) -> TokenStream {

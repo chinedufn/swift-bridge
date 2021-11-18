@@ -8,7 +8,8 @@ use syn::spanned::Spanned;
 use syn::{FnArg, ForeignItemFn, Lifetime, Pat, ReturnType, Token, Type};
 
 mod to_extern_c_fn;
-mod to_swift;
+mod to_rust_impl_call_swift;
+mod to_swift_func;
 
 /// A method or associated function associated with a type.
 ///
@@ -63,20 +64,58 @@ impl ParsedExternFn {
             },
         }
     }
+
+    pub(crate) fn rust_return_type(&self) -> TokenStream {
+        let sig = &self.func.sig;
+
+        let ret = match &sig.output {
+            ReturnType::Default => {
+                quote! {}
+            }
+            ReturnType::Type(arrow, ty) => {
+                if let Some(built_in) = BuiltInType::with_type(&ty) {
+                    let ty = built_in.to_extern_rust_ident(ty.span());
+                    quote! {#arrow #ty}
+                } else {
+                    quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }
+                }
+            }
+        };
+
+        ret
+    }
+
+    pub fn extern_swift_linked_fn_new(&self) -> Ident {
+        let sig = &self.func.sig;
+
+        let prefix = if let Some(associated_ty) = self.associated_type.as_ref() {
+            format!("{}_", associated_ty.ident)
+        } else {
+            "".to_string()
+        };
+
+        Ident::new(&format!("{}{}", prefix, sig.ident), sig.ident.span())
+    }
 }
 
 impl ParsedExternFn {
-    pub fn to_rust_param_names_and_types(&self) -> TokenStream {
+    pub fn to_extern_c_param_names_and_types(&self) -> TokenStream {
         let host_type = self.associated_type.as_ref().map(|h| &h.ident);
         let mut params = vec![];
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
             match arg {
-                FnArg::Receiver(receiver) => {
-                    let this = host_type.as_ref().unwrap();
-                    let this = quote! { this: *mut super:: #this };
-                    params.push(this);
-                }
+                FnArg::Receiver(receiver) => match self.host_lang {
+                    HostLang::Rust => {
+                        let this = host_type.as_ref().unwrap();
+                        let this = quote! { this: *mut super:: #this };
+                        params.push(this);
+                    }
+                    HostLang::Swift => {
+                        let this = quote! { this: *mut std::ffi::c_void };
+                        params.push(this);
+                    }
+                },
                 FnArg::Typed(pat_ty) => {
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
                         params.push(quote! {#pat_ty});
@@ -120,15 +159,24 @@ impl ParsedExternFn {
         }
     }
 
+    // extern Rust:
     // fn foo (&self, arg1: u8, arg2: u32, &SomeType)
     //  becomes..
     // arg1, arg2, & unsafe { Box::from_raw(bar }
+    //
+    // extern Swift:
+    // fn foo (&self, arg1: u8, arg2: u32, &SomeType)
+    //  becomes..
+    // self.0, arg1, arg2, & unsafe { Box::from_raw(bar }
     pub fn to_rust_call_args(&self) -> TokenStream {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
             match arg {
-                FnArg::Receiver(_receiver) => {}
+                FnArg::Receiver(_receiver) => match self.host_lang {
+                    HostLang::Rust => {}
+                    HostLang::Swift => args.push(quote! {self.0}),
+                },
                 FnArg::Typed(pat_ty) => {
                     match pat_ty.pat.deref() {
                         Pat::Ident(this) if this.ident.to_string() == "self" => {
@@ -298,7 +346,10 @@ mod tests {
         assert_eq!(methods.len(), 6);
 
         for method in methods {
-            assert_tokens_contain(&method.to_rust_param_names_and_types(), &quote! { this });
+            assert_tokens_contain(
+                &method.to_extern_c_param_names_and_types(),
+                &quote! { this },
+            );
         }
     }
 

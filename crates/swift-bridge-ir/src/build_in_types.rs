@@ -2,10 +2,11 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
 use std::ops::Deref;
-use syn::{Path, Type, TypeReference};
+use syn::{Path, ReturnType, Type, TypeReference};
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum BuiltInType {
+    Null,
     U8,
     I8,
     U16,
@@ -77,6 +78,13 @@ impl BuiltInType {
         }
     }
 
+    pub fn with_return_type(ty: &ReturnType) -> Option<Self> {
+        match ty {
+            ReturnType::Default => Some(BuiltInType::Null),
+            ReturnType::Type(_, ty) => BuiltInType::with_type(&ty),
+        }
+    }
+
     pub fn with_str(string: &str) -> Option<BuiltInType> {
         let ty = match string {
             "u8" => BuiltInType::U8,
@@ -129,6 +137,9 @@ impl BuiltInType {
                 let ty = slice.ty.to_extern_rust_ident(span);
                 quote! {swift_bridge::RustSlice<#ty>}
             }
+            BuiltInType::Null => {
+                quote! { () }
+            }
         };
 
         quote_spanned!(span=> #ty)
@@ -156,6 +167,7 @@ impl BuiltInType {
             BuiltInType::RefSlice(slice) => {
                 format!("UnsafeBufferPointer<{}>", slice.ty.to_swift())
             }
+            BuiltInType::Null => "".to_string(),
         }
     }
 
@@ -182,6 +194,7 @@ impl BuiltInType {
             BuiltInType::RefSlice(slice) => {
                 format!("struct RustSlice_{}", slice.ty.to_c())
             }
+            BuiltInType::Null => "void".to_string(),
         }
     }
 

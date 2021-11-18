@@ -3,6 +3,7 @@ use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use quote::ToTokens;
+use std::collections::HashMap;
 
 impl ToTokens for SwiftBridgeModule {
     fn to_tokens(&self, tokens: &mut TokenStream) {
@@ -11,6 +12,8 @@ impl ToTokens for SwiftBridgeModule {
         let mut extern_rust_fn_tokens = vec![];
 
         let mut structs_for_swift_classes = vec![];
+
+        let mut extern_swift_impl_fn_tokens: HashMap<String, Vec<TokenStream>> = HashMap::new();
         let mut extern_swift_fn_tokens = vec![];
 
         for func in &self.functions {
@@ -19,6 +22,14 @@ impl ToTokens for SwiftBridgeModule {
                     extern_rust_fn_tokens.push(func.to_extern_c_function_tokens());
                 }
                 HostLang::Swift => {
+                    if let Some(ty) = func.associated_type.as_ref() {
+                        let tokens = func.to_impl_fn_calls_swift();
+                        extern_swift_impl_fn_tokens
+                            .entry(ty.ident.to_string())
+                            .or_default()
+                            .push(tokens);
+                    }
+
                     extern_swift_fn_tokens.push(func.to_extern_c_function_tokens());
                 }
             };
@@ -45,12 +56,27 @@ impl ToTokens for SwiftBridgeModule {
                 HostLang::Swift => {
                     let ty_name = &ty.ident;
 
+                    let impls = match extern_swift_impl_fn_tokens.get(&ty_name.to_string()) {
+                        Some(impls) if impls.len() > 0 => {
+                            quote! {
+                                impl #ty_name {
+                                    #(#impls)*
+                                }
+                            }
+                        }
+                        _ => {
+                            quote! {}
+                        }
+                    };
+
                     let struct_tokens = quote! {
                         pub struct #ty_name(*mut std::ffi::c_void);
 
+                        #impls
+
                         impl Drop for #ty_name {
                             fn drop (&mut self) {
-                                #free_mem_func_name(self.0)
+                                unsafe { #free_mem_func_name(self.0) }
                             }
                         }
                     };
@@ -280,7 +306,7 @@ mod tests {
 
             impl Drop for Foo {
                 fn drop (&mut self) {
-                    Foo__free(self.0)
+                    unsafe { Foo__free(self.0) }
                 }
             }
 
@@ -328,32 +354,32 @@ mod tests {
                 extern "Swift" {
                     type Foo;
 
-                    #[associated_to = Foo]
+                    #[swift_bridge(associated_to = Foo)]
                     fn new () -> Foo;
                 }
             }
         };
         let expected = quote! {
-            pub struct Foo(*mut c_void);
+            pub struct Foo(*mut std::ffi::c_void);
 
             impl Foo {
                 pub fn new () -> Foo {
-                    Foo(Foo_new())
+                    Foo(unsafe{ Foo_new() })
                 }
             }
 
             impl Drop for Foo {
                 fn drop (&mut self) {
-                    Foo_free(self.0)
+                    Foo__free(self.0)
                 }
             }
 
             extern "C" {
-                #[link_name = "__swift_bridge__$Foo$_free"]
-                fn Foo_free (this: &mut c_void);
-
                 #[link_name = "__swift_bridge__$Foo$new"]
-                fn Foo_new() -> *mut c_void;
+                fn __swift_bridge__Foo_new() -> *mut std::ffi::c_void;
+
+                #[link_name = "__swift_bridge__$Foo$_free"]
+                fn Foo__free (this: *mut std::ffi::c_void);
             }
         };
 
@@ -452,26 +478,26 @@ mod tests {
             }
         };
         let expected = quote! {
-            pub struct Foo(*mut c_void);
+            pub struct Foo(*mut std::ffi::c_void);
 
             impl Foo {
                 pub fn notify (&self) {
-                    Foo_notify(self.0)
+                    unsafe { Foo_notify(self.0) }
                 }
             }
 
             impl Drop for Foo {
                 fn drop (&mut self) {
-                    Foo__free(self.0)
+                    unsafe { Foo__free(self.0) }
                 }
             }
 
             extern "C" {
-                #[link_name = "__swift_bridge__$Foo$_free"]
-                fn Foo__free (this: &mut c_void);
-
                 #[link_name = "__swift_bridge__$Foo$notify"]
-                fn Foo_notify() -> *mut c_void;
+                fn __swift_bridge__Foo_notify(this: *mut std::ffi::c_void);
+
+                #[link_name = "__swift_bridge__$Foo$_free"]
+                fn Foo__free (this: *mut std::ffi::c_void);
             }
         };
 
@@ -480,7 +506,7 @@ mod tests {
 
     /// Verify that we generate the tokens for exposing an associated method.
     #[test]
-    fn associated_method_one_args() {
+    fn rust_associated_method_one_args() {
         let start = quote! {
             mod foo {
                 extern "Rust" {
