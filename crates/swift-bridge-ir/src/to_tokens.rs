@@ -1,3 +1,4 @@
+use crate::parse::HostLang;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
@@ -7,10 +8,18 @@ impl ToTokens for SwiftBridgeModule {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let mod_name = &self.name;
 
-        let mut generated = vec![];
+        let mut extern_rust_fn_tokens = vec![];
+        let mut extern_swift_fn_tokens = vec![];
 
         for func in &self.functions {
-            generated.push(func.to_extern_rust_function_tokens());
+            match func.host_lang {
+                HostLang::Rust => {
+                    extern_rust_fn_tokens.push(func.to_extern_c_function_tokens());
+                }
+                HostLang::Swift => {
+                    extern_swift_fn_tokens.push(func.to_extern_c_function_tokens());
+                }
+            };
         }
 
         for ty in &self.types {
@@ -26,12 +35,23 @@ impl ToTokens for SwiftBridgeModule {
                     drop(this);
                 }
             };
-            generated.push(free);
+            extern_rust_fn_tokens.push(free);
         }
+
+        let extern_swift_fn_tokens = if extern_swift_fn_tokens.len() > 0 {
+            quote! {
+                extern "C" {
+                    #(#extern_swift_fn_tokens)*
+                }
+            }
+        } else {
+            quote! {}
+        };
 
         let t = quote! {
             mod #mod_name {
-                #(#generated)*
+                #(#extern_rust_fn_tokens)*
+                #extern_swift_fn_tokens
             }
         };
         t.to_tokens(tokens);
@@ -263,7 +283,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_c_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -330,7 +350,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_c_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -356,7 +376,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_c_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -382,7 +402,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_c_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -410,13 +430,13 @@ mod tests {
 
             impl Drop for Foo {
                 fn drop (&mut self) {
-                    Foo_free(self.0)
+                    Foo__free(self.0)
                 }
             }
 
             extern "C" {
                 #[link_name = "__swift_bridge__$Foo$_free"]
-                fn Foo_free (this: &mut c_void);
+                fn Foo__free (this: &mut c_void);
 
                 #[link_name = "__swift_bridge__$Foo$notify"]
                 fn Foo_notify() -> *mut c_void;
@@ -449,7 +469,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_c_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -475,7 +495,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_rust_function_tokens();
+        let tokens = module.functions[0].to_extern_c_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
