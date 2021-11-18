@@ -111,10 +111,10 @@ fn func_to_swift(function: &ParsedExternFn) -> String {
         function.to_swift_return()
     };
 
-    let (swift_class_func_name, maybe_assign_to_ptr) = if function.is_initializer {
-        ("init".to_string(), "ptr = ")
+    let swift_class_func_name = if function.is_initializer {
+        "init".to_string()
     } else {
-        (format!("func {}", fn_name.as_str()), "")
+        format!("func {}", fn_name.as_str())
     };
 
     let indentation = if function.associated_type.is_some() {
@@ -123,19 +123,35 @@ fn func_to_swift(function: &ParsedExternFn) -> String {
         ""
     };
 
+    let call_rust = format!(
+        "{prefix}{type_name_segment}${call_fn}",
+        prefix = SWIFT_BRIDGE_PREFIX,
+        type_name_segment = type_name_segment,
+        call_fn = call_fn
+    );
+    let call_rust = if function.is_initializer {
+        format!("ptr = {}", call_rust)
+    } else if function.returns_slice() {
+        format!(
+            r#"{indentation}let slice = {call_rust}
+{indentation}    return UnsafeBufferPointer(start: slice.start, len: slice.len)"#,
+            indentation = indentation,
+            call_rust = call_rust
+        )
+    } else {
+        call_rust
+    };
+
     let func_definition = format!(
         r#"{indentation}{maybe_static_class_func}{swift_class_func_name}({params}){maybe_ret} {{
-{indentation}    {maybe_assign_to_ptr}{prefix}{type_name_segment}${call_fn}
+{indentation}    {call_rust}
 {indentation}}}"#,
         indentation = indentation,
         maybe_static_class_func = maybe_static_class_func,
-        maybe_assign_to_ptr = maybe_assign_to_ptr,
         swift_class_func_name = swift_class_func_name,
         params = params,
         maybe_ret = maybe_return,
-        prefix = SWIFT_BRIDGE_PREFIX,
-        type_name_segment = type_name_segment,
-        call_fn = call_fn,
+        call_rust = call_rust
     );
 
     func_definition

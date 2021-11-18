@@ -47,6 +47,19 @@ impl ParsedExternFn {
             },
         }
     }
+
+    pub fn returns_slice(&self) -> bool {
+        match &self.func.sig.output {
+            ReturnType::Default => false,
+            ReturnType::Type(_, ty) => match BuiltInType::with_type(&ty) {
+                Some(ty) => match ty {
+                    BuiltInType::RefSlice(_) => true,
+                    _ => false,
+                },
+                _ => false,
+            },
+        }
+    }
 }
 
 impl ParsedExternFn {
