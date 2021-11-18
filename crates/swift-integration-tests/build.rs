@@ -1,5 +1,11 @@
 fn main() {
-    swift_bridge_build::parse_bridges(vec!["./src/expose_opaque_rust_struct.rs"], "./foo");
+    swift_bridge_build::parse_bridges(
+        vec![
+            "./src/expose_opaque_rust_struct.rs",
+            "./src/import_opaque_swift_class.rs",
+        ],
+        "./foo",
+    );
 }
 
 // Ok so first we want to call build() with the names of the files

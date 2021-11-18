@@ -5,12 +5,16 @@ use std::ops::Deref;
 use syn::{FnArg, Pat, ReturnType};
 
 impl ParsedExternFn {
-    pub fn to_swift_param_names_and_types(&self) -> String {
+    pub fn to_swift_param_names_and_types(&self, include_receiver_if_present: bool) -> String {
         let mut params: Vec<String> = vec![];
 
         for arg in &self.func.sig.inputs {
             let param = match arg {
                 FnArg::Receiver(_receiver) => {
+                    if include_receiver_if_present {
+                        params.push(format!("_ this: UnsafeMutableRawPointer"));
+                    }
+
                     continue;
                 }
                 FnArg::Typed(pat_ty) => {
@@ -45,12 +49,16 @@ impl ParsedExternFn {
     // fn foo (&self, arg1: u8, arg2: u32)
     //  becomes..
     // ptr, arg1, arg2
-    pub fn to_swift_call_args(&self) -> String {
+    pub fn to_swift_call_args(&self, include_receiver_if_present: bool) -> String {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
             match arg {
-                FnArg::Receiver(_receiver) => args.push("ptr".to_string()),
+                FnArg::Receiver(_receiver) => {
+                    if include_receiver_if_present {
+                        args.push("ptr".to_string());
+                    }
+                }
                 FnArg::Typed(pat_ty) => {
                     let pat = &pat_ty.pat;
 
@@ -136,7 +144,7 @@ mod tests {
         assert_eq!(methods.len(), 6);
 
         for method in methods {
-            assert_eq!(method.to_swift_param_names_and_types(), "");
+            assert_eq!(method.to_swift_param_names_and_types(false), "");
         }
     }
 
@@ -160,7 +168,7 @@ mod tests {
 
         for idx in 0..3 {
             assert_eq!(
-                functions[idx].to_swift_param_names_and_types(),
+                functions[idx].to_swift_param_names_and_types(false),
                 "_ other: Foo"
             );
         }
@@ -186,7 +194,7 @@ mod tests {
         assert_eq!(functions.len(), 3);
 
         for idx in 0..3 {
-            assert_eq!(functions[idx].to_swift_call_args(), "other.ptr");
+            assert_eq!(functions[idx].to_swift_call_args(true), "other.ptr");
         }
     }
 

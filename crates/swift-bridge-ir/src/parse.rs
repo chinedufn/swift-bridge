@@ -69,6 +69,16 @@ pub(crate) enum HostLang {
     Swift,
 }
 
+impl HostLang {
+    pub fn is_rust(&self) -> bool {
+        matches!(self, HostLang::Rust)
+    }
+
+    pub fn is_swift(&self) -> bool {
+        matches!(self, HostLang::Swift)
+    }
+}
+
 impl Parse for SwiftBridgeModuleAndErrors {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut errors = ParseErrors::new();

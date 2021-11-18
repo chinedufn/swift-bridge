@@ -21,6 +21,7 @@
 		228FE61027416C0300805D9E /* OpaqueRustStructTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE60F27416C0300805D9E /* OpaqueRustStructTests.swift */; };
 		228FE61227428A8D00805D9E /* OpaqueSwiftStructTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */; };
 		228FE6142745666E00805D9E /* expose_opaque_rust_struct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */; };
+		228FE6172746CCD800805D9E /* import_opaque_swift_class.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE6162746CCD300805D9E /* import_opaque_swift_class.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +63,8 @@
 		228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpaqueSwiftStructTests.swift; sourceTree = "<group>"; };
 		228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = expose_opaque_rust_struct.swift; path = "../../../crates/swift-integration-tests/foo/expose_opaque_rust_struct.swift"; sourceTree = "<group>"; };
 		228FE61527456C9700805D9E /* expose_opaque_rust_struct.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = expose_opaque_rust_struct.h; path = "../../crates/swift-integration-tests/foo/expose_opaque_rust_struct.h"; sourceTree = "<group>"; };
+		228FE6162746CCD300805D9E /* import_opaque_swift_class.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = import_opaque_swift_class.swift; sourceTree = "<group>"; };
+		228FE6182746CCEE00805D9E /* import_opaque_swift_class.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = import_opaque_swift_class.h; path = "../../crates/swift-integration-tests/foo/import_opaque_swift_class.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,6 +160,7 @@
 		228FE5FF2740DB8200805D9E /* Headers */ = {
 			isa = PBXGroup;
 			children = (
+				228FE6182746CCEE00805D9E /* import_opaque_swift_class.h */,
 				228FE61527456C9700805D9E /* expose_opaque_rust_struct.h */,
 				228FE6002740DC0C00805D9E /* lib.rs.h */,
 				228FE6012740DC2000805D9E /* BridgingHeader.h */,
@@ -185,6 +189,7 @@
 			isa = PBXGroup;
 			children = (
 				228FE60B2740F42000805D9E /* RustTests.swift */,
+				228FE6162746CCD300805D9E /* import_opaque_swift_class.swift */,
 				228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */,
 			);
 			path = RustTests;
@@ -341,6 +346,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				228FE6172746CCD800805D9E /* import_opaque_swift_class.swift in Sources */,
 				228FE6142745666E00805D9E /* expose_opaque_rust_struct.swift in Sources */,
 				228FE5D72740DB6A00805D9E /* ContentView.swift in Sources */,
 				228FE6092740E29200805D9E /* CoreFfi.swift in Sources */,

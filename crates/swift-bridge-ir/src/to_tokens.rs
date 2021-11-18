@@ -37,8 +37,10 @@ impl ToTokens for SwiftBridgeModule {
 
         for ty in &self.types {
             let link_name = format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
-            let free_mem_func_name =
-                Ident::new(&format!("{}__free", ty.ident.to_string()), ty.ident.span());
+            let free_mem_func_name = Ident::new(
+                &format!("{}{}__free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string()),
+                ty.ident.span(),
+            );
             let this = &ty.ident;
 
             match ty.host_lang {
@@ -138,7 +140,7 @@ mod tests {
             mod foo {
                 #[no_mangle]
                 #[export_name = "__swift_bridge__$SomeType$_free"]
-                pub extern "C" fn SomeType__free (
+                pub extern "C" fn __swift_bridge__SomeType__free (
                     this: *mut super::SomeType
                 ) {
                     let this = unsafe { Box::from_raw(this) };
@@ -306,13 +308,13 @@ mod tests {
 
             impl Drop for Foo {
                 fn drop (&mut self) {
-                    unsafe { Foo__free(self.0) }
+                    unsafe { __swift_bridge__Foo__free(self.0) }
                 }
             }
 
             extern "C" {
                 #[link_name = "__swift_bridge__$Foo$_free"]
-                fn Foo__free (this: *mut std::ffi::c_void);
+                fn __swift_bridge__Foo__free (this: *mut std::ffi::c_void);
             }
         };
 
@@ -364,13 +366,13 @@ mod tests {
 
             impl Foo {
                 pub fn new () -> Foo {
-                    Foo(unsafe{ Foo_new() })
+                    Foo(unsafe{ __swift_bridge__Foo_new() })
                 }
             }
 
             impl Drop for Foo {
                 fn drop (&mut self) {
-                    Foo__free(self.0)
+                    unsafe { __swift_bridge__Foo__free(self.0) }
                 }
             }
 
@@ -379,7 +381,7 @@ mod tests {
                 fn __swift_bridge__Foo_new() -> *mut std::ffi::c_void;
 
                 #[link_name = "__swift_bridge__$Foo$_free"]
-                fn Foo__free (this: *mut std::ffi::c_void);
+                fn __swift_bridge__Foo__free (this: *mut std::ffi::c_void);
             }
         };
 
@@ -482,13 +484,13 @@ mod tests {
 
             impl Foo {
                 pub fn notify (&self) {
-                    unsafe { Foo_notify(self.0) }
+                    unsafe { __swift_bridge__Foo_notify(self.0) }
                 }
             }
 
             impl Drop for Foo {
                 fn drop (&mut self) {
-                    unsafe { Foo__free(self.0) }
+                    unsafe { __swift_bridge__Foo__free(self.0) }
                 }
             }
 
@@ -497,7 +499,7 @@ mod tests {
                 fn __swift_bridge__Foo_notify(this: *mut std::ffi::c_void);
 
                 #[link_name = "__swift_bridge__$Foo$_free"]
-                fn Foo__free (this: *mut std::ffi::c_void);
+                fn __swift_bridge__Foo__free (this: *mut std::ffi::c_void);
             }
         };
 

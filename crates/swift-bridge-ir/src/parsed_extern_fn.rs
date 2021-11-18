@@ -94,7 +94,10 @@ impl ParsedExternFn {
             "".to_string()
         };
 
-        Ident::new(&format!("{}{}", prefix, sig.ident), sig.ident.span())
+        Ident::new(
+            &format!("{}{}{}", SWIFT_BRIDGE_PREFIX, prefix, sig.ident),
+            sig.ident.span(),
+        )
     }
 }
 
