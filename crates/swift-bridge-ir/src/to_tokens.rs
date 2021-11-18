@@ -9,6 +9,8 @@ impl ToTokens for SwiftBridgeModule {
         let mod_name = &self.name;
 
         let mut extern_rust_fn_tokens = vec![];
+
+        let mut structs_for_swift_classes = vec![];
         let mut extern_swift_fn_tokens = vec![];
 
         for func in &self.functions {
@@ -23,35 +25,65 @@ impl ToTokens for SwiftBridgeModule {
         }
 
         for ty in &self.types {
-            let export_name = format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
-            let func_name = Ident::new(&format!("{}__free", ty.ident.to_string()), ty.ident.span());
+            let link_name = format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
+            let free_mem_func_name =
+                Ident::new(&format!("{}__free", ty.ident.to_string()), ty.ident.span());
             let this = &ty.ident;
 
-            let free = quote! {
-                #[no_mangle]
-                #[export_name = #export_name]
-                pub extern "C" fn #func_name (this: *mut super::#this) {
-                    let this = unsafe { Box::from_raw(this) };
-                    drop(this);
+            match ty.host_lang {
+                HostLang::Rust => {
+                    let free = quote! {
+                        #[no_mangle]
+                        #[export_name = #link_name]
+                        pub extern "C" fn #free_mem_func_name (this: *mut super::#this) {
+                            let this = unsafe { Box::from_raw(this) };
+                            drop(this);
+                        }
+                    };
+                    extern_rust_fn_tokens.push(free);
+                }
+                HostLang::Swift => {
+                    let ty_name = &ty.ident;
+
+                    let struct_tokens = quote! {
+                        pub struct #ty_name(*mut std::ffi::c_void);
+
+                        impl Drop for #ty_name {
+                            fn drop (&mut self) {
+                                #free_mem_func_name(self.0)
+                            }
+                        }
+                    };
+                    structs_for_swift_classes.push(struct_tokens);
+
+                    let free = quote! {
+                        #[link_name = #link_name]
+                        fn #free_mem_func_name (this: *mut std::ffi::c_void);
+                    };
+                    extern_swift_fn_tokens.push(free);
                 }
             };
-            extern_rust_fn_tokens.push(free);
         }
 
-        let extern_swift_fn_tokens = if extern_swift_fn_tokens.len() > 0 {
+        let externs = if extern_swift_fn_tokens.len() > 0 {
             quote! {
+                #(#extern_rust_fn_tokens)*
+
+                #(#structs_for_swift_classes)*
+
                 extern "C" {
                     #(#extern_swift_fn_tokens)*
                 }
             }
         } else {
-            quote! {}
+            quote! {
+                #(#extern_rust_fn_tokens)*
+            }
         };
 
         let t = quote! {
             mod #mod_name {
-                #(#extern_rust_fn_tokens)*
-                #extern_swift_fn_tokens
+                #externs
             }
         };
         t.to_tokens(tokens);
@@ -244,17 +276,17 @@ mod tests {
             }
         };
         let expected = quote! {
-            pub struct Foo(*mut c_void);
+            pub struct Foo(*mut std::ffi::c_void);
 
             impl Drop for Foo {
                 fn drop (&mut self) {
-                    Foo_free(self.0)
+                    Foo__free(self.0)
                 }
             }
 
             extern "C" {
                 #[link_name = "__swift_bridge__$Foo$_free"]
-                fn Foo_free (this: &mut c_void);
+                fn Foo__free (this: *mut std::ffi::c_void);
             }
         };
 

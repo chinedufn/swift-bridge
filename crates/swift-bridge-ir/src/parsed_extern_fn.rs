@@ -5,7 +5,7 @@ use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItemFn, ForeignItemType, Lifetime, Pat, ReturnType, Token, Type};
+use syn::{FnArg, ForeignItemFn, Lifetime, Pat, ReturnType, Token, Type};
 
 mod to_extern_c_fn;
 mod to_swift;
