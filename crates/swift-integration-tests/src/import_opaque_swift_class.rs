@@ -10,6 +10,7 @@
 //
 //         fn as_ptr(&self) -> *const u8;
 //         fn len(&self) -> usize;
+//         fn as_slice(&self) -> &[u8];
 //     }
 // }
 
@@ -38,6 +39,9 @@ use std::ptr::slice_from_raw_parts;
 mod __ffi_generated {
     use std::ffi::c_void;
 
+    // TODO: Add a test that generates this type declaration...
+    //  then we can start working on supporting methods..
+    //  re-use as much from our extern Rust handling code as possible
     pub struct ASwiftStack(*mut c_void);
 
     impl ASwiftStack {

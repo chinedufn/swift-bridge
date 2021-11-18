@@ -2,14 +2,10 @@ use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use quote::ToTokens;
-use syn::FnArg;
 
 impl ToTokens for SwiftBridgeModule {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let mod_name = Ident::new(
-            &format!("__swift_bridge__{}", self.name.to_string()),
-            self.name.span(),
-        );
+        let mod_name = &self.name;
 
         let mut generated = vec![];
 
@@ -65,7 +61,7 @@ mod tests {
             }
         };
         let expected = quote! {
-            mod __swift_bridge__foo {
+            mod foo {
                 #[no_mangle]
                 #[export_name = "__swift_bridge__$SomeType$_free"]
                 pub extern "C" fn SomeType__free (
@@ -91,7 +87,7 @@ mod tests {
             }
         };
         let expected = quote! {
-            mod __swift_bridge__foo {
+            mod foo {
                 #[no_mangle]
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function () {
@@ -114,7 +110,7 @@ mod tests {
             }
         };
         let expected = quote! {
-            mod __swift_bridge__foo {
+            mod foo {
                 #[no_mangle]
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function (bar: u8) {
@@ -163,7 +159,7 @@ mod tests {
             }
         };
         let expected = quote! {
-            mod __swift_bridge__foo {
+            mod foo {
                 #[no_mangle]
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function () -> u8 {

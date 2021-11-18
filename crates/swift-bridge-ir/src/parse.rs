@@ -14,6 +14,32 @@ use syn::{
     Type, TypeReference,
 };
 
+// Ok so we need to handle Swift sections now
+//
+// Generate Rust link methods for parsed functions
+// Generate Rust struct Foo(*mut c_void) for Rust to use to interact with Swift
+// Generate Rust struct impl method and associated function calls
+//
+// So... not a ton different from what we're doing now for extern Rust..
+// Let's start by keeping everything together as `types` and `functions`
+// Later we can split things up if needed. Our tests will help us refactor if needed.
+//
+// ## Implementation
+//
+// - Remove `.extern_rusts` and instead add Vec<ForeignItemType> and Vec<ParsedExternFn> to
+//    SwiftBridgeModule
+//
+// - Add `.abi` to `ParsedExternFn`
+//
+// - Add tests for generating extern c linked freestanding function
+//
+// - Add tests for generating struct Foo(*mut c_void) for `type Foo`
+//
+// - Add tests for generating `@_cdecl("link name")` for Swift functions
+//
+// - In import opaque swift class comment out the hard coded externs and comment in the bridge
+//   module
+
 impl Parse for SwiftBridgeModule {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let module_and_errors: SwiftBridgeModuleAndErrors = input.parse()?;
@@ -29,7 +55,7 @@ pub(crate) struct SwiftBridgeModuleAndErrors {
     pub errors: ParseErrors,
 }
 
-enum AbiLang {
+pub(crate) enum AbiLang {
     Rust,
     Swift,
 }
