@@ -164,7 +164,7 @@ mod tests {
 
     /// Verify that we generated a Swift function to call our freestanding function.
     #[test]
-    fn freestanding_function_no_args() {
+    fn freestanding_rust_function_no_args() {
         let tokens = quote! {
             mod foo {
                 extern "Rust" {
@@ -186,7 +186,7 @@ func foo() {
 
     /// Verify that we generated a Swift function to call a freestanding function with one arg.
     #[test]
-    fn freestanding_function_one_arg() {
+    fn freestanding_rust_function_one_arg() {
         let tokens = quote! {
             mod foo {
                 extern "Rust" {

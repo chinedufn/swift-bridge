@@ -1,8 +1,8 @@
 use proc_macro2::Span;
 use quote::ToTokens;
-use syn::Token;
 use syn::{Error, Receiver};
 use syn::{ForeignItemType, LitStr};
+use syn::{Token, Type};
 
 pub(crate) enum ParseError {
     /// `extern {}`
@@ -26,6 +26,25 @@ pub(crate) enum ParseError {
     /// Declared a type that we already support.
     /// Example: `type u32`
     DeclaredBuiltInType { ty: ForeignItemType },
+    /// By default, we do not allow you to pass an owned opaque type from Swift -> Rust.
+    ///
+    /// If we allowed this, Rust would drop the type, then the Swift class instance for the type
+    /// would try to drop in again, leading to double free bugs.
+    ///
+    /// One can use the `#[swift_bridge(owned_arg = "enabled")] type MyType` attribute in order to
+    /// support
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// // Not allowed
+    /// extern "Rust" {
+    ///     type Foo;
+    ///     fn foo (arg: Foo);
+    /// //               --- Owned foreign type arguments are not allowed.
+    /// }
+    /// ```
+    OwnedForeignTypeArgNotAllowed { ty: Type },
 }
 
 impl Into<syn::Error> for ParseError {
@@ -69,6 +88,20 @@ self: &mut SomeType
                     r#"Type {} is already supported
 "#,
                     ty.to_token_stream().to_string()
+                );
+                Error::new_spanned(ty, message)
+            }
+            ParseError::OwnedForeignTypeArgNotAllowed { ty } => {
+                let message = format!(
+                    r#"Foreign type arguments must be taken by reference.
+
+To allow owned foreign type arguments:
+
+```
+// Valid values are "disabled", "enabled" and "enabled_unchecked" 
+#[swift_bridge(owned_arg = "enabled")]
+type SomeType;
+```"#
                 );
                 Error::new_spanned(ty, message)
             }

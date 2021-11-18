@@ -421,6 +421,7 @@ impl Deref for ParsedExternFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::errors::{ParseError, ParseErrors};
     use crate::parse::SwiftBridgeModuleAndErrors;
     use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
     use crate::SwiftBridgeModule;
@@ -485,32 +486,58 @@ mod tests {
 
     /// Verify that arguments that are owned declared types get unboxed.
     #[test]
-    fn unboxes_owned_opaque_call_args() {
+    fn does_not_allow_owned_foreign_type_args() {
         let tokens = quote! {
             #[swift_bridge::bridge]
             mod ffi {
                 extern "Rust" {
                     type Foo;
+
                     fn freestanding (arg: Foo);
+
                     #[swift_bridge(associated_to = Foo)]
                     fn associated_func (arg: Foo);
+
                     fn method (&self, arg: Foo);
+
+                    fn owned_method(self);
+
+                    fn owned_method_explicit(self: Foo);
+                }
+            }
+        };
+        let errors = parse_errors(tokens);
+        assert_eq!(errors.len(), 5);
+
+        for err in errors.iter() {
+            match err {
+                ParseError::OwnedForeignTypeArgNotAllowed { ty } => {
+                    assert_eq!(ty.to_token_stream().to_string(), "Foo");
+                }
+                _ => panic!(),
+            };
+        }
+    }
+
+    /// Verify that if a foreign type is marked as enabled we allow taking owned foreign type args.
+    #[test]
+    fn allow_foreign_type_arg_if_type_marked_enabled_or_enabled_unchecked() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(owned_arg = "enabled")]
+                    type Foo;
+                    #[swift_bridge(owned_arg = "enabled_unchecked")]
+                    type Bar;
+
+                    fn a (arg: Foo);
+                    fn b (arg: Bar);
                 }
             }
         };
         let module = parse_ok(tokens);
-        let methods = &module.functions;
-        assert_eq!(methods.len(), 3);
-
-        for method in methods {
-            let rust_call_args = &method.to_rust_call_args();
-            assert_eq!(
-                rust_call_args.to_string(),
-                "*Box::from_raw(arg)",
-                "\nFunction tokens:\n{:#?}",
-                method.func.to_token_stream()
-            );
-        }
+        assert_eq!(module.functions.len(), 2);
     }
 
     /// Verify that we convert &[T] -> swift_bridge::RustSlice<T>
@@ -538,19 +565,13 @@ mod tests {
         assert_tokens_eq(&function.to_extern_rust_function_tokens(), &expected_fn);
     }
 
-    #[test]
-    fn todo() {
-        todo!(
-            r#"
-Refactor this file
-Make all the wrapping of the return type pass through the same machinery
-Wrap slices in RustSlice::from_slice
-        "#
-        )
-    }
-
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
         let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
         module_and_errors.module
+    }
+
+    fn parse_errors(tokens: TokenStream) -> ParseErrors {
+        let parsed: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
+        parsed.errors
     }
 }

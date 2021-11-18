@@ -31,12 +31,19 @@ use syn::{
 //
 // - (DONE) Add tests for generating extern c linked freestanding function
 //
-// - Add tests for generating struct Foo(*mut c_void) for `type Foo`
+// - (DONE) Add tests for generating struct Foo(*mut c_void) for `type Foo`
+//
+// - Get tests passing
+//
+// - Refactor parsing, tokenizing and codegen to make things easier to extend
 //
 // - Add tests for generating `@_cdecl("link name")` for Swift functions
 //
 // - In import opaque swift class comment out the hard coded externs and comment in the bridge
 //   module
+//
+// - Prevent taking values by owned self and owned opaque arguments since if we drop it on our side
+//   you can still use it on the Swift side.
 
 impl Parse for SwiftBridgeModule {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -68,7 +75,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
             let module_name = item_mod.ident;
 
             let mut functions = vec![];
-            let mut module_types_lookup: HashMap<String, ForeignItemType> = HashMap::new();
+            let mut all_type_declarations = HashMap::new();
 
             for outer_mod_item in item_mod.content.unwrap().1 {
                 match outer_mod_item {
@@ -79,6 +86,8 @@ impl Parse for SwiftBridgeModuleAndErrors {
                             });
                             continue;
                         }
+
+                        let mut local_type_declarations = HashMap::new();
 
                         let abi_name = foreign_mod.abi.name.unwrap();
 
@@ -112,7 +121,9 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                         });
                                     }
 
-                                    module_types_lookup.insert(ty_name, foreign_ty);
+                                    all_type_declarations
+                                        .insert(ty_name.clone(), foreign_ty.clone());
+                                    local_type_declarations.insert(ty_name, foreign_ty);
                                 }
                                 ForeignItem::Fn(func) => {
                                     let mut attributes = SwiftBridgeAttributes::default();
@@ -126,7 +137,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                         if let FnArg::Typed(pat_ty) = arg {
                                             check_supported_type(
                                                 &pat_ty.ty,
-                                                &mut module_types_lookup,
+                                                &mut all_type_declarations,
                                                 &mut errors,
                                             );
                                         }
@@ -135,7 +146,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                     if let ReturnType::Type(_, ty) = &func.sig.output {
                                         check_supported_type(
                                             ty,
-                                            &mut module_types_lookup,
+                                            &mut all_type_declarations,
                                             &mut errors,
                                         );
                                     }
@@ -148,7 +159,8 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                             func.clone(),
                                             &attributes,
                                             host_lang,
-                                            &mut module_types_lookup,
+                                            &mut all_type_declarations,
+                                            &mut local_type_declarations,
                                             &mut functions,
                                             &mut errors,
                                         )?;
@@ -157,7 +169,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                             func.clone(),
                                             &attributes,
                                             host_lang,
-                                            &mut module_types_lookup,
+                                            &mut all_type_declarations,
                                             &mut errors,
                                         );
                                         functions.push(f);
@@ -176,7 +188,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
             let module = SwiftBridgeModule {
                 name: module_name,
-                types: module_types_lookup.into_values().collect(),
+                types: all_type_declarations.into_values().collect(),
                 functions,
             };
             Ok(SwiftBridgeModuleAndErrors { module, errors })
@@ -252,14 +264,15 @@ fn parse_function_with_inputs(
     func: ForeignItemFn,
     attributes: &SwiftBridgeAttributes,
     host_lang: HostLang,
-    type_lookup: &mut HashMap<String, ForeignItemType>,
+    all_type_declarations: &mut HashMap<String, ForeignItemType>,
+    local_type_declarations: &mut HashMap<String, ForeignItemType>,
     functions: &mut Vec<ParsedExternFn>,
     errors: &mut ParseErrors,
 ) -> syn::Result<()> {
     match first {
         FnArg::Receiver(recv) => {
-            if type_lookup.len() == 1 {
-                let ty = type_lookup.iter_mut().next().unwrap().1;
+            if local_type_declarations.len() == 1 {
+                let ty = local_type_declarations.iter_mut().next().unwrap().1;
                 functions.push(ParsedExternFn {
                     func,
                     is_initializer: attributes.initializes,
@@ -284,7 +297,7 @@ fn parse_function_with_inputs(
                                     func.clone(),
                                     attributes,
                                     host_lang,
-                                    type_lookup,
+                                    all_type_declarations,
                                     functions,
                                     self_ty,
                                 );
@@ -296,7 +309,7 @@ fn parse_function_with_inputs(
                                     func.clone(),
                                     attributes,
                                     host_lang,
-                                    type_lookup,
+                                    all_type_declarations,
                                     functions,
                                     self_ty,
                                 );
@@ -304,10 +317,22 @@ fn parse_function_with_inputs(
                             _ => {}
                         };
                     } else if let Some(associated_to) = &attributes.associated_to {
-                        let f = parse_function(func, attributes, host_lang, type_lookup, errors);
+                        let f = parse_function(
+                            func,
+                            attributes,
+                            host_lang,
+                            all_type_declarations,
+                            errors,
+                        );
                         functions.push(f);
                     } else if attributes.initializes {
-                        let f = parse_function(func, attributes, host_lang, type_lookup, errors);
+                        let f = parse_function(
+                            func,
+                            attributes,
+                            host_lang,
+                            all_type_declarations,
+                            errors,
+                        );
                         functions.push(f);
                     } else {
                         functions.push(ParsedExternFn {
@@ -841,7 +866,7 @@ mod tests {
     }
 
     fn parse_errors(tokens: TokenStream) -> ParseErrors {
-        let parsed: SwiftBridgeModuleAndErrors = parse_quote!(#tokens);
+        let parsed: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
         parsed.errors
     }
 }
