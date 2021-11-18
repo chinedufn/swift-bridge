@@ -1,19 +1,32 @@
 use crate::extern_rust::ExternRustSection;
+use crate::parsed_extern_fn::ParsedExternFn;
 use crate::SWIFT_BRIDGE_PREFIX;
+use std::collections::HashMap;
 
 impl ExternRustSection {
     /// Gererate the corresponding Swift code for an `extern "Rust"` module.
     pub fn generate_swift(&self) -> String {
         let mut swift = "".to_string();
 
-        for freestanding in &self.freestanding_fns {
+        let mut associated_funcs_and_methods: HashMap<String, Vec<&ParsedExternFn>> =
+            HashMap::new();
+
+        for function in &self.functions {
+            if let Some(ty) = function.associated_type.as_ref() {
+                associated_funcs_and_methods
+                    .entry(ty.ident.to_string())
+                    .or_default()
+                    .push(function);
+                continue;
+            }
+
             // TODO: Normalize with method codegen above
-            let fn_name = freestanding.sig.ident.to_string();
+            let fn_name = function.sig.ident.to_string();
 
-            let params = freestanding.to_swift_param_names_and_types();
-            let ret = freestanding.to_swift_return();
+            let params = function.to_swift_param_names_and_types();
+            let ret = function.to_swift_return();
 
-            let call_args = freestanding.to_swift_call_args();
+            let call_args = function.to_swift_call_args();
             let call_fn = format!("{}({})", fn_name, call_args);
 
             let func = format!(
@@ -32,7 +45,7 @@ func {fn_name} ({params}){ret} {{
         }
 
         for ty in &self.types {
-            let type_name = ty.ty.ident.to_string();
+            let type_name = ty.ident.to_string();
 
             let mut initializers = vec![];
             let mut instance_methods = vec![];
@@ -41,51 +54,54 @@ func {fn_name} ({params}){ret} {{
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }"#;
 
-            for type_method in &ty.methods {
-                // TODO: Normalize with freestanding func codegen above
+            if let Some(methods) = associated_funcs_and_methods.get(&type_name) {
+                for type_method in methods {
+                    // TODO: Normalize with freestanding func codegen above
 
-                let fn_name = type_method.sig.ident.to_string();
-                let params = type_method.to_swift_param_names_and_types();
-                let call_args = type_method.to_swift_call_args();
-                let call_fn = format!("{}({})", fn_name, call_args);
+                    let fn_name = type_method.sig.ident.to_string();
+                    let params = type_method.to_swift_param_names_and_types();
+                    let call_args = type_method.to_swift_call_args();
+                    let call_fn = format!("{}({})", fn_name, call_args);
 
-                let maybe_static_class_func =
-                    if !type_method.is_method() && !type_method.is_initializer {
-                        "class "
+                    let maybe_static_class_func =
+                        if !type_method.is_method() && !type_method.is_initializer {
+                            "class "
+                        } else {
+                            ""
+                        };
+
+                    let maybe_return = if type_method.is_initializer {
+                        "".to_string()
                     } else {
-                        ""
+                        type_method.to_swift_return()
                     };
 
-                let maybe_return = if type_method.is_initializer {
-                    "".to_string()
-                } else {
-                    type_method.to_swift_return()
-                };
+                    let (swift_class_func_name, maybe_assign_to_ptr) = if type_method.is_initializer
+                    {
+                        ("init".to_string(), "ptr = ")
+                    } else {
+                        (format!("func {}", fn_name.as_str()), "")
+                    };
 
-                let (swift_class_func_name, maybe_assign_to_ptr) = if type_method.is_initializer {
-                    ("init".to_string(), "ptr = ")
-                } else {
-                    (format!("func {}", fn_name.as_str()), "")
-                };
-
-                let func_definition = format!(
-                    r#"    {maybe_static_class_func}{swift_class_func_name}({params}){maybe_ret} {{
+                    let func_definition = format!(
+                        r#"    {maybe_static_class_func}{swift_class_func_name}({params}){maybe_ret} {{
         {maybe_assign_to_ptr}{prefix}${type_name}${call_fn}
     }}"#,
-                    maybe_static_class_func = maybe_static_class_func,
-                    maybe_assign_to_ptr = maybe_assign_to_ptr,
-                    swift_class_func_name = swift_class_func_name,
-                    params = params,
-                    maybe_ret = maybe_return,
-                    prefix = SWIFT_BRIDGE_PREFIX,
-                    type_name = type_name,
-                    call_fn = call_fn
-                );
+                        maybe_static_class_func = maybe_static_class_func,
+                        maybe_assign_to_ptr = maybe_assign_to_ptr,
+                        swift_class_func_name = swift_class_func_name,
+                        params = params,
+                        maybe_ret = maybe_return,
+                        prefix = SWIFT_BRIDGE_PREFIX,
+                        type_name = type_name,
+                        call_fn = call_fn
+                    );
 
-                if type_method.is_initializer {
-                    initializers.push(func_definition);
-                } else {
-                    instance_methods.push(func_definition);
+                    if type_method.is_initializer {
+                        initializers.push(func_definition);
+                    } else {
+                        instance_methods.push(func_definition);
+                    }
                 }
             }
 

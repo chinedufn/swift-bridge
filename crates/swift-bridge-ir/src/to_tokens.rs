@@ -14,18 +14,16 @@ impl ToTokens for SwiftBridgeModule {
         let mut generated = vec![];
 
         for rust_section in &self.extern_rust {
-            for freefunc in &rust_section.freestanding_fns {
-                generated.push(freefunc.to_extern_rust_function_tokens(None));
+            for freefunc in &rust_section.functions {
+                generated.push(freefunc.to_extern_rust_function_tokens());
             }
 
             for ty in &rust_section.types {
                 let export_name =
-                    format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ty.ident.to_string(),);
-                let func_name = Ident::new(
-                    &format!("{}__free", ty.ty.ident.to_string()),
-                    ty.ty.ident.span(),
-                );
-                let this = &ty.ty.ident;
+                    format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
+                let func_name =
+                    Ident::new(&format!("{}__free", ty.ident.to_string()), ty.ident.span());
+                let this = &ty.ident;
 
                 let free = quote! {
                     #[no_mangle]
@@ -36,10 +34,6 @@ impl ToTokens for SwiftBridgeModule {
                     }
                 };
                 generated.push(free);
-
-                for type_method in &ty.methods {
-                    generated.push(type_method.to_extern_rust_function_tokens(Some(&ty.ty.ident)));
-                }
             }
         }
 
@@ -229,8 +223,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].types[0].methods[0]
-            .to_extern_rust_function_tokens(Some(&Ident::new("SomeType", Span::call_site())));
+        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -256,8 +249,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].types[0].methods[0]
-            .to_extern_rust_function_tokens(Some(&Ident::new("SomeType", Span::call_site())));
+        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -283,8 +275,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].types[0].methods[0]
-            .to_extern_rust_function_tokens(Some(&Ident::new("SomeType", Span::call_site())));
+        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -311,8 +302,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].types[0].methods[0]
-            .to_extern_rust_function_tokens(Some(&Ident::new("MyType", Span::call_site())));
+        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -340,8 +330,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].types[0].methods[0]
-            .to_extern_rust_function_tokens(Some(&Ident::new("SomeType", Span::call_site())));
+        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 
@@ -368,8 +357,7 @@ mod tests {
         };
 
         let module = parse_ok(start);
-        let tokens = module.extern_rust[0].types[0].methods[0]
-            .to_extern_rust_function_tokens(Some(&Ident::new("SomeType", Span::call_site())));
+        let tokens = module.extern_rust[0].functions[0].to_extern_rust_function_tokens();
         assert_tokens_eq(&tokens, &expected);
     }
 

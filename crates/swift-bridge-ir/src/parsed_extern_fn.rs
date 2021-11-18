@@ -4,7 +4,7 @@ use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItemFn, Lifetime, Pat, ReturnType, Token, Type};
+use syn::{FnArg, ForeignItemFn, ForeignItemType, Lifetime, Pat, ReturnType, Token, Type};
 
 mod to_swift;
 
@@ -19,17 +19,11 @@ mod to_swift;
 /// ... etc
 pub(crate) struct ParsedExternFn {
     pub func: ForeignItemFn,
+    pub associated_type: Option<ForeignItemType>,
     pub is_initializer: bool,
 }
 
 impl ParsedExternFn {
-    pub fn new(func: ForeignItemFn, is_initializer: bool) -> Self {
-        ParsedExternFn {
-            func,
-            is_initializer,
-        }
-    }
-
     pub fn is_method(&self) -> bool {
         self.func.sig.receiver().is_some()
     }
@@ -67,13 +61,14 @@ impl ParsedExternFn {
     /// }
     /// ```
     // FIXME: Combine this and host_type into one struct
-    pub fn to_extern_rust_function_tokens(&self, host_type: Option<&Ident>) -> TokenStream {
+    pub fn to_extern_rust_function_tokens(&self) -> TokenStream {
+        let host_type = self.associated_type.as_ref().map(|h| &h.ident);
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
 
-        let export_name = self.link_name(host_type);
+        let export_name = self.link_name();
 
-        let params = self.to_rust_param_names_and_types(host_type);
+        let params = self.to_rust_param_names_and_types();
         let call_args = self.to_rust_call_args();
 
         let call_fn = quote! {
@@ -170,7 +165,7 @@ impl ParsedExternFn {
         };
 
         let host_type_prefix = host_type
-            .map(|h| format!("{}_", h.to_string()))
+            .map(|h| format!("{}_", h.to_token_stream().to_string()))
             .unwrap_or_default();
         let prefixed_fn_name = Ident::new(
             &format!(
@@ -205,7 +200,8 @@ impl ParsedExternFn {
         }
     }
 
-    pub fn to_rust_param_names_and_types(&self, host_type: Option<&Ident>) -> TokenStream {
+    pub fn to_rust_param_names_and_types(&self) -> TokenStream {
+        let host_type = self.associated_type.as_ref().map(|h| &h.ident);
         let mut params = vec![];
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
@@ -376,9 +372,11 @@ impl ParsedExternFn {
 }
 
 impl ParsedExternFn {
-    pub fn link_name(&self, host_type: Option<&Ident>) -> String {
-        let host_type = host_type
-            .map(|h| format!("${}", h.to_string()))
+    pub fn link_name(&self) -> String {
+        let host_type = self
+            .associated_type
+            .as_ref()
+            .map(|h| format!("${}", h.ident.to_string()))
             .unwrap_or("".to_string());
 
         format!(
@@ -424,14 +422,11 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        let methods = &module.extern_rust[0].types[0].methods;
+        let methods = &module.extern_rust[0].functions;
         assert_eq!(methods.len(), 6);
 
         for method in methods {
-            assert_tokens_contain(
-                &method.to_rust_param_names_and_types(Some(&Ident::new("Foo", Span::call_site()))),
-                &quote! { this },
-            );
+            assert_tokens_contain(&method.to_rust_param_names_and_types(), &quote! { this });
         }
     }
 
@@ -453,7 +448,7 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        let methods = &module.extern_rust[0].types[0].methods;
+        let methods = &module.extern_rust[0].functions;
         assert_eq!(methods.len(), 6);
 
         for method in methods {
@@ -487,9 +482,9 @@ mod tests {
         };
 
         let module = parse_ok(tokens);
-        let function = &module.extern_rust[0].freestanding_fns[0];
+        let function = &module.extern_rust[0].functions[0];
 
-        assert_tokens_eq(&function.to_extern_rust_function_tokens(None), &expected_fn);
+        assert_tokens_eq(&function.to_extern_rust_function_tokens(), &expected_fn);
     }
 
     #[test]

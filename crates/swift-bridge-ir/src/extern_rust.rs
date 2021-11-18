@@ -6,24 +6,6 @@ mod generate_swift;
 
 #[derive(Default)]
 pub(crate) struct ExternRustSection {
-    pub types: Vec<ExternRustSectionType>,
-    pub freestanding_fns: Vec<ParsedExternFn>,
-}
-
-pub(crate) struct ExternRustSectionType {
-    /// `type Foo`
-    pub ty: ForeignItemType,
-    /// fn bar (&self);
-    /// fn buzz (self: &Foo) -> u8;
-    /// ... etc
-    pub methods: Vec<ParsedExternFn>,
-}
-
-impl ExternRustSectionType {
-    pub fn new(ty: ForeignItemType) -> Self {
-        ExternRustSectionType {
-            ty,
-            methods: vec![],
-        }
-    }
+    pub types: Vec<ForeignItemType>,
+    pub functions: Vec<ParsedExternFn>,
 }
