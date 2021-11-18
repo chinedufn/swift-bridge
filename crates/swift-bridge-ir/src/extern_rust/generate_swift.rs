@@ -134,7 +134,7 @@ fn func_to_swift(function: &ParsedExternFn) -> String {
     } else if function.returns_slice() {
         format!(
             r#"{indentation}let slice = {call_rust}
-{indentation}    return UnsafeBufferPointer(start: slice.start, len: slice.len)"#,
+{indentation}    return UnsafeBufferPointer(start: slice.start, count: Int(slice.len))"#,
             indentation = indentation,
             call_rust = call_rust
         )
@@ -246,7 +246,7 @@ func foo() -> UInt32 {
         let expected = r#"
 func foo() -> UnsafeBufferPointer<UInt8> {
     let slice = __swift_bridge__$foo()
-    return UnsafeBufferPointer(start: slice.start, len: slice.len)
+    return UnsafeBufferPointer(start: slice.start, count: Int(slice.len))
 } 
 "#;
 

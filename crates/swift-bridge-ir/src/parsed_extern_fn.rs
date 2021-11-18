@@ -88,16 +88,22 @@ impl ParsedExternFn {
             #fn_name ( #call_args )
         };
 
-        let inner = if self.is_method() {
-            let maybe_mut = self.self_mutability();
-            let maybe_deref = if self.self_reference().is_some() {
-                quote! {}
+        let call_fn = if self.is_method() {
+            let this = if let Some(reference) = self.self_reference() {
+                let maybe_ref = reference.0;
+                let maybe_mut = self.self_mutability();
+
+                quote! {
+                    (unsafe { #maybe_ref #maybe_mut *this } )
+                }
             } else {
-                quote! {*}
+                quote! {
+                    ( * unsafe { Box::from_raw(this) } )
+                }
             };
 
             quote! {
-                (#maybe_deref unsafe { Box::from_raw(this) } ).#call_fn
+                    #this.#call_fn
             }
         } else {
             let host_type_segment = if let Some(h) = &host_type {
@@ -114,24 +120,43 @@ impl ParsedExternFn {
                 }
                 ReturnType::Type(_arrow, ty) => {
                     if let Some(ty) = BuiltInType::with_type(&ty) {
-                        match ty {
-                            BuiltInType::RefSlice(_ref_slice) => {
-                                quote! {
-                                    swift_bridge::RustSlice::from_slice(
-                                        super:: #host_type_segment #call_fn
-                                    )
-                                }
-                            }
-                            _ => {
-                                quote! {
-                                    super:: #host_type_segment #call_fn
-                                }
-                            }
+                        quote! {
+                            super:: #host_type_segment #call_fn
                         }
                     } else {
                         quote! {
                             Box::into_raw( Box::new( super:: #host_type_segment #call_fn )) as *mut std::ffi::c_void
                         }
+                    }
+                }
+            }
+        };
+
+        let inner = match &sig.output {
+            ReturnType::Default => {
+                quote! {
+                    #call_fn
+                }
+            }
+            ReturnType::Type(_arrow, ty) => {
+                if let Some(ty) = BuiltInType::with_type(&ty) {
+                    match ty {
+                        BuiltInType::RefSlice(_ref_slice) => {
+                            quote! {
+                                swift_bridge::RustSlice::from_slice(
+                                    #call_fn
+                                )
+                            }
+                        }
+                        _ => {
+                            quote! {
+                                #call_fn
+                            }
+                        }
+                    }
+                } else {
+                    quote! {
+                        #call_fn
                     }
                 }
             }
@@ -160,7 +185,7 @@ impl ParsedExternFn {
                         };
 
                         let unbox = quote! {
-                            let #arg_name = #maybe_ref #maybe_mut unsafe { Box::from_raw(#arg_name) };
+                            let #arg_name = unsafe { #maybe_ref #maybe_mut * #arg_name };
                         };
                         unbox_arg_ptrs.push(unbox);
                     }
@@ -217,11 +242,7 @@ impl ParsedExternFn {
             match arg {
                 FnArg::Receiver(receiver) => {
                     let this = host_type.as_ref().unwrap();
-                    let this = if receiver.reference.is_some() {
-                        quote! { this: *mut std::mem::ManuallyDrop<super:: #this> }
-                    } else {
-                        quote! { this: *mut super:: #this }
-                    };
+                    let this = quote! { this: *mut super:: #this };
                     params.push(this);
                 }
                 FnArg::Typed(pat_ty) => {
@@ -243,10 +264,6 @@ impl ParsedExternFn {
                             }
                         };
 
-                        let is_owned = match pat_ty.ty.deref() {
-                            Type::Reference(ty_ref) => false,
-                            _ => true,
-                        };
                         let declared_ty = match pat_ty.ty.deref() {
                             Type::Reference(ty_ref) => {
                                 let ty = &ty_ref.elem;
@@ -258,15 +275,9 @@ impl ParsedExternFn {
                             _ => todo!(),
                         };
 
-                        if is_owned {
-                            params.push(quote! {
-                                 #arg_name: *mut super::<#declared_ty>
-                            })
-                        } else {
-                            params.push(quote! {
-                                 #arg_name: *mut std::mem::ManuallyDrop<super::#declared_ty>
-                            })
-                        }
+                        params.push(quote! {
+                             #arg_name: *mut super::#declared_ty
+                        })
                     }
                 }
             };
@@ -465,6 +476,36 @@ mod tests {
             assert_eq!(
                 rust_call_args.to_string(),
                 "",
+                "{:#?}",
+                method.func.to_token_stream()
+            );
+        }
+    }
+
+    /// Verify that arguments that are owned declared types get unboxed.
+    #[test]
+    fn unboxes_owned_opaque_call_args() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type Foo;
+                    fn freestanding (arg: Foo);
+                    #[swift_bridge(associated_to = Foo)]
+                    fn associated_func (arg: Foo);
+                    fn method (&self, arg: Foo);
+                }
+            }
+        };
+        let module = parse_ok(tokens);
+        let methods = &module.extern_rust[0].functions;
+        assert_eq!(methods.len(), 3);
+
+        for method in methods {
+            let rust_call_args = &method.to_rust_call_args();
+            assert_eq!(
+                rust_call_args.to_string(),
+                "*Box::from_raw(arg)",
                 "{:#?}",
                 method.func.to_token_stream()
             );

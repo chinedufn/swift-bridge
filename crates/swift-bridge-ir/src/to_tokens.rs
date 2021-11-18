@@ -51,7 +51,6 @@ mod tests {
     use super::*;
     use crate::parse::SwiftBridgeModuleAndErrors;
     use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
-    use proc_macro2::Span;
     use quote::quote;
 
     /// Verify that we generate a function that frees the memory behind an opaque pointer to a Rust
@@ -143,9 +142,9 @@ mod tests {
             #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function (
-                bar: *mut std::mem::ManuallyDrop<super::MyType>
+                bar: *mut super::MyType
             ) {
-                let bar = & unsafe { Box::from_raw(bar) };
+                let bar = unsafe { &*bar };
                 super::some_function(bar)
             }
         };
@@ -292,9 +291,9 @@ mod tests {
             #[no_mangle]
             #[export_name = "__swift_bridge__$MyType$increment"]
             pub extern "C" fn __swift_bridge__MyType_increment (
-                this: *mut std::mem::ManuallyDrop<super::MyType>
+                this: *mut super::MyType
             ) {
-                (unsafe { Box::from_raw(this) }).increment()
+                (unsafe { &mut *this }).increment()
             }
         };
 
@@ -318,10 +317,10 @@ mod tests {
             #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$message"]
             pub extern "C" fn __swift_bridge__SomeType_message (
-                this: *mut std::mem::ManuallyDrop<super::SomeType>,
+                this: *mut super::SomeType,
                 val: u8
             ) {
-                (unsafe { Box::from_raw(this) }).message(val)
+                (unsafe { &*this }).message(val)
             }
         };
 

@@ -180,7 +180,7 @@ impl BuiltInType {
                 format!("{}*", ptr.ty.to_c())
             }
             BuiltInType::RefSlice(slice) => {
-                format!("RustSlice_{}", slice.ty.to_c())
+                format!("struct RustSlice_{}", slice.ty.to_c())
             }
         }
     }

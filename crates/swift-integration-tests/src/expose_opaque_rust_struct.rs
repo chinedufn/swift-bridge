@@ -34,13 +34,14 @@ mod ffi {
     extern "Rust" {
         type ARustStack;
 
-        // fn new_stack() -> ARustStack;
-        //
-        // fn push(&mut self, val: u8);
-        // fn pop(self: &mut ARustStack);
-        //
-        // fn as_ptr(&self) -> *const u8;
-        // fn len(&self) -> usize;
+        #[swift_bridge(init)]
+        fn new() -> ARustStack;
+
+        fn push(&mut self, val: u8);
+        fn pop(self: &mut ARustStack);
+
+        fn as_ptr(&self) -> *const u8;
+        fn len(&self) -> usize;
 
         // TODO: Plan slice support ..
         fn as_slice(&self) -> &[u8];
@@ -49,54 +50,6 @@ mod ffi {
 
 pub fn new_stack() -> ARustStack {
     ARustStack::new()
-}
-
-mod __ffi_generated {
-    use super::*;
-    use swift_bridge::{OwnedPtrToRust, RefPtrToRust};
-
-    #[no_mangle]
-    #[export_name = "swift_bridge$unstable$ARustStruct$new"]
-    pub extern "C" fn new() -> OwnedPtrToRust<ARustStack> {
-        let stack = ARustStack::new();
-        let stack = Box::into_raw(Box::new(stack));
-
-        OwnedPtrToRust::new(stack)
-    }
-
-    #[no_mangle]
-    #[export_name = "swift_bridge$unstable$ARustStruct$push"]
-    pub extern "C" fn push(this: RefPtrToRust<ARustStack>, val: u8) {
-        let stack = unsafe { &mut *this.ptr };
-        stack.push(val);
-    }
-
-    #[no_mangle]
-    #[export_name = "swift_bridge$unstable$ARustStruct$pop"]
-    pub extern "C" fn pop(this: RefPtrToRust<ARustStack>) {
-        let stack = unsafe { &mut *this.ptr };
-        stack.pop();
-    }
-
-    #[no_mangle]
-    #[export_name = "swift_bridge$unstable$ARustStruct$free"]
-    pub extern "C" fn free(this: OwnedPtrToRust<ARustStack>) {
-        drop(this)
-    }
-
-    #[no_mangle]
-    #[export_name = "swift_bridge$unstable$ARustStruct$as_ptr"]
-    pub extern "C" fn as_ptr(this: RefPtrToRust<ARustStack>) -> *const u8 {
-        let stack = unsafe { &mut *this.ptr };
-        stack.as_ptr()
-    }
-
-    #[no_mangle]
-    #[export_name = "swift_bridge$unstable$ARustStruct$len"]
-    pub extern "C" fn len(this: RefPtrToRust<ARustStack>) -> usize {
-        let stack = unsafe { &mut *this.ptr };
-        stack.len()
-    }
 }
 
 impl ARustStack {
