@@ -22,13 +22,6 @@ pub fn parse_bridges(
         let file = std::fs::read_to_string(rust_file).unwrap();
         let generated = parse_file(&file).unwrap();
 
-        // TODO: .. Ok... what to do with this generated C header and Swift..?
-        // We need to write them to disk somewhere..
-        // Then we #include the C header from Swift
-        // And add the Swift file to the project
-        // For now let's just write them to a hard coded place on disk and see everything work..
-        // then we can use variables instead of hard coded paths.
-
         let c_header_file_name = rust_file.with_extension("h");
         let c_header_file_name = c_header_file_name.file_name().unwrap();
         let c_header_file = out_dir.join(c_header_file_name);

@@ -1,73 +1,14 @@
-use std::ffi::c_void;
-use std::str::Utf8Error;
+use swift_bridge::string::SwiftString;
 
-// TODO: 11/19/21 - Rewrite this test using an extern Swift fn that returns a String..
-//  Then we get back a swift_bridge::SwiftString .. Then we call all of the methods on it inside
-//  our test.
-//  This means that `SwiftBridge` will have to define a bunch of extern modules... so we need to
-//  update our swift-bridge-build to use an environment variable to decide where to write.
-//  Set that environment variable in Xcode.
-//
-// TODO: Similarly.. Expose an extern Rust function that creates a String. Then in the Swift string
-//  tests file in Xcode call all of the methods on the RustString
-
-extern "C" {
-    #[link_name = "swift_bridge$unstable$swift_string$new"]
-    fn string_new(ptr: *const u8, len: usize) -> *mut c_void;
-
-    #[link_name = "swift_bridge$unstable$swift_string$ptr"]
-    fn string_ptr(this: *const c_void) -> *const u8;
-
-    #[link_name = "swift_bridge$unstable$swift_string$free"]
-    fn string_free(this: *mut c_void);
-
-    #[link_name = "swift_bridge$unstable$swift_string$length"]
-    fn string_length(this: *const c_void) -> usize;
-}
+// TODO: Expose an extern Rust function that creates a String
+//  (somewhere along the way it becomes a swift_bridge::string::RustString)
+//  Then in the Swift string tests file in Xcode call all of the methods on the RustString
 
 #[no_mangle]
 pub extern "C" fn run_string_tests() {
-    let string = SwiftString::new("hello");
+    let string = SwiftString::new_with_str("hello");
 
     assert_eq!(string.len(), 5);
 
-    assert_eq!(string.to_str().unwrap(), "hello");
-
-    drop(string);
-}
-
-struct SwiftString {
-    ptr: *mut c_void,
-}
-
-impl SwiftString {
-    fn new(initial: &str) -> Self {
-        let ptr = unsafe { string_new(initial.as_ptr(), initial.len()) };
-        Self { ptr }
-    }
-
-    fn as_ptr(&self) -> *const u8 {
-        unsafe { string_ptr(self.ptr) }
-    }
-
-    fn as_bytes(&self) -> &[u8] {
-        let ptr = self.as_ptr();
-        let len = self.len();
-
-        unsafe { std::slice::from_raw_parts(ptr, len) }
-    }
-
-    fn to_str(&self) -> Result<&str, Utf8Error> {
-        std::str::from_utf8(self.as_bytes())
-    }
-
-    fn len(&self) -> usize {
-        unsafe { string_length(self.ptr) }
-    }
-}
-
-impl Drop for SwiftString {
-    fn drop(&mut self) {
-        unsafe { string_free(self.ptr) }
-    }
+    assert_eq!(string.to_str(), "hello");
 }

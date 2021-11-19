@@ -162,8 +162,14 @@ impl BuiltInType {
             BuiltInType::Usize => "UInt".to_string(),
             BuiltInType::Isize => "Int".to_string(),
             BuiltInType::Pointer(ptr) => {
+                let maybe_mutable = match ptr.kind {
+                    PointerKind::Const => "",
+                    PointerKind::Mut => "Mutable",
+                };
+
                 format!(
-                    "UnsafeMutablePointer<{}>",
+                    "Unsafe{}Pointer<{}>",
+                    maybe_mutable,
                     ptr.ty.to_swift(must_be_c_compatible)
                 )
             }
@@ -198,7 +204,11 @@ impl BuiltInType {
             BuiltInType::Usize => "uintptr_t".to_string(),
             BuiltInType::Isize => "intptr_t".to_string(),
             BuiltInType::Pointer(ptr) => {
-                format!("{}*", ptr.ty.to_c())
+                let maybe_const = match ptr.kind {
+                    PointerKind::Const => " const ",
+                    PointerKind::Mut => "",
+                };
+                format!("{}{}*", ptr.ty.to_c(), maybe_const)
             }
             BuiltInType::RefSlice(slice) => {
                 format!("struct RustSlice_{}", slice.ty.to_c())

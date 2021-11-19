@@ -26,8 +26,8 @@ public class ASwiftStack {
         let _ = stack.popLast();
     }
     
-    func as_ptr() -> UnsafeMutablePointer<UInt8> {
-        UnsafeMutablePointer(mutating: self.stack)
+    func as_ptr() -> UnsafePointer<UInt8> {
+        UnsafePointer(self.stack)
     }
     
     func len () -> UInt {

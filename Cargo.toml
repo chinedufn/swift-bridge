@@ -3,6 +3,11 @@ name = "swift-bridge"
 version = "0.1.0"
 edition = "2021"
 
+build = "build.rs"
+
+[build-dependencies]
+swift-bridge-build = {path = "crates/swift-bridge-build"}
+
 [dependencies]
 swift-bridge-macro = {path = "crates/swift-bridge-macro"}
 

@@ -2,29 +2,11 @@
 
 #![deny(missing_docs)]
 
-use std::os::raw::c_void;
 pub use swift_bridge_macro::bridge;
 
-// The underlying T gets dropped when this is dropped.
-#[doc(hidden)]
-#[repr(C)]
-pub struct OwnedPtrToRust<T> {
-    pub ptr: *mut T,
-}
+mod std_bridge;
 
-// The underlying T gets dropped when this is dropped.
-#[doc(hidden)]
-#[repr(C)]
-pub struct OwnedPtrToSwift {
-    pub ptr: *mut c_void,
-}
-
-// The underlying T does not get dropped when this is dropped.
-#[doc(hidden)]
-#[repr(C)]
-pub struct RefPtrToRust<T> {
-    pub ptr: *mut T,
-}
+pub use self::std_bridge::string;
 
 #[doc(hidden)]
 #[repr(C)]
@@ -44,18 +26,5 @@ impl<T> RustSlice<T> {
 
     pub fn as_slice(&self) -> &'static [T] {
         unsafe { std::slice::from_raw_parts(self.start, self.len) }
-    }
-}
-
-impl<T> OwnedPtrToRust<T> {
-    pub fn new(ptr: *mut T) -> Self {
-        OwnedPtrToRust { ptr }
-    }
-}
-
-impl<T> Drop for OwnedPtrToRust<T> {
-    fn drop(&mut self) {
-        let pointee = unsafe { Box::from_raw(self.ptr) };
-        drop(pointee)
     }
 }

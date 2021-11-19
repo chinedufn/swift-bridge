@@ -20,6 +20,8 @@
 		228FE61227428A8D00805D9E /* OpaqueSwiftStructTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */; };
 		228FE6142745666E00805D9E /* expose_opaque_rust_struct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */; };
 		228FE61A2747222C00805D9E /* import_opaque_swift_class.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE6192747222C00805D9E /* import_opaque_swift_class.swift */; };
+		228FE64527480E1D00805D9E /* string.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64327480E1C00805D9E /* string.swift */; };
+		228FE64627480E1D00805D9E /* SwiftBridgeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64427480E1C00805D9E /* SwiftBridgeCore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,9 +52,12 @@
 		228FE60F27416C0300805D9E /* OpaqueRustStructTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpaqueRustStructTests.swift; sourceTree = "<group>"; };
 		228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpaqueSwiftStructTests.swift; sourceTree = "<group>"; };
 		228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = expose_opaque_rust_struct.swift; sourceTree = "<group>"; };
-		228FE61527456C9700805D9E /* expose_opaque_rust_struct.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = expose_opaque_rust_struct.h; path = "../../crates/swift-integration-tests/foo/expose_opaque_rust_struct.h"; sourceTree = "<group>"; };
-		228FE6182746CCEE00805D9E /* import_opaque_swift_class.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = import_opaque_swift_class.h; path = "../../crates/swift-integration-tests/foo/import_opaque_swift_class.h"; sourceTree = "<group>"; };
 		228FE6192747222C00805D9E /* import_opaque_swift_class.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = import_opaque_swift_class.swift; sourceTree = "<group>"; };
+		228FE64027480DAC00805D9E /* import_opaque_swift_class.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = import_opaque_swift_class.h; sourceTree = "<group>"; };
+		228FE64127480DAC00805D9E /* expose_opaque_rust_struct.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = expose_opaque_rust_struct.h; sourceTree = "<group>"; };
+		228FE64227480E1C00805D9E /* string.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = string.h; sourceTree = "<group>"; };
+		228FE64327480E1C00805D9E /* string.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = string.swift; sourceTree = "<group>"; };
+		228FE64427480E1C00805D9E /* SwiftBridgeCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SwiftBridgeCore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +84,7 @@
 			isa = PBXGroup;
 			children = (
 				228FE5FF2740DB8200805D9E /* Headers */,
+				228FE6072740E26100805D9E /* Generated */,
 				228FE5D32740DB6A00805D9E /* SwiftRustIntegrationTestRunner */,
 				228FE5E52740DB6D00805D9E /* SwiftRustIntegrationTestRunnerTests */,
 				228FE5D22740DB6A00805D9E /* Products */,
@@ -99,7 +105,6 @@
 			isa = PBXGroup;
 			children = (
 				228FE60A2740F40A00805D9E /* RustTests */,
-				228FE6072740E26100805D9E /* Generated */,
 				228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */,
 				228FE5D62740DB6A00805D9E /* ContentView.swift */,
 				228FE5D82740DB6D00805D9E /* Assets.xcassets */,
@@ -130,8 +135,6 @@
 		228FE5FF2740DB8200805D9E /* Headers */ = {
 			isa = PBXGroup;
 			children = (
-				228FE6182746CCEE00805D9E /* import_opaque_swift_class.h */,
-				228FE61527456C9700805D9E /* expose_opaque_rust_struct.h */,
 				228FE6002740DC0C00805D9E /* lib.rs.h */,
 				228FE6012740DC2000805D9E /* BridgingHeader.h */,
 			);
@@ -150,6 +153,11 @@
 		228FE6072740E26100805D9E /* Generated */ = {
 			isa = PBXGroup;
 			children = (
+				228FE64227480E1C00805D9E /* string.h */,
+				228FE64327480E1C00805D9E /* string.swift */,
+				228FE64427480E1C00805D9E /* SwiftBridgeCore.swift */,
+				228FE64127480DAC00805D9E /* expose_opaque_rust_struct.h */,
+				228FE64027480DAC00805D9E /* import_opaque_swift_class.h */,
 				228FE6192747222C00805D9E /* import_opaque_swift_class.swift */,
 				228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */,
 			);
@@ -277,7 +285,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export PATH=\"$HOME/.cargo/bin:$PATH\"\n\n# Without this we can't comppile on MacOS Big Sur\n# https://github.com/TimNN/cargo-lipo/issues/41#issuecomment-774793892\nif [[ -n \"${DEVELOPER_SDK_DIR:-}\" ]]; then\n  export LIBRARY_PATH=\"${DEVELOPER_SDK_DIR}/MacOSX.sdk/usr/lib:${LIBRARY_PATH:-}\"\nfi\n\nif [ $ENABLE_PREVIEWS == \"NO\" ]; then\n\n  if [[ $CONFIGURATION == \"Release\" ]]; then\n      echo \"BUIlDING FOR RELEASE\"\n      \n      cargo build --release --manifest-path ../crates/swift-integration-tests/Cargo.toml\n  else\n      echo \"BUIlDING FOR DEBUG\"\n\n      cargo build --manifest-path ../crates/swift-integration-tests/Cargo.toml\n  fi\n  \nelse\n  echo \"Skipping the script because of preview mode\"\nfi\n";
+			shellScript = "export PATH=\"$HOME/.cargo/bin:$PATH\"\n\nexport SWIFT_BRIDGE_OUT_DIR=\"${PROJECT_DIR}/Generated\"\n\n# Without this we can't comppile on MacOS Big Sur\n# https://github.com/TimNN/cargo-lipo/issues/41#issuecomment-774793892\nif [[ -n \"${DEVELOPER_SDK_DIR:-}\" ]]; then\n  export LIBRARY_PATH=\"${DEVELOPER_SDK_DIR}/MacOSX.sdk/usr/lib:${LIBRARY_PATH:-}\"\nfi\n\nif [ $ENABLE_PREVIEWS == \"NO\" ]; then\n\n  if [[ $CONFIGURATION == \"Release\" ]]; then\n      echo \"BUIlDING FOR RELEASE\"\n      \n      cargo build --release --manifest-path ../crates/swift-integration-tests/Cargo.toml\n  else\n      echo \"BUIlDING FOR DEBUG\"\n\n      cargo build --manifest-path ../crates/swift-integration-tests/Cargo.toml\n  fi\n  \nelse\n  echo \"Skipping the script because of preview mode\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -289,8 +297,10 @@
 				228FE61A2747222C00805D9E /* import_opaque_swift_class.swift in Sources */,
 				228FE6142745666E00805D9E /* expose_opaque_rust_struct.swift in Sources */,
 				228FE5D72740DB6A00805D9E /* ContentView.swift in Sources */,
+				228FE64627480E1D00805D9E /* SwiftBridgeCore.swift in Sources */,
 				228FE6092740E29200805D9E /* CoreFfi.swift in Sources */,
 				228FE5D52740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift in Sources */,
+				228FE64527480E1D00805D9E /* string.swift in Sources */,
 				228FE60C2740F42000805D9E /* RustTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
