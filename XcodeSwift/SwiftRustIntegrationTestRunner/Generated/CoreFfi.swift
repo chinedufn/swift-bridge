@@ -1,6 +1,6 @@
 //
 //  CoreFfi.swift
-//  XcodeSwift
+//  SwiftRustIntegrationTestRunner
 //
 //  Created by Frankie Nwafili on 11/14/21.
 //

@@ -1,6 +1,16 @@
 use std::ffi::c_void;
 use std::str::Utf8Error;
 
+// TODO: 11/19/21 - Rewrite this test using an extern Swift fn that returns a String..
+//  Then we get back a swift_bridge::SwiftString .. Then we call all of the methods on it inside
+//  our test.
+//  This means that `SwiftBridge` will have to define a bunch of extern modules... so we need to
+//  update our swift-bridge-build to use an environment variable to decide where to write.
+//  Set that environment variable in Xcode.
+//
+// TODO: Similarly.. Expose an extern Rust function that creates a String. Then in the Swift string
+//  tests file in Xcode call all of the methods on the RustString
+
 extern "C" {
     #[link_name = "swift_bridge$unstable$swift_string$new"]
     fn string_new(ptr: *const u8, len: usize) -> *mut c_void;

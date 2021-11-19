@@ -24,7 +24,7 @@ fn main() {
 // # Implementation
 //
 // - (DONE) Make the `parse_bridges` function write each C and Swift file to the passed in out dir
-//    of XCodeSwift/Headers
+//    of SwiftRustIntegrationTestRunner/Headers
 //
 // - (DONE) Uncomment the bridge module in expose opaque rust struct file
 //

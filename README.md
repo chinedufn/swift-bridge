@@ -12,7 +12,7 @@ _The bridging module approach that `swift-bridge` uses was inspired by [cxx](htt
 - Look up how to programatically set the linking settings.
   Our docs can recommend that as well as show how to manually set them
 - Delete c header code generation
-- Rename XcodeSwift to SwiftRustIntegrationTests
+- Rename SwiftRustIntegrationTestRunner to SwiftRustIntegrationTests
 
 ## Quick Peek
 

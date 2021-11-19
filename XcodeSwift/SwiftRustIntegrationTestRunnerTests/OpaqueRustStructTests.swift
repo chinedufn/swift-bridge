@@ -1,12 +1,12 @@
 //
 //  OpaqueRustStructTests.swift
-//  XcodeSwiftTests
+//  SwiftRustIntegrationTestRunnerTests
 //
 //  Created by Frankie Nwafili on 11/14/21.
 //
 
 import XCTest
-@testable import XcodeSwift
+@testable import SwiftRustIntegrationTestRunner
 
 class OpaqueRustStructTests: XCTestCase {
     

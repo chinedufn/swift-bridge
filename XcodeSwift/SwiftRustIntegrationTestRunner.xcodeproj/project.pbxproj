@@ -7,13 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		228FE5D52740DB6A00805D9E /* XcodeSwiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5D42740DB6A00805D9E /* XcodeSwiftApp.swift */; };
+		228FE5D52740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */; };
 		228FE5D72740DB6A00805D9E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5D62740DB6A00805D9E /* ContentView.swift */; };
 		228FE5D92740DB6D00805D9E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 228FE5D82740DB6D00805D9E /* Assets.xcassets */; };
 		228FE5DC2740DB6D00805D9E /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 228FE5DB2740DB6D00805D9E /* Preview Assets.xcassets */; };
 		228FE5E72740DB6D00805D9E /* StringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5E62740DB6D00805D9E /* StringTests.swift */; };
-		228FE5F12740DB6D00805D9E /* XcodeSwiftUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5F02740DB6D00805D9E /* XcodeSwiftUITests.swift */; };
-		228FE5F32740DB6D00805D9E /* XcodeSwiftUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5F22740DB6D00805D9E /* XcodeSwiftUITestsLaunchTests.swift */; };
 		228FE6062740DCA100805D9E /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 228FE6052740DC9A00805D9E /* libresolv.tbd */; platformFilter = maccatalyst; };
 		228FE6092740E29200805D9E /* CoreFfi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE6082740E29200805D9E /* CoreFfi.swift */; };
 		228FE60C2740F42000805D9E /* RustTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE60B2740F42000805D9E /* RustTests.swift */; };
@@ -30,29 +28,19 @@
 			containerPortal = 228FE5C92740DB6A00805D9E /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 228FE5D02740DB6A00805D9E;
-			remoteInfo = XcodeSwift;
-		};
-		228FE5ED2740DB6D00805D9E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 228FE5C92740DB6A00805D9E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 228FE5D02740DB6A00805D9E;
-			remoteInfo = XcodeSwift;
+			remoteInfo = SwiftRustIntegrationTestRunner;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		228FE5D12740DB6A00805D9E /* XcodeSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = XcodeSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		228FE5D42740DB6A00805D9E /* XcodeSwiftApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XcodeSwiftApp.swift; sourceTree = "<group>"; };
+		228FE5D12740DB6A00805D9E /* SwiftRustIntegrationTestRunner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftRustIntegrationTestRunner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftRustIntegrationTestRunnerApp.swift; sourceTree = "<group>"; };
 		228FE5D62740DB6A00805D9E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		228FE5D82740DB6D00805D9E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		228FE5DB2740DB6D00805D9E /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		228FE5DD2740DB6D00805D9E /* XcodeSwift.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = XcodeSwift.entitlements; sourceTree = "<group>"; };
-		228FE5E22740DB6D00805D9E /* XcodeSwiftTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XcodeSwiftTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		228FE5DD2740DB6D00805D9E /* SwiftRustIntegrationTestRunner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SwiftRustIntegrationTestRunner.entitlements; sourceTree = "<group>"; };
+		228FE5E22740DB6D00805D9E /* SwiftRustIntegrationTestRunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftRustIntegrationTestRunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		228FE5E62740DB6D00805D9E /* StringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringTests.swift; sourceTree = "<group>"; };
-		228FE5EC2740DB6D00805D9E /* XcodeSwiftUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XcodeSwiftUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		228FE5F02740DB6D00805D9E /* XcodeSwiftUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XcodeSwiftUITests.swift; sourceTree = "<group>"; };
-		228FE5F22740DB6D00805D9E /* XcodeSwiftUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XcodeSwiftUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		228FE6002740DC0C00805D9E /* lib.rs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lib.rs.h; path = "../../crates/swift-integration-tests/src/lib.rs.h"; sourceTree = "<group>"; };
 		228FE6012740DC2000805D9E /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
 		228FE6032740DC7900805D9E /* libswift_integration_tests.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswift_integration_tests.a; path = ../target/debug/libswift_integration_tests.a; sourceTree = "<group>"; };
@@ -61,10 +49,10 @@
 		228FE60B2740F42000805D9E /* RustTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RustTests.swift; sourceTree = "<group>"; };
 		228FE60F27416C0300805D9E /* OpaqueRustStructTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpaqueRustStructTests.swift; sourceTree = "<group>"; };
 		228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpaqueSwiftStructTests.swift; sourceTree = "<group>"; };
-		228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = expose_opaque_rust_struct.swift; path = "../../../crates/swift-integration-tests/foo/expose_opaque_rust_struct.swift"; sourceTree = "<group>"; };
+		228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = expose_opaque_rust_struct.swift; sourceTree = "<group>"; };
 		228FE61527456C9700805D9E /* expose_opaque_rust_struct.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = expose_opaque_rust_struct.h; path = "../../crates/swift-integration-tests/foo/expose_opaque_rust_struct.h"; sourceTree = "<group>"; };
 		228FE6182746CCEE00805D9E /* import_opaque_swift_class.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = import_opaque_swift_class.h; path = "../../crates/swift-integration-tests/foo/import_opaque_swift_class.h"; sourceTree = "<group>"; };
-		228FE6192747222C00805D9E /* import_opaque_swift_class.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = import_opaque_swift_class.swift; path = "../../../crates/swift-integration-tests/foo/import_opaque_swift_class.swift"; sourceTree = "<group>"; };
+		228FE6192747222C00805D9E /* import_opaque_swift_class.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = import_opaque_swift_class.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -84,13 +72,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		228FE5E92740DB6D00805D9E /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -98,9 +79,8 @@
 			isa = PBXGroup;
 			children = (
 				228FE5FF2740DB8200805D9E /* Headers */,
-				228FE5D32740DB6A00805D9E /* XcodeSwift */,
-				228FE5E52740DB6D00805D9E /* XcodeSwiftTests */,
-				228FE5EF2740DB6D00805D9E /* XcodeSwiftUITests */,
+				228FE5D32740DB6A00805D9E /* SwiftRustIntegrationTestRunner */,
+				228FE5E52740DB6D00805D9E /* SwiftRustIntegrationTestRunnerTests */,
 				228FE5D22740DB6A00805D9E /* Products */,
 				228FE6022740DC7900805D9E /* Frameworks */,
 			);
@@ -109,25 +89,24 @@
 		228FE5D22740DB6A00805D9E /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				228FE5D12740DB6A00805D9E /* XcodeSwift.app */,
-				228FE5E22740DB6D00805D9E /* XcodeSwiftTests.xctest */,
-				228FE5EC2740DB6D00805D9E /* XcodeSwiftUITests.xctest */,
+				228FE5D12740DB6A00805D9E /* SwiftRustIntegrationTestRunner.app */,
+				228FE5E22740DB6D00805D9E /* SwiftRustIntegrationTestRunnerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		228FE5D32740DB6A00805D9E /* XcodeSwift */ = {
+		228FE5D32740DB6A00805D9E /* SwiftRustIntegrationTestRunner */ = {
 			isa = PBXGroup;
 			children = (
 				228FE60A2740F40A00805D9E /* RustTests */,
 				228FE6072740E26100805D9E /* Generated */,
-				228FE5D42740DB6A00805D9E /* XcodeSwiftApp.swift */,
+				228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */,
 				228FE5D62740DB6A00805D9E /* ContentView.swift */,
 				228FE5D82740DB6D00805D9E /* Assets.xcassets */,
-				228FE5DD2740DB6D00805D9E /* XcodeSwift.entitlements */,
+				228FE5DD2740DB6D00805D9E /* SwiftRustIntegrationTestRunner.entitlements */,
 				228FE5DA2740DB6D00805D9E /* Preview Content */,
 			);
-			path = XcodeSwift;
+			path = SwiftRustIntegrationTestRunner;
 			sourceTree = "<group>";
 		};
 		228FE5DA2740DB6D00805D9E /* Preview Content */ = {
@@ -138,23 +117,14 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
-		228FE5E52740DB6D00805D9E /* XcodeSwiftTests */ = {
+		228FE5E52740DB6D00805D9E /* SwiftRustIntegrationTestRunnerTests */ = {
 			isa = PBXGroup;
 			children = (
 				228FE5E62740DB6D00805D9E /* StringTests.swift */,
 				228FE60F27416C0300805D9E /* OpaqueRustStructTests.swift */,
 				228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */,
 			);
-			path = XcodeSwiftTests;
-			sourceTree = "<group>";
-		};
-		228FE5EF2740DB6D00805D9E /* XcodeSwiftUITests */ = {
-			isa = PBXGroup;
-			children = (
-				228FE5F02740DB6D00805D9E /* XcodeSwiftUITests.swift */,
-				228FE5F22740DB6D00805D9E /* XcodeSwiftUITestsLaunchTests.swift */,
-			);
-			path = XcodeSwiftUITests;
+			path = SwiftRustIntegrationTestRunnerTests;
 			sourceTree = "<group>";
 		};
 		228FE5FF2740DB8200805D9E /* Headers */ = {
@@ -180,6 +150,8 @@
 		228FE6072740E26100805D9E /* Generated */ = {
 			isa = PBXGroup;
 			children = (
+				228FE6192747222C00805D9E /* import_opaque_swift_class.swift */,
+				228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */,
 				228FE6082740E29200805D9E /* CoreFfi.swift */,
 			);
 			path = Generated;
@@ -188,9 +160,7 @@
 		228FE60A2740F40A00805D9E /* RustTests */ = {
 			isa = PBXGroup;
 			children = (
-				228FE6192747222C00805D9E /* import_opaque_swift_class.swift */,
 				228FE60B2740F42000805D9E /* RustTests.swift */,
-				228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */,
 			);
 			path = RustTests;
 			sourceTree = "<group>";
@@ -198,9 +168,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		228FE5D02740DB6A00805D9E /* XcodeSwift */ = {
+		228FE5D02740DB6A00805D9E /* SwiftRustIntegrationTestRunner */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 228FE5F62740DB6D00805D9E /* Build configuration list for PBXNativeTarget "XcodeSwift" */;
+			buildConfigurationList = 228FE5F62740DB6D00805D9E /* Build configuration list for PBXNativeTarget "SwiftRustIntegrationTestRunner" */;
 			buildPhases = (
 				228FE60D2740F66400805D9E /* ShellScript */,
 				228FE5CD2740DB6A00805D9E /* Sources */,
@@ -211,14 +181,14 @@
 			);
 			dependencies = (
 			);
-			name = XcodeSwift;
-			productName = XcodeSwift;
-			productReference = 228FE5D12740DB6A00805D9E /* XcodeSwift.app */;
+			name = SwiftRustIntegrationTestRunner;
+			productName = SwiftRustIntegrationTestRunner;
+			productReference = 228FE5D12740DB6A00805D9E /* SwiftRustIntegrationTestRunner.app */;
 			productType = "com.apple.product-type.application";
 		};
-		228FE5E12740DB6D00805D9E /* XcodeSwiftTests */ = {
+		228FE5E12740DB6D00805D9E /* SwiftRustIntegrationTestRunnerTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 228FE5F92740DB6D00805D9E /* Build configuration list for PBXNativeTarget "XcodeSwiftTests" */;
+			buildConfigurationList = 228FE5F92740DB6D00805D9E /* Build configuration list for PBXNativeTarget "SwiftRustIntegrationTestRunnerTests" */;
 			buildPhases = (
 				228FE5DE2740DB6D00805D9E /* Sources */,
 				228FE5DF2740DB6D00805D9E /* Frameworks */,
@@ -229,28 +199,10 @@
 			dependencies = (
 				228FE5E42740DB6D00805D9E /* PBXTargetDependency */,
 			);
-			name = XcodeSwiftTests;
-			productName = XcodeSwiftTests;
-			productReference = 228FE5E22740DB6D00805D9E /* XcodeSwiftTests.xctest */;
+			name = SwiftRustIntegrationTestRunnerTests;
+			productName = SwiftRustIntegrationTestRunnerTests;
+			productReference = 228FE5E22740DB6D00805D9E /* SwiftRustIntegrationTestRunnerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		228FE5EB2740DB6D00805D9E /* XcodeSwiftUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 228FE5FC2740DB6D00805D9E /* Build configuration list for PBXNativeTarget "XcodeSwiftUITests" */;
-			buildPhases = (
-				228FE5E82740DB6D00805D9E /* Sources */,
-				228FE5E92740DB6D00805D9E /* Frameworks */,
-				228FE5EA2740DB6D00805D9E /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				228FE5EE2740DB6D00805D9E /* PBXTargetDependency */,
-			);
-			name = XcodeSwiftUITests;
-			productName = XcodeSwiftUITests;
-			productReference = 228FE5EC2740DB6D00805D9E /* XcodeSwiftUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -269,13 +221,9 @@
 						CreatedOnToolsVersion = 13.0;
 						TestTargetID = 228FE5D02740DB6A00805D9E;
 					};
-					228FE5EB2740DB6D00805D9E = {
-						CreatedOnToolsVersion = 13.0;
-						TestTargetID = 228FE5D02740DB6A00805D9E;
-					};
 				};
 			};
-			buildConfigurationList = 228FE5CC2740DB6A00805D9E /* Build configuration list for PBXProject "XcodeSwift" */;
+			buildConfigurationList = 228FE5CC2740DB6A00805D9E /* Build configuration list for PBXProject "SwiftRustIntegrationTestRunner" */;
 			compatibilityVersion = "Xcode 13.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -288,9 +236,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				228FE5D02740DB6A00805D9E /* XcodeSwift */,
-				228FE5E12740DB6D00805D9E /* XcodeSwiftTests */,
-				228FE5EB2740DB6D00805D9E /* XcodeSwiftUITests */,
+				228FE5D02740DB6A00805D9E /* SwiftRustIntegrationTestRunner */,
+				228FE5E12740DB6D00805D9E /* SwiftRustIntegrationTestRunnerTests */,
 			);
 		};
 /* End PBXProject section */
@@ -306,13 +253,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		228FE5E02740DB6D00805D9E /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		228FE5EA2740DB6D00805D9E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -350,7 +290,7 @@
 				228FE6142745666E00805D9E /* expose_opaque_rust_struct.swift in Sources */,
 				228FE5D72740DB6A00805D9E /* ContentView.swift in Sources */,
 				228FE6092740E29200805D9E /* CoreFfi.swift in Sources */,
-				228FE5D52740DB6A00805D9E /* XcodeSwiftApp.swift in Sources */,
+				228FE5D52740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift in Sources */,
 				228FE60C2740F42000805D9E /* RustTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -365,27 +305,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		228FE5E82740DB6D00805D9E /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				228FE5F32740DB6D00805D9E /* XcodeSwiftUITestsLaunchTests.swift in Sources */,
-				228FE5F12740DB6D00805D9E /* XcodeSwiftUITests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
 		228FE5E42740DB6D00805D9E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 228FE5D02740DB6A00805D9E /* XcodeSwift */;
+			target = 228FE5D02740DB6A00805D9E /* SwiftRustIntegrationTestRunner */;
 			targetProxy = 228FE5E32740DB6D00805D9E /* PBXContainerItemProxy */;
-		};
-		228FE5EE2740DB6D00805D9E /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 228FE5D02740DB6A00805D9E /* XcodeSwift */;
-			targetProxy = 228FE5ED2740DB6D00805D9E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -510,11 +436,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = XcodeSwift/XcodeSwift.entitlements;
+				CODE_SIGN_ENTITLEMENTS = SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"XcodeSwift/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"SwiftRustIntegrationTestRunner/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -525,7 +451,7 @@
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/debug";
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.XcodeSwift;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftRustIntegrationTestRunner;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Headers/BridgingHeader.h";
@@ -538,11 +464,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = XcodeSwift/XcodeSwift.entitlements;
+				CODE_SIGN_ENTITLEMENTS = SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"XcodeSwift/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"SwiftRustIntegrationTestRunner/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -553,7 +479,7 @@
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/release";
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.XcodeSwift;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftRustIntegrationTestRunner;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Headers/BridgingHeader.h";
@@ -578,12 +504,12 @@
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/debug";
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.XcodeSwiftTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftRustIntegrationTestRunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Headers/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/XcodeSwift.app/Contents/MacOS/XcodeSwift";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SwiftRustIntegrationTestRunner.app/Contents/MacOS/SwiftRustIntegrationTestRunner";
 			};
 			name = Debug;
 		};
@@ -604,63 +530,19 @@
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/release";
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.XcodeSwiftTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftRustIntegrationTestRunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Headers/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/XcodeSwift.app/Contents/MacOS/XcodeSwift";
-			};
-			name = Release;
-		};
-		228FE5FD2740DB6D00805D9E /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.XcodeSwiftUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = XcodeSwift;
-			};
-			name = Debug;
-		};
-		228FE5FE2740DB6D00805D9E /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.XcodeSwiftUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = XcodeSwift;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SwiftRustIntegrationTestRunner.app/Contents/MacOS/SwiftRustIntegrationTestRunner";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		228FE5CC2740DB6A00805D9E /* Build configuration list for PBXProject "XcodeSwift" */ = {
+		228FE5CC2740DB6A00805D9E /* Build configuration list for PBXProject "SwiftRustIntegrationTestRunner" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				228FE5F42740DB6D00805D9E /* Debug */,
@@ -669,7 +551,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		228FE5F62740DB6D00805D9E /* Build configuration list for PBXNativeTarget "XcodeSwift" */ = {
+		228FE5F62740DB6D00805D9E /* Build configuration list for PBXNativeTarget "SwiftRustIntegrationTestRunner" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				228FE5F72740DB6D00805D9E /* Debug */,
@@ -678,20 +560,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		228FE5F92740DB6D00805D9E /* Build configuration list for PBXNativeTarget "XcodeSwiftTests" */ = {
+		228FE5F92740DB6D00805D9E /* Build configuration list for PBXNativeTarget "SwiftRustIntegrationTestRunnerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				228FE5FA2740DB6D00805D9E /* Debug */,
 				228FE5FB2740DB6D00805D9E /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		228FE5FC2740DB6D00805D9E /* Build configuration list for PBXNativeTarget "XcodeSwiftUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				228FE5FD2740DB6D00805D9E /* Debug */,
-				228FE5FE2740DB6D00805D9E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
