@@ -152,7 +152,6 @@
 			children = (
 				228FE6192747222C00805D9E /* import_opaque_swift_class.swift */,
 				228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */,
-				228FE6082740E29200805D9E /* CoreFfi.swift */,
 			);
 			path = Generated;
 			sourceTree = "<group>";
@@ -161,6 +160,7 @@
 			isa = PBXGroup;
 			children = (
 				228FE60B2740F42000805D9E /* RustTests.swift */,
+				228FE6082740E29200805D9E /* CoreFfi.swift */,
 			);
 			path = RustTests;
 			sourceTree = "<group>";

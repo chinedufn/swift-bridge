@@ -3,9 +3,7 @@
 
 #![deny(missing_docs)]
 
-use proc_macro2::TokenStream;
 use std::path::Path;
-use std::str::FromStr;
 use swift_bridge_ir::SwiftBridgeModule;
 use syn::__private::ToTokens;
 use syn::{File, Item};

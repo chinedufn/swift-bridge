@@ -1,10 +1,15 @@
 fn main() {
+    let out_dir = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunner/Generated"
+    );
+
     swift_bridge_build::parse_bridges(
         vec![
             "./src/expose_opaque_rust_struct.rs",
             "./src/import_opaque_swift_class.rs",
         ],
-        "./foo",
+        out_dir,
     );
 }
 
