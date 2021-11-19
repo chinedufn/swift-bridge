@@ -47,9 +47,16 @@ impl ParsedExternFn {
     }
 
     // fn foo (&self, arg1: u8, arg2: u32)
-    //  becomes..
-    // ptr, arg1, arg2
-    pub fn to_swift_call_args(&self, include_receiver_if_present: bool) -> String {
+    //  might become
+    //  - arg1, arg2
+    //  - ptr, arg1, arg2
+    //  - arg1: arg1, arg2: arg2
+    //  - self: ptr, arg1: arg1, arg2: arg2
+    pub fn to_swift_call_args(
+        &self,
+        include_receiver_if_present: bool,
+        include_var_name: bool,
+    ) -> String {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
@@ -61,11 +68,18 @@ impl ParsedExternFn {
                 }
                 FnArg::Typed(pat_ty) => {
                     let pat = &pat_ty.pat;
+                    let arg = pat.to_token_stream().to_string();
+
+                    let arg = if include_var_name {
+                        format!("{}: {}", arg, arg)
+                    } else {
+                        arg
+                    };
 
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                        args.push(pat.to_token_stream().to_string());
+                        args.push(arg);
                     } else {
-                        args.push(format!("{}.ptr", pat.to_token_stream().to_string()));
+                        args.push(format!("{}.ptr", arg));
                     };
                 }
             };
@@ -194,7 +208,7 @@ mod tests {
         assert_eq!(functions.len(), 3);
 
         for idx in 0..3 {
-            assert_eq!(functions[idx].to_swift_call_args(true), "other.ptr");
+            assert_eq!(functions[idx].to_swift_call_args(true, false), "other.ptr");
         }
     }
 

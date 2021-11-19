@@ -64,6 +64,26 @@ struct BridgedType {
     host_lang: HostLang,
 }
 
+impl BridgedType {
+    // "__swift_bridge__$TypeName$_free"
+    fn free_link_name(&self) -> String {
+        format!(
+            "{}${}$_free",
+            SWIFT_BRIDGE_PREFIX,
+            self.ty.ident.to_string()
+        )
+    }
+
+    // "__swift_bridge__TypeName__free"
+    fn free_func_name(&self) -> String {
+        format!("{}{}__free", SWIFT_BRIDGE_PREFIX, self.ty.ident.to_string())
+    }
+
+    fn ty_name_ident(&self) -> &Ident {
+        &self.ty.ident
+    }
+}
+
 impl Deref for BridgedType {
     type Target = ForeignItemType;
 

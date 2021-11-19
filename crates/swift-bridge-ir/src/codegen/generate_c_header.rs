@@ -32,6 +32,10 @@ impl SwiftBridgeModule {
         };
 
         for ty in self.types.iter() {
+            if ty.host_lang.is_swift() {
+                continue;
+            }
+
             let ty_name = ty.ident.to_string();
 
             let ty_decl = format!("typedef struct {ty_name} {ty_name};", ty_name = ty_name);
@@ -47,6 +51,10 @@ impl SwiftBridgeModule {
         }
 
         for function in self.functions.iter() {
+            if function.host_lang.is_swift() {
+                continue;
+            }
+
             header += &declare_func(&function, &mut bookkeeping);
         }
 
@@ -111,6 +119,25 @@ mod tests {
             #[swift_bridge::bridge]
             mod ffi {
                 extern "Rust" { }
+            }
+        };
+        let module = parse_ok(tokens);
+
+        let header = module.generate_c_header();
+        assert_eq!(header.trim(), NOTICE)
+    }
+
+    /// Verify that we do not generate any headers for extern "Swift" blocks since Rust does not
+    /// need any C headers.
+    #[test]
+    fn ignores_extern_swift() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Swift" {
+                    type Foo;
+                    fn bar ();
+                }
             }
         };
         let module = parse_ok(tokens);

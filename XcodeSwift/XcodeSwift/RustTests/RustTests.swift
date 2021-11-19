@@ -18,7 +18,7 @@ public func runOpaqueSwiftClassTests () {
 public class ASwiftStack {
     private var stack: [UInt8] = []
     
-    func push (_ val: UInt8) {
+    func push (val: UInt8) {
         stack.append(val)
     }
     
@@ -40,11 +40,11 @@ public class ASwiftStack {
 //    Unmanaged.passRetained(ASwiftStack()).toOpaque()
 //}
 
-@_cdecl("swift_bridge$unstable$ASwiftStack$push")
-func push (this: UnsafeMutableRawPointer, val: UInt8) {
-    let stack: ASwiftStack = Unmanaged.fromOpaque(this).takeUnretainedValue()
-    stack.push(val)
-}
+//@_cdecl("swift_bridge$unstable$ASwiftStack$push")
+//func push (this: UnsafeMutableRawPointer, val: UInt8) {
+//    let stack: ASwiftStack = Unmanaged.fromOpaque(this).takeUnretainedValue()
+//    stack.push(val)
+//}
 
 //@_cdecl("swift_bridge$unstable$ASwiftStack$pop")
 //func pop (this: UnsafeMutableRawPointer) {

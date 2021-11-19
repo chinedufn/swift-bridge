@@ -33,7 +33,7 @@ impl SwiftBridgeModule {
         for ty in &self.types {
             let generated = match ty.host_lang {
                 HostLang::Rust => generate_swift_class(ty, &associated_funcs_and_methods),
-                HostLang::Swift => generate_expose_swift_class(),
+                HostLang::Swift => generate_drop_swift_instance_reference_count(ty),
             };
 
             swift += &generated;
@@ -103,27 +103,36 @@ public class {type_name} {{
     return class;
 }
 
-// Generate functions to interop with a Swift class
+// Generate functions to drop the reference count on a Swift class instance.
 //
 // # Example
 //
 // ```
-// @_cdecl("swift_bridge$ASwiftStack$push")
-// func push (this: UnsafeMutableRawPointer, val: UInt8) {
-//     let stack: ASwiftStack = Unmanaged.fromOpaque(this).takeUnretainedValue()
-//     stack.push(val)
+// @_cdecl("__swift_bridge__$Foo$_free")
+// func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
+//     let _ = Unmanaged<Foo>.fromOpaque(ptr).takeRetainedValue()
 // }
 // ```
-fn generate_expose_swift_class() -> String {
-    let mut generated = "".to_string();
+fn generate_drop_swift_instance_reference_count(ty: &BridgedType) -> String {
+    let link_name = ty.free_link_name();
+    let fn_name = ty.free_func_name();
 
-    generated
+    format!(
+        r##"@_cdecl("{link_name}")
+func {fn_name} (ptr: UnsafeMutableRawPointer) {{
+    let _ = Unmanaged<{ty_name}>.fromOpaque(ptr).takeRetainedValue()
+}}
+"##,
+        link_name = link_name,
+        fn_name = fn_name,
+        ty_name = ty.ty_name_ident()
+    )
 }
 
 fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
     let fn_name = function.sig.ident.to_string();
     let params = function.to_swift_param_names_and_types(false);
-    let call_args = function.to_swift_call_args(true);
+    let call_args = function.to_swift_call_args(true, false);
     let call_fn = format!("{}({})", fn_name, call_args);
 
     let type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
@@ -200,7 +209,8 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
     let params = func.to_swift_param_names_and_types(true);
     let ret = func.to_swift_return();
 
-    let mut call_fn = format!("{}({})", fn_name, func.to_swift_call_args(false));
+    let args = func.to_swift_call_args(false, true);
+    let mut call_fn = format!("{}({})", fn_name, args);
 
     if let Some(associated_type) = func.associated_type.as_ref() {
         let ty_name = associated_type.ident.to_string();
@@ -211,6 +221,8 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
                 ty_name = ty_name,
                 call_fn = call_fn
             );
+        } else if func.is_initializer {
+            call_fn = format!("Unmanaged.passRetained({}({})).toOpaque()", ty_name, args);
         } else {
             call_fn = format!("{}::{}", ty_name, call_fn);
         }
@@ -397,12 +409,12 @@ public class Foo {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$_free")
-func __swift_bridge__Foo_free (ptr: UnsafeMutableRawPointer) {
+func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
     let _ = Unmanaged<Foo>.fromOpaque(ptr).takeRetainedValue()
 }
 "#;
 
-        assert_eq!(generated.trim(), expected.trim());
+        assert_generated_contains_expected(&generated, &expected);
     }
 
     /// Verify that we generated a Swift class with an init method.
@@ -553,7 +565,7 @@ public class Foo {
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$push")
 func __swift_bridge__Foo_push (_ this: UnsafeMutableRawPointer, _ arg: UInt8) {
-    Unmanaged<Foo>.fromOpaque(this).takeUnretainedValue().push(arg)
+    Unmanaged<Foo>.fromOpaque(this).takeUnretainedValue().push(arg: arg)
 }
 "#;
 
