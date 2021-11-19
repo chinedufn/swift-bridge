@@ -4,13 +4,15 @@
 
 `swift-bridge` generates code that helps you call Swift from Rust and vice versa.
 
+_The bridging module approach that `swift-bridge` uses was inspired by [cxx](https://github.com/dtolnay/cxx)._
+
 ## TODO's
 
 - Delete bridging header from Xcode
 - Look up how to programatically set the linking settings.
   Our docs can recommend that as well as show how to manually set them
 - Delete c header code generation
-- Rename to swiftxx to pay homage to cxx
+- Rename XcodeSwift to SwiftRustIntegrationTests
 
 ## Quick Peek
 
@@ -32,17 +34,45 @@ mod ffi {
         fn push (stack: &mut Stack, val: u8);
 
         fn pop (stack: &mut Stack) -> Option<u8>;
+      
+        fn as_slice (&self) -> &[u8];
     }
 
-    unsafe extern "Swift" {
+    extern "Swift" {
         type FileSystemClient;
 
-        fn new_file_system_client() -> UnmanagedPointer<FileSystemClient>;
+        #[swift_bridge(init)]
+        fn new() -> FileSystemClient;
 
         fn read(&self, filename: &str) -> Vec<u8>;
+
+        #[swift_bridge(associated_to = FileSystemClient)]
+        fn write (bytes: &[u8]);
     }
 }
 ```
+
+## Built-In Types
+
+`swift_bridge` comes with support for a number of Rust and Swift standard library types.
+
+| name in Rust                                                    | name in Swift                                                    | notes               |
+| ---                                                             | ---                                                              | ---                 |
+| u8, i8, u16, i16... etc                                         | UInt8, Int8, UInt16, Int16 ... etc                               |                     |
+| String                                                          |                                                                  | Not yet implemented |
+| &str                                                            |                                                                  | Not yet implemented |
+| Vec<T>                                                          |                                                                  | Not yet implemented |
+| SwiftArray                                                      | Array<T>                                                         | Not yet implemented |
+| &[T]                                                            |                                                                  |                     |
+| &mut [T]                                                        |                                                                  | Not yet implemented |
+| SwiftString                                                     | String                                                           | Not yet implemented |
+| Box<T>                                                          |                                                                  | Not yet implemented |
+| [T; N]                                                          |                                                                  | Not yet implemented |
+| *const T                                                        | UnsafePointer<T>                                                 | Not yet implemented |
+| *mut T                                                          | UnsafeMutablePointer<T>                                          | Not yet implemented |
+| Result<T>                                                       |                                                                  | Not yet implemented |
+| Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                     |
+|                                                                 | Have a Swift standard library type in mind?<br /> Open an issue! |                     |
 
 ## To Test
 
@@ -58,9 +88,6 @@ cargo test --all
 ```
 
 ## See Also
-
-- [cxx](https://github.com/dtolnay/cxx)
-  - Heavily inspired the annotated module approach, among other things.
 
 - [Rust on iOS](https://mozilla.github.io/firefox-browser-architecture/experiments/2017-09-06-rust-on-ios.html)
   - A blog post by Mozilla that explains how to run Rust on iOS.
