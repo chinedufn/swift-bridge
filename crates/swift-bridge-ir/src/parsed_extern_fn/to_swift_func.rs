@@ -32,7 +32,7 @@ impl ParsedExternFn {
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                        format!("{}: {}", arg_name, built_in.to_swift())
+                        format!("{}: {}", arg_name, built_in.to_swift(false))
                     } else {
                         // &mut Foo -> "& mut Foo"
                         let ty = pat_ty.ty.to_token_stream().to_string();
@@ -100,12 +100,12 @@ impl ParsedExternFn {
         args.join(", ")
     }
 
-    pub fn to_swift_return(&self) -> String {
+    pub fn to_swift_return(&self, must_be_c_compatible: bool) -> String {
         match &self.func.sig.output {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(built_in) = BuiltInType::with_type(&ty) {
-                    format!(" -> {}", built_in.to_swift())
+                    format!(" -> {}", built_in.to_swift(must_be_c_compatible))
                 } else {
                     format!(" -> UnsafeMutableRawPointer")
                 }
@@ -142,7 +142,7 @@ mod tests {
 
         for idx in 0..3 {
             assert_eq!(
-                functions[idx].to_swift_return(),
+                functions[idx].to_swift_return(false),
                 " -> UnsafeMutableRawPointer"
             );
         }

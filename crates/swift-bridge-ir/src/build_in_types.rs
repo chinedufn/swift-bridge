@@ -145,7 +145,7 @@ impl BuiltInType {
         quote_spanned!(span=> #ty)
     }
 
-    pub fn to_swift(&self) -> String {
+    pub fn to_swift(&self, must_be_c_compatible: bool) -> String {
         match self {
             BuiltInType::U8 => "UInt8".to_string(),
             BuiltInType::I8 => "Int8".to_string(),
@@ -162,16 +162,25 @@ impl BuiltInType {
             BuiltInType::Usize => "UInt".to_string(),
             BuiltInType::Isize => "Int".to_string(),
             BuiltInType::Pointer(ptr) => {
-                format!("UnsafeMutablePointer<{}>", ptr.ty.to_swift())
+                format!(
+                    "UnsafeMutablePointer<{}>",
+                    ptr.ty.to_swift(must_be_c_compatible)
+                )
             }
             BuiltInType::RefSlice(slice) => {
-                format!("UnsafeBufferPointer<{}>", slice.ty.to_swift())
+                if must_be_c_compatible {
+                    format!("RustSlice_{}", slice.ty.to_c())
+                } else {
+                    format!(
+                        "UnsafeBufferPointer<{}>",
+                        slice.ty.to_swift(must_be_c_compatible)
+                    )
+                }
             }
             BuiltInType::Null => "".to_string(),
         }
     }
 
-    // FIXME: Delete this
     pub fn to_c(&self) -> String {
         match self {
             BuiltInType::U8 => "uint8_t".to_string(),

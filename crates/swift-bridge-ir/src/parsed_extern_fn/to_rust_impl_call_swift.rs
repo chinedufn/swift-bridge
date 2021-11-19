@@ -16,13 +16,14 @@ use syn::{FnArg, Type};
 /// struct Foo(*mut c_void);
 ///
 /// impl Foo {
+///     // We're generating this function.
 ///     pub fn new () -> Foo {
-///         Foo(unsafe{ Foo_new() })
+///         Foo(unsafe{ __swift_bridge__Foo_new() })
 ///     }
 /// }
 /// extern "C" {
 ///     #[link_name = "__swift_bridge__$Foo$new"]
-///     fn Foo_new() -> *mut c_void;
+///     fn __swift_bridge__Foo_new() -> *mut c_void;
 /// }
 /// ```
 impl ParsedExternFn {
@@ -40,10 +41,19 @@ impl ParsedExternFn {
             unsafe { #linked_fn_name(#call_args) }
         };
 
-        if BuiltInType::with_return_type(ret).is_none() {
+        if let Some(built_in) = BuiltInType::with_return_type(ret) {
+            match built_in {
+                BuiltInType::RefSlice(_) => {
+                    inner = quote! {
+                        #inner.as_slice()
+                    };
+                }
+                _ => {}
+            }
+        } else {
             inner = quote! {
                 #ty_name ( #inner )
-            }
+            };
         }
 
         quote! {
@@ -92,5 +102,88 @@ impl ParsedExternFn {
         quote! {
             #(#params),*
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::{assert_tokens_eq, parse_ok};
+
+    /// Verify that we generate a Rust associated function that calls a Swift static class method.
+    #[test]
+    fn static_class_method() {
+        let start = quote! {
+            mod foo {
+                extern "Swift" {
+                    type Foo;
+
+                    #[swift_bridge(associated_to = Foo)]
+                    fn message (val: u8);
+                }
+            }
+        };
+        let expected = quote! {
+            pub fn message (val: u8) {
+                unsafe { __swift_bridge__Foo_message(val) }
+            }
+        };
+
+        assert_impl_fn_tokens_eq(start, &expected);
+    }
+
+    /// Verify that we generate a Rust associated function for a Swift class init function.
+    #[test]
+    fn class_initializer() {
+        let start = quote! {
+            mod foo {
+                extern "Swift" {
+                    type Foo;
+
+                    #[swift_bridge(init)]
+                    fn new () -> Foo;
+                }
+            }
+        };
+        let expected = quote! {
+            pub fn new () -> Foo {
+                Foo( unsafe { __swift_bridge__Foo_new() } )
+            }
+        };
+
+        assert_impl_fn_tokens_eq(start, &expected);
+    }
+
+    /// Verify that we convert RustSlice<T> -> &[T]
+    #[test]
+    fn converts_slice() {
+        let start = quote! {
+            mod foo {
+                extern "Swift" {
+                    type Foo;
+
+                    fn as_slice (&self) -> &[u8];
+                }
+            }
+        };
+        let expected = quote! {
+            pub fn as_slice (&self) -> &[u8] {
+                unsafe { __swift_bridge__Foo_as_slice(self.0) }.as_slice()
+            }
+        };
+
+        assert_impl_fn_tokens_eq(start, &expected);
+    }
+
+    // impl Foo {
+    //    // We're testing to make sure that we generated this function or method properly.
+    //    fn some_function() {
+    //        ...
+    //    }
+    // }
+    fn assert_impl_fn_tokens_eq(module: TokenStream, expected_impl_fn_tokens: &TokenStream) {
+        let module = parse_ok(module);
+        let tokens = module.functions[0].to_impl_fn_calls_swift();
+        assert_tokens_eq(&tokens, &expected_impl_fn_tokens);
     }
 }

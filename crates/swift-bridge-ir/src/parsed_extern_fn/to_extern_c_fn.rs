@@ -186,13 +186,13 @@ mod tests {
     use super::*;
     use crate::errors::ParseErrors;
     use crate::parse::SwiftBridgeModuleAndErrors;
-    use crate::test_utils::assert_tokens_eq;
+    use crate::test_utils::{assert_tokens_eq, parse_ok};
     use crate::SwiftBridgeModule;
     use quote::quote;
 
     /// Verify that we convert &[T] -> swift_bridge::RustSlice<T>
     #[test]
-    fn converts_slice_to_rust_slice() {
+    fn wraps_extern_rust_slice() {
         let tokens = quote! {
             #[swift_bridge::bridge]
             mod ffi {
@@ -222,28 +222,22 @@ mod tests {
             #[swift_bridge::bridge]
             mod ffi {
                 extern "Swift" {
-                    fn make_slice () -> u8;
+                    fn count () -> u8;
                 }
             }
         };
         let expected_fn = quote! {
-            #[link_name = "__swift_bridge__$make_slice"]
-            fn __swift_bridge__make_slice() -> u8;
+            #[link_name = "__swift_bridge__$count"]
+            fn __swift_bridge__count() -> u8;
         };
 
-        let module = parse_ok(tokens);
+        assert_to_extern_c_function_tokens(tokens, &expected_fn);
+    }
+
+    fn assert_to_extern_c_function_tokens(module: TokenStream, expected_fn: &TokenStream) {
+        let module = parse_ok(module);
         let function = &module.functions[0];
 
         assert_tokens_eq(&function.to_extern_c_function_tokens(), &expected_fn);
-    }
-
-    fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
-        let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
-        module_and_errors.module
-    }
-
-    fn parse_errors(tokens: TokenStream) -> ParseErrors {
-        let parsed: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
-        parsed.errors
     }
 }

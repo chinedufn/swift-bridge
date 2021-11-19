@@ -41,6 +41,10 @@ impl<T> RustSlice<T> {
             len: slice.len(),
         }
     }
+
+    pub fn as_slice(&self) -> &'static [T] {
+        unsafe { std::slice::from_raw_parts(self.start, self.len) }
+    }
 }
 
 impl<T> OwnedPtrToRust<T> {

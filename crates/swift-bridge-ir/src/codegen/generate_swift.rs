@@ -1,3 +1,4 @@
+use crate::build_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{BridgedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
@@ -152,7 +153,7 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
     let maybe_return = if function.is_initializer {
         "".to_string()
     } else {
-        function.to_swift_return()
+        function.to_swift_return(false)
     };
 
     let swift_class_func_name = if function.is_initializer {
@@ -207,7 +208,7 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
     let fn_name = &func.sig.ident;
 
     let params = func.to_swift_param_names_and_types(true);
-    let ret = func.to_swift_return();
+    let ret = func.to_swift_return(true);
 
     let args = func.to_swift_call_args(false, true);
     let mut call_fn = format!("{}({})", fn_name, args);
@@ -226,6 +227,20 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
         } else {
             call_fn = format!("{}::{}", ty_name, call_fn);
         }
+    }
+
+    if let Some(built_in) = BuiltInType::with_return_type(&func.sig.output) {
+        match built_in {
+            BuiltInType::RefSlice(ref_slice) => {
+                call_fn = format!(
+                    r#"let buffer_pointer = {}
+    return RustSlice_{}(start: UnsafeMutablePointer(mutating: buffer_pointer.baseAddress), len: UInt(buffer_pointer.count))"#,
+                    call_fn,
+                    ref_slice.ty.to_c()
+                );
+            }
+            _ => {}
+        };
     }
 
     let generated_func = format!(
@@ -292,7 +307,31 @@ func __swift_bridge__foo () {
 } 
 "#;
 
-        assert_eq!(generated.trim(), expected.trim());
+        assert_generated_contains_expected(generated.trim(), expected.trim());
+    }
+
+    /// Verify that we convert slices.
+    #[test]
+    fn freestanding_swift_function_return_slice() {
+        let tokens = quote! {
+            mod foo {
+                extern "Swift" {
+                    fn foo () -> &'static [u8];
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+@_cdecl("__swift_bridge__$foo")
+func __swift_bridge__foo () -> RustSlice_uint8_t {
+    let buffer_pointer = foo()
+    return RustSlice_uint8_t(start: UnsafeMutablePointer(mutating: buffer_pointer.baseAddress), len: UInt(buffer_pointer.count))
+} 
+"#;
+
+        assert_generated_contains_expected(generated.trim(), expected.trim());
     }
 
     /// Verify that we generated a Swift function to call a freestanding function with one arg.
@@ -360,7 +399,7 @@ func foo() -> UnsafeBufferPointer<UInt8> {
 } 
 "#;
 
-        assert_eq!(generated.trim(), expected.trim());
+        assert_generated_contains_expected(&generated, &expected);
     }
 
     /// Verify that we generated a Swift class for a Rust type.

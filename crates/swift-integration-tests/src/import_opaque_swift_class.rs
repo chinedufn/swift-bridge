@@ -11,7 +11,7 @@ mod ffi {
 
         fn as_ptr(&self) -> *const u8;
         fn len(&self) -> usize;
-        // fn as_slice(&self) -> &[u8];
+        fn as_slice(&self) -> &[u8];
     }
 }
 
@@ -30,9 +30,10 @@ pub extern "C" fn run_opaque_swift_class_tests() {
     let ptr = stack.as_ptr();
     let len = stack.len();
 
-    let vals = unsafe { &*slice_from_raw_parts(ptr, len) };
+    let vals: &[u8] = unsafe { &*slice_from_raw_parts(ptr, len) };
 
     assert_eq!(vals, &[5, 10]);
+    assert_eq!(vals, stack.as_slice());
 
     stack.pop();
     assert_eq!(stack.len(), 1);

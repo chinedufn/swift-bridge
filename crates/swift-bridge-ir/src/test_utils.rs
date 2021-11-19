@@ -1,3 +1,6 @@
+use crate::errors::ParseErrors;
+use crate::parse::SwiftBridgeModuleAndErrors;
+use crate::SwiftBridgeModule;
 use proc_macro2::TokenStream;
 
 pub fn assert_tokens_eq(left: &TokenStream, right: &TokenStream) {
@@ -41,6 +44,16 @@ Inner Tokens:
         outer.to_string(),
         inner.to_string()
     )
+}
+
+pub(crate) fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
+    let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
+    module_and_errors.module
+}
+
+pub(crate) fn parse_errors(tokens: TokenStream) -> ParseErrors {
+    let parsed: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
+    parsed.errors
 }
 
 fn token_stream_to_vec(tokens: &TokenStream) -> Vec<String> {
