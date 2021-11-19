@@ -1,9 +1,8 @@
-use crate::build_in_types::BuiltInType;
+use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote, ToTokens};
+use quote::quote;
 use std::ops::Deref;
 use syn::spanned::Spanned;
 use syn::{FnArg, Pat, ReturnType, Type};

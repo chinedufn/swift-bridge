@@ -1,4 +1,4 @@
-use crate::build_in_types::BuiltInType;
+use crate::built_in_types::BuiltInType;
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};

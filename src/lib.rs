@@ -15,7 +15,6 @@ pub struct RustSlice<T> {
     pub len: usize,
 }
 
-#[doc(hidden)]
 impl<T> RustSlice<T> {
     pub fn from_slice(slice: &[T]) -> Self {
         RustSlice {

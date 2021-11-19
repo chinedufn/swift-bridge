@@ -6,13 +6,10 @@ fn main() {
         "/../../SwiftRustIntegrationTestRunner/Generated"
     );
     let out_dir = PathBuf::from(out_dir);
-    dbg!(&out_dir);
 
-    swift_bridge_build::parse_bridges(
-        vec![
-            "./src/expose_opaque_rust_struct.rs",
-            "./src/import_opaque_swift_class.rs",
-        ],
-        out_dir,
-    );
+    swift_bridge_build::bridge(vec![
+        "./src/expose_opaque_rust_struct.rs",
+        "./src/import_opaque_swift_class.rs",
+    ])
+    .write_all_concatenated(out_dir, "swift-integration-tests")
 }

@@ -1,4 +1,4 @@
-use crate::build_in_types::BuiltInType;
+use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{BridgedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};

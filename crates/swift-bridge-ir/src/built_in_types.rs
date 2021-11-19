@@ -1,8 +1,8 @@
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
 use std::ops::Deref;
-use syn::{Path, ReturnType, Type, TypeReference};
+use syn::{Path, ReturnType, Type};
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum BuiltInType {
@@ -23,6 +23,9 @@ pub(crate) enum BuiltInType {
     F64,
     Pointer(BuiltInPointer),
     RefSlice(BuiltInRefSlice),
+    /// &str
+    Str,
+    String,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -72,6 +75,13 @@ impl BuiltInType {
             Type::Reference(ty_ref) => match ty_ref.elem.deref() {
                 Type::Slice(slice) => Self::with_type(&slice.elem)
                     .map(|ty| Self::RefSlice(BuiltInRefSlice { ty: Box::new(ty) })),
+                Type::Path(p) => {
+                    if p.path.to_token_stream().to_string() == "str" {
+                        return Some(BuiltInType::Str);
+                    }
+
+                    None
+                }
                 _ => None,
             },
             _ => None,
@@ -101,12 +111,13 @@ impl BuiltInType {
             "isize" => BuiltInType::Isize,
             "f32" => BuiltInType::F32,
             "f64" => BuiltInType::F64,
+            "String" => BuiltInType::String,
             _ => return None,
         };
         return Some(ty);
     }
 
-    pub fn to_extern_rust_ident(&self, span: Span) -> TokenStream {
+    pub fn to_extern_rust_ident(&self, span: Span, swift_bridge_path: &Path) -> TokenStream {
         let ty = match self {
             BuiltInType::U8 => quote! {u8},
             BuiltInType::I8 => quote! { i8 },
@@ -123,7 +134,7 @@ impl BuiltInType {
             BuiltInType::Usize => quote! { usize },
             BuiltInType::Isize => quote! { isize },
             BuiltInType::Pointer(ptr) => {
-                let ty = ptr.ty.to_extern_rust_ident(span);
+                let ty = ptr.ty.to_extern_rust_ident(span, swift_bridge_path);
                 match ptr.kind {
                     PointerKind::Const => {
                         quote! {*const #ty }
@@ -134,11 +145,17 @@ impl BuiltInType {
                 }
             }
             BuiltInType::RefSlice(slice) => {
-                let ty = slice.ty.to_extern_rust_ident(span);
-                quote! {swift_bridge::RustSlice<#ty>}
+                let ty = slice.ty.to_extern_rust_ident(span, swift_bridge_path);
+                quote! {#swift_bridge_path::RustSlice<#ty>}
+            }
+            BuiltInType::Str => {
+                quote! {#swift_bridge_path::string::RustStr}
             }
             BuiltInType::Null => {
                 quote! { () }
+            }
+            BuiltInType::String => {
+                quote! { *mut #swift_bridge_path::string::RustString }
             }
         };
 
@@ -184,6 +201,8 @@ impl BuiltInType {
                 }
             }
             BuiltInType::Null => "".to_string(),
+            BuiltInType::Str => "RustStr".to_string(),
+            BuiltInType::String => "RustString".to_string(),
         }
     }
 
@@ -213,7 +232,9 @@ impl BuiltInType {
             BuiltInType::RefSlice(slice) => {
                 format!("struct RustSlice_{}", slice.ty.to_c())
             }
+            BuiltInType::Str => "struct RustStr".to_string(),
             BuiltInType::Null => "void".to_string(),
+            BuiltInType::String => "struct RustString".to_string(),
         }
     }
 
@@ -262,6 +283,7 @@ mod tests {
             (quote! {isize}, BuiltInType::Isize),
             (quote! {f32}, BuiltInType::F32),
             (quote! {f64}, BuiltInType::F64),
+            (quote! {&str}, BuiltInType::Str),
             (
                 quote! {*const u8},
                 BuiltInType::Pointer(BuiltInPointer {

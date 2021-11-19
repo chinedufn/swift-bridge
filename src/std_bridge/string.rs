@@ -1,8 +1,8 @@
-use swift_bridge_macro as swift_bridge;
-
 pub use self::ffi::*;
 
-#[swift_bridge::bridge]
+// TODO: Also look for `#[swift_bridge_macro]` in -build crate.
+
+#[swift_bridge_macro::bridge(swift_bridge_path = crate)]
 mod ffi {
     extern "Rust" {
         type RustString;
@@ -11,9 +11,17 @@ mod ffi {
         fn new() -> RustString;
 
         #[swift_bridge(init)]
-        fn new_with_string() -> RustString;
+        fn new_with_str(str: &str) -> RustString;
 
         fn len(&self) -> usize;
+    }
+
+    extern "Rust" {
+        type RustStr;
+
+        fn len(&self) -> usize;
+
+        fn to_string(&self) -> String;
     }
 
     extern "Swift" {
@@ -31,19 +39,52 @@ mod ffi {
     }
 }
 
-struct RustString(String);
+#[doc(hidden)]
+pub struct RustString(pub String);
+
+#[doc(hidden)]
+#[repr(C)]
+pub struct RustStr {
+    pub start: *const u8,
+    pub len: usize,
+}
 
 impl RustString {
     fn new() -> Self {
         RustString("".to_string())
     }
 
-    fn new_with_str(&self, str: &str) -> Self {
+    fn new_with_str(str: &str) -> Self {
         RustString(str.to_string())
     }
 
     fn len(&self) -> usize {
         self.0.len()
+    }
+}
+
+impl RustStr {
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn to_str(&self) -> &str {
+        std::str::from_utf8(self.as_bytes()).unwrap()
+    }
+
+    pub fn to_string(&self) -> String {
+        self.to_str().to_string()
+    }
+
+    pub fn from_str(&self, str: &str) -> Self {
+        RustStr {
+            start: str.as_ptr(),
+            len: str.len(),
+        }
+    }
+
+    pub fn as_bytes(&self) -> &'static [u8] {
+        unsafe { std::slice::from_raw_parts(self.start, self.len) }
     }
 }
 

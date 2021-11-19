@@ -1,4 +1,4 @@
-use crate::build_in_types::BuiltInType;
+use crate::built_in_types::BuiltInType;
 use crate::errors::{ParseError, ParseErrors};
 use crate::{BridgedType, ParsedExternFn, SwiftBridgeModule};
 use proc_macro2::Ident;
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItem, ForeignItemFn, Item, ItemMod, Pat, ReturnType, Token, Type};
+use syn::{FnArg, ForeignItem, ForeignItemFn, Item, ItemMod, Pat, Path, ReturnType, Token, Type};
 
 // TODO: (11/18/21) Tomorrow morning do some refactoring while running test suite to make sure we
 //  didn't break anything.
@@ -56,6 +56,10 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
         if let Ok(item_mod) = input.parse::<ItemMod>() {
             let module_name = item_mod.ident;
+
+            // TODO: Check attributes to see if we need to rename this.
+            //  i.e. we use `crate` as the path when we're inside of the `swift_bridge` module.
+            let swift_bridge_path: Path = syn::parse2(quote::quote! {swift_bridge}).unwrap();
 
             let mut functions = vec![];
             let mut all_type_declarations = HashMap::new();
@@ -845,6 +849,30 @@ mod tests {
                 expected_count
             );
         }
+    }
+
+    /// Verify that we parse the `swift_bridge_path` attribute and store it on functions.
+    #[test]
+    fn parses_swift_bridge_path() {
+        let tokens = quote! {
+            #[swift_bridge(swift_bridge_path = foo)]
+            mod foo {
+                extern "Rust" {
+                    type SomeType;
+
+                    fn a (&self);
+                }
+            }
+        };
+        let mut module = parse_ok(tokens);
+
+        assert_eq!(
+            module.functions[0]
+                .swift_bridge_path
+                .to_token_stream()
+                .to_string(),
+            "foo"
+        );
     }
 
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {

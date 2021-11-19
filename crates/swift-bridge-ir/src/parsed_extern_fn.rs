@@ -1,11 +1,11 @@
-use crate::build_in_types::BuiltInType;
+use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::{BridgedType, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItemFn, Lifetime, Pat, ReturnType, Token, Type};
+use syn::{FnArg, ForeignItemFn, Lifetime, Pat, Path, ReturnType, Token, Type};
 
 mod to_extern_c_fn;
 mod to_rust_impl_call_swift;
@@ -25,6 +25,7 @@ pub(crate) struct ParsedExternFn {
     pub associated_type: Option<BridgedType>,
     pub is_initializer: bool,
     pub host_lang: HostLang,
+    pub swift_bridge_path: Path,
 }
 
 impl ParsedExternFn {
@@ -74,7 +75,7 @@ impl ParsedExternFn {
             }
             ReturnType::Type(arrow, ty) => {
                 if let Some(built_in) = BuiltInType::with_type(&ty) {
-                    let ty = built_in.to_extern_rust_ident(ty.span());
+                    let ty = built_in.to_extern_rust_ident(ty.span(), &self.swift_bridge_path);
                     quote! {#arrow #ty}
                 } else {
                     quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }

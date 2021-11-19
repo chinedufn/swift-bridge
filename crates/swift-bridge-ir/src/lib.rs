@@ -10,7 +10,7 @@
 use crate::parse::HostLang;
 use proc_macro2::Ident;
 use std::ops::Deref;
-use syn::ForeignItemType;
+use syn::{ForeignItemType, Path};
 
 use crate::parsed_extern_fn::ParsedExternFn;
 
@@ -18,7 +18,7 @@ mod errors;
 mod parse;
 mod to_tokens;
 
-mod build_in_types;
+mod built_in_types;
 mod parsed_extern_fn;
 
 mod codegen;

@@ -9,6 +9,7 @@
 #define BridgingHeader_h
 
 #include "lib.rs.h"
+#include "../Generated/SwiftBridgeCore.h"
 #include "../Generated/expose_opaque_rust_struct.h"
 #include "../Generated/import_opaque_swift_class.h"
 
