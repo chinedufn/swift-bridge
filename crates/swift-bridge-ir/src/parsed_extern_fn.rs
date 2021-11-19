@@ -25,7 +25,6 @@ pub(crate) struct ParsedExternFn {
     pub associated_type: Option<BridgedType>,
     pub is_initializer: bool,
     pub host_lang: HostLang,
-    pub swift_bridge_path: Path,
 }
 
 impl ParsedExternFn {
@@ -66,7 +65,7 @@ impl ParsedExternFn {
         }
     }
 
-    pub(crate) fn rust_return_type(&self) -> TokenStream {
+    pub(crate) fn rust_return_type(&self, swift_bridge_path: &Path) -> TokenStream {
         let sig = &self.func.sig;
 
         let ret = match &sig.output {
@@ -75,7 +74,7 @@ impl ParsedExternFn {
             }
             ReturnType::Type(arrow, ty) => {
                 if let Some(built_in) = BuiltInType::with_type(&ty) {
-                    let ty = built_in.to_extern_rust_ident(ty.span(), &self.swift_bridge_path);
+                    let ty = built_in.to_extern_rust_ident(ty.span(), swift_bridge_path);
                     quote! {#arrow #ty}
                 } else {
                     quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }

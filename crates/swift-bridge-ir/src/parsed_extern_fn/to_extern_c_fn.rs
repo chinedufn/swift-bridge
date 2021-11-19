@@ -5,7 +5,7 @@ use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use std::ops::Deref;
 use syn::spanned::Spanned;
-use syn::{FnArg, Pat, ReturnType, Type};
+use syn::{FnArg, Pat, Path, ReturnType, Type};
 
 impl ParsedExternFn {
     /// Generates:
@@ -26,14 +26,14 @@ impl ParsedExternFn {
     /// }
     /// ```
     // FIXME: Combine this and host_type into one struct
-    pub fn to_extern_c_function_tokens(&self) -> TokenStream {
+    pub fn to_extern_c_function_tokens(&self, swift_bridge_path: &Path) -> TokenStream {
         let link_name = self.link_name();
 
         let params = self.to_extern_c_param_names_and_types();
 
         let prefixed_fn_name = self.prefixed_fn_name();
 
-        let ret = self.rust_return_type();
+        let ret = self.rust_return_type(swift_bridge_path);
 
         match self.host_lang {
             HostLang::Rust => {
@@ -183,10 +183,7 @@ impl ParsedExternFn {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::ParseErrors;
-    use crate::parse::SwiftBridgeModuleAndErrors;
     use crate::test_utils::{assert_tokens_eq, parse_ok};
-    use crate::SwiftBridgeModule;
     use quote::quote;
 
     /// Verify that we convert &[T] -> swift_bridge::RustSlice<T>
@@ -208,10 +205,29 @@ mod tests {
             }
         };
 
-        let module = parse_ok(tokens);
-        let function = &module.functions[0];
+        assert_to_extern_c_function_tokens(tokens, &expected_fn);
+    }
 
-        assert_tokens_eq(&function.to_extern_c_function_tokens(), &expected_fn);
+    /// Verify that we convert String -> swift_bridge::RustString
+    #[test]
+    fn wraps_string_in_rust_string() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    fn make_string () -> String;
+                }
+            }
+        };
+        let expected_fn = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$make_string"]
+            pub extern "C" fn __swift_bridge__make_string() -> *mut swift_bridge::RustString {
+                swift_bridge::RustString(super::make_string()).box_into_raw()
+            }
+        };
+
+        assert_to_extern_c_function_tokens(tokens, &expected_fn);
     }
 
     /// Verify that we can link to a Swift function.
@@ -237,6 +253,9 @@ mod tests {
         let module = parse_ok(module);
         let function = &module.functions[0];
 
-        assert_tokens_eq(&function.to_extern_c_function_tokens(), &expected_fn);
+        assert_tokens_eq(
+            &function.to_extern_c_function_tokens(&syn::parse2(quote! {swift_bridge}).unwrap()),
+            &expected_fn,
+        );
     }
 }

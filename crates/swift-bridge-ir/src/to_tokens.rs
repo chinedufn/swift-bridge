@@ -1,9 +1,11 @@
-use crate::parse::HostLang;
-use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use std::collections::HashMap;
+
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use quote::ToTokens;
-use std::collections::HashMap;
+
+use crate::parse::HostLang;
+use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
 impl ToTokens for SwiftBridgeModule {
     fn to_tokens(&self, tokens: &mut TokenStream) {
@@ -19,7 +21,8 @@ impl ToTokens for SwiftBridgeModule {
         for func in &self.functions {
             match func.host_lang {
                 HostLang::Rust => {
-                    extern_rust_fn_tokens.push(func.to_extern_c_function_tokens());
+                    extern_rust_fn_tokens
+                        .push(func.to_extern_c_function_tokens(&self.swift_bridge_path));
                 }
                 HostLang::Swift => {
                     if let Some(ty) = func.associated_type.as_ref() {
@@ -30,7 +33,8 @@ impl ToTokens for SwiftBridgeModule {
                             .push(tokens);
                     }
 
-                    extern_swift_fn_tokens.push(func.to_extern_c_function_tokens());
+                    extern_swift_fn_tokens
+                        .push(func.to_extern_c_function_tokens(&self.swift_bridge_path));
                 }
             };
         }
@@ -120,10 +124,12 @@ impl ToTokens for SwiftBridgeModule {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use quote::quote;
+
     use crate::parse::SwiftBridgeModuleAndErrors;
     use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
-    use quote::quote;
+
+    use super::*;
 
     /// Verify that we generate a function that frees the memory behind an opaque pointer to a Rust
     /// type.
@@ -342,9 +348,7 @@ mod tests {
             }
         };
 
-        let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_c_function_tokens();
-        assert_tokens_eq(&tokens, &expected);
+        assert_to_extern_c_function_tokens(start, &expected);
     }
 
     /// Verify that we generate an associated function for a Swift class method.
@@ -409,9 +413,7 @@ mod tests {
             }
         };
 
-        let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_c_function_tokens();
-        assert_tokens_eq(&tokens, &expected);
+        assert_to_extern_c_function_tokens(start, &expected);
     }
 
     /// Verify that we generate tokens for a static method that does not have a return type.
@@ -435,9 +437,7 @@ mod tests {
             }
         };
 
-        let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_c_function_tokens();
-        assert_tokens_eq(&tokens, &expected);
+        assert_to_extern_c_function_tokens(start, &expected);
     }
 
     /// Verify that we generate the tokens for exposing an associated method.
@@ -461,9 +461,7 @@ mod tests {
             }
         };
 
-        let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_c_function_tokens();
-        assert_tokens_eq(&tokens, &expected);
+        assert_to_extern_c_function_tokens(start, &expected);
     }
 
     /// Verify that we generate a method for a Swift class' instance method.
@@ -544,9 +542,7 @@ mod tests {
             }
         };
 
-        let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_c_function_tokens();
-        assert_tokens_eq(&tokens, &expected);
+        assert_to_extern_c_function_tokens(start, &expected);
     }
 
     /// Verify that we do not wrap the type in manually drop if the method uses owned self.
@@ -570,9 +566,7 @@ mod tests {
             }
         };
 
-        let module = parse_ok(start);
-        let tokens = module.functions[0].to_extern_c_function_tokens();
-        assert_tokens_eq(&tokens, &expected);
+        assert_to_extern_c_function_tokens(start, &expected);
     }
 
     /// Verify that type method tokens get written into the final token stream.
@@ -598,5 +592,15 @@ mod tests {
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
         let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
         module_and_errors.module
+    }
+
+    fn assert_to_extern_c_function_tokens(module: TokenStream, expected_fn: &TokenStream) {
+        let module = parse_ok(module);
+        let function = &module.functions[0];
+
+        assert_tokens_eq(
+            &function.to_extern_c_function_tokens(&syn::parse2(quote! {swift_bridge}).unwrap()),
+            &expected_fn,
+        );
     }
 }

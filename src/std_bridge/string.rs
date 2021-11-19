@@ -61,6 +61,10 @@ impl RustString {
     fn len(&self) -> usize {
         self.0.len()
     }
+
+    pub fn box_into_raw(self) -> *mut RustString {
+        Box::into_raw(Box::new(self))
+    }
 }
 
 impl RustStr {

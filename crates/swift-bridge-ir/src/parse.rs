@@ -2,6 +2,7 @@ use crate::built_in_types::BuiltInType;
 use crate::errors::{ParseError, ParseErrors};
 use crate::{BridgedType, ParsedExternFn, SwiftBridgeModule};
 use proc_macro2::Ident;
+use quote::quote;
 use quote::ToTokens;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -9,12 +10,6 @@ use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
 use syn::{FnArg, ForeignItem, ForeignItemFn, Item, ItemMod, Pat, Path, ReturnType, Token, Type};
-
-// TODO: (11/18/21) Tomorrow morning do some refactoring while running test suite to make sure we
-//  didn't break anything.
-//  This should normalize a bunch of stuff and make it easy to continue to layer on functionality.
-//  And make sure we consistently handle things like treating `&self` vs `self: &Foo` as the same
-//  thing.
 
 impl Parse for SwiftBridgeModule {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -56,10 +51,6 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
         if let Ok(item_mod) = input.parse::<ItemMod>() {
             let module_name = item_mod.ident;
-
-            // TODO: Check attributes to see if we need to rename this.
-            //  i.e. we use `crate` as the path when we're inside of the `swift_bridge` module.
-            let swift_bridge_path: Path = syn::parse2(quote::quote! {swift_bridge}).unwrap();
 
             let mut functions = vec![];
             let mut all_type_declarations = HashMap::new();
@@ -117,10 +108,10 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                     local_type_declarations.insert(ty_name, bridged_type);
                                 }
                                 ForeignItem::Fn(func) => {
-                                    let mut attributes = SwiftBridgeAttributes::default();
+                                    let mut attributes = FunctionAttributes::default();
 
                                     for attr in func.attrs.iter() {
-                                        let attr: SwiftBridgeAttr = attr.parse_args()?;
+                                        let attr: FunctionAttr = attr.parse_args()?;
                                         attributes.store_attrib(attr);
                                     }
 
@@ -181,6 +172,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                 name: module_name,
                 types: all_type_declarations.into_values().collect(),
                 functions,
+                swift_bridge_path: syn::parse2(quote! { swift_bridge }).unwrap(),
             };
             Ok(SwiftBridgeModuleAndErrors { module, errors })
         } else {
@@ -218,7 +210,7 @@ fn check_supported_type(
 // Parse a freestanding or associated function.
 fn parse_function(
     func: ForeignItemFn,
-    attributes: &SwiftBridgeAttributes,
+    attributes: &FunctionAttributes,
     host_lang: HostLang,
     type_lookup: &mut HashMap<String, BridgedType>,
     errors: &mut ParseErrors,
@@ -253,7 +245,7 @@ fn parse_function(
 fn parse_function_with_inputs(
     first: &FnArg,
     func: ForeignItemFn,
-    attributes: &SwiftBridgeAttributes,
+    attributes: &FunctionAttributes,
     host_lang: HostLang,
     all_type_declarations: &mut HashMap<String, BridgedType>,
     local_type_declarations: &mut HashMap<String, BridgedType>,
@@ -345,7 +337,7 @@ fn parse_function_with_inputs(
 // Parse a function that has `self`
 fn parse_method(
     func: ForeignItemFn,
-    attributes: &SwiftBridgeAttributes,
+    attributes: &FunctionAttributes,
     host_lang: HostLang,
     type_lookup: &mut HashMap<String, BridgedType>,
     functions: &mut Vec<ParsedExternFn>,
@@ -373,28 +365,28 @@ fn parse_method(
 }
 
 #[derive(Default)]
-struct SwiftBridgeAttributes {
+struct FunctionAttributes {
     associated_to: Option<Ident>,
     initializes: bool,
 }
 
-impl SwiftBridgeAttributes {
-    fn store_attrib(&mut self, attrib: SwiftBridgeAttr) {
+impl FunctionAttributes {
+    fn store_attrib(&mut self, attrib: FunctionAttr) {
         match attrib {
-            SwiftBridgeAttr::AssociatedTo(ident) => {
+            FunctionAttr::AssociatedTo(ident) => {
                 self.associated_to = Some(ident);
             }
-            SwiftBridgeAttr::Init => self.initializes = true,
+            FunctionAttr::Init => self.initializes = true,
         }
     }
 }
 
-enum SwiftBridgeAttr {
+enum FunctionAttr {
     AssociatedTo(Ident),
     Init,
 }
 
-impl Parse for SwiftBridgeAttr {
+impl Parse for FunctionAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let key: Ident = input.parse()?;
 
@@ -403,9 +395,31 @@ impl Parse for SwiftBridgeAttr {
                 input.parse::<Token![=]>()?;
                 let value: Ident = input.parse()?;
 
-                SwiftBridgeAttr::AssociatedTo(value)
+                FunctionAttr::AssociatedTo(value)
             }
-            "init" => SwiftBridgeAttr::Init,
+            "init" => FunctionAttr::Init,
+            _ => panic!("TODO: Return spanned error"),
+        };
+
+        Ok(attrib)
+    }
+}
+
+enum ModuleAttr {
+    SwiftBridgePath(Path),
+}
+
+impl Parse for ModuleAttr {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let key: Ident = input.parse()?;
+
+        let attrib = match key.to_string().as_str() {
+            "swift_bridge_path" => {
+                input.parse::<Token![=]>()?;
+                let path: Path = input.parse()?;
+
+                ModuleAttr::SwiftBridgePath(path)
+            }
             _ => panic!("TODO: Return spanned error"),
         };
 
@@ -849,30 +863,6 @@ mod tests {
                 expected_count
             );
         }
-    }
-
-    /// Verify that we parse the `swift_bridge_path` attribute and store it on functions.
-    #[test]
-    fn parses_swift_bridge_path() {
-        let tokens = quote! {
-            #[swift_bridge(swift_bridge_path = foo)]
-            mod foo {
-                extern "Rust" {
-                    type SomeType;
-
-                    fn a (&self);
-                }
-            }
-        };
-        let mut module = parse_ok(tokens);
-
-        assert_eq!(
-            module.functions[0]
-                .swift_bridge_path
-                .to_token_stream()
-                .to_string(),
-            "foo"
-        );
     }
 
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
