@@ -20,6 +20,10 @@ impl ParsedExternFn {
                 FnArg::Typed(pat_ty) => {
                     match pat_ty.pat.deref() {
                         Pat::Ident(pat) if pat.ident.to_string() == "self" => {
+                            if include_receiver_if_present {
+                                params.push(format!("_ this: UnsafeMutableRawPointer"));
+                            }
+
                             continue;
                         }
                         _ => {}
@@ -67,6 +71,14 @@ impl ParsedExternFn {
                     }
                 }
                 FnArg::Typed(pat_ty) => {
+                    if pat_ty.pat.to_token_stream().to_string() == "self" {
+                        if include_receiver_if_present {
+                            args.push("ptr".to_string());
+                        }
+
+                        continue;
+                    }
+
                     let pat = &pat_ty.pat;
                     let arg = pat.to_token_stream().to_string();
 

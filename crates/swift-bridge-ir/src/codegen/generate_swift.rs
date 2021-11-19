@@ -556,6 +556,7 @@ public class Foo {
                     type Foo;
 
                     fn push(&self, arg: u8);
+                    fn pop(self: &mut Foo);
                 }
             }
         };
@@ -566,6 +567,10 @@ public class Foo {
 @_cdecl("__swift_bridge__$Foo$push")
 func __swift_bridge__Foo_push (_ this: UnsafeMutableRawPointer, _ arg: UInt8) {
     Unmanaged<Foo>.fromOpaque(this).takeUnretainedValue().push(arg: arg)
+}
+@_cdecl("__swift_bridge__$Foo$pop")
+func __swift_bridge__Foo_pop (_ this: UnsafeMutableRawPointer) {
+    Unmanaged<Foo>.fromOpaque(this).takeUnretainedValue().pop()
 }
 "#;
 
@@ -616,7 +621,7 @@ public class Foo {
                 extern "Rust" {
                     type Foo;
 
-                    fn bar(&self, other: &Foo);
+                    fn bar(self: &Foo, other: &Foo);
                 }
             }
         };

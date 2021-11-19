@@ -476,6 +476,7 @@ mod tests {
                     type Foo;
 
                     fn notify (&self);
+                    fn message (self: &Foo);
                 }
             }
         };
@@ -485,6 +486,10 @@ mod tests {
             impl Foo {
                 pub fn notify (&self) {
                     unsafe { __swift_bridge__Foo_notify(self.0) }
+                }
+
+                pub fn message (&self) {
+                    unsafe { __swift_bridge__Foo_message(self.0) }
                 }
             }
 
@@ -497,6 +502,9 @@ mod tests {
             extern "C" {
                 #[link_name = "__swift_bridge__$Foo$notify"]
                 fn __swift_bridge__Foo_notify(this: *mut std::ffi::c_void);
+
+                #[link_name = "__swift_bridge__$Foo$message"]
+                fn __swift_bridge__Foo_message(this: *mut std::ffi::c_void);
 
                 #[link_name = "__swift_bridge__$Foo$_free"]
                 fn __swift_bridge__Foo__free (this: *mut std::ffi::c_void);
