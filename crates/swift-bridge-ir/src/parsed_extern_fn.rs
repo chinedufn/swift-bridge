@@ -138,20 +138,26 @@ impl ParsedExternFn {
                             }
                         };
 
-                        let declared_ty = match pat_ty.ty.deref() {
-                            Type::Reference(ty_ref) => {
-                                let ty = &ty_ref.elem;
-                                quote! {#ty}
-                            }
-                            Type::Path(path) => {
-                                quote! {#path}
-                            }
-                            _ => todo!(),
-                        };
+                        if self.host_lang.is_rust() {
+                            let declared_ty = match pat_ty.ty.deref() {
+                                Type::Reference(ty_ref) => {
+                                    let ty = &ty_ref.elem;
+                                    quote! {#ty}
+                                }
+                                Type::Path(path) => {
+                                    quote! {#path}
+                                }
+                                _ => todo!(),
+                            };
 
-                        params.push(quote! {
-                             #arg_name: *mut super::#declared_ty
-                        })
+                            params.push(quote! {
+                                 #arg_name: *mut super::#declared_ty
+                            });
+                        } else {
+                            params.push(quote! {
+                                 #arg_name: *mut std::ffi::c_void
+                            });
+                        }
                     }
                 }
             };
@@ -176,13 +182,18 @@ impl ParsedExternFn {
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
             match arg {
-                FnArg::Receiver(_receiver) => match self.host_lang {
-                    HostLang::Rust => {}
-                    HostLang::Swift => args.push(quote! {self.0}),
-                },
+                FnArg::Receiver(_receiver) => {
+                    if self.host_lang.is_swift() {
+                        args.push(quote! {self.0});
+                    }
+                }
                 FnArg::Typed(pat_ty) => {
                     match pat_ty.pat.deref() {
                         Pat::Ident(this) if this.ident.to_string() == "self" => {
+                            if self.host_lang.is_swift() {
+                                args.push(quote! {self.0});
+                            }
+
                             continue;
                         }
                         _ => {}

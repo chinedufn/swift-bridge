@@ -3,7 +3,7 @@ use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{quote, ToTokens};
 use std::ops::Deref;
 use syn::spanned::Spanned;
 use syn::{FnArg, Pat, ReturnType, Type};

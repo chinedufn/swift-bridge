@@ -468,7 +468,7 @@ mod tests {
 
     /// Verify that we generate a method for a Swift class' instance method.
     #[test]
-    fn swift_instance_methods_no_args() {
+    fn swift_instance_methods() {
         let start = quote! {
             #[swift_bridge::bridge]
             mod foo {
@@ -477,6 +477,7 @@ mod tests {
 
                     fn notify (&self);
                     fn message (self: &Foo);
+                    fn call (&mut self, volume: u8);
                 }
             }
         };
@@ -490,6 +491,10 @@ mod tests {
 
                 pub fn message (&self) {
                     unsafe { __swift_bridge__Foo_message(self.0) }
+                }
+
+                pub fn call (&mut self, volume: u8) {
+                    unsafe { __swift_bridge__Foo_call(self.0, volume) }
                 }
             }
 
@@ -505,6 +510,9 @@ mod tests {
 
                 #[link_name = "__swift_bridge__$Foo$message"]
                 fn __swift_bridge__Foo_message(this: *mut std::ffi::c_void);
+
+                #[link_name = "__swift_bridge__$Foo$call"]
+                fn __swift_bridge__Foo_call(this: *mut std::ffi::c_void, volume: u8);
 
                 #[link_name = "__swift_bridge__$Foo$_free"]
                 fn __swift_bridge__Foo__free (this: *mut std::ffi::c_void);

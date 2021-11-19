@@ -8,42 +8,13 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
-use syn::{
-    FnArg, ForeignItem, ForeignItemFn, ForeignItemType, Item, ItemMod, Pat, ReturnType, Token, Type,
-};
+use syn::{FnArg, ForeignItem, ForeignItemFn, Item, ItemMod, Pat, ReturnType, Token, Type};
 
-// Ok so we need to handle Swift sections now
-//
-// Generate Rust link methods for parsed functions
-// Generate Rust struct Foo(*mut c_void) for Rust to use to interact with Swift
-// Generate Rust struct impl method and associated function calls
-//
-// So... not a ton different from what we're doing now for extern Rust..
-// Let's start by keeping everything together as `types` and `functions`
-// Later we can split things up if needed. Our tests will help us refactor if needed.
-//
-// ## Implementation
-//
-// - (DONE) Remove `.extern_rusts` and instead add Vec<ForeignItemType> and Vec<ParsedExternFn> to
-//    SwiftBridgeModule
-//
-// - (DONE) Add `.host_lang` to `ParsedExternFn`
-//
-// - (DONE) Add tests for generating extern c linked freestanding function
-//
-// - (DONE) Add tests for generating struct Foo(*mut c_void) for `type Foo`
-//
-// - Get tests passing
-//
-// - Refactor parsing, tokenizing and codegen to make things easier to extend
-//
-// - Add tests for generating `@_cdecl("link name")` for Swift functions
-//
-// - In import opaque swift class comment out the hard coded externs and comment in the bridge
-//   module
-//
-// - Prevent taking values by owned self and owned opaque arguments since if we drop it on our side
-//   you can still use it on the Swift side.
+// TODO: (11/18/21) Tomorrow morning do some refactoring while running test suite to make sure we
+//  didn't break anything.
+//  This should normalize a bunch of stuff and make it easy to continue to layer on functionality.
+//  And make sure we consistently handle things like treating `&self` vs `self: &Foo` as the same
+//  thing.
 
 impl Parse for SwiftBridgeModule {
     fn parse(input: ParseStream) -> syn::Result<Self> {
