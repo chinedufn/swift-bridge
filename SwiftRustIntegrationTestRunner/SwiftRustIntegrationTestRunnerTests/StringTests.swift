@@ -20,4 +20,14 @@ class SwiftRustIntegrationTestRunnerTests: XCTestCase {
     func testSwiftStrings() throws {
         runStringTests()
     }
+    
+    func testRustStrings() throws {
+        let string = " hello "
+        
+        let rustString: RustString = createRustString(str: string.toRustStr())
+        XCTAssertEqual(rustString.len(), 7)
+        
+        let trimmed: RustStr = rustString.trim()
+        XCTAssertEqual(trimmed.len, 5)
+    }
 }

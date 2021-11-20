@@ -129,7 +129,7 @@ impl ParsedExternFn {
     }
 
     /// If the functions return type is a BuiltInType, return it.
-    fn return_ty_built_in(&self) -> Option<BuiltInType> {
+    pub(crate) fn return_ty_built_in(&self) -> Option<BuiltInType> {
         BuiltInType::with_return_type(&self.func.sig.output)
     }
 }

@@ -235,7 +235,7 @@ impl BuiltInType {
             }
             BuiltInType::Str => "struct RustStr".to_string(),
             BuiltInType::Null => "void".to_string(),
-            BuiltInType::String => "struct RustString".to_string(),
+            BuiltInType::String => "void*".to_string(),
         }
     }
 
@@ -332,6 +332,51 @@ impl BuiltInType {
                 quote! {
                     unsafe { Box::from_raw(#arg).0 }
                 }
+            }
+        }
+    }
+
+    // Used to wrap values returned from Rust
+    //
+    // Say we have an extern Rust function `create_string(str: &str) -> String`.
+    // It would be called using `__swift_bridge__$create_string(str)`
+    // But that would return a pointer to a swift_bridge::RustString.. So we need to convert that
+    // to something Swift can make use of.
+    // The final result on the Swift side would be:
+    //
+    // func create_string(_ str: RustStr) -> RustString {
+    //     RustString(ptr: __swift_bridge__$create_string(str))
+    // }
+    //
+    // Where this function converts
+    //  `__swift_bridge__$create_string(str)` to `RustString(ptr: __swift_bridge__$create_string(str))`
+    pub fn wrap_swift_called_rust_ffi_returned_value(&self, value: &str) -> String {
+        match self {
+            BuiltInType::Null
+            | BuiltInType::U8
+            | BuiltInType::I8
+            | BuiltInType::U16
+            | BuiltInType::I16
+            | BuiltInType::U32
+            | BuiltInType::I32
+            | BuiltInType::U64
+            | BuiltInType::I64
+            | BuiltInType::U128
+            | BuiltInType::I128
+            | BuiltInType::Usize
+            | BuiltInType::Isize
+            | BuiltInType::F32
+            | BuiltInType::F64 => value.to_string(),
+            BuiltInType::Pointer(_) => value.to_string(),
+            BuiltInType::RefSlice(_) => {
+                format!(
+                    r#"let slice = {value}; return UnsafeBufferPointer(start: slice.start, count: Int(slice.len));"#,
+                    value = value
+                )
+            }
+            BuiltInType::Str => value.to_string(),
+            BuiltInType::String => {
+                format!("RustString(ptr: {})", value)
             }
         }
     }

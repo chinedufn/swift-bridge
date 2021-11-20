@@ -14,6 +14,8 @@ mod ffi {
         fn new_with_str(str: &str) -> RustString;
 
         fn len(&self) -> usize;
+
+        fn trim(&self) -> &str;
     }
 
     extern "Swift" {
@@ -54,6 +56,12 @@ impl RustString {
         self.0.len()
     }
 
+    fn trim(&self) -> &str {
+        self.0.trim()
+    }
+}
+
+impl RustString {
     /// Box::into_raw(Box::new(self))
     pub fn box_into_raw(self) -> *mut RustString {
         Box::into_raw(Box::new(self))

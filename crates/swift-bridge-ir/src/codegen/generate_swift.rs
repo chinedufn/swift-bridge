@@ -29,6 +29,7 @@ impl SwiftBridgeModule {
             };
 
             swift += &func_definition;
+            swift += "\n";
         }
 
         for ty in &self.types {
@@ -38,6 +39,7 @@ impl SwiftBridgeModule {
             };
 
             swift += &generated;
+            swift += "\n";
         }
 
         swift
@@ -86,15 +88,18 @@ fn generate_swift_class(
     let class = format!(
         r#"
 public class {type_name} {{
-    private var ptr: UnsafeMutableRawPointer
+    var ptr: UnsafeMutableRawPointer
 
 {initializers}
+
+    init(ptr: UnsafeMutableRawPointer) {{
+        self.ptr = ptr
+    }}
 
     deinit {{
         {free_func_call}
     }}{instance_methods}
-}} 
-"#,
+}}"#,
         type_name = type_name,
         initializers = initializers,
         instance_methods = instance_methods,
@@ -119,7 +124,8 @@ fn generate_drop_swift_instance_reference_count(ty: &BridgedType) -> String {
     let fn_name = ty.free_func_name();
 
     format!(
-        r##"@_cdecl("{link_name}")
+        r##"
+@_cdecl("{link_name}")
 func {fn_name} (ptr: UnsafeMutableRawPointer) {{
     let _ = Unmanaged<{ty_name}>.fromOpaque(ptr).takeRetainedValue()
 }}
@@ -176,13 +182,8 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
     );
     let call_rust = if function.is_initializer {
         format!("ptr = {}", call_rust)
-    } else if function.returns_slice() {
-        format!(
-            r#"{indentation}let slice = {call_rust}
-{indentation}    return UnsafeBufferPointer(start: slice.start, count: Int(slice.len))"#,
-            indentation = indentation,
-            call_rust = call_rust
-        )
+    } else if let Some(built_in) = function.return_ty_built_in() {
+        built_in.wrap_swift_called_rust_ffi_returned_value(&call_rust)
     } else {
         call_rust
     };
@@ -190,8 +191,7 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
     let func_definition = format!(
         r#"{indentation}{maybe_static_class_func}{swift_class_func_name}({params}){maybe_ret} {{
 {indentation}    {call_rust}
-{indentation}}}
-"#,
+{indentation}}}"#,
         indentation = indentation,
         maybe_static_class_func = maybe_static_class_func,
         swift_class_func_name = swift_class_func_name,
@@ -395,8 +395,7 @@ func foo() -> UInt32 {
 
         let expected = r#"
 func foo() -> UnsafeBufferPointer<UInt8> {
-    let slice = __swift_bridge__$foo()
-    return UnsafeBufferPointer(start: slice.start, count: Int(slice.len))
+    let slice = __swift_bridge__$foo(); return UnsafeBufferPointer(start: slice.start, count: Int(slice.len));
 } 
 "#;
 
@@ -418,10 +417,14 @@ func foo() -> UnsafeBufferPointer<UInt8> {
 
         let expected = r#"
 public class Foo {
-    private var ptr: UnsafeMutableRawPointer
+    var ptr: UnsafeMutableRawPointer
 
     init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
+    }
+
+    init(ptr: UnsafeMutableRawPointer) {
+        self.ptr = ptr
     }
 
     deinit {
@@ -475,10 +478,14 @@ func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
 
         let expected = r#"
 public class Foo {
-    private var ptr: UnsafeMutableRawPointer
+    var ptr: UnsafeMutableRawPointer
 
     init() {
         ptr = __swift_bridge__$Foo$new()
+    }
+
+    init(ptr: UnsafeMutableRawPointer) {
+        self.ptr = ptr
     }
 
     deinit {
@@ -535,10 +542,14 @@ func __swift_bridge__Foo_new (_ a: UInt8) -> UnsafeMutableRawPointer {
 
         let expected = r#"
 public class Foo {
-    private var ptr: UnsafeMutableRawPointer
+    var ptr: UnsafeMutableRawPointer
 
     init(_ val: UInt8) {
         ptr = __swift_bridge__$Foo$new(val)
+    }
+
+    init(ptr: UnsafeMutableRawPointer) {
+        self.ptr = ptr
     }
 
     deinit {
@@ -567,10 +578,14 @@ public class Foo {
 
         let expected = r#"
 public class Foo {
-    private var ptr: UnsafeMutableRawPointer
+    var ptr: UnsafeMutableRawPointer
 
     init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
+    }
+
+    init(ptr: UnsafeMutableRawPointer) {
+        self.ptr = ptr
     }
 
     deinit {
@@ -608,6 +623,7 @@ public class Foo {
 func __swift_bridge__Foo_push (_ this: UnsafeMutableRawPointer, _ arg: UInt8) {
     Unmanaged<Foo>.fromOpaque(this).takeUnretainedValue().push(arg: arg)
 }
+
 @_cdecl("__swift_bridge__$Foo$pop")
 func __swift_bridge__Foo_pop (_ this: UnsafeMutableRawPointer) {
     Unmanaged<Foo>.fromOpaque(this).takeUnretainedValue().pop()
@@ -634,10 +650,14 @@ func __swift_bridge__Foo_pop (_ this: UnsafeMutableRawPointer) {
 
         let expected = r#"
 public class Foo {
-    private var ptr: UnsafeMutableRawPointer
+    var ptr: UnsafeMutableRawPointer
 
     init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
+    }
+
+    init(ptr: UnsafeMutableRawPointer) {
+        self.ptr = ptr
     }
 
     deinit {
@@ -670,10 +690,14 @@ public class Foo {
 
         let expected = r#"
 public class Foo {
-    private var ptr: UnsafeMutableRawPointer
+    var ptr: UnsafeMutableRawPointer
 
     init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
+    }
+
+    init(ptr: UnsafeMutableRawPointer) {
+        self.ptr = ptr
     }
 
     deinit {
@@ -707,10 +731,14 @@ public class Foo {
 
         let expected = r#"
 public class Foo {
-    private var ptr: UnsafeMutableRawPointer
+    var ptr: UnsafeMutableRawPointer
 
     init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
+    }
+
+    init(ptr: UnsafeMutableRawPointer) {
+        self.ptr = ptr
     }
 
     deinit {
@@ -751,6 +779,28 @@ func __swift_bridge__Foo_bar (_ arg: UInt8) {
 "#;
 
         assert_generated_contains_expected(generated.trim(), expected.trim());
+    }
+
+    /// Verify that we properly generate a Swift function that returns a String.
+    #[test]
+    fn return_string() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    fn foo () -> String;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func foo() -> RustString {
+    RustString(ptr: __swift_bridge__$foo())
+}
+"#;
+
+        assert_eq!(generated.trim(), expected.trim());
     }
 
     fn assert_generated_contains_expected(generated: &str, expected: &str) {

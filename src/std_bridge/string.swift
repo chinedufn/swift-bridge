@@ -24,3 +24,12 @@ extension RustStr {
         UnsafeBufferPointer(start: self.start, count: Int(self.len))
     }
 }
+
+extension String {
+    func toRustStr() -> RustStr {
+        let buf: [UInt8] = Array(self.utf8)
+        let start = UnsafeMutablePointer(mutating: buf)
+        let len = UInt(self.count)
+        return RustStr(start: start, len: len)
+    }
+}

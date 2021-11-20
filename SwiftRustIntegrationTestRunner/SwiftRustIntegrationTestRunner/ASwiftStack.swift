@@ -7,14 +7,6 @@
 
 import Foundation
 
-public func runStringTests () {
-    run_string_tests()
-}
-
-public func runOpaqueSwiftClassTests () {
-    run_opaque_swift_class_tests()
-}
-
 public class ASwiftStack {
     private var stack: [UInt8] = []
     
