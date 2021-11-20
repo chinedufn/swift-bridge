@@ -1,4 +1,4 @@
-use crate::built_in_types::BuiltInType;
+use crate::built_in_types::{BuiltInRefSlice, BuiltInType};
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::{Ident, TokenStream};
@@ -37,13 +37,13 @@ impl ParsedExternFn {
 
         match self.host_lang {
             HostLang::Rust => {
-                let inner = self.inner_tokens();
+                let call_fn = self.call_fn_tokens();
 
                 quote! {
                     #[no_mangle]
                     #[export_name = #link_name]
                     pub extern "C" fn #prefixed_fn_name ( #params ) #ret {
-                        #inner
+                        #call_fn
                     }
                 }
             }
@@ -56,9 +56,8 @@ impl ParsedExternFn {
         }
     }
 
-    fn inner_tokens(&self) -> TokenStream {
+    fn call_fn_tokens(&self) -> TokenStream {
         let sig = &self.func.sig;
-        let host_type = self.associated_type.as_ref().map(|h| &h.ident);
         let fn_name = &sig.ident;
 
         let call_args = self.to_rust_call_args();
@@ -67,116 +66,89 @@ impl ParsedExternFn {
             #fn_name ( #call_args )
         };
 
-        let call_fn = if self.is_method() {
-            let this = if let Some(reference) = self.self_reference() {
-                let maybe_ref = reference.0;
-                let maybe_mut = self.self_mutability();
+        let mut call_fn = if self.is_method() {
+            self.call_method_tokens(&call_fn)
+        } else {
+            self.call_function_tokens(&call_fn)
+        };
 
-                quote! {
-                    (unsafe { #maybe_ref #maybe_mut *this } )
-                }
-            } else {
-                quote! {
-                    ( * unsafe { Box::from_raw(this) } )
-                }
+        if let Some(_slice) = self.returned_slice() {
+            call_fn = quote! {
+                swift_bridge::RustSlice::from_slice( #call_fn )
             };
+        }
+
+        call_fn
+    }
+
+    /// Generate tokens for calling a method.
+    fn call_method_tokens(&self, call_fn: &TokenStream) -> TokenStream {
+        let this = if let Some(reference) = self.self_reference() {
+            let maybe_ref = reference.0;
+            let maybe_mut = self.self_mutability();
 
             quote! {
-                    #this.#call_fn
+                (unsafe { #maybe_ref #maybe_mut *this } )
             }
         } else {
-            let host_type_segment = if let Some(h) = &host_type {
-                quote! {#h::}
-            } else {
-                quote! {}
-            };
-
-            match &sig.output {
-                ReturnType::Default => {
-                    quote! {
-                        super:: #host_type_segment #call_fn
-                    }
-                }
-                ReturnType::Type(_arrow, ty) => {
-                    if let Some(ty) = BuiltInType::with_type(&ty) {
-                        quote! {
-                            super:: #host_type_segment #call_fn
-                        }
-                    } else {
-                        quote! {
-                            Box::into_raw( Box::new( super:: #host_type_segment #call_fn )) as *mut std::ffi::c_void
-                        }
-                    }
-                }
+            quote! {
+                ( * unsafe { Box::from_raw(this) } )
             }
         };
 
-        let inner = match &sig.output {
+        quote! {
+                #this.#call_fn
+        }
+    }
+
+    /// Generate tokens for calling a freestanding or an associated function.
+    fn call_function_tokens(&self, call_fn: &TokenStream) -> TokenStream {
+        let host_type = self.associated_type.as_ref().map(|h| &h.ident);
+        let sig = &self.func.sig;
+
+        let host_type_segment = if let Some(h) = &host_type {
+            quote! {#h::}
+        } else {
+            quote! {}
+        };
+
+        match &sig.output {
             ReturnType::Default => {
                 quote! {
-                    #call_fn
+                    super:: #host_type_segment #call_fn
                 }
             }
             ReturnType::Type(_arrow, ty) => {
                 if let Some(ty) = BuiltInType::with_type(&ty) {
-                    match ty {
-                        BuiltInType::RefSlice(_ref_slice) => {
-                            quote! {
-                                swift_bridge::RustSlice::from_slice(
-                                    #call_fn
-                                )
-                            }
-                        }
-                        _ => {
-                            quote! {
-                                #call_fn
-                            }
-                        }
+                    quote! {
+                        super:: #host_type_segment #call_fn
                     }
                 } else {
                     quote! {
-                        #call_fn
-                    }
-                }
-            }
-        };
-
-        let mut unbox_arg_ptrs = vec![];
-
-        for arg in &sig.inputs {
-            match arg {
-                FnArg::Receiver(_) => {}
-                FnArg::Typed(pat_ty) => {
-                    if BuiltInType::with_type(&pat_ty.ty).is_none() {
-                        let (maybe_ref, maybe_mut) = match pat_ty.ty.deref() {
-                            Type::Reference(ty_ref) => (Some(ty_ref.and_token), ty_ref.mutability),
-                            _ => (None, None),
-                        };
-                        let arg_name = match pat_ty.pat.deref() {
-                            Pat::Ident(ident) if ident.ident.to_string() == "self" => {
-                                let this = Ident::new("this", ident.span());
-                                quote! { #this }
-                            }
-                            _ => {
-                                let arg_name = &pat_ty.pat;
-                                quote! { #arg_name }
-                            }
-                        };
-
-                        let unbox = quote! {
-                            let #arg_name = unsafe { #maybe_ref #maybe_mut * #arg_name };
-                        };
-                        unbox_arg_ptrs.push(unbox);
+                        Box::into_raw( Box::new( super:: #host_type_segment #call_fn )) as *mut std::ffi::c_void
                     }
                 }
             }
         }
+    }
 
-        let inner = quote! {
-            #(#unbox_arg_ptrs)*
-            #inner
-        };
-        inner
+    /// If the function returns a slice we return that slice's type.
+    /// So we return the the `T` in `&[T]`
+    fn returned_slice(&self) -> Option<BuiltInRefSlice> {
+        let sig = &self.func.sig;
+        match &sig.output {
+            ReturnType::Type(_arrow, ty) => {
+                if let Some(ty) = BuiltInType::with_type(&ty) {
+                    match ty {
+                        BuiltInType::RefSlice(ref_slice) => Some(ref_slice),
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
     }
 }
 

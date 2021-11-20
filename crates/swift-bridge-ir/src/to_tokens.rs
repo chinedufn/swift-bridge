@@ -244,8 +244,7 @@ mod tests {
             pub extern "C" fn __swift_bridge__some_function (
                 bar: *mut super::MyType
             ) {
-                let bar = unsafe { &*bar };
-                super::some_function(bar)
+                super::some_function(unsafe { & * bar } )
             }
         };
 

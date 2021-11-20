@@ -201,7 +201,19 @@ impl ParsedExternFn {
 
                     let pat = &pat_ty.pat;
 
-                    args.push(quote! {#pat});
+                    let mut arg = quote! {#pat};
+
+                    if BuiltInType::with_type(&pat_ty.ty).is_none() {
+                        let (maybe_ref, maybe_mut) = match pat_ty.ty.deref() {
+                            Type::Reference(ty_ref) => (Some(ty_ref.and_token), ty_ref.mutability),
+                            _ => (None, None),
+                        };
+
+                        let dereferenced = quote! { unsafe { #maybe_ref #maybe_mut * #arg } };
+                        arg = dereferenced;
+                    }
+
+                    args.push(arg);
                 }
             };
         }
