@@ -5,8 +5,8 @@ class SwiftString {
         string = ""
     }
 
-    init(str: UnsafeBufferPointer<UInt8>) {
-        string = String(bytes: str, encoding: .utf8)!
+    init(str: RustStr) {
+        string = String(bytes: str.toBufferPointer(), encoding: .utf8)!
     }
 
     func as_ptr() -> UnsafePointer<UInt8> {
@@ -16,5 +16,11 @@ class SwiftString {
 
     func len () -> UInt {
         UInt(string.count)
+    }
+}
+
+extension RustStr {
+    func toBufferPointer() -> UnsafeBufferPointer<UInt8> {
+        UnsafeBufferPointer(start: self.start, count: Int(self.len))
     }
 }

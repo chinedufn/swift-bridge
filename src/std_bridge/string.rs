@@ -16,14 +16,6 @@ mod ffi {
         fn len(&self) -> usize;
     }
 
-    extern "Rust" {
-        type RustStr;
-
-        fn len(&self) -> usize;
-
-        fn to_string(&self) -> String;
-    }
-
     extern "Swift" {
         type SwiftString;
 
