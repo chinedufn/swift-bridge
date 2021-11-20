@@ -8,9 +8,7 @@
 #ifndef BridgingHeader_h
 #define BridgingHeader_h
 
-#include "lib.rs.h"
 #include "../Generated/SwiftBridgeCore.h"
-#include "../Generated/expose_opaque_rust_struct.h"
-#include "../Generated/import_opaque_swift_class.h"
+#include "../Generated/swift-integration-tests/swift-integration-tests.h"
 
 #endif /* BridgingHeader_h */

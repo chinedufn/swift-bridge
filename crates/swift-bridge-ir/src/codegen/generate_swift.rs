@@ -190,7 +190,8 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
     let func_definition = format!(
         r#"{indentation}{maybe_static_class_func}{swift_class_func_name}({params}){maybe_ret} {{
 {indentation}    {call_rust}
-{indentation}}}"#,
+{indentation}}}
+"#,
         indentation = indentation,
         maybe_static_class_func = maybe_static_class_func,
         swift_class_func_name = swift_class_func_name,

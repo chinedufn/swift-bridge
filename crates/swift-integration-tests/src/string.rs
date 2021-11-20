@@ -4,8 +4,14 @@ use swift_bridge::string::SwiftString;
 //  (somewhere along the way it becomes a swift_bridge::string::RustString)
 //  Then in the Swift string tests file in Xcode call all of the methods on the RustString
 
-#[no_mangle]
-pub extern "C" fn run_string_tests() {
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        fn run_string_tests();
+    }
+}
+
+fn run_string_tests() {
     let string = SwiftString::new_with_str("hello");
 
     assert_eq!(string.len(), 5);

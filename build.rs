@@ -36,7 +36,7 @@ fn core_swift() -> String {
 }
 
 fn core_c_header() -> &'static str {
-    r#"
+    r#"#include <stdint.h>
 typedef struct RustStr { uint8_t* const start; uintptr_t len; } RustStr;
 "#
 }

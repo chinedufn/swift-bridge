@@ -13,10 +13,13 @@ mod ffi {
         fn len(&self) -> usize;
         fn as_slice(&self) -> &[u8];
     }
+
+    extern "Rust" {
+        fn run_opaque_swift_class_tests();
+    }
 }
 
-#[no_mangle]
-pub extern "C" fn run_opaque_swift_class_tests() {
+fn run_opaque_swift_class_tests() {
     use ffi::ASwiftStack;
     use std::ptr::slice_from_raw_parts;
 

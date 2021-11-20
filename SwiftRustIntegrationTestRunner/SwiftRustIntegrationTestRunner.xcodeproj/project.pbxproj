@@ -13,14 +13,12 @@
 		228FE5DC2740DB6D00805D9E /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 228FE5DB2740DB6D00805D9E /* Preview Assets.xcassets */; };
 		228FE5E72740DB6D00805D9E /* StringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5E62740DB6D00805D9E /* StringTests.swift */; };
 		228FE6062740DCA100805D9E /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 228FE6052740DC9A00805D9E /* libresolv.tbd */; platformFilter = maccatalyst; };
-		228FE6092740E29200805D9E /* CoreFfi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE6082740E29200805D9E /* CoreFfi.swift */; };
-		228FE60C2740F42000805D9E /* RustTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE60B2740F42000805D9E /* RustTests.swift */; };
+		228FE60C2740F42000805D9E /* ASwiftStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE60B2740F42000805D9E /* ASwiftStack.swift */; };
 		228FE60E2740F93D00805D9E /* libswift_integration_tests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 228FE6032740DC7900805D9E /* libswift_integration_tests.a */; };
 		228FE61027416C0300805D9E /* OpaqueRustStructTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE60F27416C0300805D9E /* OpaqueRustStructTests.swift */; };
 		228FE61227428A8D00805D9E /* OpaqueSwiftStructTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */; };
-		228FE6142745666E00805D9E /* expose_opaque_rust_struct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */; };
-		228FE61A2747222C00805D9E /* import_opaque_swift_class.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE6192747222C00805D9E /* import_opaque_swift_class.swift */; };
 		228FE64627480E1D00805D9E /* SwiftBridgeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64427480E1C00805D9E /* SwiftBridgeCore.swift */; };
+		228FE64A274919C600805D9E /* swift-integration-tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE648274919C500805D9E /* swift-integration-tests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,20 +40,16 @@
 		228FE5DD2740DB6D00805D9E /* SwiftRustIntegrationTestRunner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SwiftRustIntegrationTestRunner.entitlements; sourceTree = "<group>"; };
 		228FE5E22740DB6D00805D9E /* SwiftRustIntegrationTestRunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftRustIntegrationTestRunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		228FE5E62740DB6D00805D9E /* StringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringTests.swift; sourceTree = "<group>"; };
-		228FE6002740DC0C00805D9E /* lib.rs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lib.rs.h; path = "../../crates/swift-integration-tests/src/lib.rs.h"; sourceTree = "<group>"; };
 		228FE6012740DC2000805D9E /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
 		228FE6032740DC7900805D9E /* libswift_integration_tests.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswift_integration_tests.a; path = ../target/debug/libswift_integration_tests.a; sourceTree = "<group>"; };
 		228FE6052740DC9A00805D9E /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
-		228FE6082740E29200805D9E /* CoreFfi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreFfi.swift; sourceTree = "<group>"; };
-		228FE60B2740F42000805D9E /* RustTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RustTests.swift; sourceTree = "<group>"; };
+		228FE60B2740F42000805D9E /* ASwiftStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASwiftStack.swift; sourceTree = "<group>"; };
 		228FE60F27416C0300805D9E /* OpaqueRustStructTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpaqueRustStructTests.swift; sourceTree = "<group>"; };
 		228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpaqueSwiftStructTests.swift; sourceTree = "<group>"; };
-		228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = expose_opaque_rust_struct.swift; sourceTree = "<group>"; };
-		228FE6192747222C00805D9E /* import_opaque_swift_class.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = import_opaque_swift_class.swift; sourceTree = "<group>"; };
-		228FE64027480DAC00805D9E /* import_opaque_swift_class.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = import_opaque_swift_class.h; sourceTree = "<group>"; };
-		228FE64127480DAC00805D9E /* expose_opaque_rust_struct.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = expose_opaque_rust_struct.h; sourceTree = "<group>"; };
 		228FE64427480E1C00805D9E /* SwiftBridgeCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SwiftBridgeCore.swift; sourceTree = "<group>"; };
 		228FE6472749127400805D9E /* SwiftBridgeCore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SwiftBridgeCore.h; sourceTree = "<group>"; };
+		228FE648274919C500805D9E /* swift-integration-tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "swift-integration-tests.swift"; path = "swift-integration-tests/swift-integration-tests.swift"; sourceTree = "<group>"; };
+		228FE649274919C600805D9E /* swift-integration-tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "swift-integration-tests.h"; path = "swift-integration-tests/swift-integration-tests.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,7 +96,7 @@
 		228FE5D32740DB6A00805D9E /* SwiftRustIntegrationTestRunner */ = {
 			isa = PBXGroup;
 			children = (
-				228FE60A2740F40A00805D9E /* RustTests */,
+				228FE60B2740F42000805D9E /* ASwiftStack.swift */,
 				228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */,
 				228FE5D62740DB6A00805D9E /* ContentView.swift */,
 				228FE5D82740DB6D00805D9E /* Assets.xcassets */,
@@ -133,7 +127,6 @@
 		228FE5FF2740DB8200805D9E /* Headers */ = {
 			isa = PBXGroup;
 			children = (
-				228FE6002740DC0C00805D9E /* lib.rs.h */,
 				228FE6012740DC2000805D9E /* BridgingHeader.h */,
 			);
 			path = Headers;
@@ -151,23 +144,12 @@
 		228FE6072740E26100805D9E /* Generated */ = {
 			isa = PBXGroup;
 			children = (
+				228FE649274919C600805D9E /* swift-integration-tests.h */,
+				228FE648274919C500805D9E /* swift-integration-tests.swift */,
 				228FE6472749127400805D9E /* SwiftBridgeCore.h */,
 				228FE64427480E1C00805D9E /* SwiftBridgeCore.swift */,
-				228FE64127480DAC00805D9E /* expose_opaque_rust_struct.h */,
-				228FE64027480DAC00805D9E /* import_opaque_swift_class.h */,
-				228FE6192747222C00805D9E /* import_opaque_swift_class.swift */,
-				228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */,
 			);
 			path = Generated;
-			sourceTree = "<group>";
-		};
-		228FE60A2740F40A00805D9E /* RustTests */ = {
-			isa = PBXGroup;
-			children = (
-				228FE60B2740F42000805D9E /* RustTests.swift */,
-				228FE6082740E29200805D9E /* CoreFfi.swift */,
-			);
-			path = RustTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -291,13 +273,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				228FE61A2747222C00805D9E /* import_opaque_swift_class.swift in Sources */,
-				228FE6142745666E00805D9E /* expose_opaque_rust_struct.swift in Sources */,
 				228FE5D72740DB6A00805D9E /* ContentView.swift in Sources */,
 				228FE64627480E1D00805D9E /* SwiftBridgeCore.swift in Sources */,
-				228FE6092740E29200805D9E /* CoreFfi.swift in Sources */,
 				228FE5D52740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift in Sources */,
-				228FE60C2740F42000805D9E /* RustTests.swift in Sources */,
+				228FE64A274919C600805D9E /* swift-integration-tests.swift in Sources */,
+				228FE60C2740F42000805D9E /* ASwiftStack.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
