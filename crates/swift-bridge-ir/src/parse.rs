@@ -152,7 +152,6 @@ impl Parse for SwiftBridgeModuleAndErrors {
                                             &attributes,
                                             host_lang,
                                             &mut all_type_declarations,
-                                            &mut errors,
                                         );
                                         functions.push(f);
                                     }
@@ -213,7 +212,6 @@ fn parse_function(
     attributes: &FunctionAttributes,
     host_lang: HostLang,
     type_lookup: &mut HashMap<String, BridgedType>,
-    errors: &mut ParseErrors,
 ) -> ParsedExternFn {
     let associated_type = if let Some(associated_to) = &attributes.associated_to {
         let ty = type_lookup.get_mut(&associated_to.to_string()).unwrap();
@@ -300,22 +298,10 @@ fn parse_function_with_inputs(
                             _ => {}
                         };
                     } else if let Some(_associated_to) = &attributes.associated_to {
-                        let f = parse_function(
-                            func,
-                            attributes,
-                            host_lang,
-                            all_type_declarations,
-                            errors,
-                        );
+                        let f = parse_function(func, attributes, host_lang, all_type_declarations);
                         functions.push(f);
                     } else if attributes.initializes {
-                        let f = parse_function(
-                            func,
-                            attributes,
-                            host_lang,
-                            all_type_declarations,
-                            errors,
-                        );
+                        let f = parse_function(func, attributes, host_lang, all_type_declarations);
                         functions.push(f);
                     } else {
                         functions.push(ParsedExternFn {
@@ -432,7 +418,6 @@ mod tests {
     use super::*;
     use crate::errors::ParseError;
     use crate::test_utils::{parse_errors, parse_ok};
-    use proc_macro2::TokenStream;
     use quote::quote;
     use syn::parse_quote;
 

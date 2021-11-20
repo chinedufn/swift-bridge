@@ -28,40 +28,40 @@ impl ParsedExternFn {
                 },
                 FnArg::Typed(pat_ty) => {
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                        params.push(quote! {#pat_ty});
+                        let pat = &pat_ty.pat;
+                        let ty = built_in.to_extern_rust_ident(swift_bridge_path);
+                        params.push(quote! { #pat: #ty});
+                        continue;
+                    }
+
+                    let arg_name = if pat_type_pat_is_self(pat_ty) {
+                        let this = Ident::new("this", pat_ty.span());
+                        quote! {
+                            #this
+                        }
                     } else {
-                        let arg_name = if pat_type_pat_is_self(pat_ty) {
-                            let this = Ident::new("this", pat_ty.span());
-                            quote! {
-                                #this
-                            }
-                        } else {
-                            let arg_name = &pat_ty.pat;
-                            quote! {
-                                #arg_name
-                            }
+                        let arg_name = &pat_ty.pat;
+                        quote! {
+                            #arg_name
+                        }
+                    };
+
+                    if self.host_lang.is_rust() {
+                        let mut bridged_type = &pat_ty.ty;
+
+                        // `&Foo` becomes `Foo`
+                        // `&mut Foo` beomces `Foo`
+                        if let Type::Reference(ty_ref) = pat_ty.ty.deref() {
+                            bridged_type = &ty_ref.elem;
                         };
 
-                        if self.host_lang.is_rust() {
-                            let declared_ty = match pat_ty.ty.deref() {
-                                Type::Reference(ty_ref) => {
-                                    let ty = &ty_ref.elem;
-                                    quote! {#ty}
-                                }
-                                Type::Path(path) => {
-                                    quote! {#path}
-                                }
-                                _ => todo!(),
-                            };
-
-                            params.push(quote! {
-                                 #arg_name: *mut super::#declared_ty
-                            });
-                        } else {
-                            params.push(quote! {
-                                 #arg_name: *mut std::ffi::c_void
-                            });
-                        }
+                        params.push(quote! {
+                             #arg_name: *mut super::#bridged_type
+                        });
+                    } else {
+                        params.push(quote! {
+                             #arg_name: *mut std::ffi::c_void
+                        });
                     }
                 }
             };
@@ -76,10 +76,7 @@ impl ParsedExternFn {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::ParseErrors;
-    use crate::parse::SwiftBridgeModuleAndErrors;
-    use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
-    use crate::SwiftBridgeModule;
+    use crate::test_utils::{assert_tokens_contain, assert_tokens_eq, parse_ok};
 
     /// Verify that we rename `self` parameters to `this`
     #[test]
@@ -113,11 +110,6 @@ mod tests {
     /// Verify that a String parameter gets turned into a *mut RustString
     #[test]
     fn converts_string_param_to_ruststring_pointer() {
-        todo!(
-            r#"
-Refactor this file's implementation.. Then it should be easier to convert params
-"#
-        );
         let tokens = quote! {
             #[swift_bridge::bridge]
             mod ffi {
@@ -139,10 +131,5 @@ Refactor this file's implementation.. Then it should be easier to convert params
                 .to_extern_c_param_names_and_types(&syn::parse2(quote! { swift_bridge }).unwrap()),
             expected_params,
         );
-    }
-
-    fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
-        let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
-        module_and_errors.module
     }
 }

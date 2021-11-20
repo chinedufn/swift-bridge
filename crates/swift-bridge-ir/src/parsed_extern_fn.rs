@@ -75,7 +75,7 @@ impl ParsedExternFn {
             }
             ReturnType::Type(arrow, ty) => {
                 if let Some(built_in) = BuiltInType::with_type(&ty) {
-                    let ty = built_in.to_extern_rust_ident(ty.span(), swift_bridge_path);
+                    let ty = built_in.to_extern_rust_ident(swift_bridge_path);
                     quote! {#arrow #ty}
                 } else {
                     quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }

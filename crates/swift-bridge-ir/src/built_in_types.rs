@@ -1,6 +1,6 @@
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
+use quote::quote;
 use quote::ToTokens;
-use quote::{quote, quote_spanned};
 use std::ops::Deref;
 use syn::{Path, ReturnType, Type};
 
@@ -117,7 +117,7 @@ impl BuiltInType {
         return Some(ty);
     }
 
-    pub fn to_extern_rust_ident(&self, span: Span, swift_bridge_path: &Path) -> TokenStream {
+    pub fn to_extern_rust_ident(&self, swift_bridge_path: &Path) -> TokenStream {
         let ty = match self {
             BuiltInType::U8 => quote! {u8},
             BuiltInType::I8 => quote! { i8 },
@@ -134,7 +134,7 @@ impl BuiltInType {
             BuiltInType::Usize => quote! { usize },
             BuiltInType::Isize => quote! { isize },
             BuiltInType::Pointer(ptr) => {
-                let ty = ptr.ty.to_extern_rust_ident(span, swift_bridge_path);
+                let ty = ptr.ty.to_extern_rust_ident(swift_bridge_path);
                 match ptr.kind {
                     PointerKind::Const => {
                         quote! {*const #ty }
@@ -145,7 +145,7 @@ impl BuiltInType {
                 }
             }
             BuiltInType::RefSlice(slice) => {
-                let ty = slice.ty.to_extern_rust_ident(span, swift_bridge_path);
+                let ty = slice.ty.to_extern_rust_ident(swift_bridge_path);
                 quote! {#swift_bridge_path::RustSlice<#ty>}
             }
             BuiltInType::Str => {
@@ -159,7 +159,7 @@ impl BuiltInType {
             }
         };
 
-        quote_spanned!(span=> #ty)
+        quote!(#ty)
     }
 
     pub fn to_swift(&self, must_be_c_compatible: bool) -> String {
@@ -261,9 +261,8 @@ impl BuiltInType {
     pub fn is_ref_slice(&self) -> bool {
         matches!(self, BuiltInType::RefSlice(_))
     }
-    
-    pub fn is_string (&self) -> bool {
 
+    pub fn is_string(&self) -> bool {
         matches!(self, BuiltInType::String)
     }
 }
