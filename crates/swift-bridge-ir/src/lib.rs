@@ -11,8 +11,8 @@ use crate::parse::HostLang;
 use proc_macro2::Ident;
 use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
-use syn::Token;
 use syn::{ForeignItemType, Path};
+use syn::{PatType, Token};
 
 use crate::parsed_extern_fn::ParsedExternFn;
 
@@ -138,6 +138,17 @@ impl BridgedType {
     }
 }
 
+/// Whether or not a PatType's pattern is `self`.
+///
+/// `self: &Fpp` would be true
+/// `arg: &Foo` would be false.
+fn pat_type_pat_is_self(pat_type: &PatType) -> bool {
+    match pat_type.pat.deref() {
+        syn::Pat::Ident(pat_ident) if pat_ident.ident == "self" => true,
+        _ => false,
+    }
+}
+
 impl Deref for BridgedType {
     type Target = ForeignItemType;
 
@@ -148,7 +159,6 @@ impl Deref for BridgedType {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     #[test]
     fn foo() {

@@ -1,9 +1,10 @@
 use crate::built_in_types::BuiltInType;
 use crate::parsed_extern_fn::ParsedExternFn;
+use crate::pat_type_pat_is_self;
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::quote;
 use std::ops::Deref;
-use syn::{FnArg, Type};
+use syn::{FnArg, PatType, Type, TypeReference};
 
 /// Generates the
 ///
@@ -33,7 +34,7 @@ impl ParsedExternFn {
         let ty_name = &self.associated_type.as_ref().unwrap().ident;
 
         let ret = &sig.output;
-        let params = self.params_with_normalized_self();
+        let params = self.params_without_self_type_removd();
         let call_args = self.to_rust_call_args();
         let linked_fn_name = self.extern_swift_linked_fn_new();
 
@@ -68,30 +69,20 @@ impl ParsedExternFn {
     // `self: Foo` becomes `self`,
     // `self: &Foo` -> `&self`,
     // `self: &mut Foo` -> `&mut self`
-    fn params_with_normalized_self(&self) -> TokenStream {
+    fn params_without_self_type_removd(&self) -> TokenStream {
         let params = self
             .sig
             .inputs
             .iter()
-            .map(|arg| match arg {
-                FnArg::Typed(pat_ty) if pat_ty.pat.to_token_stream().to_string() == "self" => {
-                    match pat_ty.ty.deref() {
-                        Type::Reference(reference) => {
-                            let ref_token = reference.and_token;
-                            let maybe_mut = reference.mutability;
+            .map(|arg| {
+                if let Some(reference) = pat_ty_type_reference_if_arg_self(arg) {
+                    let ref_token = reference.and_token;
+                    let maybe_mut = reference.mutability;
 
-                            quote! {
-                                #ref_token #maybe_mut self
-                            }
-                        }
-                        _ => {
-                            quote! {
-                                #arg
-                            }
-                        }
+                    quote! {
+                        #ref_token #maybe_mut self
                     }
-                }
-                _ => {
+                } else {
                     quote! {
                         #arg
                     }
@@ -102,6 +93,28 @@ impl ParsedExternFn {
         quote! {
             #(#params),*
         }
+    }
+}
+
+// self: &Foo would return &Foo
+// _foo: &Foo would not return &Foo
+fn pat_ty_type_reference_if_arg_self(fn_arg: &FnArg) -> Option<&TypeReference> {
+    match fn_arg {
+        FnArg::Typed(pat_ty) if pat_type_pat_is_self(pat_ty) => {
+            if let Some(reference) = pat_ty_type_reference(pat_ty) {
+                Some(reference)
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
+fn pat_ty_type_reference(pat_ty: &PatType) -> Option<&TypeReference> {
+    match pat_ty.ty.deref() {
+        Type::Reference(reference) => Some(reference),
+        _ => None,
     }
 }
 

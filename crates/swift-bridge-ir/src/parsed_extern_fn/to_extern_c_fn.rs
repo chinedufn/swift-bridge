@@ -1,9 +1,9 @@
-use crate::built_in_types::{BuiltInRefSlice, BuiltInType};
+use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Path, ReturnType, Type};
+use syn::{Path, ReturnType};
 
 impl ParsedExternFn {
     /// Generates:
@@ -133,25 +133,6 @@ impl ParsedExternFn {
                     }
                 }
             }
-        }
-    }
-
-    /// If the function returns a slice we return that slice's type.
-    /// So we return the the `T` in `&[T]`
-    fn returned_slice(&self) -> Option<BuiltInRefSlice> {
-        let sig = &self.func.sig;
-        match &sig.output {
-            ReturnType::Type(_arrow, ty) => {
-                if let Some(ty) = BuiltInType::with_type(&ty) {
-                    match ty {
-                        BuiltInType::RefSlice(ref_slice) => Some(ref_slice),
-                        _ => None,
-                    }
-                } else {
-                    None
-                }
-            }
-            _ => None,
         }
     }
 

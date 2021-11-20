@@ -1,8 +1,8 @@
 use crate::built_in_types::BuiltInType;
 use crate::parsed_extern_fn::ParsedExternFn;
+use crate::pat_type_pat_is_self;
 use quote::ToTokens;
-use std::ops::Deref;
-use syn::{FnArg, Pat, ReturnType};
+use syn::{FnArg, ReturnType};
 
 impl ParsedExternFn {
     pub fn to_swift_param_names_and_types(&self, include_receiver_if_present: bool) -> String {
@@ -18,16 +18,13 @@ impl ParsedExternFn {
                     continue;
                 }
                 FnArg::Typed(pat_ty) => {
-                    match pat_ty.pat.deref() {
-                        Pat::Ident(pat) if pat.ident.to_string() == "self" => {
-                            if include_receiver_if_present {
-                                params.push(format!("_ this: UnsafeMutableRawPointer"));
-                            }
-
-                            continue;
+                    if pat_type_pat_is_self(pat_ty) {
+                        if include_receiver_if_present {
+                            params.push(format!("_ this: UnsafeMutableRawPointer"));
                         }
-                        _ => {}
-                    };
+
+                        continue;
+                    }
 
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
@@ -71,7 +68,7 @@ impl ParsedExternFn {
                     }
                 }
                 FnArg::Typed(pat_ty) => {
-                    if pat_ty.pat.to_token_stream().to_string() == "self" {
+                    if pat_type_pat_is_self(pat_ty) {
                         if include_receiver_if_present {
                             args.push("ptr".to_string());
                         }
@@ -88,7 +85,7 @@ impl ParsedExternFn {
                         arg
                     };
 
-                    if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                    if let Some(_built_in) = BuiltInType::with_type(&pat_ty.ty) {
                         args.push(arg);
                     } else {
                         args.push(format!("{}.ptr", arg));
@@ -116,7 +113,6 @@ impl ParsedExternFn {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::parse::SwiftBridgeModuleAndErrors;
     use crate::SwiftBridgeModule;
     use proc_macro2::TokenStream;

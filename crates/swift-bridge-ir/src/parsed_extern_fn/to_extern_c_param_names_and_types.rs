@@ -1,11 +1,12 @@
 use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
+use crate::pat_type_pat_is_self;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use std::ops::Deref;
 use syn::spanned::Spanned;
-use syn::{FnArg, Pat, Path, Type};
+use syn::{FnArg, Path, Type};
 
 impl ParsedExternFn {
     pub fn to_extern_c_param_names_and_types(&self, swift_bridge_path: &Path) -> TokenStream {
@@ -14,7 +15,7 @@ impl ParsedExternFn {
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
             match arg {
-                FnArg::Receiver(receiver) => match self.host_lang {
+                FnArg::Receiver(_receiver) => match self.host_lang {
                     HostLang::Rust => {
                         let this = host_type.as_ref().unwrap();
                         let this = quote! { this: *mut super:: #this };
@@ -29,18 +30,15 @@ impl ParsedExternFn {
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
                         params.push(quote! {#pat_ty});
                     } else {
-                        let arg_name = match pat_ty.pat.deref() {
-                            Pat::Ident(this) if this.ident.to_string() == "self" => {
-                                let this = Ident::new("this", this.span());
-                                quote! {
-                                    #this
-                                }
+                        let arg_name = if pat_type_pat_is_self(pat_ty) {
+                            let this = Ident::new("this", pat_ty.span());
+                            quote! {
+                                #this
                             }
-                            _ => {
-                                let arg_name = &pat_ty.pat;
-                                quote! {
-                                    #arg_name
-                                }
+                        } else {
+                            let arg_name = &pat_ty.pat;
+                            quote! {
+                                #arg_name
                             }
                         };
 
@@ -146,10 +144,5 @@ Refactor this file's implementation.. Then it should be easier to convert params
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
         let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
         module_and_errors.module
-    }
-
-    fn parse_errors(tokens: TokenStream) -> ParseErrors {
-        let parsed: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
-        parsed.errors
     }
 }

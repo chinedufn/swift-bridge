@@ -1,11 +1,11 @@
 use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
-use crate::{BridgedType, SWIFT_BRIDGE_PREFIX};
+use crate::{pat_type_pat_is_self, BridgedType, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItemFn, Lifetime, Pat, Path, ReturnType, Token, Type};
+use syn::{FnArg, ForeignItemFn, Lifetime, Path, ReturnType, Token, Type};
 
 mod to_extern_c_fn;
 mod to_extern_c_param_names_and_types;
@@ -123,16 +123,13 @@ impl ParsedExternFn {
                     }
                 }
                 FnArg::Typed(pat_ty) => {
-                    match pat_ty.pat.deref() {
-                        Pat::Ident(this) if this.ident.to_string() == "self" => {
-                            if self.host_lang.is_swift() {
-                                args.push(quote! {self.0});
-                            }
-
-                            continue;
+                    if pat_type_pat_is_self(pat_ty) {
+                        if self.host_lang.is_swift() {
+                            args.push(quote! {self.0});
                         }
-                        _ => {}
-                    };
+
+                        continue;
+                    }
 
                     let pat = &pat_ty.pat;
 
@@ -170,21 +167,18 @@ impl ParsedExternFn {
                 FnArg::Typed(pat_ty) => {
                     let pat = &pat_ty.pat;
 
-                    match pat.deref() {
-                        Pat::Ident(pat_ident) if pat_ident.ident.to_string() == "self" => {
-                            params.push("void* self".to_string());
-                        }
-                        _ => {
-                            let ty = if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                                built_in.to_c().to_string()
-                            } else {
-                                pat.to_token_stream().to_string()
-                            };
+                    if pat_type_pat_is_self(pat_ty) {
+                        params.push("void* self".to_string());
+                    } else {
+                        let ty = if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                            built_in.to_c().to_string()
+                        } else {
+                            pat.to_token_stream().to_string()
+                        };
 
-                            let arg_name = pat_ty.pat.to_token_stream().to_string();
-                            params.push(format!("{} {}", ty, arg_name));
-                        }
-                    };
+                        let arg_name = pat.to_token_stream().to_string();
+                        params.push(format!("{} {}", ty, arg_name));
+                    }
                 }
             };
         }
@@ -282,7 +276,6 @@ mod tests {
     use super::*;
     use crate::errors::{ParseError, ParseErrors};
     use crate::parse::SwiftBridgeModuleAndErrors;
-    use crate::test_utils::assert_tokens_eq;
     use crate::SwiftBridgeModule;
 
     /// Verify that when generating rust call args we do not include the receiver.

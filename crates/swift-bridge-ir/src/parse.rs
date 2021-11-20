@@ -299,7 +299,7 @@ fn parse_function_with_inputs(
                             }
                             _ => {}
                         };
-                    } else if let Some(associated_to) = &attributes.associated_to {
+                    } else if let Some(_associated_to) = &attributes.associated_to {
                         let f = parse_function(
                             func,
                             attributes,
@@ -431,6 +431,7 @@ impl Parse for ModuleAttr {
 mod tests {
     use super::*;
     use crate::errors::ParseError;
+    use crate::test_utils::{parse_errors, parse_ok};
     use proc_macro2::TokenStream;
     use quote::quote;
     use syn::parse_quote;
@@ -863,15 +864,5 @@ mod tests {
                 expected_count
             );
         }
-    }
-
-    fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
-        let parsed: SwiftBridgeModuleAndErrors = parse_quote!(#tokens);
-        parsed.module
-    }
-
-    fn parse_errors(tokens: TokenStream) -> ParseErrors {
-        let parsed: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
-        parsed.errors
     }
 }
