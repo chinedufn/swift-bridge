@@ -1,11 +1,9 @@
 use crate::built_in_types::{BuiltInRefSlice, BuiltInType};
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
-use std::ops::Deref;
-use syn::spanned::Spanned;
-use syn::{FnArg, Pat, Path, ReturnType, Type};
+use syn::{Pat, Path, ReturnType, Type};
 
 impl ParsedExternFn {
     /// Generates:
@@ -37,7 +35,7 @@ impl ParsedExternFn {
 
         match self.host_lang {
             HostLang::Rust => {
-                let call_fn = self.call_fn_tokens();
+                let call_fn = self.call_fn_tokens(swift_bridge_path);
 
                 quote! {
                     #[no_mangle]
@@ -56,7 +54,7 @@ impl ParsedExternFn {
         }
     }
 
-    fn call_fn_tokens(&self) -> TokenStream {
+    fn call_fn_tokens(&self, swift_bridge_path: &Path) -> TokenStream {
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
 
@@ -72,10 +70,16 @@ impl ParsedExternFn {
             self.call_function_tokens(&call_fn)
         };
 
-        if let Some(_slice) = self.returned_slice() {
-            call_fn = quote! {
-                swift_bridge::RustSlice::from_slice( #call_fn )
-            };
+        if let Some(ty) = self.return_ty_built_in() {
+            if ty.is_ref_slice() {
+                call_fn = quote! {
+                    #swift_bridge_path::RustSlice::from_slice( #call_fn )
+                };
+            } else if ty.is_string() {
+                call_fn = quote! {
+                    #swift_bridge_path::string::RustString( #call_fn ).box_into_raw()
+                };
+            }
         }
 
         call_fn
@@ -119,7 +123,7 @@ impl ParsedExternFn {
                 }
             }
             ReturnType::Type(_arrow, ty) => {
-                if let Some(ty) = BuiltInType::with_type(&ty) {
+                if let Some(_ty) = BuiltInType::with_type(&ty) {
                     quote! {
                         super:: #host_type_segment #call_fn
                     }
@@ -149,6 +153,11 @@ impl ParsedExternFn {
             }
             _ => None,
         }
+    }
+
+    /// If the functions return type is a BuiltInType, return it.
+    fn return_ty_built_in(&self) -> Option<BuiltInType> {
+        BuiltInType::with_return_type(&self.func.sig.output)
     }
 }
 
@@ -194,8 +203,8 @@ mod tests {
         let expected_fn = quote! {
             #[no_mangle]
             #[export_name = "__swift_bridge__$make_string"]
-            pub extern "C" fn __swift_bridge__make_string() -> *mut swift_bridge::RustString {
-                swift_bridge::RustString(super::make_string()).box_into_raw()
+            pub extern "C" fn __swift_bridge__make_string() -> *mut swift_bridge::string::RustString {
+                swift_bridge::string::RustString(super::make_string()).box_into_raw()
             }
         };
 

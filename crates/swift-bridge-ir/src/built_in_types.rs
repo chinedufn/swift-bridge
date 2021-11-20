@@ -257,6 +257,15 @@ impl BuiltInType {
             _ => false,
         }
     }
+
+    pub fn is_ref_slice(&self) -> bool {
+        matches!(self, BuiltInType::RefSlice(_))
+    }
+    
+    pub fn is_string (&self) -> bool {
+
+        matches!(self, BuiltInType::String)
+    }
 }
 
 #[cfg(test)]
