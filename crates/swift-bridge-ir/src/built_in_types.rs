@@ -73,15 +73,16 @@ impl BuiltInType {
                 })
             }
             Type::Reference(ty_ref) => match ty_ref.elem.deref() {
-                Type::Slice(slice) => Self::with_type(&slice.elem)
-                    .map(|ty| Self::RefSlice(BuiltInRefSlice { ty: Box::new(ty) })),
                 Type::Path(p) => {
-                    if p.path.to_token_stream().to_string() == "str" {
+                    let path = p.path.to_token_stream().to_string();
+                    if path == "str" {
                         return Some(BuiltInType::Str);
                     }
 
                     None
                 }
+                Type::Slice(slice) => Self::with_type(&slice.elem)
+                    .map(|ty| Self::RefSlice(BuiltInRefSlice { ty: Box::new(ty) })),
                 _ => None,
             },
             _ => None,
@@ -239,6 +240,8 @@ impl BuiltInType {
     }
 
     // Wrap an expression of this BuiltInType to be suitable to send from Rust to Swift.
+    //
+    // Examples:
     // String -> swiftbridge:string::RustString
     // Str -> swiftbridge::string::RustStr
     pub fn wrap_rust_to_swift_expression_ffi_friendly(
@@ -265,8 +268,9 @@ impl BuiltInType {
                 quote! { #expression }
             }
             BuiltInType::Pointer(_) => {
-                //
-                todo!("Wrap pointer")
+                quote! {
+                    #expression
+                }
             }
             BuiltInType::RefSlice(_) => {
                 quote! {
@@ -281,6 +285,52 @@ impl BuiltInType {
             BuiltInType::String => {
                 quote! {
                     #swift_bridge_path::string::RustString( #expression ).box_into_raw()
+                }
+            }
+        }
+    }
+
+    // Wrap an argument of this BuiltInType to convert it from it's FFI format to it's Rust type.
+    //
+    // Examples:
+    // RustStr -> &str
+    // *mut RustString -> String
+    // RustSlice<u8> -> &[u8]
+    pub fn wrap_swift_to_rust_arg_ffi_friendly(
+        &self,
+        _swift_bridge_path: &Path,
+        arg: &TokenStream,
+    ) -> TokenStream {
+        match self {
+            BuiltInType::Null
+            | BuiltInType::U8
+            | BuiltInType::I8
+            | BuiltInType::U16
+            | BuiltInType::I16
+            | BuiltInType::U32
+            | BuiltInType::I32
+            | BuiltInType::U64
+            | BuiltInType::I64
+            | BuiltInType::U128
+            | BuiltInType::I128
+            | BuiltInType::Usize
+            | BuiltInType::Isize
+            | BuiltInType::F32
+            | BuiltInType::F64 => {
+                quote! { #arg }
+            }
+            BuiltInType::Pointer(_) => {
+                quote! { #arg }
+            }
+            BuiltInType::RefSlice(_reference) => {
+                quote! { #arg.as_slice() }
+            }
+            BuiltInType::Str => {
+                quote! { #arg.to_str() }
+            }
+            BuiltInType::String => {
+                quote! {
+                    unsafe { Box::from_raw(#arg).0 }
                 }
             }
         }
@@ -332,6 +382,7 @@ mod tests {
             (quote! {f32}, BuiltInType::F32),
             (quote! {f64}, BuiltInType::F64),
             (quote! {&str}, BuiltInType::Str),
+            (quote! {String}, BuiltInType::String),
             (
                 quote! {*const u8},
                 BuiltInType::Pointer(BuiltInPointer {

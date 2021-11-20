@@ -81,18 +81,16 @@ impl RustStr {
         self.to_str().to_string()
     }
 
-
     pub fn as_bytes(&self) -> &'static [u8] {
         unsafe { std::slice::from_raw_parts(self.start, self.len) }
     }
 
-    pub fn from_str( str: &str) -> Self {
+    pub fn from_str(str: &str) -> Self {
         RustStr {
             start: str.as_ptr(),
             len: str.len(),
         }
     }
-
 }
 
 impl SwiftString {

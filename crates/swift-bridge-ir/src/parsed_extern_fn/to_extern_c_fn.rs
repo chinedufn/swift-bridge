@@ -58,7 +58,7 @@ impl ParsedExternFn {
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
 
-        let call_args = self.to_rust_call_args();
+        let call_args = self.to_call_rust_args(swift_bridge_path);
 
         let call_fn = quote! {
             #fn_name ( #call_args )

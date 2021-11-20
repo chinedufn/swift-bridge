@@ -20,7 +20,6 @@
 		228FE61227428A8D00805D9E /* OpaqueSwiftStructTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */; };
 		228FE6142745666E00805D9E /* expose_opaque_rust_struct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE6132745666E00805D9E /* expose_opaque_rust_struct.swift */; };
 		228FE61A2747222C00805D9E /* import_opaque_swift_class.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE6192747222C00805D9E /* import_opaque_swift_class.swift */; };
-		228FE64527480E1D00805D9E /* string.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64327480E1C00805D9E /* string.swift */; };
 		228FE64627480E1D00805D9E /* SwiftBridgeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64427480E1C00805D9E /* SwiftBridgeCore.swift */; };
 /* End PBXBuildFile section */
 
@@ -55,9 +54,8 @@
 		228FE6192747222C00805D9E /* import_opaque_swift_class.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = import_opaque_swift_class.swift; sourceTree = "<group>"; };
 		228FE64027480DAC00805D9E /* import_opaque_swift_class.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = import_opaque_swift_class.h; sourceTree = "<group>"; };
 		228FE64127480DAC00805D9E /* expose_opaque_rust_struct.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = expose_opaque_rust_struct.h; sourceTree = "<group>"; };
-		228FE64227480E1C00805D9E /* string.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = string.h; sourceTree = "<group>"; };
-		228FE64327480E1C00805D9E /* string.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = string.swift; sourceTree = "<group>"; };
 		228FE64427480E1C00805D9E /* SwiftBridgeCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SwiftBridgeCore.swift; sourceTree = "<group>"; };
+		228FE6472749127400805D9E /* SwiftBridgeCore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SwiftBridgeCore.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -153,8 +151,7 @@
 		228FE6072740E26100805D9E /* Generated */ = {
 			isa = PBXGroup;
 			children = (
-				228FE64227480E1C00805D9E /* string.h */,
-				228FE64327480E1C00805D9E /* string.swift */,
+				228FE6472749127400805D9E /* SwiftBridgeCore.h */,
 				228FE64427480E1C00805D9E /* SwiftBridgeCore.swift */,
 				228FE64127480DAC00805D9E /* expose_opaque_rust_struct.h */,
 				228FE64027480DAC00805D9E /* import_opaque_swift_class.h */,
@@ -300,7 +297,6 @@
 				228FE64627480E1D00805D9E /* SwiftBridgeCore.swift in Sources */,
 				228FE6092740E29200805D9E /* CoreFfi.swift in Sources */,
 				228FE5D52740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift in Sources */,
-				228FE64527480E1D00805D9E /* string.swift in Sources */,
 				228FE60C2740F42000805D9E /* RustTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

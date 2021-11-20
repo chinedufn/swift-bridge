@@ -13,12 +13,14 @@ fn main() {
 
         let core_swift_out = out_dir.join("SwiftBridgeCore.swift");
         let mut swift = core_swift();
+        swift += "\n";
         swift += &generated_swift;
 
         std::fs::write(core_swift_out, swift).unwrap();
 
         let core_c_header_out = out_dir.join("SwiftBridgeCore.h");
         let mut c_header = core_c_header().to_string();
+        c_header += "\n";
         c_header += &generated_c;
 
         std::fs::write(core_c_header_out, c_header).unwrap();

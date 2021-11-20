@@ -26,7 +26,7 @@ impl ToTokens for SwiftBridgeModule {
                 }
                 HostLang::Swift => {
                     if let Some(ty) = func.associated_type.as_ref() {
-                        let tokens = func.to_impl_fn_calls_swift();
+                        let tokens = func.to_impl_fn_calls_swift(&self.swift_bridge_path);
                         extern_swift_impl_fn_tokens
                             .entry(ty.ident.to_string())
                             .or_default()

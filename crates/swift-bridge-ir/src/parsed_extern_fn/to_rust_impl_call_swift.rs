@@ -4,7 +4,7 @@ use crate::pat_type_pat_is_self;
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::ops::Deref;
-use syn::{FnArg, PatType, Type, TypeReference};
+use syn::{FnArg, PatType, Path, Type, TypeReference};
 
 /// Generates the
 ///
@@ -28,14 +28,14 @@ use syn::{FnArg, PatType, Type, TypeReference};
 /// }
 /// ```
 impl ParsedExternFn {
-    pub fn to_impl_fn_calls_swift(&self) -> TokenStream {
+    pub fn to_impl_fn_calls_swift(&self, swift_bridge_path: &Path) -> TokenStream {
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
         let ty_name = &self.associated_type.as_ref().unwrap().ident;
 
         let ret = &sig.output;
         let params = self.params_without_self_type_removd();
-        let call_args = self.to_rust_call_args();
+        let call_args = self.to_call_rust_args(swift_bridge_path);
         let linked_fn_name = self.extern_swift_linked_fn_new();
 
         let mut inner = quote! {
@@ -43,14 +43,7 @@ impl ParsedExternFn {
         };
 
         if let Some(built_in) = BuiltInType::with_return_type(ret) {
-            match built_in {
-                BuiltInType::RefSlice(_) => {
-                    inner = quote! {
-                        #inner.as_slice()
-                    };
-                }
-                _ => {}
-            }
+            inner = built_in.wrap_swift_to_rust_arg_ffi_friendly(swift_bridge_path, &inner);
         } else {
             inner = quote! {
                 #ty_name ( #inner )
@@ -188,6 +181,33 @@ mod tests {
         assert_impl_fn_tokens_eq(start, &expected);
     }
 
+    /// Verify that we can call a Swift method with a &str and have it return an &str.
+    /// This verifies that our type conversions are being inserted for Swift methods.
+    #[test]
+    fn call_with_str_arg_and_return_str() {
+        let start = quote! {
+            mod foo {
+                extern "Swift" {
+                    type Foo;
+
+                    fn some_function (&self, arg: &str) -> &str;
+                }
+            }
+        };
+        let expected = quote! {
+            pub fn some_function (&self, arg: &str) -> &str {
+                unsafe {
+                    __swift_bridge__Foo_some_function(
+                        self.0,
+                        swift_bridge::string::RustStr::from_str(arg)
+                    )
+                }.to_str()
+            }
+        };
+
+        assert_impl_fn_tokens_eq(start, &expected);
+    }
+
     // impl Foo {
     //    // We're testing to make sure that we generated this function or method properly.
     //    fn some_function() {
@@ -196,7 +216,8 @@ mod tests {
     // }
     fn assert_impl_fn_tokens_eq(module: TokenStream, expected_impl_fn_tokens: &TokenStream) {
         let module = parse_ok(module);
-        let tokens = module.functions[0].to_impl_fn_calls_swift();
+        let tokens = module.functions[0]
+            .to_impl_fn_calls_swift(&syn::parse2(quote! {swift_bridge}).unwrap());
         assert_tokens_eq(&tokens, &expected_impl_fn_tokens);
     }
 }

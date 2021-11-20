@@ -112,7 +112,7 @@ impl ParsedExternFn {
     // fn foo (&self, arg1: u8, arg2: u32, &SomeType)
     //  becomes..
     // self.0, arg1, arg2, & unsafe { Box::from_raw(bar }
-    pub fn to_rust_call_args(&self) -> TokenStream {
+    pub fn to_call_rust_args(&self, swift_bridge_path: &Path) -> TokenStream {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
@@ -135,7 +135,17 @@ impl ParsedExternFn {
 
                     let mut arg = quote! {#pat};
 
-                    if BuiltInType::with_type(&pat_ty.ty).is_none() {
+                    if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                        if self.host_lang.is_rust() {
+                            arg = built_in
+                                .wrap_swift_to_rust_arg_ffi_friendly(swift_bridge_path, &arg);
+                        } else {
+                            arg = built_in.wrap_rust_to_swift_expression_ffi_friendly(
+                                swift_bridge_path,
+                                &arg,
+                            );
+                        };
+                    } else {
                         let (maybe_ref, maybe_mut) = match pat_ty.ty.deref() {
                             Type::Reference(ty_ref) => (Some(ty_ref.and_token), ty_ref.mutability),
                             _ => (None, None),
@@ -301,7 +311,8 @@ mod tests {
         assert_eq!(methods.len(), 6);
 
         for method in methods {
-            let rust_call_args = &method.to_rust_call_args();
+            let rust_call_args =
+                &method.to_call_rust_args(&syn::parse2(quote! { swift_bridge }).unwrap());
             assert_eq!(
                 rust_call_args.to_string(),
                 "",
@@ -374,7 +385,7 @@ mod tests {
             #[swift_bridge::bridge]
             mod ffi {
                 extern "Rust" {
-                    fn some_function (arg1: String, arg2: &String, arg3: &mut String) -> String;
+                    fn some_function (arg1: String) -> String;
                 }
             }
         };
@@ -382,14 +393,10 @@ mod tests {
             #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function (
-                arg1: *mut swift_bridge::string::RustString,
-                arg2: *mut swift_bridge::string::RustString,
-                arg3: *mut swift_bridge::string::RustString
+                arg1: *mut swift_bridge::string::RustString
             ) -> *mut swift_bridge::string::RustString {
                 swift_bridge::string::RustString(super::some_function(
-                    unsafe { Box::from_raw(arg1).0 },
-                    unsafe { & (& * arg2).0 },
-                    unsafe { &mut (&mut * arg3).0 }
+                    unsafe { Box::from_raw(arg1).0 }
                 )).box_into_raw()
             }
         };
@@ -414,7 +421,9 @@ mod tests {
             pub extern "C" fn __swift_bridge__some_function (
                 arg: swift_bridge::string::RustStr
             ) -> swift_bridge::string::RustStr {
-                super::some_function(arg.to_str())
+                swift_bridge::string::RustStr::from_str(
+                    super::some_function(arg.to_str())
+                )
             }
         };
 
