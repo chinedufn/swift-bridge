@@ -3,7 +3,7 @@ use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Pat, Path, ReturnType, Type};
+use syn::{Path, ReturnType, Type};
 
 impl ParsedExternFn {
     /// Generates:
@@ -27,7 +27,7 @@ impl ParsedExternFn {
     pub fn to_extern_c_function_tokens(&self, swift_bridge_path: &Path) -> TokenStream {
         let link_name = self.link_name();
 
-        let params = self.to_extern_c_param_names_and_types();
+        let params = self.to_extern_c_param_names_and_types(swift_bridge_path);
 
         let prefixed_fn_name = self.prefixed_fn_name();
 

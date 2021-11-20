@@ -8,6 +8,7 @@ use syn::spanned::Spanned;
 use syn::{FnArg, ForeignItemFn, Lifetime, Pat, Path, ReturnType, Token, Type};
 
 mod to_extern_c_fn;
+mod to_extern_c_param_names_and_types;
 mod to_rust_impl_call_swift;
 mod to_swift_func;
 
@@ -102,72 +103,6 @@ impl ParsedExternFn {
 }
 
 impl ParsedExternFn {
-    pub fn to_extern_c_param_names_and_types(&self) -> TokenStream {
-        let host_type = self.associated_type.as_ref().map(|h| &h.ident);
-        let mut params = vec![];
-        let inputs = &self.func.sig.inputs;
-        for arg in inputs {
-            match arg {
-                FnArg::Receiver(receiver) => match self.host_lang {
-                    HostLang::Rust => {
-                        let this = host_type.as_ref().unwrap();
-                        let this = quote! { this: *mut super:: #this };
-                        params.push(this);
-                    }
-                    HostLang::Swift => {
-                        let this = quote! { this: *mut std::ffi::c_void };
-                        params.push(this);
-                    }
-                },
-                FnArg::Typed(pat_ty) => {
-                    if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                        params.push(quote! {#pat_ty});
-                    } else {
-                        let arg_name = match pat_ty.pat.deref() {
-                            Pat::Ident(this) if this.ident.to_string() == "self" => {
-                                let this = Ident::new("this", this.span());
-                                quote! {
-                                    #this
-                                }
-                            }
-                            _ => {
-                                let arg_name = &pat_ty.pat;
-                                quote! {
-                                    #arg_name
-                                }
-                            }
-                        };
-
-                        if self.host_lang.is_rust() {
-                            let declared_ty = match pat_ty.ty.deref() {
-                                Type::Reference(ty_ref) => {
-                                    let ty = &ty_ref.elem;
-                                    quote! {#ty}
-                                }
-                                Type::Path(path) => {
-                                    quote! {#path}
-                                }
-                                _ => todo!(),
-                            };
-
-                            params.push(quote! {
-                                 #arg_name: *mut super::#declared_ty
-                            });
-                        } else {
-                            params.push(quote! {
-                                 #arg_name: *mut std::ffi::c_void
-                            });
-                        }
-                    }
-                }
-            };
-        }
-
-        quote! {
-            #(#params),*
-        }
-    }
-
     // extern Rust:
     // fn foo (&self, arg1: u8, arg2: u32, &SomeType)
     //  becomes..
@@ -347,37 +282,8 @@ mod tests {
     use super::*;
     use crate::errors::{ParseError, ParseErrors};
     use crate::parse::SwiftBridgeModuleAndErrors;
-    use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
+    use crate::test_utils::assert_tokens_eq;
     use crate::SwiftBridgeModule;
-
-    /// Verify that we rename `self` parameters to `this`
-    #[test]
-    fn renames_self_to_this_in_params() {
-        let tokens = quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                extern "Rust" {
-                    type Foo;
-                    fn make1 (self);
-                    fn make2 (&self);
-                    fn make3 (&mut self);
-                    fn make4 (self: Foo);
-                    fn make5 (self: &Foo);
-                    fn make6 (self: &mut Foo);
-                }
-            }
-        };
-        let module = parse_ok(tokens);
-        let methods = &module.functions;
-        assert_eq!(methods.len(), 6);
-
-        for method in methods {
-            assert_tokens_contain(
-                &method.to_extern_c_param_names_and_types(),
-                &quote! { this },
-            );
-        }
-    }
 
     /// Verify that when generating rust call args we do not include the receiver.
     #[test]
