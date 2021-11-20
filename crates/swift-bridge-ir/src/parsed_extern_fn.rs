@@ -276,6 +276,7 @@ mod tests {
     use super::*;
     use crate::errors::{ParseError, ParseErrors};
     use crate::parse::SwiftBridgeModuleAndErrors;
+    use crate::test_utils::assert_tokens_contain;
     use crate::SwiftBridgeModule;
 
     /// Verify that when generating rust call args we do not include the receiver.
@@ -364,6 +365,60 @@ mod tests {
         };
         let module = parse_ok(tokens);
         assert_eq!(module.functions.len(), 2);
+    }
+
+    /// Verify that we properly take and return String arguments
+    #[test]
+    fn extern_rust_strings() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    fn some_function (arg1: String, arg2: &String, arg3: &mut String) -> String;
+                }
+            }
+        };
+        let expected = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function (
+                arg1: *mut swift_bridge::string::RustString,
+                arg2: *mut swift_bridge::string::RustString,
+                arg3: *mut swift_bridge::string::RustString
+            ) -> *mut swift_bridge::string::RustString {
+                swift_bridge::string::RustString(super::some_function(
+                    unsafe { Box::from_raw(arg1).0 },
+                    unsafe { & (& * arg2).0 },
+                    unsafe { &mut (&mut * arg3).0 }
+                )).box_into_raw()
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(tokens).to_token_stream(), &expected);
+    }
+
+    /// Verify that we properly take and return &str arguments
+    #[test]
+    fn extern_rust_strs() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    fn some_function (arg: &str) -> &str;
+                }
+            }
+        };
+        let expected = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function (
+                arg: swift_bridge::string::RustStr
+            ) -> swift_bridge::string::RustStr {
+                super::some_function(arg.to_str())
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(tokens).to_token_stream(), &expected);
     }
 
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {

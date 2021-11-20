@@ -71,15 +71,7 @@ impl ParsedExternFn {
         };
 
         if let Some(ty) = self.return_ty_built_in() {
-            if ty.is_ref_slice() {
-                call_fn = quote! {
-                    #swift_bridge_path::RustSlice::from_slice( #call_fn )
-                };
-            } else if ty.is_string() {
-                call_fn = quote! {
-                    #swift_bridge_path::string::RustString( #call_fn ).box_into_raw()
-                };
-            }
+            call_fn = ty.wrap_rust_to_swift_expression_ffi_friendly(swift_bridge_path, &call_fn);
         }
 
         call_fn

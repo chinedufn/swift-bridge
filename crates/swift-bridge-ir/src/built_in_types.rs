@@ -238,6 +238,54 @@ impl BuiltInType {
         }
     }
 
+    // Wrap an expression of this BuiltInType to be suitable to send from Rust to Swift.
+    // String -> swiftbridge:string::RustString
+    // Str -> swiftbridge::string::RustStr
+    pub fn wrap_rust_to_swift_expression_ffi_friendly(
+        &self,
+        swift_bridge_path: &Path,
+        expression: &TokenStream,
+    ) -> TokenStream {
+        match self {
+            BuiltInType::Null
+            | BuiltInType::U8
+            | BuiltInType::I8
+            | BuiltInType::U16
+            | BuiltInType::I16
+            | BuiltInType::U32
+            | BuiltInType::I32
+            | BuiltInType::U64
+            | BuiltInType::I64
+            | BuiltInType::U128
+            | BuiltInType::I128
+            | BuiltInType::Usize
+            | BuiltInType::Isize
+            | BuiltInType::F32
+            | BuiltInType::F64 => {
+                quote! { #expression }
+            }
+            BuiltInType::Pointer(_) => {
+                //
+                todo!("Wrap pointer")
+            }
+            BuiltInType::RefSlice(_) => {
+                quote! {
+                    #swift_bridge_path::RustSlice::from_slice( #expression )
+                }
+            }
+            BuiltInType::Str => {
+                quote! {
+                    #swift_bridge_path::string::RustStr::from_str( #expression )
+                }
+            }
+            BuiltInType::String => {
+                quote! {
+                    #swift_bridge_path::string::RustString( #expression ).box_into_raw()
+                }
+            }
+        }
+    }
+
     pub fn needs_include_int_header(&self) -> bool {
         match self {
             BuiltInType::U8
@@ -256,14 +304,6 @@ impl BuiltInType {
             BuiltInType::RefSlice(slice) => slice.ty.needs_include_int_header(),
             _ => false,
         }
-    }
-
-    pub fn is_ref_slice(&self) -> bool {
-        matches!(self, BuiltInType::RefSlice(_))
-    }
-
-    pub fn is_string(&self) -> bool {
-        matches!(self, BuiltInType::String)
     }
 }
 

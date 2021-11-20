@@ -48,7 +48,7 @@ impl ParsedExternFn {
     }
 
     // fn foo (&self, arg1: u8, arg2: u32)
-    //  might become
+    //  might become (depending on whether we're including the receiver and/or the var name)
     //  - arg1, arg2
     //  - ptr, arg1, arg2
     //  - arg1: arg1, arg2: arg2
