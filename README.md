@@ -59,17 +59,19 @@ mod ffi {
 | name in Rust                                                    | name in Swift                                                    | notes               |
 | ---                                                             | ---                                                              | ---                 |
 | u8, i8, u16, i16... etc                                         | UInt8, Int8, UInt16, Int16 ... etc                               |                     |
-| String                                                          |                                                                  | Not yet implemented |
-| &str                                                            |                                                                  | Not yet implemented |
+| bool                                                            | Bool                                                             |                     |
+| String                                                          | RustString                                                       |                     |
+| &str                                                            | RustStr                                                          |                     |
 | Vec<T>                                                          |                                                                  | Not yet implemented |
 | SwiftArray                                                      | Array<T>                                                         | Not yet implemented |
-| &[T]                                                            |                                                                  |                     |
-| &mut [T]                                                        |                                                                  | Not yet implemented |
-| SwiftString                                                     | String                                                           | Not yet implemented |
+| &[T]                                                            | RustSlice<T>                                                     | Not yet implemented |
+| &mut [T]                                                        | RustSliceMut<T>                                                  | Not yet implemented |
+| SwiftString                                                     | String                                                           |                     |
 | Box<T>                                                          |                                                                  | Not yet implemented |
 | [T; N]                                                          |                                                                  | Not yet implemented |
 | *const T                                                        | UnsafePointer<T>                                                 | Not yet implemented |
 | *mut T                                                          | UnsafeMutablePointer<T>                                          | Not yet implemented |
+| Option<T>                                                       |                                                                  | Not yet implemented |
 | Result<T>                                                       |                                                                  | Not yet implemented |
 | Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                     |
 |                                                                 | Have a Swift standard library type in mind?<br /> Open an issue! |                     |

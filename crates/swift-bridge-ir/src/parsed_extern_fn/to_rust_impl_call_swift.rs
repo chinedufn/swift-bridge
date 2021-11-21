@@ -28,10 +28,9 @@ use syn::{FnArg, PatType, Path, Type, TypeReference};
 /// }
 /// ```
 impl ParsedExternFn {
-    pub fn to_impl_fn_calls_swift(&self, swift_bridge_path: &Path) -> TokenStream {
+    pub fn to_fn_calls_swift(&self, swift_bridge_path: &Path) -> TokenStream {
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
-        let ty_name = &self.associated_type.as_ref().unwrap().ident;
 
         let ret = &sig.output;
         let params = self.params_without_self_type_removd();
@@ -44,7 +43,8 @@ impl ParsedExternFn {
 
         if let Some(built_in) = BuiltInType::with_return_type(ret) {
             inner = built_in.wrap_swift_to_rust_arg_ffi_friendly(swift_bridge_path, &inner);
-        } else {
+        } else if let Some(bridged_ty) = &self.associated_type.as_ref() {
+            let ty_name = &bridged_ty.ident;
             inner = quote! {
                 #ty_name ( #inner )
             };
@@ -216,8 +216,8 @@ mod tests {
     // }
     fn assert_impl_fn_tokens_eq(module: TokenStream, expected_impl_fn_tokens: &TokenStream) {
         let module = parse_ok(module);
-        let tokens = module.functions[0]
-            .to_impl_fn_calls_swift(&syn::parse2(quote! {swift_bridge}).unwrap());
+        let tokens =
+            module.functions[0].to_fn_calls_swift(&syn::parse2(quote! {swift_bridge}).unwrap());
         assert_tokens_eq(&tokens, &expected_impl_fn_tokens);
     }
 }

@@ -11,6 +11,7 @@ fn main() {
         "./src/expose_opaque_rust_struct.rs",
         "./src/import_opaque_swift_class.rs",
         "./src/string.rs",
+        "./src/bool.rs",
     ])
     .write_all_concatenated(out_dir, "swift-integration-tests")
 }

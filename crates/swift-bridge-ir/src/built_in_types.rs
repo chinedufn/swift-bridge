@@ -21,6 +21,7 @@ pub(crate) enum BuiltInType {
     Isize,
     F32,
     F64,
+    Bool,
     Pointer(BuiltInPointer),
     RefSlice(BuiltInRefSlice),
     /// &str
@@ -113,6 +114,7 @@ impl BuiltInType {
             "f32" => BuiltInType::F32,
             "f64" => BuiltInType::F64,
             "String" => BuiltInType::String,
+            "bool" => BuiltInType::Bool,
             _ => return None,
         };
         return Some(ty);
@@ -134,6 +136,7 @@ impl BuiltInType {
             BuiltInType::F64 => quote! { f64 },
             BuiltInType::Usize => quote! { usize },
             BuiltInType::Isize => quote! { isize },
+            BuiltInType::Bool => quote! { bool },
             BuiltInType::Pointer(ptr) => {
                 let ty = ptr.ty.to_extern_rust_ident(swift_bridge_path);
                 match ptr.kind {
@@ -179,6 +182,7 @@ impl BuiltInType {
             BuiltInType::F64 => "Double".to_string(),
             BuiltInType::Usize => "UInt".to_string(),
             BuiltInType::Isize => "Int".to_string(),
+            BuiltInType::Bool => "Bool".to_string(),
             BuiltInType::Pointer(ptr) => {
                 let maybe_mutable = match ptr.kind {
                     PointerKind::Const => "",
@@ -223,6 +227,7 @@ impl BuiltInType {
             BuiltInType::F64 => "double".to_string(),
             BuiltInType::Usize => "uintptr_t".to_string(),
             BuiltInType::Isize => "intptr_t".to_string(),
+            BuiltInType::Bool => "bool".to_string(),
             BuiltInType::Pointer(ptr) => {
                 let maybe_const = match ptr.kind {
                     PointerKind::Const => " const ",
@@ -264,7 +269,8 @@ impl BuiltInType {
             | BuiltInType::Usize
             | BuiltInType::Isize
             | BuiltInType::F32
-            | BuiltInType::F64 => {
+            | BuiltInType::F64
+            | BuiltInType::Bool => {
                 quote! { #expression }
             }
             BuiltInType::Pointer(_) => {
@@ -316,7 +322,8 @@ impl BuiltInType {
             | BuiltInType::Usize
             | BuiltInType::Isize
             | BuiltInType::F32
-            | BuiltInType::F64 => {
+            | BuiltInType::F64
+            | BuiltInType::Bool => {
                 quote! { #arg }
             }
             BuiltInType::Pointer(_) => {
@@ -366,7 +373,8 @@ impl BuiltInType {
             | BuiltInType::Usize
             | BuiltInType::Isize
             | BuiltInType::F32
-            | BuiltInType::F64 => value.to_string(),
+            | BuiltInType::F64
+            | BuiltInType::Bool => value.to_string(),
             BuiltInType::Pointer(_) => value.to_string(),
             BuiltInType::RefSlice(_) => {
                 format!(
@@ -381,7 +389,7 @@ impl BuiltInType {
         }
     }
 
-    pub fn needs_include_int_header(&self) -> bool {
+    pub fn c_include(&self) -> Option<&'static str> {
         match self {
             BuiltInType::U8
             | BuiltInType::I8
@@ -394,10 +402,11 @@ impl BuiltInType {
             | BuiltInType::U128
             | BuiltInType::I128
             | BuiltInType::Usize
-            | BuiltInType::Isize => true,
-            BuiltInType::Pointer(ptr) => ptr.ty.needs_include_int_header(),
-            BuiltInType::RefSlice(slice) => slice.ty.needs_include_int_header(),
-            _ => false,
+            | BuiltInType::Isize => Some("stdint.h"),
+            BuiltInType::Bool => Some("stdbool.h"),
+            BuiltInType::Pointer(ptr) => ptr.ty.c_include(),
+            BuiltInType::RefSlice(slice) => slice.ty.c_include(),
+            _ => None,
         }
     }
 }

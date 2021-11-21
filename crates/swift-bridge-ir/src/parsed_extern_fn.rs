@@ -213,11 +213,13 @@ impl ParsedExternFn {
         }
     }
 
-    pub fn contains_ints(&self) -> bool {
+    pub fn c_includes(&self) -> Option<Vec<&'static str>> {
+        let mut includes = vec![];
+
         if let ReturnType::Type(_, ty) = &self.func.sig.output {
             if let Some(ty) = BuiltInType::with_type(&ty) {
-                if ty.needs_include_int_header() {
-                    return true;
+                if let Some(include) = ty.c_include() {
+                    includes.push(include);
                 }
             }
         }
@@ -225,14 +227,18 @@ impl ParsedExternFn {
         for param in &self.func.sig.inputs {
             if let FnArg::Typed(pat_ty) = param {
                 if let Some(ty) = BuiltInType::with_type(&pat_ty.ty) {
-                    if ty.needs_include_int_header() {
-                        return true;
+                    if let Some(include) = ty.c_include() {
+                        includes.push(include);
                     }
                 }
             }
         }
 
-        false
+        if includes.len() > 0 {
+            Some(includes)
+        } else {
+            None
+        }
     }
 }
 

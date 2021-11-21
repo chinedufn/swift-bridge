@@ -15,7 +15,8 @@ impl ToTokens for SwiftBridgeModule {
 
         let mut structs_for_swift_classes = vec![];
 
-        let mut extern_swift_impl_fn_tokens: HashMap<String, Vec<TokenStream>> = HashMap::new();
+        let mut impl_fn_tokens: HashMap<String, Vec<TokenStream>> = HashMap::new();
+        let mut freestanding_rust_call_swift_fn_tokens = vec![];
         let mut extern_swift_fn_tokens = vec![];
 
         for func in &self.functions {
@@ -25,12 +26,15 @@ impl ToTokens for SwiftBridgeModule {
                         .push(func.to_extern_c_function_tokens(&self.swift_bridge_path));
                 }
                 HostLang::Swift => {
+                    let tokens = func.to_fn_calls_swift(&self.swift_bridge_path);
+
                     if let Some(ty) = func.associated_type.as_ref() {
-                        let tokens = func.to_impl_fn_calls_swift(&self.swift_bridge_path);
-                        extern_swift_impl_fn_tokens
+                        impl_fn_tokens
                             .entry(ty.ident.to_string())
                             .or_default()
                             .push(tokens);
+                    } else {
+                        freestanding_rust_call_swift_fn_tokens.push(tokens);
                     }
 
                     extern_swift_fn_tokens
@@ -62,7 +66,7 @@ impl ToTokens for SwiftBridgeModule {
                 HostLang::Swift => {
                     let ty_name = &ty.ident;
 
-                    let impls = match extern_swift_impl_fn_tokens.get(&ty_name.to_string()) {
+                    let impls = match impl_fn_tokens.get(&ty_name.to_string()) {
                         Some(impls) if impls.len() > 0 => {
                             quote! {
                                 impl #ty_name {
@@ -100,6 +104,8 @@ impl ToTokens for SwiftBridgeModule {
         let externs = if extern_swift_fn_tokens.len() > 0 {
             quote! {
                 #(#extern_rust_fn_tokens)*
+
+                #(#freestanding_rust_call_swift_fn_tokens)*
 
                 #(#structs_for_swift_classes)*
 
@@ -193,9 +199,40 @@ mod tests {
         };
         let expected = quote! {
             mod foo {
+                pub fn some_function() {
+                    unsafe { __swift_bridge__some_function() }
+                }
+
                 extern "C" {
                     #[link_name = "__swift_bridge__$some_function"]
                     fn __swift_bridge__some_function ();
+                }
+            }
+        };
+
+        assert_tokens_eq(&parse_ok(start).to_token_stream(), &expected);
+    }
+
+    /// Verify that we generate functions for calling a freestanding extern Swift function with
+    /// one argument.
+    #[test]
+    fn freestanding_swift_function_one_arg() {
+        let start = quote! {
+            mod foo {
+                extern "Swift" {
+                    fn some_function (start: bool);
+                }
+            }
+        };
+        let expected = quote! {
+            mod foo {
+                pub fn some_function(start: bool) {
+                    unsafe { __swift_bridge__some_function(start) }
+                }
+
+                extern "C" {
+                    #[link_name = "__swift_bridge__$some_function"]
+                    fn __swift_bridge__some_function (start: bool);
                 }
             }
         };
