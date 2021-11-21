@@ -10,7 +10,9 @@ use syn::{File, Item};
 
 /// Parse rust sources files for `#\[swift_bridge::bridge\]` headers and generate the corresponding
 /// Swift files.
-pub fn bridge(rust_source_files: impl IntoIterator<Item = impl AsRef<Path>>) -> GeneratedCode {
+pub fn parse_bridges(
+    rust_source_files: impl IntoIterator<Item = impl AsRef<Path>>,
+) -> GeneratedCode {
     let mut generated_code = GeneratedCode::new();
 
     for rust_file in rust_source_files.into_iter() {

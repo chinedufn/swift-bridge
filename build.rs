@@ -4,7 +4,7 @@ fn main() {
     if let Ok(out_dir) = std::env::var("SWIFT_BRIDGE_OUT_DIR") {
         let out_dir = PathBuf::from(out_dir);
 
-        let generated = swift_bridge_build::bridge(vec![
+        let generated = swift_bridge_build::parse_bridges(vec![
             //
             manifest_dir().join("src/std_bridge/string.rs"),
         ]);
