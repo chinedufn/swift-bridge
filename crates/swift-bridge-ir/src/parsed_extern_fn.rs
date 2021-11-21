@@ -75,7 +75,7 @@ impl ParsedExternFn {
             }
             ReturnType::Type(arrow, ty) => {
                 if let Some(built_in) = BuiltInType::with_type(&ty) {
-                    let ty = built_in.to_extern_rust_ident(swift_bridge_path);
+                    let ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path);
                     quote! {#arrow #ty}
                 } else {
                     quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }
@@ -137,10 +137,9 @@ impl ParsedExternFn {
 
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
                         if self.host_lang.is_rust() {
-                            arg = built_in
-                                .wrap_swift_to_rust_arg_ffi_friendly(swift_bridge_path, &arg);
+                            arg = built_in.convert_ffi_value_to_rust_value(swift_bridge_path, &arg);
                         } else {
-                            arg = built_in.wrap_rust_to_swift_expression_ffi_friendly(
+                            arg = built_in.convert_rust_value_to_ffi_compatible_value(
                                 swift_bridge_path,
                                 &arg,
                             );

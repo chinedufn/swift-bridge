@@ -3,3 +3,4 @@ mod import_opaque_swift_class;
 
 mod bool;
 mod string;
+mod vec;

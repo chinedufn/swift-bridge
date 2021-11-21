@@ -59,7 +59,7 @@ impl SwiftBridgeModule {
 
         for slice_ty in bookkeeping.slice_types.iter() {
             header = format!(
-                r#"typedef struct RustSlice_{slice_ty} {{ {slice_ty}* start; uintptr_t len; }} RustSlice_{slice_ty};
+                r#"typedef struct FfiSlice_{slice_ty} {{ {slice_ty}* start; uintptr_t len; }} FfiSlice_{slice_ty};
 {header}"#,
                 slice_ty = slice_ty,
                 header = header
@@ -310,8 +310,8 @@ uint8_t __swift_bridge__$SomeType$foo(void* self);
         assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
     }
 
-    /// Verify that we define a RustSlice_T struct if we return a slice of type T.
-    /// We make sure to only define one instance of RustSlice_T even if there are multiple functions
+    /// Verify that we define a FfiSlice_T struct if we return a slice of type T.
+    /// We make sure to only define one instance of FfiSlice_T even if there are multiple functions
     /// that need it.
     #[test]
     fn slice_return() {
@@ -326,9 +326,9 @@ uint8_t __swift_bridge__$SomeType$foo(void* self);
         };
         let expected = r#"
 #include <stdint.h>
-typedef struct RustSlice_uint8_t { uint8_t* start; uintptr_t len; } RustSlice_uint8_t;
-struct RustSlice_uint8_t __swift_bridge__$foo(void);
-struct RustSlice_uint8_t __swift_bridge__$bar(void);
+typedef struct FfiSlice_uint8_t { uint8_t* start; uintptr_t len; } FfiSlice_uint8_t;
+struct FfiSlice_uint8_t __swift_bridge__$foo(void);
+struct FfiSlice_uint8_t __swift_bridge__$bar(void);
         "#;
 
         let module = parse_ok(tokens);

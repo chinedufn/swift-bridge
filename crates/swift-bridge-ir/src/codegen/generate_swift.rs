@@ -159,7 +159,7 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
     let maybe_return = if function.is_initializer {
         "".to_string()
     } else {
-        function.to_swift_return(false)
+        function.to_swift_return_type(false)
     };
 
     let swift_class_func_name = if function.is_initializer {
@@ -183,7 +183,7 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
     let call_rust = if function.is_initializer {
         format!("ptr = {}", call_rust)
     } else if let Some(built_in) = function.return_ty_built_in() {
-        built_in.wrap_swift_called_rust_ffi_returned_value(&call_rust)
+        built_in.convert_ffi_value_to_swift_value(&call_rust)
     } else {
         call_rust
     };
@@ -209,7 +209,7 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
     let fn_name = &func.sig.ident;
 
     let params = func.to_swift_param_names_and_types(true);
-    let ret = func.to_swift_return(true);
+    let ret = func.to_swift_return_type(true);
 
     let args = func.to_swift_call_args(false, true);
     let mut call_fn = format!("{}({})", fn_name, args);
@@ -231,18 +231,7 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
     }
 
     if let Some(built_in) = BuiltInType::with_return_type(&func.sig.output) {
-        match built_in {
-            BuiltInType::RefSlice(ref_slice) => {
-                // TODO: Move this wrapping logic into the BuiltInType file behind a match statement.
-                //  This way all of our type conversions are in one place.
-                call_fn = format!(
-                    r#"let buffer_pointer = {}
-    return __private__RustSlice(start: UnsafeMutablePointer(mutating: buffer_pointer.baseAddress), len: UInt(buffer_pointer.count))"#,
-                    call_fn,
-                );
-            }
-            _ => {}
-        };
+        call_fn = built_in.convert_swift_expression_to_ffi_compatible(&call_fn);
     }
 
     let generated_func = format!(
@@ -327,9 +316,9 @@ func __swift_bridge__foo () {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$foo")
-func __swift_bridge__foo () -> RustSlice_uint8_t {
+func __swift_bridge__foo () -> FfiSlice_uint8_t {
     let buffer_pointer = foo()
-    return RustSlice_uint8_t(start: UnsafeMutablePointer(mutating: buffer_pointer.baseAddress), len: UInt(buffer_pointer.count))
+    return FfiSlice_uint8_t(start: UnsafeMutablePointer(mutating: buffer_pointer.baseAddress), len: UInt(buffer_pointer.count))
 } 
 "#;
 

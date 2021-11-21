@@ -71,7 +71,7 @@ impl ParsedExternFn {
         };
 
         if let Some(ty) = self.return_ty_built_in() {
-            call_fn = ty.wrap_rust_to_swift_expression_ffi_friendly(swift_bridge_path, &call_fn);
+            call_fn = ty.convert_rust_value_to_ffi_compatible_value(swift_bridge_path, &call_fn);
         }
 
         call_fn
@@ -140,7 +140,7 @@ mod tests {
     use crate::test_utils::{assert_tokens_eq, parse_ok};
     use quote::quote;
 
-    /// Verify that we convert &[T] -> swift_bridge::RustSlice<T>
+    /// Verify that we convert &[T] -> swift_bridge::FfiSlice<T>
     #[test]
     fn wraps_extern_rust_slice() {
         let tokens = quote! {
@@ -154,8 +154,8 @@ mod tests {
         let expected_fn = quote! {
             #[no_mangle]
             #[export_name = "__swift_bridge__$make_slice"]
-            pub extern "C" fn __swift_bridge__make_slice() -> swift_bridge::RustSlice<u8> {
-                swift_bridge::RustSlice::from_slice(super::make_slice())
+            pub extern "C" fn __swift_bridge__make_slice() -> swift_bridge::FfiSlice<u8> {
+                swift_bridge::FfiSlice::from_slice(super::make_slice())
             }
         };
 

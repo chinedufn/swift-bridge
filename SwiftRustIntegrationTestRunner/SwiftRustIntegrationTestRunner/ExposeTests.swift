@@ -22,3 +22,8 @@ public func runOpaqueSwiftClassTests () {
 public func createRustString (str: RustStr) -> RustString {
     create_string(str)
 }
+
+
+
+
+

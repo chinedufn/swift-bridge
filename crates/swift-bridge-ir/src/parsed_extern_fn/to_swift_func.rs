@@ -29,7 +29,7 @@ impl ParsedExternFn {
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                        format!("{}: {}", arg_name, built_in.to_swift(false))
+                        format!("{}: {}", arg_name, built_in.to_swift_type(false))
                     } else {
                         // &mut Foo -> "& mut Foo"
                         let ty = pat_ty.ty.to_token_stream().to_string();
@@ -85,7 +85,8 @@ impl ParsedExternFn {
                         arg
                     };
 
-                    if let Some(_built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                    if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                        let arg = built_in.convert_swift_expression_to_ffi_compatible(&arg);
                         args.push(arg);
                     } else {
                         args.push(format!("{}.ptr", arg));
@@ -97,12 +98,12 @@ impl ParsedExternFn {
         args.join(", ")
     }
 
-    pub fn to_swift_return(&self, must_be_c_compatible: bool) -> String {
+    pub fn to_swift_return_type(&self, must_be_c_compatible: bool) -> String {
         match &self.func.sig.output {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(built_in) = BuiltInType::with_type(&ty) {
-                    format!(" -> {}", built_in.to_swift(must_be_c_compatible))
+                    format!(" -> {}", built_in.to_swift_type(must_be_c_compatible))
                 } else {
                     format!(" -> UnsafeMutableRawPointer")
                 }
@@ -138,7 +139,7 @@ mod tests {
 
         for idx in 0..3 {
             assert_eq!(
-                functions[idx].to_swift_return(false),
+                functions[idx].to_swift_return_type(false),
                 " -> UnsafeMutableRawPointer"
             );
         }
@@ -218,6 +219,27 @@ mod tests {
         for idx in 0..3 {
             assert_eq!(functions[idx].to_swift_call_args(true, false), "other.ptr");
         }
+    }
+
+    /// Verify that we are calling .convert_swift_expression_to_ffi_compatible() on Swift -> FFI
+    /// arguments.
+    #[test]
+    fn converts_unsafe_buffer_pointer_to_ffi_slice() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    fn some_function (someArg: &[u8]);
+                }
+            }
+        };
+        let module = parse_ok(tokens);
+        let functions = &module.functions;
+
+        assert_eq!(
+            functions[0].to_swift_call_args(false, false),
+            "someArg.toFfiSlice()"
+        );
     }
 
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {

@@ -62,15 +62,15 @@ mod ffi {
 | bool                                                            | Bool                                                             |                     |
 | String                                                          | RustString                                                       |                     |
 | &str                                                            | RustStr                                                          |                     |
-| Vec<T>                                                          | RustVec\<T>                                                      | Not yet implemented |
+| Vec<T>                                                          | RustVec\<T>                                                      |                     |
 | SwiftArray\<T>                                                  | Array\<T>                                                        | Not yet implemented |
 | &[T]                                                            | UnsafeBufferPointer\<T>                                          |                     |
 | &mut [T]                                                        | UnsafeMutableBufferPointer\<T>                                   | Not yet implemented |
 | SwiftString                                                     | String                                                           |                     |
 | Box<T>                                                          |                                                                  | Not yet implemented |
 | [T; N]                                                          |                                                                  | Not yet implemented |
-| *const T                                                        | UnsafePointer\<T>                                                | Not yet implemented |
-| *mut T                                                          | UnsafeMutablePointer\<T>                                         | Not yet implemented |
+| *const T                                                        | UnsafePointer\<T>                                                |                     |
+| *mut T                                                          | UnsafeMutablePointer\<T>                                         |                     |
 | Option\<T>                                                      |                                                                  | Not yet implemented |
 | Result\<T>                                                      |                                                                  | Not yet implemented |
 | Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                     |

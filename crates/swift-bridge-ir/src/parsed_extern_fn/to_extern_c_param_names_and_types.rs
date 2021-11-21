@@ -29,7 +29,7 @@ impl ParsedExternFn {
                 FnArg::Typed(pat_ty) => {
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
                         let pat = &pat_ty.pat;
-                        let ty = built_in.to_extern_rust_ident(swift_bridge_path);
+                        let ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path);
                         params.push(quote! { #pat: #ty});
                         continue;
                     }

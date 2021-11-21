@@ -10,8 +10,9 @@ fn main() {
     swift_bridge_build::bridge(vec![
         "./src/expose_opaque_rust_struct.rs",
         "./src/import_opaque_swift_class.rs",
-        "./src/string.rs",
         "./src/bool.rs",
+        "./src/string.rs",
+        "./src/vec.rs",
     ])
     .write_all_concatenated(out_dir, "swift-integration-tests")
 }

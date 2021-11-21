@@ -42,7 +42,7 @@ impl ParsedExternFn {
         };
 
         if let Some(built_in) = BuiltInType::with_return_type(ret) {
-            inner = built_in.wrap_swift_to_rust_arg_ffi_friendly(swift_bridge_path, &inner);
+            inner = built_in.convert_ffi_value_to_rust_value(swift_bridge_path, &inner);
         } else if let Some(bridged_ty) = &self.associated_type.as_ref() {
             let ty_name = &bridged_ty.ident;
             inner = quote! {
@@ -160,7 +160,7 @@ mod tests {
         assert_impl_fn_tokens_eq(start, &expected);
     }
 
-    /// Verify that we convert RustSlice<T> -> &[T]
+    /// Verify that we convert FfiSlice<T> -> &[T]
     #[test]
     fn converts_slice() {
         let start = quote! {
