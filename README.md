@@ -69,10 +69,10 @@ mod ffi {
 | SwiftString                                                     | String                                                           |                     |
 | Box<T>                                                          |                                                                  | Not yet implemented |
 | [T; N]                                                          |                                                                  | Not yet implemented |
-| *const T                                                        | UnsafePointer<T>                                                 | Not yet implemented |
-| *mut T                                                          | UnsafeMutablePointer<T>                                          | Not yet implemented |
-| Option<T>                                                       |                                                                  | Not yet implemented |
-| Result<T>                                                       |                                                                  | Not yet implemented |
+| *const T                                                        | UnsafePointer\<T>                                                 | Not yet implemented |
+| *mut T                                                          | UnsafeMutablePointer\<T>                                          | Not yet implemented |
+| Option\<T>                                                       |                                                                  | Not yet implemented |
+| Result\<T>                                                       |                                                                  | Not yet implemented |
 | Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                     |
 |                                                                 | Have a Swift standard library type in mind?<br /> Open an issue! |                     |
 
