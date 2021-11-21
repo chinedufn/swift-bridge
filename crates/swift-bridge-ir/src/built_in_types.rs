@@ -197,7 +197,7 @@ impl BuiltInType {
             }
             BuiltInType::RefSlice(slice) => {
                 if must_be_c_compatible {
-                    format!("RustSlice_{}", slice.ty.to_c())
+                    "__private__RustSlice".to_string()
                 } else {
                     format!(
                         "UnsafeBufferPointer<{}>",
@@ -205,7 +205,7 @@ impl BuiltInType {
                     )
                 }
             }
-            BuiltInType::Null => "".to_string(),
+            BuiltInType::Null => "()".to_string(),
             BuiltInType::Str => "RustStr".to_string(),
             BuiltInType::String => "RustString".to_string(),
         }
@@ -235,9 +235,7 @@ impl BuiltInType {
                 };
                 format!("{}{}*", ptr.ty.to_c(), maybe_const)
             }
-            BuiltInType::RefSlice(slice) => {
-                format!("struct RustSlice_{}", slice.ty.to_c())
-            }
+            BuiltInType::RefSlice(_slice) => "struct __private__RustSlice".to_string(),
             BuiltInType::Str => "struct RustStr".to_string(),
             BuiltInType::Null => "void".to_string(),
             BuiltInType::String => "void*".to_string(),
@@ -376,10 +374,11 @@ impl BuiltInType {
             | BuiltInType::F64
             | BuiltInType::Bool => value.to_string(),
             BuiltInType::Pointer(_) => value.to_string(),
-            BuiltInType::RefSlice(_) => {
+            BuiltInType::RefSlice(ty) => {
                 format!(
-                    r#"let slice = {value}; return UnsafeBufferPointer(start: slice.start, count: Int(slice.len));"#,
-                    value = value
+                    r#"let slice = {value}; return UnsafeBufferPointer(start: slice.start.assumingMemoryBound(to: {ty}.self), count: Int(slice.len));"#,
+                    value = value,
+                    ty = ty.ty.to_swift(false)
                 )
             }
             BuiltInType::Str => value.to_string(),

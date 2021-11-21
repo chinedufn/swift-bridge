@@ -1,7 +1,5 @@
 pub use self::ffi::*;
 
-// TODO: Also look for `#[swift_bridge_macro]` in -build crate.
-
 #[swift_bridge_macro::bridge(swift_bridge_path = crate)]
 mod ffi {
     extern "Rust" {

@@ -233,11 +233,12 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
     if let Some(built_in) = BuiltInType::with_return_type(&func.sig.output) {
         match built_in {
             BuiltInType::RefSlice(ref_slice) => {
+                // TODO: Move this wrapping logic into the BuiltInType file behind a match statement.
+                //  This way all of our type conversions are in one place.
                 call_fn = format!(
                     r#"let buffer_pointer = {}
-    return RustSlice_{}(start: UnsafeMutablePointer(mutating: buffer_pointer.baseAddress), len: UInt(buffer_pointer.count))"#,
+    return __private__RustSlice(start: UnsafeMutablePointer(mutating: buffer_pointer.baseAddress), len: UInt(buffer_pointer.count))"#,
                     call_fn,
-                    ref_slice.ty.to_c()
                 );
             }
             _ => {}

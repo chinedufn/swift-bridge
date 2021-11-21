@@ -38,6 +38,7 @@ fn core_swift() -> String {
 fn core_c_header() -> &'static str {
     r#"#include <stdint.h>
 typedef struct RustStr { uint8_t* const start; uintptr_t len; } RustStr;
+typedef struct __private__RustSlice { void* const start; uintptr_t len; } __private__RustSlice;
 "#
 }
 
