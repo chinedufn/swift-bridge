@@ -327,8 +327,8 @@ uint8_t __swift_bridge__$SomeType$foo(void* self);
         let expected = r#"
 #include <stdint.h>
 typedef struct FfiSlice_uint8_t { uint8_t* start; uintptr_t len; } FfiSlice_uint8_t;
-struct FfiSlice_uint8_t __swift_bridge__$foo(void);
-struct FfiSlice_uint8_t __swift_bridge__$bar(void);
+struct __private__FfiSlice __swift_bridge__$foo(void);
+struct __private__FfiSlice __swift_bridge__$bar(void);
         "#;
 
         let module = parse_ok(tokens);

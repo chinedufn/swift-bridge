@@ -137,7 +137,11 @@ impl ParsedExternFn {
 
                     if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
                         if self.host_lang.is_rust() {
-                            arg = built_in.convert_ffi_value_to_rust_value(swift_bridge_path, &arg);
+                            arg = built_in.convert_ffi_value_to_rust_value(
+                                swift_bridge_path,
+                                &arg,
+                                false,
+                            );
                         } else {
                             arg = built_in.convert_rust_value_to_ffi_compatible_value(
                                 swift_bridge_path,

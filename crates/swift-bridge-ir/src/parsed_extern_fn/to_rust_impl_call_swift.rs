@@ -42,7 +42,7 @@ impl ParsedExternFn {
         };
 
         if let Some(built_in) = BuiltInType::with_return_type(ret) {
-            inner = built_in.convert_ffi_value_to_rust_value(swift_bridge_path, &inner);
+            inner = built_in.convert_ffi_value_to_rust_value(swift_bridge_path, &inner, true);
         } else if let Some(bridged_ty) = &self.associated_type.as_ref() {
             let ty_name = &bridged_ty.ident;
             inner = quote! {

@@ -18,7 +18,7 @@ class StringTests: XCTestCase {
     }
 
     func testSwiftString() throws {
-        runStringTests()
+        run_string_tests()
     }
     
     func testRustString() throws {

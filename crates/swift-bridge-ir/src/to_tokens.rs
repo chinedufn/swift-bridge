@@ -7,6 +7,8 @@ use quote::ToTokens;
 use crate::parse::HostLang;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
+mod option;
+
 impl ToTokens for SwiftBridgeModule {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let mod_name = &self.name;

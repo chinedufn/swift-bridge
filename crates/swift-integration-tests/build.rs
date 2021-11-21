@@ -11,6 +11,7 @@ fn main() {
         "./src/expose_opaque_rust_struct.rs",
         "./src/import_opaque_swift_class.rs",
         "./src/bool.rs",
+        "./src/option.rs",
         "./src/string.rs",
         "./src/vec.rs",
     ])

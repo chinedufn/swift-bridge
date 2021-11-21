@@ -46,6 +46,19 @@ Inner Tokens:
     )
 }
 
+pub fn assert_generated_contains_expected(generated: &str, expected: &str) {
+    assert!(
+        generated.trim().contains(&expected.trim()),
+        r#"Expected was not contained by generated.
+Generated:
+{}
+Expected:
+{}"#,
+        generated.trim(),
+        expected.trim()
+    );
+}
+
 pub(crate) fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
     let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
     module_and_errors.module

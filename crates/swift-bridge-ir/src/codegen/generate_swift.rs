@@ -4,6 +4,8 @@ use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{BridgedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use std::collections::HashMap;
 
+mod option;
+
 impl SwiftBridgeModule {
     /// Generate the corresponding Swift code for the bridging module.
     pub fn generate_swift(&self) -> String {
@@ -252,6 +254,7 @@ func {prefixed_fn_name} ({params}){ret} {{
 
 #[cfg(test)]
 mod tests {
+    use crate::test_utils::assert_generated_contains_expected;
     use crate::SwiftBridgeModule;
     use quote::quote;
     use syn::parse_quote;
@@ -316,9 +319,8 @@ func __swift_bridge__foo () {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$foo")
-func __swift_bridge__foo () -> FfiSlice_uint8_t {
-    let buffer_pointer = foo()
-    return FfiSlice_uint8_t(start: UnsafeMutablePointer(mutating: buffer_pointer.baseAddress), len: UInt(buffer_pointer.count))
+func __swift_bridge__foo () -> __private__FfiSlice {
+    foo().toFfiSlice()
 } 
 "#;
 
@@ -385,7 +387,7 @@ func foo() -> UInt32 {
 
         let expected = r#"
 func foo() -> UnsafeBufferPointer<UInt8> {
-    let slice = __swift_bridge__$foo(); return UnsafeBufferPointer(start: slice.start, count: Int(slice.len));
+    let slice = __swift_bridge__$foo(); return UnsafeBufferPointer(start: slice.start.assumingMemoryBound(to: UInt8.self), count: Int(slice.len));
 } 
 "#;
 
@@ -768,7 +770,7 @@ func __swift_bridge__Foo_bar (_ arg: UInt8) {
 }
 "#;
 
-        assert_generated_contains_expected(generated.trim(), expected.trim());
+        assert_generated_contains_expected(&generated, expected);
     }
 
     /// Verify that we properly generate a Swift function that returns a String.
@@ -791,18 +793,5 @@ func foo() -> RustString {
 "#;
 
         assert_eq!(generated.trim(), expected.trim());
-    }
-
-    fn assert_generated_contains_expected(generated: &str, expected: &str) {
-        assert!(
-            generated.trim().contains(&expected.trim()),
-            r#"Expected was not contained by generated.
-Generated:
-{}
-Expected:
-{}"#,
-            generated.trim(),
-            expected.trim()
-        );
     }
 }

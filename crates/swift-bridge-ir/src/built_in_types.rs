@@ -26,6 +26,7 @@ pub(crate) enum BuiltInType {
     Str,
     String,
     Vec(BuiltInVec),
+    Option(BuiltInOption),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -49,6 +50,12 @@ pub(crate) struct BuiltInRefSlice {
 /// Vec<T>
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct BuiltInVec {
+    pub ty: Box<BuiltInType>,
+}
+
+/// Option<T>
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) struct BuiltInOption {
     pub ty: Box<BuiltInType>,
 }
 
@@ -109,6 +116,14 @@ impl BuiltInType {
             let inner = BuiltInType::with_str(inner)?;
 
             return Some(BuiltInType::Vec(BuiltInVec {
+                ty: Box::new(inner),
+            }));
+        } else if string.starts_with("Option < ") {
+            let inner = string.trim_start_matches("Option < ");
+            let inner = inner.trim_end_matches(" >");
+            let inner = BuiltInType::with_str(inner)?;
+
+            return Some(BuiltInType::Option(BuiltInOption {
                 ty: Box::new(inner),
             }));
         }
@@ -177,6 +192,10 @@ impl BuiltInType {
                 let ty = v.ty.to_rust();
                 quote! { Vec<#ty> }
             }
+            BuiltInType::Option(opt) => {
+                let ty = opt.ty.to_rust();
+                quote! { Option<#ty> }
+            }
         }
     }
 
@@ -228,11 +247,15 @@ impl BuiltInType {
                 let ty = ty.ty.to_rust();
                 quote! { *mut Vec<#ty> }
             }
+            BuiltInType::Option(opt) => opt.ty.to_rust(),
         };
 
         quote!(#ty)
     }
 
+    // U8 -> UInt8
+    // *const u32 -> UnsafePointer<UInt32>
+    // ... etc
     pub fn to_swift_type(&self, must_be_c_compatible: bool) -> String {
         match self {
             BuiltInType::U8 => "UInt8".to_string(),
@@ -276,6 +299,13 @@ impl BuiltInType {
             BuiltInType::Vec(ty) => {
                 format!("RustVec<{}>", ty.ty.to_swift_type(must_be_c_compatible))
             }
+            BuiltInType::Option(opt) => {
+                if must_be_c_compatible {
+                    opt.ty.to_swift_type(must_be_c_compatible)
+                } else {
+                    format!("Optional<{}>", opt.ty.to_swift_type(must_be_c_compatible))
+                }
+            }
         }
     }
 
@@ -306,6 +336,7 @@ impl BuiltInType {
             BuiltInType::Null => "void".to_string(),
             BuiltInType::String => "void*".to_string(),
             BuiltInType::Vec(_) => "void*".to_string(),
+            BuiltInType::Option(opt) => opt.ty.to_c(),
         }
     }
 
@@ -359,6 +390,19 @@ impl BuiltInType {
             BuiltInType::Vec(_) => {
                 quote! { Box::into_raw(Box::new( #expression )) }
             }
+            BuiltInType::Option(opt) => {
+                let ty = opt.ty.to_rust();
+
+                quote! {
+                    if let Some(val) = #expression {
+                        #swift_bridge_path::option::_set_option_return(true);
+                        val
+                    } else {
+                        #swift_bridge_path::option::_set_option_return(false);
+                        <#ty as #swift_bridge_path::option::FfiOptional>::unused_value()
+                    }
+                }
+            }
         }
     }
 
@@ -371,7 +415,8 @@ impl BuiltInType {
     pub fn convert_ffi_value_to_rust_value(
         &self,
         _swift_bridge_path: &Path,
-        arg: &TokenStream,
+        value: &TokenStream,
+        is_returned_value: bool,
     ) -> TokenStream {
         match self {
             BuiltInType::Null
@@ -388,25 +433,39 @@ impl BuiltInType {
             | BuiltInType::F32
             | BuiltInType::F64
             | BuiltInType::Bool => {
-                quote! { #arg }
+                quote! { #value }
             }
             BuiltInType::Pointer(_) => {
-                quote! { #arg }
+                quote! { #value }
             }
             BuiltInType::RefSlice(_reference) => {
-                quote! { #arg.as_slice() }
+                quote! { #value.as_slice() }
             }
             BuiltInType::Str => {
-                quote! { #arg.to_str() }
+                quote! { #value.to_str() }
             }
             BuiltInType::String => {
                 quote! {
-                    unsafe { Box::from_raw(#arg).0 }
+                    unsafe { Box::from_raw(#value).0 }
                 }
             }
             BuiltInType::Vec(_) => {
                 quote! {
-                    unsafe { Box::from_raw(#arg) }
+                    unsafe { Box::from_raw(#value) }
+                }
+            }
+            BuiltInType::Option(_) => {
+                if is_returned_value {
+                    quote! {
+                        let value = #value;
+                        if swift_bridge::option::_get_option_return() {
+                            Some(value)
+                        } else {
+                            None
+                        }
+                    }
+                } else {
+                    todo!("Option<T> function arguments are not yet supported.")
                 }
             }
         }
@@ -457,6 +516,9 @@ impl BuiltInType {
             BuiltInType::Vec(ty) => {
                 format!("RustVec(ptr: {}, isOwned: true)", value)
             }
+            BuiltInType::Option(_) => {
+                format!("let val = {val}; if _get_option_return() {{ return val; }} else {{ return nil; }}", val = value)
+            }
         }
     }
 
@@ -490,17 +552,15 @@ impl BuiltInType {
             | BuiltInType::Bool
             | BuiltInType::Pointer(_) => value.to_string(),
             BuiltInType::RefSlice(_) => {
-                //             format!(
-                //                 r#"let buffer_pointer = {}
-                // return __private__FfiSlice(start: UnsafeMutablePointer(mutating: buffer_pointer.baseAddress), len: UInt(buffer_pointer.count))"#,
-                //                 value,
-                //             )
                 format!("{}.toFfiSlice()", value)
             }
             BuiltInType::Str => value.to_string(),
             BuiltInType::String => value.to_string(),
             BuiltInType::Vec(_) => {
                 format!("{}.ptr", value)
+            }
+            BuiltInType::Option(_) => {
+                format!("if case let val? = {value} {{ return markReturnTypeSome(val); }} else {{ return markReturnTypeNone(); }}", value = value)
             }
         }
     }
@@ -552,6 +612,12 @@ mod tests {
             (
                 quote! { Vec<u32>},
                 BuiltInType::Vec(BuiltInVec {
+                    ty: Box::new(BuiltInType::U32),
+                }),
+            ),
+            (
+                quote! { Option<u32>},
+                BuiltInType::Option(BuiltInOption {
                     ty: Box::new(BuiltInType::U32),
                 }),
             ),

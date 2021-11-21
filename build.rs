@@ -32,6 +32,7 @@ fn core_swift() -> String {
 
     core_swift += include_str!("src/std_bridge/string.swift");
     core_swift += include_str!("src/std_bridge/rust_vec.swift");
+    core_swift += include_str!("src/std_bridge/option.swift");
 
     for (swift_ty, rust_ty) in vec![
         ("UInt8", "u8"),
@@ -59,6 +60,10 @@ fn core_c_header() -> String {
 #include <stdbool.h> 
 typedef struct RustStr { uint8_t* const start; uintptr_t len; } RustStr;
 typedef struct __private__FfiSlice { void* const start; uintptr_t len; } __private__FfiSlice;
+bool _get_option_arg(uint8_t is_some);
+void _set_option_arg(uint8_t idx, bool is_some);
+bool _get_option_return();
+void _set_option_return(bool is_some);
 "#
     .to_string();
 

@@ -6,7 +6,7 @@ pub use swift_bridge_macro::bridge;
 
 mod std_bridge;
 
-pub use self::std_bridge::string;
+pub use self::std_bridge::{option, string};
 
 #[doc(hidden)]
 #[repr(C)]
