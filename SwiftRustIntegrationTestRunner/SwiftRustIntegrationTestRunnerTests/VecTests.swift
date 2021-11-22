@@ -18,7 +18,7 @@ class VecTests: XCTestCase {
     }
     
     func testRustVecU8() throws {
-        let start: [UInt8] = [1, 2, 3, 4, 5]
+        let start: [UInt8] = [1, 9, 3, 4, 5]
         
         let buffer = UnsafeBufferPointer(start: UnsafePointer(start), count: start.count)
         let vec = create_vec_u8(buffer)
@@ -28,13 +28,14 @@ class VecTests: XCTestCase {
         vec.push(value: 10)
         XCTAssertEqual(vec.len(), 6)
         
-        vec.pop()
-        vec.pop()
-        XCTAssertEqual(vec.len(), 4)
+        XCTAssertEqual(vec.pop(), 10)
+        XCTAssertEqual(vec.len(), 5)
+        
+        XCTAssertEqual(vec.get(index: 1), 9)
     }
     
     func testRustVecI32() throws {
-        let start: [Int32] = [1, 2, 3, 4, 5]
+        let start: [Int32] = [1, 9, 3, 4, 5]
         let buffer = UnsafeBufferPointer(start: UnsafePointer(start), count: start.count)
         let vec = create_vec_i32(buffer)
         
@@ -43,9 +44,10 @@ class VecTests: XCTestCase {
         vec.push(value: 10)
         XCTAssertEqual(vec.len(), 6)
         
-        vec.pop()
-        vec.pop()
-        XCTAssertEqual(vec.len(), 4)
+        XCTAssertEqual(vec.pop(), 10)
+        XCTAssertEqual(vec.len(), 5)
+        
+        XCTAssertEqual(vec.get(index: 1), 9)
     }
     
     /// Verify that we can construct a RustVec of every primitive type.
@@ -55,7 +57,7 @@ class VecTests: XCTestCase {
     /// Here we call the rest of the types, confident that if we can construct them then the rest of their
     /// methods will work since they worked for the other types above.
     func testConstructPrimitiveRustVecs() throws {
-        XCTAssertEqual(RustVec<UInt8>().len(), 0);
+        XCTAssertEqual(RustVec<UInt8>().pop(), 0);
         XCTAssertEqual(RustVec<UInt16>().len(), 0);
         XCTAssertEqual(RustVec<UInt32>().len(), 0);
         XCTAssertEqual(RustVec<UInt64>().len(), 0);

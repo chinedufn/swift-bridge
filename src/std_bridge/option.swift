@@ -14,10 +14,3 @@ func markReturnTypeNone<T: FfiOption>() -> T {
     _set_option_return(false)
     return T.unusedValue()
 }
-
-// TODO: Auto generate all of these in the build script
-extension UInt8: FfiOption {
-    static func unusedValue() -> Self {
-        123
-    }
-}

@@ -1,4 +1,7 @@
-class RustVec<T: Vectorizable> {
+// TODO:
+//  Implement iterator https://developer.apple.com/documentation/swift/iteratorprotocol
+
+class RustVec<T: Vectorizable & FfiOption> {
     var ptr: UnsafeMutableRawPointer
     var isOwned: Bool
 
@@ -16,8 +19,22 @@ class RustVec<T: Vectorizable> {
         T.vecOfSelfPush(vecPtr: ptr, value: value)
     }
 
-    func pop () {
-        T.vecOfSelfPop(vecPtr: ptr)
+    func pop () -> Optional<T> {
+        let val = T.vecOfSelfPop(vecPtr: ptr)
+        if _get_option_return() {
+            return val;
+        } else {
+            return nil
+        }
+    }
+
+    func get(index: UInt) -> Optional<T> {
+        let val = T.vecOfSelfGet(vecPtr: ptr, index: index)
+        if _get_option_return() {
+            return val;
+        } else {
+            return nil
+        }
     }
 
     func len() -> UInt {
@@ -50,7 +67,9 @@ protocol Vectorizable {
 
     static func vecOfSelfPush(vecPtr: UnsafeMutableRawPointer, value: Self)
 
-    static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer)
+    static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Optional<Self>
+
+    static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self>
 
     static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt
 

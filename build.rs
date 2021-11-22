@@ -34,22 +34,34 @@ fn core_swift() -> String {
     core_swift += include_str!("src/std_bridge/rust_vec.swift");
     core_swift += include_str!("src/std_bridge/option.swift");
 
-    for (swift_ty, rust_ty) in vec![
-        ("UInt8", "u8"),
-        ("UInt16", "u16"),
-        ("UInt32", "u32"),
-        ("UInt64", "u64"),
-        ("UInt", "usize"),
+    for path in vec![
+        "src/std_bridge/string.swift",
+        "src/std_bridge/rust_vec.swift",
+        "src/std_bridge/option.swift",
+    ] {
+        println!(
+            "cargo:rerun-if-changed={}",
+            PathBuf::from(path).to_str().unwrap()
+        )
+    }
+
+    for (swift_ty, rust_ty, unused_value) in vec![
+        ("UInt8", "u8", "123"),
+        ("UInt16", "u16", "123"),
+        ("UInt32", "u32", "123"),
+        ("UInt64", "u64", "123"),
+        ("UInt", "usize", "123"),
         //
-        ("Int8", "i8"),
-        ("Int16", "i16"),
-        ("Int32", "i32"),
-        ("Int64", "i64"),
-        ("Int", "isize"),
+        ("Int8", "i8", "123"),
+        ("Int16", "i16", "123"),
+        ("Int32", "i32", "123"),
+        ("Int64", "i64", "123"),
+        ("Int", "isize", "123"),
         //
-        ("Bool", "bool"),
+        ("Bool", "bool", "false"),
     ] {
         core_swift += &conform_to_vectorizable(swift_ty, rust_ty);
+        core_swift += &conform_to_ffi_option(swift_ty, unused_value);
     }
 
     core_swift
@@ -96,7 +108,8 @@ void* __swift_bridge__$Vec_{rust_ty}$new();
 void __swift_bridge__$Vec_{rust_ty}$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_{rust_ty}$len(void* const vec);
 void __swift_bridge__$Vec_{rust_ty}$push(void* const vec, {c_ty} val);
-void __swift_bridge__$Vec_{rust_ty}$pop(void* const vec);
+{c_ty} __swift_bridge__$Vec_{rust_ty}$pop(void* const vec);
+{c_ty} __swift_bridge__$Vec_{rust_ty}$get(void* const vec, uintptr_t index);
 {c_ty} const * __swift_bridge__$Vec_{rust_ty}$as_ptr(void* const vec);
 "#,
         rust_ty = rust_ty,
@@ -107,8 +120,7 @@ void __swift_bridge__$Vec_{rust_ty}$pop(void* const vec);
 fn conform_to_vectorizable(swift_ty: &str, rust_ty: &str) -> String {
     format!(
         r#"
-extension {swift_ty}: Vectorizable {{}}
-extension {swift_ty} {{
+extension {swift_ty}: Vectorizable {{
     static func vecOfSelfNew() -> UnsafeMutableRawPointer {{
         __swift_bridge__$Vec_{rust_ty}$new()
     }}
@@ -121,8 +133,12 @@ extension {swift_ty} {{
         __swift_bridge__$Vec_{rust_ty}$push(vecPtr, value)
     }}
     
-    static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) {{
+    static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Optional<Self> {{
         __swift_bridge__$Vec_{rust_ty}$pop(vecPtr)
+    }}
+    
+    static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {{
+        __swift_bridge__$Vec_{rust_ty}$get(vecPtr, index)
     }}
     
     static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {{
@@ -137,6 +153,20 @@ extension {swift_ty} {{
     "#,
         rust_ty = rust_ty,
         swift_ty = swift_ty
+    )
+}
+
+fn conform_to_ffi_option(swift_ty: &str, unused_value: &str) -> String {
+    format!(
+        r#"
+extension {swift_ty}: FfiOption {{
+    static func unusedValue() -> Self {{
+        {value}
+    }}
+}}
+    "#,
+        swift_ty = swift_ty,
+        value = unused_value
     )
 }
 

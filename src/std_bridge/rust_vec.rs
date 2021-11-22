@@ -47,9 +47,28 @@ mod macro_ {
 
                 #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$pop")]
                 #[doc(hidden)]
-                pub extern "C" fn _pop(vec: *mut Vec<$ty>) {
+                pub extern "C" fn _pop(vec: *mut Vec<$ty>) -> $ty {
                     let vec = unsafe { &mut *vec };
-                    vec.pop();
+                    if let Some(val) = vec.pop() {
+                        crate::option::_set_option_return(true);
+                        val
+                    } else {
+                        crate::option::_set_option_return(false);
+                        <$ty as crate::option::FfiOptional>::unused_value()
+                    }
+                }
+
+                #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$get")]
+                #[doc(hidden)]
+                pub extern "C" fn _get(vec: *mut Vec<$ty>, index: usize) -> $ty {
+                    let vec = unsafe { &mut *vec };
+                    if let Some(val) = vec.get(index) {
+                        crate::option::_set_option_return(true);
+                        *val
+                    } else {
+                        crate::option::_set_option_return(false);
+                        <$ty as crate::option::FfiOptional>::unused_value()
+                    }
                 }
 
                 #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$as_ptr")]
