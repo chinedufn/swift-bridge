@@ -82,6 +82,12 @@ extension UnsafeBufferPointer {
     }
 }
 
+extension Array {
+    func toUnsafeBufferPointer() -> UnsafeBufferPointer<Element> {
+        UnsafeBufferPointer(start: UnsafePointer(self), count: self.count)
+    }
+}
+
 protocol Vectorizable {
     static func vecOfSelfNew() -> UnsafeMutableRawPointer;
 

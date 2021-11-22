@@ -19,9 +19,7 @@ class VecTests: XCTestCase {
     
     func testRustVecU8() throws {
         let start: [UInt8] = [1, 9, 3, 4, 5]
-        
-        let buffer = UnsafeBufferPointer(start: UnsafePointer(start), count: start.count)
-        let vec = create_vec_u8(buffer)
+        let vec = create_vec_u8(start.toUnsafeBufferPointer())
         
         XCTAssertEqual(vec.len(), 5)
         
@@ -36,8 +34,7 @@ class VecTests: XCTestCase {
     
     func testRustVecI32() throws {
         let start: [Int32] = [1, 9, 3, 4, 5]
-        let buffer = UnsafeBufferPointer(start: UnsafePointer(start), count: start.count)
-        let vec = create_vec_i32(buffer)
+        let vec = create_vec_i32(start.toUnsafeBufferPointer())
         
         XCTAssertEqual(vec.len(), 5)
         
@@ -52,7 +49,7 @@ class VecTests: XCTestCase {
     
     func testRustVecIterator() throws {
         let numbers: [Int32] = [5, 6, 7]
-        let vec = create_vec_i32(UnsafeBufferPointer(start: UnsafePointer(numbers), count: numbers.count))
+        let vec = create_vec_i32(numbers.toUnsafeBufferPointer())
         
         for (index, val) in vec.enumerated() {
             XCTAssertEqual(val, numbers[index])

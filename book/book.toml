@@ -1,0 +1,6 @@
+[book]
+authors = ["Chinedu Francis Nwafili"]
+language = "en"
+multilingual = false
+src = "src"
+title = "The swift-bridge Book"
