@@ -666,7 +666,7 @@ mod tests {
         let tokens = quote! {
             mod foo {
                 extern "Rust" {
-                    fn bar (bazz: u32) -> u8;
+                    fn bar (bazz: u32);
                 }
             }
         };

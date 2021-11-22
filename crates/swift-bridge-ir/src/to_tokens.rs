@@ -328,8 +328,56 @@ mod tests {
         let expected_func = quote! {
             #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function () -> *mut std::ffi::c_void {
-                Box::into_raw(Box::new(super::some_function())) as *mut std::ffi::c_void
+            pub extern "C" fn __swift_bridge__some_function () -> *mut super::Foo {
+                Box::into_raw(Box::new(super::some_function())) as *mut super::Foo
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
+    }
+
+    /// Verify that an associated function we can return a reference to a declared type.
+    #[test]
+    fn associated_fn_return_reference_to_bridged_type() {
+        let start = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+                    fn some_function () -> &'static Foo;
+                }
+            }
+        };
+        let expected_func = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function () -> *const super::Foo {
+                super::some_function() as *const super::Foo
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
+    }
+
+    /// Verify that a method can return a reference to a declared type.
+    #[test]
+    fn method_return_reference_to_bridged_type() {
+        let start = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+                    fn some_function (&mut self) -> &mut Foo;
+                }
+            }
+        };
+        let expected_func = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$Foo$some_function"]
+            pub extern "C" fn __swift_bridge__Foo_some_function (
+                this: *mut super::Foo
+            ) -> *mut super::Foo {
+                (unsafe { &mut * this }).some_function() as *mut super::Foo
             }
         };
 
@@ -381,8 +429,8 @@ mod tests {
         let expected = quote! {
             #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$new"]
-            pub extern "C" fn __swift_bridge__SomeType_new () -> *mut std::ffi::c_void {
-                Box::into_raw(Box::new(super::SomeType::new())) as *mut std::ffi::c_void
+            pub extern "C" fn __swift_bridge__SomeType_new () -> *mut super::SomeType {
+                Box::into_raw(Box::new(super::SomeType::new())) as *mut super::SomeType
             }
         };
 

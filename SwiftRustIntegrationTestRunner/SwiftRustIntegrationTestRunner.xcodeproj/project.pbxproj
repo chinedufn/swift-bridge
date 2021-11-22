@@ -22,7 +22,6 @@
 		228FE61227428A8D00805D9E /* OpaqueSwiftStructTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */; };
 		228FE64627480E1D00805D9E /* SwiftBridgeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64427480E1C00805D9E /* SwiftBridgeCore.swift */; };
 		228FE64A274919C600805D9E /* swift-integration-tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE648274919C500805D9E /* swift-integration-tests.swift */; };
-		228FE64C2749312D00805D9E /* ExposeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64B2749312D00805D9E /* ExposeTests.swift */; };
 		228FE64E2749C3D700805D9E /* Boolean.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64D2749C3D700805D9E /* Boolean.swift */; };
 		228FE6502749C43100805D9E /* BooleanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64F2749C43100805D9E /* BooleanTests.swift */; };
 /* End PBXBuildFile section */
@@ -59,7 +58,6 @@
 		228FE6472749127400805D9E /* SwiftBridgeCore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SwiftBridgeCore.h; sourceTree = "<group>"; };
 		228FE648274919C500805D9E /* swift-integration-tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "swift-integration-tests.swift"; path = "swift-integration-tests/swift-integration-tests.swift"; sourceTree = "<group>"; };
 		228FE649274919C600805D9E /* swift-integration-tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "swift-integration-tests.h"; path = "swift-integration-tests/swift-integration-tests.h"; sourceTree = "<group>"; };
-		228FE64B2749312D00805D9E /* ExposeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposeTests.swift; sourceTree = "<group>"; };
 		228FE64D2749C3D700805D9E /* Boolean.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Boolean.swift; sourceTree = "<group>"; };
 		228FE64F2749C43100805D9E /* BooleanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BooleanTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -110,7 +108,6 @@
 			children = (
 				228FE60B2740F42000805D9E /* ASwiftStack.swift */,
 				228FE64D2749C3D700805D9E /* Boolean.swift */,
-				228FE64B2749312D00805D9E /* ExposeTests.swift */,
 				228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */,
 				228FE5D62740DB6A00805D9E /* ContentView.swift */,
 				228FE5D82740DB6D00805D9E /* Assets.xcassets */,
@@ -298,7 +295,6 @@
 				228FE5D52740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift in Sources */,
 				228FE64A274919C600805D9E /* swift-integration-tests.swift in Sources */,
 				228FE60C2740F42000805D9E /* ASwiftStack.swift in Sources */,
-				228FE64C2749312D00805D9E /* ExposeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

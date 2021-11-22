@@ -41,9 +41,12 @@ impl GeneratedCode {
 impl GeneratedCode {
     /// Write all of the generated Swift to a single Swift file and all of the generated C headers
     /// to a single header file.
-    pub fn write_all_concatenated(&self, swift_bridge_out_dir: impl AsRef<Path>) {
+    pub fn write_all_concatenated(
+        &self,
+        swift_bridge_out_dir: impl AsRef<Path>,
+        package_name: &str,
+    ) {
         let swift_bridge_out_dir = swift_bridge_out_dir.as_ref();
-        let package_name = option_env!("CARGO_PGK_NAME").unwrap();
 
         let mut concatenated_swift = "".to_string();
         let mut concatenated_c = "".to_string();

@@ -24,7 +24,7 @@ class StringTests: XCTestCase {
     func testRustString() throws {
         let string = " hello "
         
-        let rustString: RustString = createRustString(str: string.toRustStr())
+        let rustString: RustString = create_string(string.toRustStr())
         XCTAssertEqual(rustString.len(), 7)
         
         let trimmed: RustStr = rustString.trim()

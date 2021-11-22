@@ -42,7 +42,7 @@ func __swift_bridge__foo () -> UInt8 {
         let generated = module.generate_swift();
 
         let expected = r#"
-func foo() -> Option<UInt8> {
+func foo() -> Optional<UInt8> {
     let val = __swift_bridge__$foo(); if _get_option_return() { return val; } else { return nil; }
 } 
 "#;

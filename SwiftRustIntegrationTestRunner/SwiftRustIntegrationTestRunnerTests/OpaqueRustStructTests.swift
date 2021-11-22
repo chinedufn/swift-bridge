@@ -33,4 +33,18 @@ class OpaqueRustStructTests: XCTestCase {
         stack.pop()
         XCTAssertEqual(stack.len(), 1)
     }
+    
+    /// Call a function get an &ARustStack from Rust.  The called function always returns the same reference.
+    /// We call the function twice. This ensures that we did not free memory after dropping these instances
+    /// since that would result in a double free error.
+    func testReferenceToOpaqueRustStruct() throws {
+        let stack_wrapper = StackWrapper()
+        
+        for _ in 0...2 {
+            let stack = stack_wrapper.get_stack()
+            stack.push(5)
+            stack.pop()
+        }
+    }
 }
+

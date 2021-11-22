@@ -1,7 +1,3 @@
-pub struct ARustStack {
-    stack: Vec<u8>,
-}
-
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
@@ -18,6 +14,31 @@ mod ffi {
 
         fn as_slice(&self) -> &[u8];
     }
+
+    extern "Rust" {
+        type StackWrapper;
+
+        #[swift_bridge(init)]
+        fn new() -> StackWrapper;
+
+        fn get_stack(&self) -> &ARustStack;
+    }
+}
+
+pub struct StackWrapper(ARustStack);
+
+impl StackWrapper {
+    fn new() -> Self {
+        StackWrapper(ARustStack::new())
+    }
+
+    fn get_stack(&self) -> &ARustStack {
+        &self.0
+    }
+}
+
+pub struct ARustStack {
+    stack: Vec<u8>,
 }
 
 impl ARustStack {

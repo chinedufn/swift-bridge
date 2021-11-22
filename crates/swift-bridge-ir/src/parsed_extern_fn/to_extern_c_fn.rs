@@ -3,7 +3,8 @@ use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Path, ReturnType};
+use std::ops::Deref;
+use syn::{Path, ReturnType, Type};
 
 impl ParsedExternFn {
     /// Generates:
@@ -72,6 +73,27 @@ impl ParsedExternFn {
 
         if let Some(ty) = self.return_ty_built_in() {
             call_fn = ty.convert_rust_value_to_ffi_compatible_value(swift_bridge_path, &call_fn);
+        } else {
+            if let ReturnType::Type(_, return_ty) = &sig.output {
+                match return_ty.deref() {
+                    Type::Reference(reference) => {
+                        let is_const_ptr = reference.mutability.is_none();
+                        let ty = &reference.elem;
+
+                        let ptr = if is_const_ptr {
+                            quote! { *const }
+                        } else {
+                            quote! { *mut }
+                        };
+
+                        call_fn = quote! { #call_fn as #ptr super:: #ty };
+                    }
+                    _ => {
+                        call_fn =
+                            quote! { Box::into_raw(Box::new(#call_fn)) as *mut super::#return_ty };
+                    }
+                }
+            }
         }
 
         call_fn
@@ -99,32 +121,13 @@ impl ParsedExternFn {
 
     /// Generate tokens for calling a freestanding or an associated function.
     fn call_function_tokens(&self, call_fn: &TokenStream) -> TokenStream {
-        let host_type = self.associated_type.as_ref().map(|h| &h.ident);
-        let sig = &self.func.sig;
+        let maybe_associated_type = self.associated_type.as_ref().map(|ty| {
+            let ty = &ty.ident;
+            quote! {#ty::}
+        });
 
-        let host_type_segment = if let Some(h) = &host_type {
-            quote! {#h::}
-        } else {
-            quote! {}
-        };
-
-        match &sig.output {
-            ReturnType::Default => {
-                quote! {
-                    super:: #host_type_segment #call_fn
-                }
-            }
-            ReturnType::Type(_arrow, ty) => {
-                if let Some(_ty) = BuiltInType::with_type(&ty) {
-                    quote! {
-                        super:: #host_type_segment #call_fn
-                    }
-                } else {
-                    quote! {
-                        Box::into_raw( Box::new( super:: #host_type_segment #call_fn )) as *mut std::ffi::c_void
-                    }
-                }
-            }
+        quote! {
+            super:: #maybe_associated_type #call_fn
         }
     }
 

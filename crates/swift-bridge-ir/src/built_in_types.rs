@@ -511,7 +511,7 @@ impl BuiltInType {
             }
             BuiltInType::Str => value.to_string(),
             BuiltInType::String => {
-                format!("RustString(ptr: {})", value)
+                format!("RustString(ptr: {}, isOwned: true)", value)
             }
             BuiltInType::Vec(ty) => {
                 format!("RustVec(ptr: {}, isOwned: true)", value)

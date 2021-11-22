@@ -2,7 +2,10 @@ use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{BridgedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use quote::ToTokens;
 use std::collections::HashMap;
+use std::ops::Deref;
+use syn::{ReturnType, Type};
 
 mod option;
 
@@ -91,15 +94,19 @@ fn generate_swift_class(
         r#"
 public class {type_name} {{
     var ptr: UnsafeMutableRawPointer
+    var isOwned: Bool = true
 
 {initializers}
 
-    init(ptr: UnsafeMutableRawPointer) {{
+    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {{
         self.ptr = ptr
+        self.isOwned = isOwned
     }}
 
     deinit {{
-        {free_func_call}
+        if isOwned {{
+            {free_func_call}
+        }}
     }}{instance_methods}
 }}"#,
         type_name = type_name,
@@ -187,7 +194,25 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
     } else if let Some(built_in) = function.return_ty_built_in() {
         built_in.convert_ffi_value_to_swift_value(&call_rust)
     } else {
-        call_rust
+        if function.host_lang.is_swift() {
+            call_rust
+        } else {
+            match &function.sig.output {
+                ReturnType::Default => {
+                    // () is a built in type so this would have been handled in the previous block.
+                    unreachable!()
+                }
+                ReturnType::Type(_, ty) => {
+                    let (is_owned, ty) = match ty.deref() {
+                        Type::Reference(reference) => ("false", &reference.elem),
+                        _ => ("true", ty),
+                    };
+
+                    let ty = ty.to_token_stream().to_string();
+                    format!("{}(ptr: {}, isOwned: {})", ty, call_rust, is_owned)
+                }
+            }
+        }
     };
 
     let func_definition = format!(
@@ -410,17 +435,21 @@ func foo() -> UnsafeBufferPointer<UInt8> {
         let expected = r#"
 public class Foo {
     var ptr: UnsafeMutableRawPointer
+    var isOwned: Bool = true
 
     init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }
 
-    init(ptr: UnsafeMutableRawPointer) {
+    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
         self.ptr = ptr
+        self.isOwned = isOwned
     }
 
     deinit {
-        __swift_bridge__$Foo$_free(ptr)
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
     }
 }
 "#;
@@ -471,17 +500,21 @@ func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
         let expected = r#"
 public class Foo {
     var ptr: UnsafeMutableRawPointer
+    var isOwned: Bool = true
 
     init() {
         ptr = __swift_bridge__$Foo$new()
     }
 
-    init(ptr: UnsafeMutableRawPointer) {
+    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
         self.ptr = ptr
+        self.isOwned = isOwned
     }
 
     deinit {
-        __swift_bridge__$Foo$_free(ptr)
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
     }
 }
 "#;
@@ -535,17 +568,21 @@ func __swift_bridge__Foo_new (_ a: UInt8) -> UnsafeMutableRawPointer {
         let expected = r#"
 public class Foo {
     var ptr: UnsafeMutableRawPointer
+    var isOwned: Bool = true
 
     init(_ val: UInt8) {
         ptr = __swift_bridge__$Foo$new(val)
     }
 
-    init(ptr: UnsafeMutableRawPointer) {
+    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
         self.ptr = ptr
+        self.isOwned = isOwned
     }
 
     deinit {
-        __swift_bridge__$Foo$_free(ptr)
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
     }
 }
 "#;
@@ -571,17 +608,21 @@ public class Foo {
         let expected = r#"
 public class Foo {
     var ptr: UnsafeMutableRawPointer
+    var isOwned: Bool = true
 
     init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }
 
-    init(ptr: UnsafeMutableRawPointer) {
+    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
         self.ptr = ptr
+        self.isOwned = isOwned
     }
 
     deinit {
-        __swift_bridge__$Foo$_free(ptr)
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
     }
 
     func bar() {
@@ -643,17 +684,21 @@ func __swift_bridge__Foo_pop (_ this: UnsafeMutableRawPointer) {
         let expected = r#"
 public class Foo {
     var ptr: UnsafeMutableRawPointer
+    var isOwned: Bool = true
 
     init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }
 
-    init(ptr: UnsafeMutableRawPointer) {
+    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
         self.ptr = ptr
+        self.isOwned = isOwned
     }
 
     deinit {
-        __swift_bridge__$Foo$_free(ptr)
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
     }
 
     func bar() -> UInt8 {
@@ -683,17 +728,21 @@ public class Foo {
         let expected = r#"
 public class Foo {
     var ptr: UnsafeMutableRawPointer
+    var isOwned: Bool = true
 
     init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }
 
-    init(ptr: UnsafeMutableRawPointer) {
+    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
         self.ptr = ptr
+        self.isOwned = isOwned
     }
 
     deinit {
-        __swift_bridge__$Foo$_free(ptr)
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
     }
 
     func bar(_ other: Foo) {
@@ -724,17 +773,21 @@ public class Foo {
         let expected = r#"
 public class Foo {
     var ptr: UnsafeMutableRawPointer
+    var isOwned: Bool = true
 
     init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
     }
 
-    init(ptr: UnsafeMutableRawPointer) {
+    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
         self.ptr = ptr
+        self.isOwned = isOwned
     }
 
     deinit {
-        __swift_bridge__$Foo$_free(ptr)
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
     }
 
     class func bar() {
@@ -788,10 +841,80 @@ func __swift_bridge__Foo_bar (_ arg: UInt8) {
 
         let expected = r#"
 func foo() -> RustString {
-    RustString(ptr: __swift_bridge__$foo())
+    RustString(ptr: __swift_bridge__$foo(), isOwned: true)
 }
 "#;
 
         assert_eq!(generated.trim(), expected.trim());
+    }
+
+    /// Verify that we properly generate a Swift function that returns an &String.
+    #[test]
+    fn return_string_reference() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    fn foo () -> &String;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func foo() -> RustString {
+    RustString(ptr: __swift_bridge__$foo(), isOwned: false)
+}
+"#;
+
+        assert_eq!(generated.trim(), expected.trim());
+    }
+
+    /// Verify that we can return a reference to a declared type.
+    #[test]
+    fn extern_rust_return_owned_declared_type() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    fn get_owned_foo () -> Foo;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func get_owned_foo() -> Foo {
+    Foo(ptr: __swift_bridge__$get_owned_foo(), isOwned: true)
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
+    }
+
+    /// Verify that we can return a reference to a declared type.
+    #[test]
+    fn extern_rust_return_reference_to_declared_declared_type() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    fn get_ref_foo () -> &Foo;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func get_ref_foo() -> Foo {
+    Foo(ptr: __swift_bridge__$get_ref_foo(), isOwned: false)
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
     }
 }

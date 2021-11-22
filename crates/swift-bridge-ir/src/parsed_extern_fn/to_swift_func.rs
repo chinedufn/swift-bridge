@@ -2,7 +2,8 @@ use crate::built_in_types::BuiltInType;
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::pat_type_pat_is_self;
 use quote::ToTokens;
-use syn::{FnArg, ReturnType};
+use std::ops::Deref;
+use syn::{FnArg, ReturnType, Type};
 
 impl ParsedExternFn {
     pub fn to_swift_param_names_and_types(&self, include_receiver_if_present: bool) -> String {
@@ -105,7 +106,15 @@ impl ParsedExternFn {
                 if let Some(built_in) = BuiltInType::with_type(&ty) {
                     format!(" -> {}", built_in.to_swift_type(must_be_c_compatible))
                 } else {
-                    format!(" -> UnsafeMutableRawPointer")
+                    if self.host_lang.is_swift() {
+                        format!(" -> UnsafeMutableRawPointer")
+                    } else {
+                        let ty = match ty.deref() {
+                            Type::Reference(reference) => &reference.elem,
+                            _ => ty,
+                        };
+                        format!(" -> {}", ty.to_token_stream().to_string())
+                    }
                 }
             }
         }

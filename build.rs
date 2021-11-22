@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
 fn main() {
+    println!("cargo:rerun-if-env-changed=SWIFT_BRIDGE_OUT_DIR");
+
     if let Ok(out_dir) = std::env::var("SWIFT_BRIDGE_OUT_DIR") {
         let out_dir = PathBuf::from(out_dir);
 

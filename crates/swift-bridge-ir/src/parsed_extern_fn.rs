@@ -53,19 +53,6 @@ impl ParsedExternFn {
         }
     }
 
-    pub fn returns_slice(&self) -> bool {
-        match &self.func.sig.output {
-            ReturnType::Default => false,
-            ReturnType::Type(_, ty) => match BuiltInType::with_type(&ty) {
-                Some(ty) => match ty {
-                    BuiltInType::RefSlice(_) => true,
-                    _ => false,
-                },
-                _ => false,
-            },
-        }
-    }
-
     pub(crate) fn rust_return_type(&self, swift_bridge_path: &Path) -> TokenStream {
         let sig = &self.func.sig;
 
@@ -78,7 +65,24 @@ impl ParsedExternFn {
                     let ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path);
                     quote! {#arrow #ty}
                 } else {
-                    quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }
+                    if self.host_lang.is_rust() {
+                        let (is_const_ptr, ty) = match ty.deref() {
+                            Type::Reference(reference) => {
+                                (reference.mutability.is_none(), reference.elem.deref())
+                            }
+                            _ => (false, ty.deref()),
+                        };
+
+                        let ptr = if is_const_ptr {
+                            quote! { *const }
+                        } else {
+                            quote! { *mut }
+                        };
+
+                        quote_spanned! {ty.span()=> -> #ptr super::#ty }
+                    } else {
+                        quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }
+                    }
                 }
             }
         };
