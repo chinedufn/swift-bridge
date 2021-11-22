@@ -54,6 +54,28 @@ class RustVec<T: Vectorizable & FfiOption> {
     }
 }
 
+extension RustVec: Sequence {
+    func makeIterator() -> RustVecIterator<T> {
+        return RustVecIterator(self)
+    }
+}
+
+struct RustVecIterator<T: Vectorizable & FfiOption>: IteratorProtocol {
+    var rustVec: RustVec<T>
+    var index: UInt = 0
+
+    init (_ rustVec: RustVec<T>) {
+        self.rustVec = rustVec
+    }
+
+    mutating func next() -> T? {
+        let val = rustVec.get(index: index)
+        index += 1
+        return val
+    }
+}
+
+
 extension UnsafeBufferPointer {
     func toFfiSlice () -> __private__FfiSlice {
         __private__FfiSlice(start: UnsafeMutablePointer(mutating: self.baseAddress), len: UInt(self.count))

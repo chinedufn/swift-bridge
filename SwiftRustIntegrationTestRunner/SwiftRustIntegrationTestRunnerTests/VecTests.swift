@@ -50,6 +50,15 @@ class VecTests: XCTestCase {
         XCTAssertEqual(vec.get(index: 1), 9)
     }
     
+    func testRustVecIterator() throws {
+        let numbers: [Int32] = [5, 6, 7]
+        let vec = create_vec_i32(UnsafeBufferPointer(start: UnsafePointer(numbers), count: numbers.count))
+        
+        for (index, val) in vec.enumerated() {
+            XCTAssertEqual(val, numbers[index])
+        }
+    }
+    
     /// Verify that we can construct a RustVec of every primitive type.
     /// We tested all of the methods on  two different primitives above to be sure that our
     /// functions that generate the pieces of the RustVec support aren't accidentally hard coded to
