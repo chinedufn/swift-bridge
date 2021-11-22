@@ -6,6 +6,119 @@
 
 _`swift-bridge` takes inspiration from the awesome bridge module macro based approach pioneered by [cxx](https://github.com/dtolnay/cxx)._
 
+## Installation
+
+```toml
+# In your Cargo.toml
+
+[build-dependencies]
+swift-bridge-build = "0.1"
+
+[dependencies]
+swift-bridge = "0.1"
+```
+
+
+
+## Quick Peek
+
+Here's a quick peek at the Rust and Swift of a bridge that should give you a sense of how bindings look.
+
+A more thorough walk through of `swift-bridge` can be found in the book (TODO: Link to GitHub pages).
+
+```rust
+// build.rs
+
+fn main() {
+    let bridges = vec!["src/lib.rs"];
+
+    let out_dir = "./generated";
+    swift_bridge_build::parse_bridges(&bridges)
+        .write_all_concatenated(out_dir);
+
+    for path in &bridges {
+        println!("cargo:rerun-if-changed={}", path);
+    }
+}
+```
+
+```rust
+// lib.rs
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        type ARustStack;
+
+        fn push (&mut self, val: u8);
+
+        fn pop (&mut self) -> Option<u8>;
+      
+        fn as_slice (&self) -> &[u8];
+
+        fn do_stuff(override: Option<u8>);
+    }
+
+    extern "Swift" {
+        type SwiftApiClient;
+
+        #[swift_bridge(init)]
+        fn new_with_timeout(timeout: u8) -> SwiftApiClient;
+
+        #[swift_bridge(associated_to = FileSystemClient)]
+        fn version () -> u32;
+
+        fn set_timeout(&self, timeout: u8);
+    }
+}
+
+struct ARustStack(Vec<u8>);
+
+impl ARustStack {
+	fn push(&mut self, val: u8) {
+	    self.0.push(val);
+	}
+
+	fn pop(&mut self) -> Option<u8> {
+	    self.0.pop();
+	}
+
+	fn as_slice(&self) -> &[u8] {
+	    self.0.pop();
+	}
+}
+
+fn do_stuff(override: Option<u8>) {
+    assert_eq!(SwiftApiClient::version(), 1);
+
+    let client = SwiftApiClient::new_with_timeout(10);
+
+	if let Some(override) = override {
+        client.setTimeout(20)
+	}
+}
+```
+
+```swift
+// Swift
+
+class SwiftApiClient {
+    var timeout: UInt8
+
+	init(timeout: UInt8) {
+        self.timeout = timeout
+    }
+
+	class func version() -> u32 {
+	    1
+	}
+
+	func setTimeout(timeout: UInt8) {
+	    self.timeout = timeout
+	}
+}
+```
+
 ## TODO's
 
 - Delete bridging header from Xcode
@@ -24,35 +137,6 @@ _`swift-bridge` takes inspiration from the awesome bridge module macro based app
 
 - Create examples dir example of iOS app
 - Create examples dir example of macOS app
-
-```rust
-use swift_bridge::UnmanagedPtr;
-
-#[swift_bridge::bridge]
-mod ffi {
-    extern "Rust" {
-        type Stack;
-
-        fn push (stack: &mut Stack, val: u8);
-
-        fn pop (stack: &mut Stack) -> Option<u8>;
-      
-        fn as_slice (&self) -> &[u8];
-    }
-
-    extern "Swift" {
-        type FileSystemClient;
-
-        #[swift_bridge(init)]
-        fn new() -> FileSystemClient;
-
-        fn read(&self, filename: &str) -> Vec<u8>;
-
-        #[swift_bridge(associated_to = FileSystemClient)]
-        fn write (bytes: &[u8]);
-    }
-}
-```
 
 ## Built-In Types
 
