@@ -2,6 +2,9 @@
 name = "swift-bridge-macro"
 version = "0.1.0"
 edition = "2021"
+keywords = ["swift", "ffi", "bindings", "ios", "mac"]
+description = "Powers swift-bridge module code generation."
+license = "Apache-2.0/MIT"
 
 [lib]
 proc-macro = true
@@ -10,4 +13,4 @@ proc-macro = true
 proc-macro2 = "1"
 quote = "1"
 syn = { version = "1", features = ["full"] }
-swift-bridge-ir = {path = "../swift-bridge-ir"}
+swift-bridge-ir = {version = "0.1.0", path = "../swift-bridge-ir"}

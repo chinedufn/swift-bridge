@@ -2,6 +2,9 @@
 name = "swift-bridge-ir"
 version = "0.1.0"
 edition = "2021"
+keywords = ["swift", "ffi", "bindings", "ios", "mac"]
+description = "Holds the data structures and logic for bridge module parsing and code generation."
+license = "Apache-2.0/MIT"
 
 [dependencies]
 proc-macro2 = "1"
