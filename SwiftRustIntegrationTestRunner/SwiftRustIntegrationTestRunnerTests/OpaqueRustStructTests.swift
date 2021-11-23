@@ -34,17 +34,27 @@ class OpaqueRustStructTests: XCTestCase {
         XCTAssertEqual(stack.len(), 1)
     }
     
-    /// Call a function get an &ARustStack from Rust.  The called function always returns the same reference.
-    /// We call the function twice. This ensures that we did not free memory after dropping these instances
-    /// since that would result in a double free error.
+    /// Verify that when we de-alocate a class instance that is wrapping a type that was returned to us from
+    /// Rust by reference we do not free the Rust type's memory (like we do with owned values).
+    ///
+    /// We call a function twice that returns the same &ARustStack each time.
+    ///
+    /// This means that we create two class instances on the Swift side that each reference the
+    /// same &ARustStack.
+    ///
+    /// By calling it twice we ensures that we did not free memory after dropping these instances
+    /// since that would result in a malloc error "pointer being freed was not allocated".
     func testReferenceToOpaqueRustStruct() throws {
         let stack_wrapper = StackWrapper()
         
-        for _ in 0...2 {
-            let stack = stack_wrapper.get_stack()
-            stack.push(5)
-            stack.pop()
-        }
+        let ref1 = stack_wrapper.get_stack()
+        let ref2 = stack_wrapper.get_stack()
+        
+        ref1.push(5)
+        ref2.push(10)
+        
+        XCTAssertEqual(ref1.len(), 2)
+        XCTAssertEqual(ref1.len(), ref2.len())
     }
 }
 
