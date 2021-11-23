@@ -1,3 +1,4 @@
+use crate::parse::HostLang;
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
@@ -632,7 +633,15 @@ impl BuiltInType {
             | BuiltInType::F32
             | BuiltInType::F64
             | BuiltInType::Bool => value.to_string(),
-            BuiltInType::Pointer(pointer) => value.to_string(),
+            BuiltInType::Pointer(ptr) => match &ptr.pointee {
+                Pointee::BuiltIn(_) => value.to_string(),
+                Pointee::Void(_ty) => match ptr.kind {
+                    PointerKind::Const => {
+                        format!("UnsafeRawPointer({}!)", value)
+                    }
+                    PointerKind::Mut => value.to_string(),
+                },
+            },
             BuiltInType::RefSlice(ty) => {
                 format!(
                     "let slice = {value}; return UnsafeBufferPointer(start: slice.start.assumingMemoryBound(to: {ty}.self), count: Int(slice.len));",
@@ -660,7 +669,11 @@ impl BuiltInType {
     /// If `value: UnsafeBufferPoint<T>` then `value` becomes: `value.toFfiSlice()`,
     /// where `.toFfiSlice()` is a function that creates a `__private__FfiSlice` which is
     /// C compatible.
-    pub fn convert_swift_expression_to_ffi_compatible(&self, value: &str) -> String {
+    pub fn convert_swift_expression_to_ffi_compatible(
+        &self,
+        value: &str,
+        host_lang: HostLang,
+    ) -> String {
         match self {
             BuiltInType::Null
             | BuiltInType::U8
@@ -679,10 +692,16 @@ impl BuiltInType {
             BuiltInType::RefSlice(_) => {
                 format!("{}.toFfiSlice()", value)
             }
-            BuiltInType::Pointer(ptr) => {
-                //
-                value.to_string()
-            }
+            BuiltInType::Pointer(ptr) => match &ptr.pointee {
+                Pointee::BuiltIn(_) => value.to_string(),
+                Pointee::Void(_ty) => {
+                    if ptr.kind == PointerKind::Const && host_lang.is_rust() {
+                        format!("UnsafeMutableRawPointer(mutating: {})", value)
+                    } else {
+                        value.to_string()
+                    }
+                }
+            },
             BuiltInType::Str => value.to_string(),
             BuiltInType::String => value.to_string(),
             BuiltInType::Vec(_) => {

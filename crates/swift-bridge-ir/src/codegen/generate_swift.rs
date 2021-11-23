@@ -258,7 +258,7 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
     }
 
     if let Some(built_in) = BuiltInType::new_with_return_type(&func.sig.output) {
-        call_fn = built_in.convert_swift_expression_to_ffi_compatible(&call_fn);
+        call_fn = built_in.convert_swift_expression_to_ffi_compatible(&call_fn, func.host_lang);
     }
 
     let generated_func = format!(
@@ -910,6 +910,30 @@ func void_pointer(_ arg1: UnsafeRawPointer) {
         let expected = r#"
 func void_pointer() -> UnsafeRawPointer {
     UnsafeRawPointer(__swift_bridge__$void_pointer()!)
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
+    }
+
+    /// Verify that we generate the corresponding Swift for extern "Rust" functions that accept
+    /// a *const void pointer.
+    #[test]
+    fn extern_swift_const_void_pointer_argument() {
+        let start = quote! {
+            mod foo {
+                extern "Swift" {
+                    fn void_pointer (arg: *const c_void);
+                }
+            }
+        };
+        let module: SwiftBridgeModule = syn::parse2(start).unwrap();
+        let generated = module.generate_swift();
+
+        let expected = r#"
+@_cdecl("__swift_bridge__$void_pointer")
+func __swift_bridge__void_pointer (_ arg: UnsafeRawPointer) {
+    void_pointer(arg: arg)
 }
 "#;
 

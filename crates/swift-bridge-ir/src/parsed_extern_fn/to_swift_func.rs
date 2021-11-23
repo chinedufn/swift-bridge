@@ -82,7 +82,7 @@ impl ParsedExternFn {
                     let arg_name = arg.clone();
 
                     let arg = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
-                        built_in.convert_swift_expression_to_ffi_compatible(&arg)
+                        built_in.convert_swift_expression_to_ffi_compatible(&arg, self.host_lang)
                     } else {
                         format!("{}.ptr", arg)
                     };
