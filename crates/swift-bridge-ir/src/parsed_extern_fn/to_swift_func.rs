@@ -29,7 +29,7 @@ impl ParsedExternFn {
 
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
-                    if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                    if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
                         format!("{}: {}", arg_name, built_in.to_swift_type(false))
                     } else {
                         // &mut Foo -> "& mut Foo"
@@ -79,19 +79,21 @@ impl ParsedExternFn {
 
                     let pat = &pat_ty.pat;
                     let arg = pat.to_token_stream().to_string();
+                    let arg_name = arg.clone();
+
+                    let arg = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
+                        built_in.convert_swift_expression_to_ffi_compatible(&arg)
+                    } else {
+                        format!("{}.ptr", arg)
+                    };
 
                     let arg = if include_var_name {
-                        format!("{}: {}", arg, arg)
+                        format!("{}: {}", arg_name, arg)
                     } else {
                         arg
                     };
 
-                    if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
-                        let arg = built_in.convert_swift_expression_to_ffi_compatible(&arg);
-                        args.push(arg);
-                    } else {
-                        args.push(format!("{}.ptr", arg));
-                    };
+                    args.push(arg);
                 }
             };
         }
@@ -103,7 +105,7 @@ impl ParsedExternFn {
         match &self.func.sig.output {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
-                if let Some(built_in) = BuiltInType::with_type(&ty) {
+                if let Some(built_in) = BuiltInType::new_with_type(&ty) {
                     format!(" -> {}", built_in.to_swift_type(must_be_c_compatible))
                 } else {
                     if self.host_lang.is_swift() {
@@ -128,7 +130,8 @@ mod tests {
     use proc_macro2::TokenStream;
     use quote::quote;
 
-    /// Verify that if we are returning a declared type (non built-in) we return it as a pointer.
+    /// Verify that if we are returning a declared type (non built-in) we return it as a Swift class
+    /// instance.
     #[test]
     fn return_declared_type() {
         let tokens = quote! {
@@ -147,10 +150,7 @@ mod tests {
         assert_eq!(functions.len(), 3);
 
         for idx in 0..3 {
-            assert_eq!(
-                functions[idx].to_swift_return_type(false),
-                " -> UnsafeMutableRawPointer"
-            );
+            assert_eq!(functions[idx].to_swift_return_type(false), " -> Foo");
         }
     }
 

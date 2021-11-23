@@ -28,7 +28,7 @@ impl ToTokens for SwiftBridgeModule {
                         .push(func.to_extern_c_function_tokens(&self.swift_bridge_path));
                 }
                 HostLang::Swift => {
-                    let tokens = func.to_fn_calls_swift(&self.swift_bridge_path);
+                    let tokens = func.to_rust_fn_that_calls_a_swift_extern(&self.swift_bridge_path);
 
                     if let Some(ty) = func.associated_type.as_ref() {
                         impl_fn_tokens
@@ -629,6 +629,84 @@ mod tests {
         };
 
         assert_to_extern_c_function_tokens(start, &expected);
+    }
+
+    /// Verify that extern "Rust" functions we can accept and return void pointers.
+    #[test]
+    fn extern_rust_void_pointers() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    fn void_pointers (arg1: *const c_void, arg2: *mut c_void) -> *const c_void;
+                }
+            }
+        };
+        let expected = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$void_pointers"]
+            pub extern "C" fn __swift_bridge__void_pointers (
+                arg1: *const super::c_void,
+                arg2: *mut super::c_void
+            ) -> *const super::c_void {
+                super::void_pointers(arg1, arg2)
+            }
+        };
+
+        assert_to_extern_c_function_tokens(start, &expected);
+    }
+
+    /// Verify that extern "Rust" functions we can accept and return pointers to built in types.
+    #[test]
+    fn extern_swift_built_in_pointers() {
+        let start = quote! {
+            mod foo {
+                extern "Swift" {
+                    fn built_in_pointers (arg1: *const u8, arg2: *mut i16) -> *const u32;
+                }
+            }
+        };
+        let expected = quote! {
+            pub fn built_in_pointers (arg1: *const u8, arg2: *mut i16) -> *const u32 {
+                unsafe { __swift_bridge__built_in_pointers(arg1, arg2) }
+            }
+
+            extern "C" {
+                #[link_name = "__swift_bridge__$built_in_pointers"]
+                fn __swift_bridge__built_in_pointers (
+                    arg1: *const u8,
+                    arg2: *mut i16
+                ) -> *const u32;
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
+    }
+
+    /// Verify that extern "Swift" functions we can accept and return void pointers.
+    #[test]
+    fn extern_swift_void_pointers() {
+        let start = quote! {
+            mod foo {
+                extern "Swift" {
+                    fn void_pointers (arg1: *const c_void, arg2: *mut c_void) -> *const c_void;
+                }
+            }
+        };
+        let expected = quote! {
+            pub fn void_pointers (arg1: *const super::c_void, arg2: *mut super::c_void) -> *const super::c_void {
+                unsafe { __swift_bridge__void_pointers(arg1, arg2) }
+            }
+
+            extern "C" {
+                #[link_name = "__swift_bridge__$void_pointers"]
+                fn __swift_bridge__void_pointers (
+                    arg1: *const super::c_void,
+                    arg2: *mut super::c_void
+                ) -> *const super::c_void;
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
     }
 
     /// Verify that we do not wrap the type in manually drop if the method uses owned self.

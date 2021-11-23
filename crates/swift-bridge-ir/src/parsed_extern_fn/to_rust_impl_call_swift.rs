@@ -2,9 +2,10 @@ use crate::built_in_types::BuiltInType;
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::pat_type_pat_is_self;
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{quote, quote_spanned};
 use std::ops::Deref;
-use syn::{FnArg, PatType, Path, Type, TypeReference};
+use syn::spanned::Spanned;
+use syn::{FnArg, PatType, Path, ReturnType, Type, TypeReference};
 
 /// Generates the
 ///
@@ -28,12 +29,29 @@ use syn::{FnArg, PatType, Path, Type, TypeReference};
 /// }
 /// ```
 impl ParsedExternFn {
-    pub fn to_fn_calls_swift(&self, swift_bridge_path: &Path) -> TokenStream {
+    pub fn to_rust_fn_that_calls_a_swift_extern(&self, swift_bridge_path: &Path) -> TokenStream {
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
 
         let ret = &sig.output;
-        let params = self.params_without_self_type_removd();
+
+        let ret = match &ret {
+            ReturnType::Default => {
+                quote! {#ret}
+            }
+            ReturnType::Type(arrow, _ty) => {
+                if let Some(built_in) = BuiltInType::new_with_return_type(&sig.output) {
+                    let ty = built_in.maybe_convert_pointer_to_super_pointer();
+                    let return_ty_span = sig.output.span();
+
+                    quote_spanned! {return_ty_span=> #arrow #ty}
+                } else {
+                    quote! { #ret }
+                }
+            }
+        };
+
+        let params = self.params_with_explicit_self_types_removed();
         let call_args = self.to_call_rust_args(swift_bridge_path);
         let linked_fn_name = self.extern_swift_linked_fn_new();
 
@@ -41,7 +59,7 @@ impl ParsedExternFn {
             unsafe { #linked_fn_name(#call_args) }
         };
 
-        if let Some(built_in) = BuiltInType::with_return_type(ret) {
+        if let Some(built_in) = BuiltInType::new_with_return_type(&sig.output) {
             inner = built_in.convert_ffi_value_to_rust_value(swift_bridge_path, &inner, true);
         } else if let Some(bridged_ty) = &self.associated_type.as_ref() {
             let ty_name = &bridged_ty.ident;
@@ -62,13 +80,13 @@ impl ParsedExternFn {
     // `self: Foo` becomes `self`,
     // `self: &Foo` -> `&self`,
     // `self: &mut Foo` -> `&mut self`
-    fn params_without_self_type_removd(&self) -> TokenStream {
+    fn params_with_explicit_self_types_removed(&self) -> TokenStream {
         let params = self
             .sig
             .inputs
             .iter()
-            .map(|arg| {
-                if let Some(reference) = pat_ty_type_reference_if_arg_self(arg) {
+            .map(|fn_arg| {
+                if let Some(reference) = pat_ty_type_reference_if_arg_self(fn_arg) {
                     let ref_token = reference.and_token;
                     let maybe_mut = reference.mutability;
 
@@ -76,8 +94,20 @@ impl ParsedExternFn {
                         #ref_token #maybe_mut self
                     }
                 } else {
-                    quote! {
-                        #arg
+                    match fn_arg {
+                        FnArg::Receiver(_) => {
+                            quote! { #fn_arg}
+                        }
+                        FnArg::Typed(pat_ty) => {
+                            if let Some(built_in) = BuiltInType::new_with_fn_arg(fn_arg) {
+                                let pat = &pat_ty.pat;
+                                let ty = built_in.maybe_convert_pointer_to_super_pointer();
+
+                                quote! { #pat: #ty}
+                            } else {
+                                quote! { #fn_arg}
+                            }
+                        }
                     }
                 }
             })
@@ -216,8 +246,8 @@ mod tests {
     // }
     fn assert_impl_fn_tokens_eq(module: TokenStream, expected_impl_fn_tokens: &TokenStream) {
         let module = parse_ok(module);
-        let tokens =
-            module.functions[0].to_fn_calls_swift(&syn::parse2(quote! {swift_bridge}).unwrap());
+        let tokens = module.functions[0]
+            .to_rust_fn_that_calls_a_swift_extern(&syn::parse2(quote! {swift_bridge}).unwrap());
         assert_tokens_eq(&tokens, &expected_impl_fn_tokens);
     }
 }

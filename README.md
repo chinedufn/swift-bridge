@@ -119,14 +119,14 @@ class SwiftApiClient {
 }
 ```
 
-## TODO's
+## TODO's before open sourcing
 
-- Delete bridging header from Xcode
-- Look up how to programatically set the linking settings.
+We don't need to solve all of these, but we should at least create issues
+
+- Look up how to programatically set the linking settings and programatically set the run script.
   Our docs can recommend that as well as show how to manually set them
-- Delete c header code generation
-- Rename SwiftRustIntegrationTestRunner to SwiftRustIntegrationTests
-- Look into std::mem::unitialized to see whether or not our usage of it is unsafe
+
+- Remove `#[no_mangle]` since we're using link_name and export_name
 
 ## Quick Peek
 
@@ -146,7 +146,7 @@ class SwiftApiClient {
 | ---                                                             | ---                                                              | ---                                                                                                                                                                                 |
 | u8, i8, u16, i16... etc                                         | UInt8, Int8, UInt16, Int16 ... etc                               |                                                                                                                                                                                     |
 | bool                                                            | Bool                                                             |                                                                                                                                                                                     |
-| String                                                          | RustString                                                       |                                                                                                                                                                                     |
+| String, &String, &mut String                                    | RustString                                                       |                                                                                                                                                                                     |
 | &str                                                            | RustStr                                                          |                                                                                                                                                                                     |
 | Vec<T>                                                          | RustVec\<T>                                                      |                                                                                                                                                                                     |
 | SwiftArray\<T>                                                  | Array\<T>                                                        | Not yet implemented                                                                                                                                                                 |

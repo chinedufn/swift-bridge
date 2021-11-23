@@ -61,7 +61,7 @@ impl ParsedExternFn {
                 quote! {}
             }
             ReturnType::Type(arrow, ty) => {
-                if let Some(built_in) = BuiltInType::with_type(&ty) {
+                if let Some(built_in) = BuiltInType::new_with_type(&ty) {
                     let ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path);
                     quote! {#arrow #ty}
                 } else {
@@ -139,7 +139,7 @@ impl ParsedExternFn {
 
                     let mut arg = quote! {#pat};
 
-                    if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                    if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
                         if self.host_lang.is_rust() {
                             arg = built_in.convert_ffi_value_to_rust_value(
                                 swift_bridge_path,
@@ -187,7 +187,7 @@ impl ParsedExternFn {
                     if pat_type_pat_is_self(pat_ty) {
                         params.push("void* self".to_string());
                     } else {
-                        let ty = if let Some(built_in) = BuiltInType::with_type(&pat_ty.ty) {
+                        let ty = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
                             built_in.to_c().to_string()
                         } else {
                             pat.to_token_stream().to_string()
@@ -211,7 +211,7 @@ impl ParsedExternFn {
         match &self.func.sig.output {
             ReturnType::Default => "void".to_string(),
             ReturnType::Type(_, ty) => {
-                if let Some(ty) = BuiltInType::with_type(&ty) {
+                if let Some(ty) = BuiltInType::new_with_type(&ty) {
                     ty.to_c()
                 } else {
                     "void*".to_string()
@@ -224,7 +224,7 @@ impl ParsedExternFn {
         let mut includes = vec![];
 
         if let ReturnType::Type(_, ty) = &self.func.sig.output {
-            if let Some(ty) = BuiltInType::with_type(&ty) {
+            if let Some(ty) = BuiltInType::new_with_type(&ty) {
                 if let Some(include) = ty.c_include() {
                     includes.push(include);
                 }
@@ -233,7 +233,7 @@ impl ParsedExternFn {
 
         for param in &self.func.sig.inputs {
             if let FnArg::Typed(pat_ty) = param {
-                if let Some(ty) = BuiltInType::with_type(&pat_ty.ty) {
+                if let Some(ty) = BuiltInType::new_with_type(&pat_ty.ty) {
                     if let Some(include) = ty.c_include() {
                         includes.push(include);
                     }

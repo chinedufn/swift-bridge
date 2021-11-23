@@ -86,7 +86,7 @@ fn declare_func(func: &ParsedExternFn, bookkeeping: &mut Bookkeeping) -> String 
     let params = func.to_c_header_params();
 
     if let ReturnType::Type(_, ty) = &func.func.sig.output {
-        if let Some(ty) = BuiltInType::with_type(&ty) {
+        if let Some(ty) = BuiltInType::new_with_type(&ty) {
             if let BuiltInType::RefSlice(ref_slice) = ty {
                 bookkeeping.slice_types.insert(ref_slice.ty.to_c());
             }

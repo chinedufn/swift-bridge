@@ -1,8 +1,9 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
+use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
-use syn::{Path, ReturnType, Type};
+use syn::{FnArg, Path, ReturnType, Type};
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum BuiltInType {
@@ -20,7 +21,9 @@ pub(crate) enum BuiltInType {
     F32,
     F64,
     Bool,
+    /// `*const T` or `*mut T`
     Pointer(BuiltInPointer),
+    /// `&[T]` or `&mut [T]`
     RefSlice(BuiltInRefSlice),
     /// &str
     Str,
@@ -38,7 +41,53 @@ pub(crate) struct BuiltInReference {
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct BuiltInPointer {
     pub kind: PointerKind,
-    pub ty: Box<BuiltInType>,
+    pub pointee: Pointee,
+}
+
+/// The target of an `*const` or `*mut` pointer.
+#[derive(Clone)]
+pub(crate) enum Pointee {
+    BuiltIn(Box<BuiltInType>),
+    /// `*const SomeType`
+    ///         ^^^^^^^^ This is the Pointee
+    Void(Type),
+}
+
+impl ToTokens for Pointee {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Pointee::BuiltIn(built_in) => {
+                built_in.to_rust().to_tokens(tokens);
+            }
+            Pointee::Void(ty) => {
+                ty.to_tokens(tokens);
+            }
+        };
+    }
+}
+
+impl Debug for Pointee {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Pointee::BuiltIn(built_in) => f.debug_tuple("BuiltIn").field(&built_in).finish(),
+            Pointee::Void(ty) => f
+                .debug_tuple("Void")
+                .field(&ty.to_token_stream().to_string())
+                .finish(),
+        }
+    }
+}
+
+impl PartialEq for Pointee {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::BuiltIn(left), Self::BuiltIn(right)) => left == right,
+            (Self::Void(left), Self::Void(right)) => {
+                left.to_token_stream().to_string() == right.to_token_stream().to_string()
+            }
+            _ => false,
+        }
+    }
 }
 
 /// &[T]
@@ -65,8 +114,23 @@ pub(crate) enum PointerKind {
     Mut,
 }
 
+impl ToTokens for PointerKind {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            PointerKind::Const => {
+                let t = quote! { *const };
+                t.to_tokens(tokens);
+            }
+            PointerKind::Mut => {
+                let t = quote! { *mut };
+                t.to_tokens(tokens);
+            }
+        }
+    }
+}
+
 impl BuiltInType {
-    pub fn with_type(ty: &Type) -> Option<Self> {
+    pub fn new_with_type(ty: &Type) -> Option<Self> {
         match ty {
             Type::Path(path) => {
                 Self::with_str(path.path.segments.to_token_stream().to_string().as_str())
@@ -78,12 +142,18 @@ impl BuiltInType {
                     PointerKind::Mut
                 };
 
-                Self::with_type(&ptr.elem).map(|ty| {
+                let ty = if let Some(ty) = Self::new_with_type(&ptr.elem) {
                     Self::Pointer(BuiltInPointer {
                         kind,
-                        ty: Box::new(ty),
+                        pointee: Pointee::BuiltIn(Box::new(ty)),
                     })
-                })
+                } else {
+                    Self::Pointer(BuiltInPointer {
+                        kind,
+                        pointee: Pointee::Void(*ptr.elem.clone()),
+                    })
+                };
+                Some(ty)
             }
             Type::Reference(ty_ref) => match ty_ref.elem.deref() {
                 Type::Path(p) => {
@@ -94,7 +164,7 @@ impl BuiltInType {
 
                     None
                 }
-                Type::Slice(slice) => Self::with_type(&slice.elem)
+                Type::Slice(slice) => Self::new_with_type(&slice.elem)
                     .map(|ty| Self::RefSlice(BuiltInRefSlice { ty: Box::new(ty) })),
                 _ => None,
             },
@@ -102,10 +172,17 @@ impl BuiltInType {
         }
     }
 
-    pub fn with_return_type(ty: &ReturnType) -> Option<Self> {
+    pub fn new_with_return_type(ty: &ReturnType) -> Option<Self> {
         match ty {
             ReturnType::Default => Some(BuiltInType::Null),
-            ReturnType::Type(_, ty) => BuiltInType::with_type(&ty),
+            ReturnType::Type(_, ty) => BuiltInType::new_with_type(&ty),
+        }
+    }
+
+    pub fn new_with_fn_arg(fn_arg: &FnArg) -> Option<Self> {
+        match fn_arg {
+            FnArg::Receiver(_) => None,
+            FnArg::Typed(pat_ty) => BuiltInType::new_with_type(&pat_ty.ty),
         }
     }
 
@@ -170,17 +247,18 @@ impl BuiltInType {
             BuiltInType::F64 => quote! { f64 },
             BuiltInType::Bool => quote! { bool },
             BuiltInType::Pointer(ptr) => {
-                let maybe_mut = match ptr.kind {
-                    PointerKind::Const => {
-                        quote! {}
-                    }
-                    PointerKind::Mut => {
-                        quote! { mut }
-                    }
-                };
-                let ty = ptr.ty.to_rust();
+                let ptr_kind = &ptr.kind;
 
-                quote! { * #maybe_mut #ty }
+                match &ptr.pointee {
+                    Pointee::BuiltIn(ty) => {
+                        let ty = ty.to_rust();
+                        quote! { #ptr_kind #ty}
+                    }
+                    Pointee::Void(ty) => {
+                        // quote! { * #ptr_kind #ty };
+                        panic!("Add a test case that hits this branch, then make it pass")
+                    }
+                }
             }
             BuiltInType::RefSlice(ref_slice) => {
                 let ty = ref_slice.ty.to_rust();
@@ -220,15 +298,16 @@ impl BuiltInType {
             BuiltInType::Isize => quote! { isize },
             BuiltInType::Bool => quote! { bool },
             BuiltInType::Pointer(ptr) => {
-                let ty = ptr.ty.to_ffi_compatible_rust_type(swift_bridge_path);
-                match ptr.kind {
-                    PointerKind::Const => {
-                        quote! {*const #ty }
+                let kind = ptr.kind.to_token_stream();
+
+                let ty = match &ptr.pointee {
+                    Pointee::BuiltIn(ty) => ty.to_ffi_compatible_rust_type(swift_bridge_path),
+                    Pointee::Void(ty) => {
+                        quote! { super::#ty }
                     }
-                    PointerKind::Mut => {
-                        quote! {*mut #ty }
-                    }
-                }
+                };
+
+                quote! { #kind #ty}
             }
             BuiltInType::RefSlice(slice) => {
                 let ty = slice.ty.to_ffi_compatible_rust_type(swift_bridge_path);
@@ -277,11 +356,18 @@ impl BuiltInType {
                     PointerKind::Mut => "Mutable",
                 };
 
-                format!(
-                    "Unsafe{}Pointer<{}>",
-                    maybe_mutable,
-                    ptr.ty.to_swift_type(must_be_c_compatible)
-                )
+                match &ptr.pointee {
+                    Pointee::BuiltIn(ty) => {
+                        format!(
+                            "Unsafe{}Pointer<{}>",
+                            maybe_mutable,
+                            ty.to_swift_type(must_be_c_compatible)
+                        )
+                    }
+                    Pointee::Void(_) => {
+                        format!("Unsafe{}RawPointer", maybe_mutable)
+                    }
+                }
             }
             BuiltInType::RefSlice(slice) => {
                 if must_be_c_compatible {
@@ -329,7 +415,13 @@ impl BuiltInType {
                     PointerKind::Const => " const ",
                     PointerKind::Mut => "",
                 };
-                format!("{}{}*", ptr.ty.to_c(), maybe_const)
+
+                match &ptr.pointee {
+                    Pointee::BuiltIn(ty) => {
+                        format!("{}{}*", ty.to_c(), maybe_const)
+                    }
+                    Pointee::Void(_) => "void*".to_string(),
+                }
             }
             BuiltInType::RefSlice(_slice) => "struct __private__FfiSlice".to_string(),
             BuiltInType::Str => "struct RustStr".to_string(),
@@ -337,6 +429,45 @@ impl BuiltInType {
             BuiltInType::String => "void*".to_string(),
             BuiltInType::Vec(_) => "void*".to_string(),
             BuiltInType::Option(opt) => opt.ty.to_c(),
+        }
+    }
+
+    /// This function is used to convert `*const Type` -> `*const super::Type`
+    ///
+    /// If the BuiltInType is not a pointer, or it is a pointer to a built in type such as
+    /// `*const u8`, it does not get transformed.
+    ///
+    /// ## Example Case
+    ///
+    /// If we have an:
+    ///
+    /// ```no_rust,ignore
+    /// extern "Swift" {
+    ///     fn void_pointers (arg1: *const SomeType) -> *mut AnotherType;
+    /// }
+    /// ```
+    ///
+    /// We want to generate:
+    /// ```no_rust, ignore
+    /// fn void_pointers (arg1: *const super::SomeType) -> *mut super::AnotherType {
+    ///     unsafe { __swift_bridge__void_pointers(arg1) }
+    /// }
+    ///
+    pub fn maybe_convert_pointer_to_super_pointer(&self) -> TokenStream {
+        match self {
+            BuiltInType::Pointer(pointer) => match &pointer.pointee {
+                Pointee::BuiltIn(_built_in) => {
+                    //
+                    self.to_rust()
+                }
+                Pointee::Void(_) => {
+                    let pointer_kind = &pointer.kind;
+                    let pointee = &pointer.pointee;
+
+                    quote! { #pointer_kind super:: #pointee }
+                }
+            },
+            _ => self.to_rust(),
         }
     }
 
@@ -501,7 +632,7 @@ impl BuiltInType {
             | BuiltInType::F32
             | BuiltInType::F64
             | BuiltInType::Bool => value.to_string(),
-            BuiltInType::Pointer(_) => value.to_string(),
+            BuiltInType::Pointer(pointer) => value.to_string(),
             BuiltInType::RefSlice(ty) => {
                 format!(
                     "let slice = {value}; return UnsafeBufferPointer(start: slice.start.assumingMemoryBound(to: {ty}.self), count: Int(slice.len));",
@@ -526,14 +657,9 @@ impl BuiltInType {
     ///
     /// So.. Say we have an expression `value`
     ///
-    /// If `value: UnsafeBufferPoint<T>` then `value` becomes:
-    /// ```no_rust,ignore
-    /// __private__FfiSlice(
-    ///   start: UnsafeMutablePointer(mutating: value.baseAddress),
-    ///   len: UInt(value.count)
-    /// )
-    /// ```
-    ///
+    /// If `value: UnsafeBufferPoint<T>` then `value` becomes: `value.toFfiSlice()`,
+    /// where `.toFfiSlice()` is a function that creates a `__private__FfiSlice` which is
+    /// C compatible.
     pub fn convert_swift_expression_to_ffi_compatible(&self, value: &str) -> String {
         match self {
             BuiltInType::Null
@@ -549,10 +675,13 @@ impl BuiltInType {
             | BuiltInType::Isize
             | BuiltInType::F32
             | BuiltInType::F64
-            | BuiltInType::Bool
-            | BuiltInType::Pointer(_) => value.to_string(),
+            | BuiltInType::Bool => value.to_string(),
             BuiltInType::RefSlice(_) => {
                 format!("{}.toFfiSlice()", value)
+            }
+            BuiltInType::Pointer(ptr) => {
+                //
+                value.to_string()
             }
             BuiltInType::Str => value.to_string(),
             BuiltInType::String => value.to_string(),
@@ -578,7 +707,10 @@ impl BuiltInType {
             | BuiltInType::Usize
             | BuiltInType::Isize => Some("stdint.h"),
             BuiltInType::Bool => Some("stdbool.h"),
-            BuiltInType::Pointer(ptr) => ptr.ty.c_include(),
+            BuiltInType::Pointer(ptr) => match &ptr.pointee {
+                Pointee::BuiltIn(ty) => ty.c_include(),
+                Pointee::Void(_) => None,
+            },
             BuiltInType::RefSlice(slice) => slice.ty.c_include(),
             _ => None,
         }
@@ -625,21 +757,28 @@ mod tests {
                 quote! {*const u8},
                 BuiltInType::Pointer(BuiltInPointer {
                     kind: PointerKind::Const,
-                    ty: Box::new(BuiltInType::U8),
+                    pointee: Pointee::BuiltIn(Box::new(BuiltInType::U8)),
                 }),
             ),
             (
                 quote! {*mut f64},
                 BuiltInType::Pointer(BuiltInPointer {
                     kind: PointerKind::Mut,
-                    ty: Box::new(BuiltInType::F64),
+                    pointee: Pointee::BuiltIn(Box::new(BuiltInType::F64)),
+                }),
+            ),
+            (
+                quote! {*const c_void},
+                BuiltInType::Pointer(BuiltInPointer {
+                    kind: PointerKind::Const,
+                    pointee: Pointee::Void(syn::parse2(quote! {c_void}).unwrap()),
                 }),
             ),
         ];
         for (tokens, expected) in tests {
             let ty: Type = parse_quote! {#tokens};
             assert_eq!(
-                BuiltInType::with_type(&ty),
+                BuiltInType::new_with_type(&ty),
                 Some(expected),
                 "{}",
                 tokens.to_string()

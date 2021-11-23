@@ -257,7 +257,7 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
         }
     }
 
-    if let Some(built_in) = BuiltInType::with_return_type(&func.sig.output) {
+    if let Some(built_in) = BuiltInType::new_with_return_type(&func.sig.output) {
         call_fn = built_in.convert_swift_expression_to_ffi_compatible(&call_fn);
     }
 
@@ -858,7 +858,7 @@ func foo() -> RustString {
                 }
             }
         };
-        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let module: SwiftBridgeModule = syn::parse2(tokens).unwrap();
         let generated = module.generate_swift();
 
         let expected = r#"
@@ -868,6 +868,52 @@ func foo() -> RustString {
 "#;
 
         assert_eq!(generated.trim(), expected.trim());
+    }
+
+    /// Verify that we generate the corresponding Swift for extern "Rust" functions that accept
+    /// a *const void pointer.
+    #[test]
+    fn extern_rust_const_void_pointer_argument() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    fn void_pointer (arg1: *const c_void);
+                }
+            }
+        };
+        let module: SwiftBridgeModule = syn::parse2(start).unwrap();
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func void_pointer(_ arg1: UnsafeRawPointer) {
+    __swift_bridge__$void_pointer(UnsafeMutableRawPointer(mutating: arg1))
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
+    }
+
+    /// Verify that we generate the corresponding Swift for extern "Rust" functions that returns
+    /// a *const void pointer.
+    #[test]
+    fn extern_rust_return_const_void_pointer() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    fn void_pointer () -> *const c_void;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = syn::parse2(start).unwrap();
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func void_pointer() -> UnsafeRawPointer {
+    UnsafeRawPointer(__swift_bridge__$void_pointer()!)
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
     }
 
     /// Verify that we can return a reference to a declared type.

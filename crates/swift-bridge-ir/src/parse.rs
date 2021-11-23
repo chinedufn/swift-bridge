@@ -198,7 +198,7 @@ fn check_supported_type(
         _ => todo!("Handle other type possibilities"),
     };
 
-    if !type_lookup.contains_key(&ty_string) && BuiltInType::with_type(ty).is_none() {
+    if !type_lookup.contains_key(&ty_string) && BuiltInType::new_with_type(ty).is_none() {
         errors.push(ParseError::UndeclaredType {
             ty: ty_string,
             span: ty_span,
