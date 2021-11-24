@@ -1,6 +1,6 @@
 use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
-use crate::{pat_type_pat_is_self, BridgedType, SWIFT_BRIDGE_PREFIX};
+use crate::{pat_type_pat_is_self, BridgedType, OpaqueForeignType, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
@@ -94,7 +94,14 @@ impl ParsedExternFn {
         let sig = &self.func.sig;
 
         let prefix = if let Some(associated_ty) = self.associated_type.as_ref() {
-            format!("{}_", associated_ty.ident)
+            match associated_ty {
+                BridgedType::Shared(_) => {
+                    todo!()
+                }
+                BridgedType::Opaque(associated_ty) => {
+                    format!("{}_", associated_ty.ident)
+                }
+            }
         } else {
             "".to_string()
         };
@@ -254,7 +261,17 @@ impl ParsedExternFn {
         let host_type = self
             .associated_type
             .as_ref()
-            .map(|h| format!("${}", h.ident.to_string()))
+            .map(|h| {
+                match h {
+                    BridgedType::Shared(_) => {
+                        //
+                        todo!()
+                    }
+                    BridgedType::Opaque(h) => {
+                        format!("${}", h.ident.to_string())
+                    }
+                }
+            })
             .unwrap_or("".to_string());
 
         format!(
@@ -269,7 +286,17 @@ impl ParsedExternFn {
         let host_type_prefix = self
             .associated_type
             .as_ref()
-            .map(|h| format!("{}_", h.ident.to_token_stream().to_string()))
+            .map(|h| {
+                match h {
+                    BridgedType::Shared(_) => {
+                        //
+                        todo!()
+                    }
+                    BridgedType::Opaque(h) => {
+                        format!("{}_", h.ident.to_token_stream().to_string())
+                    }
+                }
+            })
             .unwrap_or_default();
         let fn_name = &self.func.sig.ident;
         let prefixed_fn_name = Ident::new(

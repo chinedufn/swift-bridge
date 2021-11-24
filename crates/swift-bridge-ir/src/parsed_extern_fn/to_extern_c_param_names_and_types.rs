@@ -1,7 +1,7 @@
 use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::pat_type_pat_is_self;
+use crate::{pat_type_pat_is_self, BridgedType};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use std::ops::Deref;
@@ -10,7 +10,12 @@ use syn::{FnArg, Path, Type};
 
 impl ParsedExternFn {
     pub fn to_extern_c_param_names_and_types(&self, swift_bridge_path: &Path) -> TokenStream {
-        let host_type = self.associated_type.as_ref().map(|h| &h.ident);
+        let host_type = self.associated_type.as_ref().map(|h| match h {
+            BridgedType::Shared(_) => {
+                todo!()
+            }
+            BridgedType::Opaque(h) => &h.ident,
+        });
         let mut params = vec![];
         let inputs = &self.func.sig.inputs;
         for arg in inputs {

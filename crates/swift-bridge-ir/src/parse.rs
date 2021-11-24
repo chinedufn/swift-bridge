@@ -1,6 +1,6 @@
 use crate::built_in_types::BuiltInType;
 use crate::errors::{ParseError, ParseErrors};
-use crate::{BridgedType, ParsedExternFn, SwiftBridgeModule};
+use crate::{BridgedType, OpaqueForeignType, ParsedExternFn, SwiftBridgeModule};
 use proc_macro2::Ident;
 use quote::quote;
 use quote::ToTokens;
@@ -10,8 +10,7 @@ use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
 use syn::{
-    FnArg, ForeignItem, ForeignItemFn, Item, ItemForeignMod, ItemMod, Pat, Path, ReturnType, Token,
-    Type,
+    FnArg, ForeignItem, ForeignItemFn, Item, ItemForeignMod, ItemMod, Pat, ReturnType, Token, Type,
 };
 
 impl Parse for SwiftBridgeModule {
@@ -140,13 +139,13 @@ impl<'a> ForeignModParser<'a> {
                         });
                     }
 
-                    let bridged_type = BridgedType {
+                    let foreign_type = OpaqueForeignType {
                         ty: foreign_ty.clone(),
                         host_lang,
                     };
                     self.all_type_declarations
-                        .insert(ty_name.clone(), bridged_type.clone());
-                    local_type_declarations.insert(ty_name, bridged_type);
+                        .insert(ty_name.clone(), BridgedType::Opaque(foreign_type.clone()));
+                    local_type_declarations.insert(ty_name, foreign_type);
                 }
                 ForeignItem::Fn(func) => {
                     let mut attributes = FunctionAttributes::default();
@@ -203,7 +202,7 @@ impl<'a> ForeignModParser<'a> {
 
 fn check_supported_type(
     ty: &Type,
-    type_lookup: &mut HashMap<String, BridgedType>,
+    all_type_declarations: &mut HashMap<String, BridgedType>,
     errors: &mut ParseErrors,
 ) {
     let (ty_string, ty_span) = match ty.deref() {
@@ -216,7 +215,7 @@ fn check_supported_type(
         _ => todo!("Handle other type possibilities"),
     };
 
-    if !type_lookup.contains_key(&ty_string) && BuiltInType::new_with_type(ty).is_none() {
+    if !all_type_declarations.contains_key(&ty_string) && BuiltInType::new_with_type(ty).is_none() {
         errors.push(ParseError::UndeclaredType {
             ty: ty_string,
             span: ty_span,
@@ -264,7 +263,7 @@ fn parse_function_with_inputs(
     attributes: &FunctionAttributes,
     host_lang: HostLang,
     all_type_declarations: &mut HashMap<String, BridgedType>,
-    local_type_declarations: &mut HashMap<String, BridgedType>,
+    local_type_declarations: &mut HashMap<String, OpaqueForeignType>,
     functions: &mut Vec<ParsedExternFn>,
     errors: &mut ParseErrors,
 ) -> syn::Result<()> {
@@ -275,7 +274,7 @@ fn parse_function_with_inputs(
                 functions.push(ParsedExternFn {
                     func,
                     is_initializer: attributes.initializes,
-                    associated_type: Some(ty.clone()),
+                    associated_type: Some(BridgedType::Opaque(ty.clone())),
                     host_lang,
                 });
             } else {
@@ -409,28 +408,6 @@ impl Parse for FunctionAttr {
     }
 }
 
-enum ModuleAttr {
-    SwiftBridgePath(Path),
-}
-
-impl Parse for ModuleAttr {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let key: Ident = input.parse()?;
-
-        let attrib = match key.to_string().as_str() {
-            "swift_bridge_path" => {
-                input.parse::<Token![=]>()?;
-                let path: Path = input.parse()?;
-
-                ModuleAttr::SwiftBridgePath(path)
-            }
-            _ => panic!("TODO: Return spanned error"),
-        };
-
-        Ok(attrib)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -499,7 +476,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        assert_eq!(module.types[0].ident.to_string(), "Foo");
+        assert_eq!(module.types[0].unwrap_opaque().ident.to_string(), "Foo");
     }
 
     /// Verify that we return an error if the declared type is a built in type.
@@ -543,7 +520,7 @@ mod tests {
 
             let module = parse_ok(tokens);
 
-            let ty = &module.types[0];
+            let ty = &module.types[0].unwrap_opaque();
             assert_eq!(ty.ident.to_string(), "Foo");
 
             assert_eq!(
@@ -571,7 +548,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        let ty = &module.types[0];
+        let ty = &module.types[0].unwrap_opaque();
         assert_eq!(ty.ident.to_string(), "Foo");
 
         assert_eq!(module.functions.len(), 1,);
@@ -593,7 +570,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        let ty = &module.types[0];
+        let ty = &module.types[0].unwrap_opaque();
         assert_eq!(ty.ident.to_string(), "Foo");
 
         assert_eq!(module.functions.len(), 1,);
@@ -816,8 +793,8 @@ mod tests {
 
         let mut module = parse_ok(tokens);
 
-        let types = &mut module.types;
-        types.sort_by(|a, b| a.ident.to_string().cmp(&b.ident.to_string()).reverse());
+        // let types = &mut module.types;
+        // types.sort_by(|a, b| a.ident.to_string().cmp(&b.ident.to_string()).reverse());
 
         let functions = &module.functions;
 
@@ -825,7 +802,9 @@ mod tests {
             assert_eq!(
                 functions
                     .iter()
-                    .filter(|f| f.associated_type.as_ref().unwrap().ident == ty_name)
+                    .filter(
+                        |f| f.associated_type.as_ref().unwrap().unwrap_opaque().ident == ty_name
+                    )
                     .count(),
                 expected_count
             );
@@ -853,8 +832,8 @@ mod tests {
 
         let mut module = parse_ok(tokens);
 
-        let types = &mut module.types;
-        types.sort_by(|a, b| a.ident.to_string().cmp(&b.ident.to_string()).reverse());
+        // let types = &mut module.types;
+        // types.sort_by(|a, b| a.ident.to_string().cmp(&b.ident.to_string()).reverse());
 
         let functions = &module.functions;
 
@@ -862,7 +841,9 @@ mod tests {
             assert_eq!(
                 functions
                     .iter()
-                    .filter(|f| f.associated_type.as_ref().unwrap().ident == ty_name)
+                    .filter(
+                        |f| f.associated_type.as_ref().unwrap().unwrap_opaque().ident == ty_name
+                    )
                     .count(),
                 expected_count
             );

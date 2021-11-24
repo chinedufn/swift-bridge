@@ -1,6 +1,7 @@
 use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
+use crate::BridgedType;
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::ops::Deref;
@@ -122,8 +123,16 @@ impl ParsedExternFn {
     /// Generate tokens for calling a freestanding or an associated function.
     fn call_function_tokens(&self, call_fn: &TokenStream) -> TokenStream {
         let maybe_associated_type = self.associated_type.as_ref().map(|ty| {
-            let ty = &ty.ident;
-            quote! {#ty::}
+            match ty {
+                BridgedType::Shared(_) => {
+                    //
+                    todo!()
+                }
+                BridgedType::Opaque(ty) => {
+                    let ty = &ty.ident;
+                    quote! {#ty::}
+                }
+            }
         });
 
         quote! {

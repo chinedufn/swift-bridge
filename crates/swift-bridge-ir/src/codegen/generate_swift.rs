@@ -1,7 +1,7 @@
 use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::{BridgedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use crate::{BridgedType, OpaqueForeignType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use quote::ToTokens;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -20,10 +20,18 @@ impl SwiftBridgeModule {
         for function in &self.functions {
             if function.host_lang.is_rust() {
                 if let Some(ty) = function.associated_type.as_ref() {
-                    associated_funcs_and_methods
-                        .entry(ty.ident.to_string())
-                        .or_default()
-                        .push(function);
+                    match ty {
+                        BridgedType::Shared(_) => {
+                            //
+                            todo!()
+                        }
+                        BridgedType::Opaque(ty) => {
+                            associated_funcs_and_methods
+                                .entry(ty.ident.to_string())
+                                .or_default()
+                                .push(function);
+                        }
+                    };
                     continue;
                 }
             }
@@ -38,9 +46,15 @@ impl SwiftBridgeModule {
         }
 
         for ty in &self.types {
-            let generated = match ty.host_lang {
-                HostLang::Rust => generate_swift_class(ty, &associated_funcs_and_methods),
-                HostLang::Swift => generate_drop_swift_instance_reference_count(ty),
+            let generated = match ty {
+                BridgedType::Shared(_) => {
+                    //
+                    todo!()
+                }
+                BridgedType::Opaque(ty) => match ty.host_lang {
+                    HostLang::Rust => generate_swift_class(ty, &associated_funcs_and_methods),
+                    HostLang::Swift => generate_drop_swift_instance_reference_count(ty),
+                },
             };
 
             swift += &generated;
@@ -52,7 +66,7 @@ impl SwiftBridgeModule {
 }
 
 fn generate_swift_class(
-    ty: &BridgedType,
+    ty: &OpaqueForeignType,
     associated_funcs_and_methods: &HashMap<String, Vec<&ParsedExternFn>>,
 ) -> String {
     let type_name = ty.ident.to_string();
@@ -128,7 +142,7 @@ public class {type_name} {{
 //     let _ = Unmanaged<Foo>.fromOpaque(ptr).takeRetainedValue()
 // }
 // ```
-fn generate_drop_swift_instance_reference_count(ty: &BridgedType) -> String {
+fn generate_drop_swift_instance_reference_count(ty: &OpaqueForeignType) -> String {
     let link_name = ty.free_link_name();
     let fn_name = ty.free_func_name();
 
@@ -152,7 +166,15 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
     let call_fn = format!("{}({})", fn_name, call_args);
 
     let type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
-        format!("${}", ty.ident.to_string())
+        match ty {
+            BridgedType::Shared(_) => {
+                //
+                todo!()
+            }
+            BridgedType::Opaque(ty) => {
+                format!("${}", ty.ident.to_string())
+            }
+        }
     } else {
         "".to_string()
     };
@@ -242,7 +264,13 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
     let mut call_fn = format!("{}({})", fn_name, args);
 
     if let Some(associated_type) = func.associated_type.as_ref() {
-        let ty_name = associated_type.ident.to_string();
+        let ty_name = match associated_type {
+            BridgedType::Shared(_) => {
+                //
+                todo!()
+            }
+            BridgedType::Opaque(associated_type) => associated_type.ident.to_string(),
+        };
 
         if func.is_method() {
             call_fn = format!(

@@ -5,7 +5,7 @@ use quote::quote;
 use quote::ToTokens;
 
 use crate::parse::HostLang;
-use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use crate::{BridgedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
 mod option;
 
@@ -31,10 +31,19 @@ impl ToTokens for SwiftBridgeModule {
                     let tokens = func.to_rust_fn_that_calls_a_swift_extern(&self.swift_bridge_path);
 
                     if let Some(ty) = func.associated_type.as_ref() {
-                        impl_fn_tokens
-                            .entry(ty.ident.to_string())
-                            .or_default()
-                            .push(tokens);
+                        match ty {
+                            BridgedType::Shared(_) => {
+                                //
+
+                                todo!()
+                            }
+                            BridgedType::Opaque(ty) => {
+                                impl_fn_tokens
+                                    .entry(ty.ident.to_string())
+                                    .or_default()
+                                    .push(tokens);
+                            }
+                        };
                     } else {
                         freestanding_rust_call_swift_fn_tokens.push(tokens);
                     }
@@ -46,61 +55,70 @@ impl ToTokens for SwiftBridgeModule {
         }
 
         for ty in &self.types {
-            let link_name = format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
-            let free_mem_func_name = Ident::new(
-                &format!("{}{}__free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string()),
-                ty.ident.span(),
-            );
-            let this = &ty.ident;
-
-            match ty.host_lang {
-                HostLang::Rust => {
-                    let free = quote! {
-                        #[no_mangle]
-                        #[export_name = #link_name]
-                        pub extern "C" fn #free_mem_func_name (this: *mut super::#this) {
-                            let this = unsafe { Box::from_raw(this) };
-                            drop(this);
-                        }
-                    };
-                    extern_rust_fn_tokens.push(free);
+            match ty {
+                BridgedType::Shared(_) => {
+                    //
+                    todo!("Handle shared types")
                 }
-                HostLang::Swift => {
-                    let ty_name = &ty.ident;
+                BridgedType::Opaque(ty) => {
+                    let link_name =
+                        format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
+                    let free_mem_func_name = Ident::new(
+                        &format!("{}{}__free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string()),
+                        ty.ident.span(),
+                    );
+                    let this = &ty.ident;
 
-                    let impls = match impl_fn_tokens.get(&ty_name.to_string()) {
-                        Some(impls) if impls.len() > 0 => {
-                            quote! {
-                                impl #ty_name {
-                                    #(#impls)*
+                    match ty.host_lang {
+                        HostLang::Rust => {
+                            let free = quote! {
+                                #[no_mangle]
+                                #[export_name = #link_name]
+                                pub extern "C" fn #free_mem_func_name (this: *mut super::#this) {
+                                    let this = unsafe { Box::from_raw(this) };
+                                    drop(this);
                                 }
-                            }
+                            };
+                            extern_rust_fn_tokens.push(free);
                         }
-                        _ => {
-                            quote! {}
+                        HostLang::Swift => {
+                            let ty_name = &ty.ident;
+
+                            let impls = match impl_fn_tokens.get(&ty_name.to_string()) {
+                                Some(impls) if impls.len() > 0 => {
+                                    quote! {
+                                        impl #ty_name {
+                                            #(#impls)*
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    quote! {}
+                                }
+                            };
+
+                            let struct_tokens = quote! {
+                                pub struct #ty_name(*mut std::ffi::c_void);
+
+                                #impls
+
+                                impl Drop for #ty_name {
+                                    fn drop (&mut self) {
+                                        unsafe { #free_mem_func_name(self.0) }
+                                    }
+                                }
+                            };
+                            structs_for_swift_classes.push(struct_tokens);
+
+                            let free = quote! {
+                                #[link_name = #link_name]
+                                fn #free_mem_func_name (this: *mut std::ffi::c_void);
+                            };
+                            extern_swift_fn_tokens.push(free);
                         }
                     };
-
-                    let struct_tokens = quote! {
-                        pub struct #ty_name(*mut std::ffi::c_void);
-
-                        #impls
-
-                        impl Drop for #ty_name {
-                            fn drop (&mut self) {
-                                unsafe { #free_mem_func_name(self.0) }
-                            }
-                        }
-                    };
-                    structs_for_swift_classes.push(struct_tokens);
-
-                    let free = quote! {
-                        #[link_name = #link_name]
-                        fn #free_mem_func_name (this: *mut std::ffi::c_void);
-                    };
-                    extern_swift_fn_tokens.push(free);
                 }
-            };
+            }
         }
 
         let externs = if extern_swift_fn_tokens.len() > 0 {

@@ -1,6 +1,6 @@
 use crate::built_in_types::BuiltInType;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::pat_type_pat_is_self;
+use crate::{pat_type_pat_is_self, BridgedType};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use std::ops::Deref;
@@ -62,10 +62,17 @@ impl ParsedExternFn {
         if let Some(built_in) = BuiltInType::new_with_return_type(&sig.output) {
             inner = built_in.convert_ffi_value_to_rust_value(swift_bridge_path, &inner, true);
         } else if let Some(bridged_ty) = &self.associated_type.as_ref() {
-            let ty_name = &bridged_ty.ident;
-            inner = quote! {
-                #ty_name ( #inner )
-            };
+            match bridged_ty {
+                BridgedType::Shared(_) => {
+                    todo!()
+                }
+                BridgedType::Opaque(bridged_ty) => {
+                    let ty_name = &bridged_ty.ident;
+                    inner = quote! {
+                        #ty_name ( #inner )
+                    };
+                }
+            }
         }
 
         quote! {

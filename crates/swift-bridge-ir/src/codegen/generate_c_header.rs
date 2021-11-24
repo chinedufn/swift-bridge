@@ -1,6 +1,6 @@
 use crate::built_in_types::BuiltInType;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::SwiftBridgeModule;
+use crate::{BridgedType, SwiftBridgeModule};
 use std::collections::HashSet;
 use syn::ReturnType;
 
@@ -31,22 +31,30 @@ impl SwiftBridgeModule {
         };
 
         for ty in self.types.iter() {
-            if ty.host_lang.is_swift() {
-                continue;
+            match ty {
+                BridgedType::Shared(_) => {
+                    //
+                    todo!("Handle shared types")
+                }
+                BridgedType::Opaque(ty) => {
+                    if ty.host_lang.is_swift() {
+                        continue;
+                    }
+
+                    let ty_name = ty.ident.to_string();
+
+                    let ty_decl = format!("typedef struct {ty_name} {ty_name};", ty_name = ty_name);
+                    let drop_ty = format!(
+                        "void __swift_bridge__${ty_name}$_free(void* self);",
+                        ty_name = ty_name
+                    );
+
+                    header += &ty_decl;
+                    header += "\n";
+                    header += &drop_ty;
+                    header += "\n";
+                }
             }
-
-            let ty_name = ty.ident.to_string();
-
-            let ty_decl = format!("typedef struct {ty_name} {ty_name};", ty_name = ty_name);
-            let drop_ty = format!(
-                "void __swift_bridge__${ty_name}$_free(void* self);",
-                ty_name = ty_name
-            );
-
-            header += &ty_decl;
-            header += "\n";
-            header += &drop_ty;
-            header += "\n";
         }
 
         for function in self.functions.iter() {

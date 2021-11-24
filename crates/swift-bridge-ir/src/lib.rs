@@ -113,12 +113,47 @@ impl Parse for SwiftBridgeModuleAttr {
 }
 
 #[derive(Clone)]
-struct BridgedType {
+enum BridgedType {
+    Shared(SharedType),
+    Opaque(OpaqueForeignType),
+}
+
+#[cfg(test)]
+impl BridgedType {
+    fn unwrap_shared(&self) -> &SharedType {
+        match self {
+            BridgedType::Shared(s) => s,
+            BridgedType::Opaque(_) => panic!(),
+        }
+    }
+
+    fn unwrap_opaque(&self) -> &OpaqueForeignType {
+        match self {
+            BridgedType::Shared(_) => {
+                panic!()
+            }
+            BridgedType::Opaque(o) => o,
+        }
+    }
+}
+
+#[derive(Clone)]
+enum SharedType {
+    Struct(SharedStruct),
+}
+
+#[derive(Clone)]
+struct SharedStruct {
+    //
+}
+
+#[derive(Clone)]
+struct OpaqueForeignType {
     ty: ForeignItemType,
     host_lang: HostLang,
 }
 
-impl BridgedType {
+impl OpaqueForeignType {
     // "__swift_bridge__$TypeName$_free"
     fn free_link_name(&self) -> String {
         format!(
@@ -149,7 +184,7 @@ fn pat_type_pat_is_self(pat_type: &PatType) -> bool {
     }
 }
 
-impl Deref for BridgedType {
+impl Deref for OpaqueForeignType {
     type Target = ForeignItemType;
 
     fn deref(&self) -> &Self::Target {
