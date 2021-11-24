@@ -10,6 +10,7 @@ fn main() {
         "src/bool.rs",
         "src/option.rs",
         "src/pointer.rs",
+        "src/shared.rs",
         "src/string.rs",
         "src/vec.rs",
     ];

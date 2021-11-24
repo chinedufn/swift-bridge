@@ -255,7 +255,7 @@ impl BuiltInType {
                         let ty = ty.to_rust();
                         quote! { #ptr_kind #ty}
                     }
-                    Pointee::Void(ty) => {
+                    Pointee::Void(_ty) => {
                         // quote! { * #ptr_kind #ty };
                         panic!("Add a test case that hits this branch, then make it pass")
                     }
@@ -653,7 +653,7 @@ impl BuiltInType {
             BuiltInType::String => {
                 format!("RustString(ptr: {}, isOwned: true)", value)
             }
-            BuiltInType::Vec(ty) => {
+            BuiltInType::Vec(_ty) => {
                 format!("RustVec(ptr: {}, isOwned: true)", value)
             }
             BuiltInType::Option(_) => {

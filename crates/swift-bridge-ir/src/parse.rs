@@ -9,7 +9,10 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItem, ForeignItemFn, Item, ItemMod, Pat, Path, ReturnType, Token, Type};
+use syn::{
+    FnArg, ForeignItem, ForeignItemFn, Item, ItemForeignMod, ItemMod, Pat, Path, ReturnType, Token,
+    Type,
+};
 
 impl Parse for SwiftBridgeModule {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -57,108 +60,14 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
             for outer_mod_item in item_mod.content.unwrap().1 {
                 match outer_mod_item {
-                    Item::ForeignMod(mut foreign_mod) => {
-                        if foreign_mod.abi.name.is_none() {
-                            errors.push(ParseError::AbiNameMissing {
-                                extern_token: foreign_mod.abi.extern_token,
-                            });
-                            continue;
+                    Item::ForeignMod(foreign_mod) => {
+                        ForeignModParser {
+                            foreign_mod,
+                            errors: &mut errors,
+                            all_type_declarations: &mut all_type_declarations,
+                            functions: &mut functions,
                         }
-
-                        let mut local_type_declarations = HashMap::new();
-
-                        let abi_name = foreign_mod.abi.name.unwrap();
-
-                        let host_lang = match abi_name.value().as_str() {
-                            "Rust" => HostLang::Rust,
-                            "Swift" => HostLang::Swift,
-                            _ => {
-                                errors.push(ParseError::AbiNameInvalid { abi_name });
-                                continue;
-                            }
-                        };
-
-                        foreign_mod.items.sort_by(|a, _b| {
-                            if matches!(a, ForeignItem::Type(_)) {
-                                Ordering::Less
-                            } else {
-                                Ordering::Greater
-                            }
-                        });
-
-                        for foreign_mod_item in foreign_mod.items {
-                            match foreign_mod_item {
-                                ForeignItem::Type(foreign_ty) => {
-                                    let ty_name = foreign_ty.ident.to_string();
-
-                                    if let Some(_builtin) =
-                                        BuiltInType::with_str(&foreign_ty.ident.to_string())
-                                    {
-                                        errors.push(ParseError::DeclaredBuiltInType {
-                                            ty: foreign_ty.clone(),
-                                        });
-                                    }
-
-                                    let bridged_type = BridgedType {
-                                        ty: foreign_ty.clone(),
-                                        host_lang,
-                                    };
-                                    all_type_declarations
-                                        .insert(ty_name.clone(), bridged_type.clone());
-                                    local_type_declarations.insert(ty_name, bridged_type);
-                                }
-                                ForeignItem::Fn(func) => {
-                                    let mut attributes = FunctionAttributes::default();
-
-                                    for attr in func.attrs.iter() {
-                                        let attr: FunctionAttr = attr.parse_args()?;
-                                        attributes.store_attrib(attr);
-                                    }
-
-                                    for arg in func.sig.inputs.iter() {
-                                        if let FnArg::Typed(pat_ty) = arg {
-                                            check_supported_type(
-                                                &pat_ty.ty,
-                                                &mut all_type_declarations,
-                                                &mut errors,
-                                            );
-                                        }
-                                    }
-
-                                    if let ReturnType::Type(_, ty) = &func.sig.output {
-                                        check_supported_type(
-                                            ty,
-                                            &mut all_type_declarations,
-                                            &mut errors,
-                                        );
-                                    }
-
-                                    let first_input = func.sig.inputs.iter().next();
-
-                                    if let Some(first) = first_input {
-                                        parse_function_with_inputs(
-                                            first,
-                                            func.clone(),
-                                            &attributes,
-                                            host_lang,
-                                            &mut all_type_declarations,
-                                            &mut local_type_declarations,
-                                            &mut functions,
-                                            &mut errors,
-                                        )?;
-                                    } else {
-                                        let f = parse_function(
-                                            func.clone(),
-                                            &attributes,
-                                            host_lang,
-                                            &mut all_type_declarations,
-                                        );
-                                        functions.push(f);
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
+                        .parse()?;
                     }
                     _ => {
                         //
@@ -177,9 +86,118 @@ impl Parse for SwiftBridgeModuleAndErrors {
         } else {
             return Err(syn::Error::new_spanned(
                 input.to_string(),
-                "Only modules and impl blocks are supported.",
+                "Only modules are supported.",
             ));
         }
+    }
+}
+
+struct ForeignModParser<'a> {
+    foreign_mod: ItemForeignMod,
+    errors: &'a mut ParseErrors,
+    all_type_declarations: &'a mut HashMap<String, BridgedType>,
+    functions: &'a mut Vec<ParsedExternFn>,
+}
+
+impl<'a> ForeignModParser<'a> {
+    // TODO: Refactor internals into smaller functions
+    fn parse(mut self) -> Result<(), syn::Error> {
+        if self.foreign_mod.abi.name.is_none() {
+            self.errors.push(ParseError::AbiNameMissing {
+                extern_token: self.foreign_mod.abi.extern_token,
+            });
+            return Ok(());
+        }
+
+        let abi_name = self.foreign_mod.abi.name.unwrap();
+
+        let host_lang = match abi_name.value().as_str() {
+            "Rust" => HostLang::Rust,
+            "Swift" => HostLang::Swift,
+            _ => {
+                self.errors.push(ParseError::AbiNameInvalid { abi_name });
+                return Ok(());
+            }
+        };
+
+        self.foreign_mod.items.sort_by(|a, _b| {
+            if matches!(a, ForeignItem::Type(_)) {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        });
+
+        let mut local_type_declarations = HashMap::new();
+        for foreign_mod_item in self.foreign_mod.items {
+            match foreign_mod_item {
+                ForeignItem::Type(foreign_ty) => {
+                    let ty_name = foreign_ty.ident.to_string();
+
+                    if let Some(_builtin) = BuiltInType::with_str(&foreign_ty.ident.to_string()) {
+                        self.errors.push(ParseError::DeclaredBuiltInType {
+                            ty: foreign_ty.clone(),
+                        });
+                    }
+
+                    let bridged_type = BridgedType {
+                        ty: foreign_ty.clone(),
+                        host_lang,
+                    };
+                    self.all_type_declarations
+                        .insert(ty_name.clone(), bridged_type.clone());
+                    local_type_declarations.insert(ty_name, bridged_type);
+                }
+                ForeignItem::Fn(func) => {
+                    let mut attributes = FunctionAttributes::default();
+
+                    for attr in func.attrs.iter() {
+                        let attr: FunctionAttr = attr.parse_args()?;
+                        attributes.store_attrib(attr);
+                    }
+
+                    for arg in func.sig.inputs.iter() {
+                        if let FnArg::Typed(pat_ty) = arg {
+                            check_supported_type(
+                                &pat_ty.ty,
+                                &mut self.all_type_declarations,
+                                &mut self.errors,
+                            );
+                        }
+                    }
+
+                    if let ReturnType::Type(_, ty) = &func.sig.output {
+                        check_supported_type(ty, &mut self.all_type_declarations, &mut self.errors);
+                    }
+
+                    let first_input = func.sig.inputs.iter().next();
+
+                    if let Some(first) = first_input {
+                        parse_function_with_inputs(
+                            first,
+                            func.clone(),
+                            &attributes,
+                            host_lang,
+                            &mut self.all_type_declarations,
+                            &mut local_type_declarations,
+                            &mut self.functions,
+                            &mut self.errors,
+                        )?;
+                    } else {
+                        let f = parse_function(
+                            func.clone(),
+                            &attributes,
+                            host_lang,
+                            &mut self.all_type_declarations,
+                        );
+                        self.functions.push(f);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        Ok(())
     }
 }
 
