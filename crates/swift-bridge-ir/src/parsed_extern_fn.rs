@@ -1,6 +1,6 @@
 use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
-use crate::{pat_type_pat_is_self, BridgedType, OpaqueForeignType, SWIFT_BRIDGE_PREFIX};
+use crate::{pat_type_pat_is_self, BridgedType, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;

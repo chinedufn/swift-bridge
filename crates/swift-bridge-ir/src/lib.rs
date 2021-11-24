@@ -11,7 +11,7 @@ use crate::parse::HostLang;
 use proc_macro2::Ident;
 use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
-use syn::{ForeignItemType, Path};
+use syn::{ForeignItemType, Path, Type};
 use syn::{PatType, Token};
 
 use crate::parsed_extern_fn::ParsedExternFn;
@@ -127,6 +127,13 @@ impl BridgedType {
         }
     }
 
+    fn unwrap_shared_struct(&self) -> &SharedStruct {
+        match self {
+            BridgedType::Shared(SharedType::Struct(s)) => s,
+            BridgedType::Opaque(_) => panic!(),
+        }
+    }
+
     fn unwrap_opaque(&self) -> &OpaqueForeignType {
         match self {
             BridgedType::Shared(_) => {
@@ -144,7 +151,14 @@ enum SharedType {
 
 #[derive(Clone)]
 struct SharedStruct {
-    //
+    name: Ident,
+    fields: Vec<StructField>,
+}
+
+#[derive(Clone)]
+struct StructField {
+    name: Option<Ident>,
+    ty: Type,
 }
 
 #[derive(Clone)]

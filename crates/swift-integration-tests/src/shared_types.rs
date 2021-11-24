@@ -59,7 +59,7 @@
 //
 // 5. (DONE) Add tests to `ExternalCTypes.swift` that verify that the Uuid tests work.
 //
-// 6. Add a test to the parser for parsing shared structs
+// 6. Add some tests to the parser for parsing shared structs
 //
 // 7. Add parser test that an extern "Rust" block can use a shared type
 //
