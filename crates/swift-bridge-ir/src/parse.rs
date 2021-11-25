@@ -1,14 +1,16 @@
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::parse::parse_struct::SharedStructParser;
+use crate::parse::type_declarations::TypeDeclarations;
 use crate::{BridgedType, SharedType, SwiftBridgeModule};
 use quote::quote;
-use std::collections::HashMap;
 use syn::parse::{Parse, ParseStream};
 use syn::{Item, ItemMod};
 
 mod parse_extern_mod;
 mod parse_struct;
+
+mod type_declarations;
 
 impl Parse for SwiftBridgeModule {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -52,7 +54,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
             let module_name = item_mod.ident;
 
             let mut functions = vec![];
-            let mut all_type_declarations = HashMap::new();
+            let mut all_type_declarations = TypeDeclarations::default();
             let mut maybe_undeclared = vec![];
 
             for outer_mod_item in item_mod.content.unwrap().1 {
@@ -99,9 +101,15 @@ impl Parse for SwiftBridgeModuleAndErrors {
                 });
             }
 
+            let types = all_type_declarations
+                .order()
+                .into_iter()
+                .map(|name| all_type_declarations.get(name).unwrap().clone())
+                .collect();
+
             let module = SwiftBridgeModule {
                 name: module_name,
-                types: all_type_declarations.into_values().collect(),
+                types,
                 functions,
                 swift_bridge_path: syn::parse2(quote! { swift_bridge }).unwrap(),
             };

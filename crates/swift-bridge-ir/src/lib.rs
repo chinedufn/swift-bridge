@@ -119,7 +119,7 @@ enum BridgedType {
 
 #[cfg(test)]
 impl BridgedType {
-    fn unwrap_shared(&self) -> &SharedType {
+    fn _unwrap_shared(&self) -> &SharedType {
         match self {
             BridgedType::Shared(s) => s,
             BridgedType::Opaque(_) => panic!(),
@@ -154,6 +154,15 @@ struct SharedStruct {
     swift_repr: StructSwiftRepr,
     fields: Vec<StructField>,
     swift_name: Option<LitStr>,
+}
+
+impl SharedStruct {
+    fn swift_name_string(&self) -> String {
+        self.swift_name
+            .as_ref()
+            .map(|s| s.value())
+            .unwrap_or(self.name.to_string())
+    }
 }
 
 /// Whether to create a class or a structure when creating the Swift representation of a shared

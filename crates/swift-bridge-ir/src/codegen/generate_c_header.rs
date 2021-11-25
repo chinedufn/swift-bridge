@@ -1,6 +1,6 @@
 use crate::built_in_types::BuiltInType;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::{BridgedType, SwiftBridgeModule};
+use crate::{BridgedType, SharedType, SwiftBridgeModule};
 use std::collections::HashSet;
 use syn::ReturnType;
 
@@ -27,15 +27,54 @@ impl SwiftBridgeModule {
 
         let mut bookkeeping = Bookkeeping {
             includes: HashSet::new(),
+            // TODO: Delete this
             slice_types: HashSet::new(),
         };
 
         for ty in self.types.iter() {
             match ty {
-                BridgedType::Shared(_) => {
-                    //
-                    todo!("Handle shared types")
-                }
+                BridgedType::Shared(ty) => match ty {
+                    SharedType::Struct(ty_struct) => {
+                        let name = ty_struct.swift_name_string();
+
+                        let mut fields = vec![];
+                        for (idx, field) in ty_struct.fields.iter().enumerate() {
+                            let ty = BuiltInType::new_with_type(&field.ty).unwrap();
+
+                            if let Some(include) = ty.c_include() {
+                                bookkeeping.includes.insert(include);
+                            }
+
+                            let name = format!("_{}", idx);
+
+                            fields.push(format!(
+                                "{} {}",
+                                ty.to_c(),
+                                field.name.as_ref().map(|f| f.to_string()).unwrap_or(name)
+                            ));
+                        }
+
+                        let maybe_fields = if fields.len() > 0 {
+                            let mut maybe_fields = " { ".to_string();
+
+                            maybe_fields += &fields.join("; ");
+
+                            maybe_fields += "; }";
+                            maybe_fields
+                        } else {
+                            "".to_string()
+                        };
+
+                        let ty_decl = format!(
+                            "typedef struct {name}{maybe_fields} {name};",
+                            name = name,
+                            maybe_fields = maybe_fields
+                        );
+
+                        header += &ty_decl;
+                        header += "\n";
+                    }
+                },
                 BridgedType::Opaque(ty) => {
                     if ty.host_lang.is_swift() {
                         continue;
@@ -123,7 +162,7 @@ mod tests {
     use quote::quote;
 
     use crate::parse::SwiftBridgeModuleAndErrors;
-    use crate::test_utils::{assert_generated_contains_expected, assert_generated_equals_expected};
+    use crate::test_utils::assert_generated_equals_expected;
     use crate::SwiftBridgeModule;
 
     use super::*;

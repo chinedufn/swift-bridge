@@ -1,5 +1,6 @@
 use crate::built_in_types::BuiltInType;
 use crate::errors::{ParseError, ParseErrors};
+use crate::parse::type_declarations::TypeDeclarations;
 use crate::parse::HostLang;
 use crate::{BridgedType, OpaqueForeignType, ParsedExternFn};
 use proc_macro2::{Ident, Span};
@@ -15,7 +16,7 @@ pub(super) struct ForeignModParser<'a> {
     pub errors: &'a mut ParseErrors,
     /// All of the type declarations across all of the extern "..." foreign modules in the
     /// `mod` module that this foreign module is in.
-    pub all_type_declarations: &'a mut HashMap<String, BridgedType>,
+    pub all_type_declarations: &'a mut TypeDeclarations,
     pub functions: &'a mut Vec<ParsedExternFn>,
     pub maybe_undeclared_types: &'a mut Vec<(String, Span)>,
 }
@@ -137,7 +138,7 @@ impl<'a> ForeignModParser<'a> {
         let associated_type = if let Some(associated_to) = &attributes.associated_to {
             let ty = self
                 .all_type_declarations
-                .get_mut(&associated_to.to_string())
+                .get(&associated_to.to_string())
                 .unwrap();
             Some(ty.clone())
         } else if attributes.initializes {
@@ -148,7 +149,7 @@ impl<'a> ForeignModParser<'a> {
                 ReturnType::Type(_, ty) => ty.deref().to_token_stream().to_string(),
             };
 
-            let ty = self.all_type_declarations.get_mut(&ty_string);
+            let ty = self.all_type_declarations.get(&ty_string);
 
             ty.map(|ty| ty.clone())
         } else {
@@ -240,7 +241,7 @@ impl<'a> ForeignModParser<'a> {
             Type::Path(path) => {
                 let self_ty_string = path.path.segments.to_token_stream().to_string();
 
-                if let Some(ty) = self.all_type_declarations.get_mut(&self_ty_string) {
+                if let Some(ty) = self.all_type_declarations.get(&self_ty_string) {
                     self.functions.push(ParsedExternFn {
                         func,
                         is_initializer: attributes.initializes,
@@ -304,7 +305,7 @@ mod tests {
     use crate::errors::ParseError;
     use crate::test_utils::{parse_errors, parse_ok};
     use crate::SwiftBridgeModule;
-    use quote::{quote, ToTokens};
+    use quote::quote;
     use syn::parse_quote;
 
     /// Verify that we can parse a SwiftBridgeModule from an empty module.

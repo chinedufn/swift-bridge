@@ -203,9 +203,7 @@ impl<'a> SharedStructParser<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::ParseError;
     use crate::test_utils::{parse_errors, parse_ok};
-    use crate::StructSwiftRepr;
     use quote::{quote, ToTokens};
 
     /// Verify that we can parse a struct with no fields.
@@ -224,13 +222,8 @@ mod tests {
         let module = parse_ok(tokens);
 
         assert_eq!(module.types.len(), 3);
-        for name in vec!["Foo", "Bar", "Bazz"].into_iter() {
-            let ty = &module
-                .types
-                .iter()
-                .find(|t| t.unwrap_shared_struct().name == name)
-                .unwrap()
-                .unwrap_shared_struct();
+        for (idx, name) in vec!["Foo", "Bar", "Bazz"].into_iter().enumerate() {
+            let ty = &module.types[idx].unwrap_shared_struct();
 
             assert_eq!(ty.name, name);
             assert_eq!(ty.swift_repr, StructSwiftRepr::Structure);
