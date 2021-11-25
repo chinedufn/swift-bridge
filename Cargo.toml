@@ -1,6 +1,6 @@
 [package]
 name = "swift-bridge"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 keywords = ["swift", "ffi", "bindings", "ios", "mac"]
 description = "Generate FFI bindings for safe interop between Rust and Swift."
