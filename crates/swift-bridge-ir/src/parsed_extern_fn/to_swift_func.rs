@@ -63,15 +63,32 @@ impl ParsedExternFn {
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
             match arg {
-                FnArg::Receiver(_receiver) => {
+                FnArg::Receiver(receiver) => {
                     if include_receiver_if_present {
-                        args.push("ptr".to_string());
+                        let arg = if receiver.reference.is_some() {
+                            "ptr"
+                        } else {
+                            "{isOwned = false; return ptr;}()"
+                        };
+
+                        args.push(arg.to_string());
                     }
                 }
                 FnArg::Typed(pat_ty) => {
+                    let is_reference = match pat_ty.ty.deref() {
+                        Type::Reference(_) => true,
+                        _ => false,
+                    };
+
                     if pat_type_pat_is_self(pat_ty) {
                         if include_receiver_if_present {
-                            args.push("ptr".to_string());
+                            let arg = if is_reference {
+                                "ptr"
+                            } else {
+                                "{isOwned = false; return ptr;}()"
+                            };
+
+                            args.push(arg.to_string());
                         }
 
                         continue;
@@ -84,7 +101,11 @@ impl ParsedExternFn {
                     let arg = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
                         built_in.convert_swift_expression_to_ffi_compatible(&arg, self.host_lang)
                     } else {
-                        format!("{}.ptr", arg)
+                        if is_reference {
+                            format!("{}.ptr", arg)
+                        } else {
+                            format!("{{{arg}.isOwned = false; return {arg}.ptr;}}()", arg = arg)
+                        }
                     };
 
                     let arg = if include_var_name {
@@ -209,13 +230,12 @@ mod tests {
     /// Verify that we use the `.ptr` field on a class instance when calling a Rust function from
     /// Swift.
     #[test]
-    fn calls_args_uses_pointer_from_class_instances() {
+    fn call_args_uses_pointer_from_class_instances() {
         let tokens = quote! {
             #[swift_bridge::bridge]
             mod ffi {
                 extern "Rust" {
                     type Foo;
-                    fn make1 (other: Foo);
                     fn make2 (other: &Foo);
                     fn make3 (other: &mut Foo);
                 }
@@ -223,11 +243,45 @@ mod tests {
         };
         let module = parse_ok(tokens);
         let functions = &module.functions;
-        assert_eq!(functions.len(), 3);
+        assert_eq!(functions.len(), 2);
 
-        for idx in 0..3 {
+        for idx in 0..2 {
             assert_eq!(functions[idx].to_swift_call_args(true, false), "other.ptr");
         }
+    }
+
+    /// Verify that if we pass an owned value to Rust the class instance is marked as no longer
+    /// owned, since Rust now owns it.
+    #[test]
+    fn call_args_marks_instance_no_longer_owned_if_passed_owned_to_rust() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type Foo;
+                    fn make1(self);
+                    fn make2(self: Foo);
+                    fn make3(other: Foo);
+                }
+            }
+        };
+        let module = parse_ok(tokens);
+        let functions = &module.functions;
+
+        assert_eq!(
+            functions[0].to_swift_call_args(true, false),
+            "{isOwned = false; return ptr;}()"
+        );
+
+        assert_eq!(
+            functions[1].to_swift_call_args(true, false),
+            "{isOwned = false; return ptr;}()"
+        );
+
+        assert_eq!(
+            functions[2].to_swift_call_args(true, false),
+            "{other.isOwned = false; return other.ptr;}()"
+        );
     }
 
     /// Verify that we are calling .convert_swift_expression_to_ffi_compatible() on Swift -> FFI

@@ -1,4 +1,4 @@
-use proc_macro2::Span;
+use proc_macro2::{Ident, Span};
 use quote::ToTokens;
 use syn::{Error, Receiver};
 use syn::{ForeignItemType, LitStr};
@@ -45,6 +45,21 @@ pub(crate) enum ParseError {
     /// }
     /// ```
     OwnedForeignTypeArgNotAllowed { ty: Type },
+    /// A bridge module struct with one or more fields must have a
+    /// `#\[swift_bridge(swift_repr ="...")\[\]` attribute so that we know whether to create a
+    /// `struct` or `class` on the Swift side.
+    StructMissingSwiftRepr { struct_ident: Ident },
+    /// Only "class" and "struct" can be used as swift_repr.
+    StructInvalidSwiftRepr {
+        struct_ident: Ident,
+        swift_repr_attr_value: LitStr,
+    },
+    /// There is no reason to use `swift_repr = "class"` on an empty struct.
+    /// It's extra overhead with no advantages.
+    EmptyStructHasSwiftReprClass {
+        struct_ident: Ident,
+        swift_repr_attr_value: LitStr,
+    },
 }
 
 impl Into<syn::Error> for ParseError {
@@ -93,9 +108,9 @@ self: &mut SomeType
             }
             ParseError::OwnedForeignTypeArgNotAllowed { ty } => {
                 let message = format!(
-                    r#"Foreign type arguments must be taken by reference.
+                    r#"By default, foreign type arguments must be taken by reference.
 
-To allow owned foreign type arguments:
+To allow an opaque type to be an owned argument:
 
 ```
 // Valid values are "disabled", "enabled" and "enabled_unchecked" 
@@ -104,6 +119,48 @@ type SomeType;
 ```"#
                 );
                 Error::new_spanned(ty, message)
+            }
+            ParseError::StructMissingSwiftRepr { struct_ident } => {
+                let message = format!(
+                    r#"Shared structs with one or more fields must specify their swift
+representation. 
+ 
+```
+// Valid values are "struct" and "class"
+#[swift_bridge(swift_repr = "struct")]
+struct MyStruct {{
+    count: u8
+}}
+```
+
+TODO: Link to documntation on how to decide on the swift representation.
+"#
+                );
+                Error::new_spanned(struct_ident, message)
+            }
+            ParseError::StructInvalidSwiftRepr {
+                struct_ident: _,
+                swift_repr_attr_value,
+            } => {
+                let message = r#"Invalid value. Must be either "class" or "struct"#;
+                Error::new_spanned(swift_repr_attr_value, message)
+            }
+            ParseError::EmptyStructHasSwiftReprClass {
+                struct_ident,
+                swift_repr_attr_value,
+            } => {
+                let message = format!(
+                    r#"Empty structs must have `swift_repr = "struct"`, since a class representation
+would be additional overhead with no advantages. 
+ 
+```
+#[swift_bridge(swift_repr = "struct")]
+struct {struct_name}; 
+```
+"#,
+                    struct_name = struct_ident.to_string()
+                );
+                Error::new_spanned(swift_repr_attr_value, message)
             }
         }
     }

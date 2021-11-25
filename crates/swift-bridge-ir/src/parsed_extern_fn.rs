@@ -165,7 +165,12 @@ impl ParsedExternFn {
                             _ => (None, None),
                         };
 
-                        let dereferenced = quote! { unsafe { #maybe_ref #maybe_mut * #arg } };
+                        let dereferenced = if maybe_ref.is_some() {
+                            quote! { unsafe { #maybe_ref #maybe_mut * #arg } }
+                        } else {
+                            quote! { unsafe { *Box::from_raw(#arg) } }
+                        };
+
                         arg = dereferenced;
                     }
 
@@ -197,7 +202,7 @@ impl ParsedExternFn {
                         let ty = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
                             built_in.to_c().to_string()
                         } else {
-                            pat.to_token_stream().to_string()
+                            "void*".to_string()
                         };
 
                         let arg_name = pat.to_token_stream().to_string();
@@ -326,7 +331,7 @@ mod tests {
     use super::*;
     use crate::errors::{ParseError, ParseErrors};
     use crate::parse::SwiftBridgeModuleAndErrors;
-    use crate::test_utils::assert_tokens_contain;
+    use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
     use crate::SwiftBridgeModule;
 
     /// Verify that when generating rust call args we do not include the receiver.
@@ -360,6 +365,25 @@ mod tests {
                 method.func.to_token_stream()
             );
         }
+    }
+
+    /// Verify that when we get an owned opaque type as an argument we unbox it.
+    #[test]
+    fn unboxes_owned_opaque_type() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type Foo;
+                    fn some_function (arg: Foo);
+                }
+            }
+        };
+        let module = parse_ok(tokens);
+        assert_tokens_eq(
+            &module.functions[0].to_call_rust_args(&syn::parse2(quote! { swift_bridge }).unwrap()),
+            &quote! {unsafe { *Box::from_raw(arg) }},
+        );
     }
 
     /// Verify that arguments that are owned declared types get unboxed.

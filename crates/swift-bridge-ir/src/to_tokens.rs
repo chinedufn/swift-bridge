@@ -776,6 +776,63 @@ mod tests {
         module_and_errors.module
     }
 
+    /// Verify that we generate tokens for a freestanding function that has a shared struct as
+    /// as argument type.
+    #[test]
+    fn freestanding_rust_function_shared_struct_arg() {
+        let start = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                #[swift_bridge(swift_repr = "struct")]
+                struct Foo;
+
+                extern "Rust" {
+                    fn some_function (arg: Foo);
+                }
+            }
+        };
+        let expected_func = quote! {
+            #[repr(C)]
+            pub struct Foo;
+
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function (arg: Foo) {
+                super::some_function(arg)
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
+    }
+
+    /// Verify that we generate tokens for a freestanding function that returns a shared struct.
+    #[test]
+    fn freestanding_rust_function_returns_shared_struct() {
+        let start = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                #[swift_bridge(swift_repr = "struct")]
+                struct Foo;
+
+                extern "Rust" {
+                    fn some_function () -> Foo;
+                }
+            }
+        };
+        let expected_func = quote! {
+            #[repr(C)]
+            pub struct Foo;
+
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function () -> Foo {
+                super::some_function()
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
+    }
+
     fn assert_to_extern_c_function_tokens(module: TokenStream, expected_fn: &TokenStream) {
         let module = parse_ok(module);
         let function = &module.functions[0];

@@ -123,6 +123,7 @@ mod tests {
     use quote::quote;
 
     use crate::parse::SwiftBridgeModuleAndErrors;
+    use crate::test_utils::{assert_generated_contains_expected, assert_generated_equals_expected};
     use crate::SwiftBridgeModule;
 
     use super::*;
@@ -295,6 +296,28 @@ void __swift_bridge__$SomeType$foo(void* self, uint8_t val);
         assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
     }
 
+    /// Verify that we generate a type definition for a method with an opaque argument.
+    #[test]
+    fn method_one_opaque_arg() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+                    fn foo(&self, val: SomeType);
+                }
+            }
+        };
+        let expected = r#"
+typedef struct SomeType SomeType;
+void __swift_bridge__$SomeType$_free(void* self);
+void __swift_bridge__$SomeType$foo(void* self, void* val);
+        "#;
+
+        let module = parse_ok(tokens);
+        assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
+    }
+
     /// Verify that we generate a type definition for a method that has a return type.
     #[test]
     fn method_with_return() {
@@ -346,5 +369,112 @@ struct __private__FfiSlice __swift_bridge__$bar(void);
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
         let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
         module_and_errors.module
+    }
+
+    /// Verify that we emit a typedef for a struct with no fields.
+    #[test]
+    fn struct_with_no_fields() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                struct Foo;
+                struct Bar{};
+                struct Bazz();
+            }
+        };
+        let expected = r#"
+typedef struct Foo Foo;
+typedef struct Bar Bar;
+typedef struct Bazz Bazz;
+        "#;
+
+        let module = parse_ok(tokens);
+        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+    }
+
+    /// Verify that we emit a typedef for a struct with one fields.
+    #[test]
+    fn struct_with_one_fields() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(swift_repr = "struct")]
+                struct Foo {
+                    field: u8
+                }
+                Bar(u8)
+            }
+        };
+        let expected = r#"
+#include <stdint.h>
+typedef struct Foo { uint8_t field; } Foo;
+typedef struct Bar { uint8_t _0; } Bar;
+        "#;
+
+        let module = parse_ok(tokens);
+        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+    }
+
+    /// Verify that we emit a typedef for a struct with two field.
+    #[test]
+    fn struct_with_two_fields() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(swift_repr = "struct")]
+                struct Foo {
+                    field1: u8,
+                    field2: u16
+                }
+            }
+        };
+        let expected = r#"
+#include <stdint.h>
+typedef struct Foo { uint8_t field1; uint16_t field2; } Foo;
+        "#;
+
+        let module = parse_ok(tokens);
+        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+    }
+
+    /// Verify that we use the swift_name when generating the struct typedef.
+    #[test]
+    fn uses_swift_name_struct_attribute() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(swift_name = "FfiFoo")]
+                struct Foo;
+            }
+        };
+        let expected = r#"
+typedef struct FfiFoo FfiFoo;
+        "#;
+
+        let module = parse_ok(tokens);
+        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+    }
+
+    /// Verify that we use the struct's swift_name attribute when generating function signatures.
+    #[test]
+    fn uses_swift_name_for_function_args_and_returns() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(swift_name = "FfiFoo")]
+                struct Foo;
+
+                extern "Rust" {
+                    fn some_function(arg: Foo) -> Foo;
+                }
+            }
+        };
+        let expected = r#"
+typedef struct FfiFoo FfiFoo;
+struct FfiFoo __swift_bridge__$some_function(struct FfiFoo arg);
+        "#;
+
+        let module = parse_ok(tokens);
+        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
     }
 }

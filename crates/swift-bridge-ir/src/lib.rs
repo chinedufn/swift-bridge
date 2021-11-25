@@ -152,7 +152,28 @@ enum SharedType {
 #[derive(Clone)]
 struct SharedStruct {
     name: Ident,
+    swift_repr: StructSwiftRepr,
     fields: Vec<StructField>,
+    swift_name: Option<String>,
+}
+
+/// Whether to create a class or a structure when creating the Swift representation of a shared
+/// struct.
+///
+/// https://docs.swift.org/swift-book/LanguageGuide/ClassesAndStructures.html
+#[derive(Debug, Copy, Clone, PartialEq)]
+enum StructSwiftRepr {
+    Class,
+    /// # Invariants
+    ///
+    /// (These invariants aren't implemented yet)
+    ///
+    /// - Cannot be owned by Swift it it contains one or more fields that need to run destructors.
+    ///   - Since Swift struct cannot run de-initializers on structs. Only on classes.
+    /// - Can always be passed to Swift by immutable reference
+    ///   - Since this means Swift does not need to run any de-initializers, which it cannot do
+    ///     for structs.
+    Structure,
 }
 
 #[derive(Clone)]

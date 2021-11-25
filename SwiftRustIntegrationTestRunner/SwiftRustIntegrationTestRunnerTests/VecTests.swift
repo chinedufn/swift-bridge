@@ -45,6 +45,7 @@ class VecTests: XCTestCase {
         XCTAssertEqual(vec.len(), 5)
         
         XCTAssertEqual(vec.get(index: 1), 9)
+        fatalError("Ran")
     }
     
     func testRustVecIterator() throws {

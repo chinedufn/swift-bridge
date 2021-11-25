@@ -18,9 +18,31 @@ swift-bridge-build = "0.1"
 swift-bridge = "0.1"
 ```
 
+## Phases
 
+- Put the library out to get feedback from bleeding edge users.
+
+- Continue to support more standard library types.
+
+- Continue to hone the API based on real usage feedback.
+
+- Figure out the safety story. What should be marked as safe vs. unsafe?
+
+- Focus on making usage of swift-bridge feel ergonomic.
+
+- Polish the documentation, examples and tutorials
+
+- Get to a point where we feel that there has been enough, real world production use
+  and feedback for us to be confident that the user-facing API's won't need any breaking
+  changes.
+
+- Release swift-bridge version 1.0
 
 ## Quick Peek
+
+TODO: Shorten this quick peak.. we don't need to include the build script, for example
+
+---
 
 Here's a quick peek at the Rust and Swift of a bridge that should give you a sense of how bindings look.
 
