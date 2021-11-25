@@ -1,6 +1,7 @@
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::ForeignModParser;
-use crate::SwiftBridgeModule;
+use crate::parse::parse_struct::SharedStructParser;
+use crate::{BridgedType, SharedType, SwiftBridgeModule};
 use quote::quote;
 use std::collections::HashMap;
 use syn::parse::{Parse, ParseStream};
@@ -65,9 +66,24 @@ impl Parse for SwiftBridgeModuleAndErrors {
                         }
                         .parse(foreign_mod)?;
                     }
+                    Item::Struct(item_struct) => {
+                        let shared_struct = SharedStructParser {
+                            item_struct,
+                            errors: &mut errors,
+                        }
+                        .parse()?;
+                        all_type_declarations.insert(
+                            shared_struct.name.to_string(),
+                            BridgedType::Shared(SharedType::Struct(shared_struct)),
+                        );
+                    }
                     _ => {
-                        //
-                        todo!("Push an error that the module may only contain `extern` blocks.")
+                        todo!(
+                            r#"
+                        Push an error that the module may only contain `extern` blocks, structs
+                        and enums
+                        "#
+                        )
                     }
                 };
             }

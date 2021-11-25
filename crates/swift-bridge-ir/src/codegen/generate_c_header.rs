@@ -378,7 +378,7 @@ struct __private__FfiSlice __swift_bridge__$bar(void);
             #[swift_bridge::bridge]
             mod ffi {
                 struct Foo;
-                struct Bar{};
+                struct Bar{}
                 struct Bazz();
             }
         };
@@ -394,7 +394,7 @@ typedef struct Bazz Bazz;
 
     /// Verify that we emit a typedef for a struct with one fields.
     #[test]
-    fn struct_with_one_fields() {
+    fn struct_with_one_field() {
         let tokens = quote! {
             #[swift_bridge::bridge]
             mod ffi {
@@ -402,7 +402,7 @@ typedef struct Bazz Bazz;
                 struct Foo {
                     field: u8
                 }
-                Bar(u8)
+                struct Bar(u8);
             }
         };
         let expected = r#"

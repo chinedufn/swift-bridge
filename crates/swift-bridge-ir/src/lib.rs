@@ -11,8 +11,7 @@ use crate::parse::HostLang;
 use proc_macro2::Ident;
 use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
-use syn::{ForeignItemType, Path, Type};
-use syn::{PatType, Token};
+use syn::{ForeignItemType, LitStr, PatType, Path, Token, Type};
 
 use crate::parsed_extern_fn::ParsedExternFn;
 
@@ -154,7 +153,7 @@ struct SharedStruct {
     name: Ident,
     swift_repr: StructSwiftRepr,
     fields: Vec<StructField>,
-    swift_name: Option<String>,
+    swift_name: Option<LitStr>,
 }
 
 /// Whether to create a class or a structure when creating the Swift representation of a shared

@@ -48,7 +48,7 @@ Inner Tokens:
 
 /// Trims both generated and expected.
 pub fn assert_generated_equals_expected(generated: &str, expected: &str) {
-    assert!(
+    assert_eq!(
         generated.trim(),
         expected.trim(),
         r#"Expected did not equal generated.

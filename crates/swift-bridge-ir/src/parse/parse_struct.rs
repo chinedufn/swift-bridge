@@ -1,3 +1,9 @@
+use crate::errors::{ParseError, ParseErrors};
+use crate::{SharedStruct, StructField, StructSwiftRepr};
+use proc_macro2::Ident;
+use syn::parse::{Parse, ParseStream};
+use syn::{ItemStruct, LitStr, Token};
+
 // Ok.. let's plan what we need to support for our current Afia needs...
 //
 // So.. we want to generate a `struct` and a header for that struct that will allow us to use
@@ -80,6 +86,120 @@
 //
 // 23. Add swift-integration-test file `shared_types.rs` test out shared structs
 
+pub(crate) struct SharedStructParser<'a> {
+    pub item_struct: ItemStruct,
+    pub errors: &'a mut ParseErrors,
+}
+
+enum StructAttr {
+    SwiftRepr((StructSwiftRepr, LitStr)),
+    SwiftName(LitStr),
+    Error(StructAttrParseError),
+}
+
+enum StructAttrParseError {
+    InvalidSwiftRepr(LitStr),
+}
+
+#[derive(Default)]
+struct StructAttribs {
+    swift_repr: Option<(StructSwiftRepr, LitStr)>,
+    swift_name: Option<LitStr>,
+}
+
+impl Parse for StructAttr {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let key: Ident = input.parse()?;
+        input.parse::<Token![=]>()?;
+
+        let attr = match key.to_string().as_str() {
+            "swift_repr" => {
+                let repr: LitStr = input.parse()?;
+                match repr.value().as_str() {
+                    "class" => StructAttr::SwiftRepr((StructSwiftRepr::Class, repr)),
+                    "struct" => StructAttr::SwiftRepr((StructSwiftRepr::Structure, repr)),
+                    _ => StructAttr::Error(StructAttrParseError::InvalidSwiftRepr(repr)),
+                }
+            }
+            "swift_name" => {
+                let name = input.parse()?;
+                StructAttr::SwiftName(name)
+            }
+            _ => todo!("Return spanned error"),
+        };
+
+        Ok(attr)
+    }
+}
+
+impl<'a> SharedStructParser<'a> {
+    pub fn parse(self) -> Result<SharedStruct, syn::Error> {
+        let item_struct = self.item_struct;
+
+        let mut attribs = StructAttribs::default();
+        let mut fields = vec![];
+
+        for attr in item_struct.attrs {
+            let attr: StructAttr = attr.parse_args()?;
+            match attr {
+                StructAttr::SwiftRepr((repr, lit_str)) => {
+                    attribs.swift_repr = Some((repr, lit_str));
+                }
+                StructAttr::SwiftName(name) => {
+                    attribs.swift_name = Some(name);
+                }
+                StructAttr::Error(err) => match err {
+                    StructAttrParseError::InvalidSwiftRepr(val) => {
+                        self.errors.push(ParseError::StructInvalidSwiftRepr {
+                            struct_ident: item_struct.ident.clone(),
+                            swift_repr_attr_value: val.clone(),
+                        });
+                        attribs.swift_repr = Some((StructSwiftRepr::Structure, val));
+                    }
+                },
+            }
+        }
+
+        let swift_repr = if item_struct.fields.len() == 0 {
+            if let Some((swift_repr, lit_str)) = attribs.swift_repr {
+                if swift_repr == StructSwiftRepr::Class {
+                    self.errors.push(ParseError::EmptyStructHasSwiftReprClass {
+                        struct_ident: item_struct.ident.clone(),
+                        swift_repr_attr_value: lit_str,
+                    });
+                }
+            }
+
+            StructSwiftRepr::Structure
+        } else if let Some((swift_repr, _)) = attribs.swift_repr {
+            swift_repr
+        } else {
+            self.errors.push(ParseError::StructMissingSwiftRepr {
+                struct_ident: item_struct.ident.clone(),
+            });
+
+            StructSwiftRepr::Structure
+        };
+
+        for field in item_struct.fields.iter() {
+            let field = StructField {
+                name: field.ident.clone(),
+                ty: field.ty.clone(),
+            };
+            fields.push(field);
+        }
+
+        let shared_struct = SharedStruct {
+            name: item_struct.ident,
+            swift_repr,
+            fields,
+            swift_name: attribs.swift_name,
+        };
+
+        Ok(shared_struct)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -104,8 +224,13 @@ mod tests {
         let module = parse_ok(tokens);
 
         assert_eq!(module.types.len(), 3);
-        for (idx, name) in vec!["Foo", "Bar", "Bazz"].into_iter().enumerate() {
-            let ty = &module.types[idx].unwrap_shared_struct();
+        for name in vec!["Foo", "Bar", "Bazz"].into_iter() {
+            let ty = &module
+                .types
+                .iter()
+                .find(|t| t.unwrap_shared_struct().name == name)
+                .unwrap()
+                .unwrap_shared_struct();
 
             assert_eq!(ty.name, name);
             assert_eq!(ty.swift_repr, StructSwiftRepr::Structure);
@@ -221,26 +346,6 @@ mod tests {
         assert_eq!(field.ty.to_token_stream().to_string(), "u8");
     }
 
-    /// Verify that we parse the `rust_into = type` attribute.
-    #[test]
-    fn parses_rust_into_attribute() {
-        let tokens = quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                #[swift_bridge(rust_into = SomeType)]
-                struct Foo;
-            }
-        };
-
-        let module = parse_ok(tokens);
-
-        let ty = module.types[0].unwrap_shared_struct();
-        assert_eq!(
-            ty.rust_into.as_ref().unwrap().to_token_stream().to_string(),
-            "SomeType"
-        );
-    }
-
     /// Verify that we parse the swift_name = "..."
     #[test]
     fn parse_swift_name_attribute() {
@@ -255,6 +360,6 @@ mod tests {
         let module = parse_ok(tokens);
 
         let ty = module.types[0].unwrap_shared_struct();
-        assert_eq!(ty.swift_name.as_ref().unwrap(), "FfiFoo");
+        assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
     }
 }
