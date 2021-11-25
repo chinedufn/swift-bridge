@@ -1,4 +1,4 @@
-use crate::errors::ParseErrors;
+use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::SwiftBridgeModule;
 use quote::quote;
@@ -52,23 +52,35 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
             let mut functions = vec![];
             let mut all_type_declarations = HashMap::new();
+            let mut maybe_undeclared = vec![];
 
             for outer_mod_item in item_mod.content.unwrap().1 {
                 match outer_mod_item {
                     Item::ForeignMod(foreign_mod) => {
                         ForeignModParser {
-                            foreign_mod,
                             errors: &mut errors,
                             all_type_declarations: &mut all_type_declarations,
                             functions: &mut functions,
+                            maybe_undeclared_types: &mut maybe_undeclared,
                         }
-                        .parse()?;
+                        .parse(foreign_mod)?;
                     }
                     _ => {
                         //
                         todo!("Push an error that the module may only contain `extern` blocks.")
                     }
                 };
+            }
+
+            for (ty_name, ty_span) in maybe_undeclared.into_iter() {
+                if all_type_declarations.contains_key(&ty_name) {
+                    continue;
+                }
+
+                errors.push(ParseError::UndeclaredType {
+                    ty: ty_name,
+                    span: ty_span,
+                });
             }
 
             let module = SwiftBridgeModule {
