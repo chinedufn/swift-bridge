@@ -5,7 +5,7 @@ use quote::quote;
 use quote::ToTokens;
 
 use crate::parse::HostLang;
-use crate::{BridgedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use crate::{BridgedType, SharedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
 mod option;
 
@@ -17,6 +17,7 @@ impl ToTokens for SwiftBridgeModule {
 
         let mut structs_for_swift_classes = vec![];
 
+        let mut shared_struct_definitions = vec![];
         let mut impl_fn_tokens: HashMap<String, Vec<TokenStream>> = HashMap::new();
         let mut freestanding_rust_call_swift_fn_tokens = vec![];
         let mut extern_swift_fn_tokens = vec![];
@@ -24,11 +25,13 @@ impl ToTokens for SwiftBridgeModule {
         for func in &self.functions {
             match func.host_lang {
                 HostLang::Rust => {
-                    extern_rust_fn_tokens
-                        .push(func.to_extern_c_function_tokens(&self.swift_bridge_path));
+                    extern_rust_fn_tokens.push(
+                        func.to_extern_c_function_tokens(&self.swift_bridge_path, &self.types),
+                    );
                 }
                 HostLang::Swift => {
-                    let tokens = func.to_rust_fn_that_calls_a_swift_extern(&self.swift_bridge_path);
+                    let tokens = func
+                        .to_rust_fn_that_calls_a_swift_extern(&self.swift_bridge_path, &self.types);
 
                     if let Some(ty) = func.associated_type.as_ref() {
                         match ty {
@@ -48,17 +51,29 @@ impl ToTokens for SwiftBridgeModule {
                         freestanding_rust_call_swift_fn_tokens.push(tokens);
                     }
 
-                    extern_swift_fn_tokens
-                        .push(func.to_extern_c_function_tokens(&self.swift_bridge_path));
+                    extern_swift_fn_tokens.push(
+                        func.to_extern_c_function_tokens(&self.swift_bridge_path, &self.types),
+                    );
                 }
             };
         }
 
         for ty in &self.types.types() {
             match ty {
-                BridgedType::Shared(_) => {
-                    //
-                    todo!("Handle shared types")
+                BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                    let name = &shared_struct.name;
+
+                    let maybe_fields = if shared_struct.fields.len() == 0 {
+                        quote! { ; }
+                    } else {
+                        todo!("Create field tokens")
+                    };
+
+                    let definition = quote! {
+                        #[repr(C)]
+                        pub struct #name #maybe_fields
+                    };
+                    shared_struct_definitions.push(definition);
                 }
                 BridgedType::Opaque(ty) => {
                     let link_name =
@@ -121,27 +136,31 @@ impl ToTokens for SwiftBridgeModule {
             }
         }
 
-        let externs = if extern_swift_fn_tokens.len() > 0 {
+        let extern_swift_fn_tokens = if extern_swift_fn_tokens.len() > 0 {
             quote! {
-                #(#extern_rust_fn_tokens)*
-
-                #(#freestanding_rust_call_swift_fn_tokens)*
-
-                #(#structs_for_swift_classes)*
-
                 extern "C" {
                     #(#extern_swift_fn_tokens)*
                 }
             }
         } else {
-            quote! {
-                #(#extern_rust_fn_tokens)*
-            }
+            quote! {}
+        };
+
+        let module_inner = quote! {
+            #(#shared_struct_definitions)*
+
+            #(#extern_rust_fn_tokens)*
+
+            #(#freestanding_rust_call_swift_fn_tokens)*
+
+            #(#structs_for_swift_classes)*
+
+            #extern_swift_fn_tokens
         };
 
         let t = quote! {
             mod #mod_name {
-                #externs
+                #module_inner
             }
         };
         t.to_tokens(tokens);
@@ -833,12 +852,54 @@ mod tests {
         assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
     }
 
+    /// Verify that we create a shared struct that has named fields.
+    #[test]
+    fn creates_shared_struct_with_named_fields() {
+        let start = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                #[swift_bridge(swift_repr = "struct")]
+                struct Foo {
+                    a: u8,
+                    b: u32
+                }
+            }
+        };
+        let expected_func = quote! {
+            #[repr(C)]
+            pub struct Foo {
+                a: u8,
+                b: u32
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
+    }
+
+    /// Verify that we create a shared tuple struct.
+    #[test]
+    fn creates_shared_tuple_struct() {
+        let start = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                #[swift_bridge(swift_repr = "struct")]
+                struct Foo ( u8, u32 );
+            }
+        };
+        let expected_func = quote! {
+            #[repr(C)]
+            pub struct Foo (u8, u32);
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
+    }
+
     fn assert_to_extern_c_function_tokens(module: TokenStream, expected_fn: &TokenStream) {
         let module = parse_ok(module);
         let function = &module.functions[0];
 
         assert_tokens_eq(
-            &function.to_extern_c_function_tokens(&syn::parse2(quote! {swift_bridge}).unwrap()),
+            &function.to_extern_c_function_tokens(&module.swift_bridge_path, &module.types),
             &expected_fn,
         );
     }

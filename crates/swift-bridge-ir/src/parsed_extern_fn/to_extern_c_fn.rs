@@ -1,9 +1,9 @@
 use crate::built_in_types::BuiltInType;
-use crate::parse::HostLang;
+use crate::parse::{HostLang, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::BridgedType;
+use crate::{BridgedType, SharedType};
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
 use std::ops::Deref;
 use syn::{Path, ReturnType, Type};
 
@@ -26,18 +26,22 @@ impl ParsedExternFn {
     /// }
     /// ```
     // FIXME: Combine this and host_type into one struct
-    pub fn to_extern_c_function_tokens(&self, swift_bridge_path: &Path) -> TokenStream {
+    pub fn to_extern_c_function_tokens(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         let link_name = self.link_name();
 
-        let params = self.to_extern_c_param_names_and_types(swift_bridge_path);
+        let params = self.to_extern_c_param_names_and_types(swift_bridge_path, types);
 
         let prefixed_fn_name = self.prefixed_fn_name();
 
-        let ret = self.rust_return_type(swift_bridge_path);
+        let ret = self.rust_return_type(swift_bridge_path, types);
 
         match self.host_lang {
             HostLang::Rust => {
-                let call_fn = self.call_fn_tokens(swift_bridge_path);
+                let call_fn = self.call_fn_tokens(swift_bridge_path, types);
 
                 quote! {
                     #[no_mangle]
@@ -56,11 +60,11 @@ impl ParsedExternFn {
         }
     }
 
-    fn call_fn_tokens(&self, swift_bridge_path: &Path) -> TokenStream {
+    fn call_fn_tokens(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream {
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
 
-        let call_args = self.to_call_rust_args(swift_bridge_path);
+        let call_args = self.to_call_rust_args(swift_bridge_path, types);
 
         let call_fn = quote! {
             #fn_name ( #call_args )
@@ -90,8 +94,13 @@ impl ParsedExternFn {
                         call_fn = quote! { #call_fn as #ptr super:: #ty };
                     }
                     _ => {
-                        call_fn =
-                            quote! { Box::into_raw(Box::new(#call_fn)) as *mut super::#return_ty };
+                        let ty_string = return_ty.deref().to_token_stream().to_string();
+                        match types.get(&ty_string).unwrap() {
+                            BridgedType::Shared(SharedType::Struct(_)) => {}
+                            BridgedType::Opaque(_) => {
+                                call_fn = quote! { Box::into_raw(Box::new(#call_fn)) as *mut super::#return_ty };
+                            }
+                        };
                     }
                 }
             }
@@ -220,7 +229,7 @@ mod tests {
         let function = &module.functions[0];
 
         assert_tokens_eq(
-            &function.to_extern_c_function_tokens(&syn::parse2(quote! {swift_bridge}).unwrap()),
+            &function.to_extern_c_function_tokens(&module.swift_bridge_path, &module.types),
             &expected_fn,
         );
     }

@@ -21,10 +21,6 @@ impl TypeDeclarations {
         self.decls.contains_key(type_name)
     }
 
-    pub fn order(&self) -> &Vec<String> {
-        &self.order
-    }
-
     pub fn types(&self) -> Vec<&BridgedType> {
         self.order
             .iter()

@@ -1,15 +1,19 @@
 use crate::built_in_types::BuiltInType;
-use crate::parse::HostLang;
+use crate::parse::{HostLang, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::{pat_type_pat_is_self, BridgedType};
+use crate::{pat_type_pat_is_self, BridgedType, SharedType};
 use proc_macro2::{Ident, TokenStream};
-use quote::quote;
+use quote::{quote, ToTokens};
 use std::ops::Deref;
 use syn::spanned::Spanned;
 use syn::{FnArg, Path, Type};
 
 impl ParsedExternFn {
-    pub fn to_extern_c_param_names_and_types(&self, swift_bridge_path: &Path) -> TokenStream {
+    pub fn to_extern_c_param_names_and_types(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         let host_type = self.associated_type.as_ref().map(|h| match h {
             BridgedType::Shared(_) => {
                 todo!()
@@ -60,8 +64,25 @@ impl ParsedExternFn {
                             bridged_type = &ty_ref.elem;
                         };
 
+                        let arg_ty = match types
+                            .get(&bridged_type.to_token_stream().to_string())
+                            .unwrap()
+                        {
+                            BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                                let ty = &shared_struct.name;
+                                quote! {
+                                    #ty
+                                }
+                            }
+                            BridgedType::Opaque(_) => {
+                                quote! {
+                                    *mut super::#bridged_type
+                                }
+                            }
+                        };
+
                         params.push(quote! {
-                             #arg_name: *mut super::#bridged_type
+                             #arg_name: #arg_ty
                         });
                     } else {
                         params.push(quote! {
@@ -106,7 +127,7 @@ mod tests {
 
         for method in methods {
             assert_tokens_contain(
-                &method.to_extern_c_param_names_and_types(&syn::parse2(quote! { abc123 }).unwrap()),
+                &method.to_extern_c_param_names_and_types(&module.swift_bridge_path, &module.types),
                 &quote! { this },
             );
         }
@@ -132,8 +153,7 @@ mod tests {
         let funcs = &module.functions;
 
         assert_tokens_eq(
-            &funcs[0]
-                .to_extern_c_param_names_and_types(&syn::parse2(quote! { swift_bridge }).unwrap()),
+            &funcs[0].to_extern_c_param_names_and_types(&module.swift_bridge_path, &module.types),
             expected_params,
         );
     }

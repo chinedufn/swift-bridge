@@ -53,7 +53,11 @@ impl ParsedExternFn {
         }
     }
 
-    pub(crate) fn rust_return_type(&self, swift_bridge_path: &Path) -> TokenStream {
+    pub(crate) fn rust_return_type(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         let sig = &self.func.sig;
 
         let ret = match &sig.output {
@@ -73,15 +77,24 @@ impl ParsedExternFn {
                             _ => (false, ty.deref()),
                         };
 
-                        let ptr = if is_const_ptr {
-                            quote! { *const }
-                        } else {
-                            quote! { *mut }
-                        };
+                        let ty_string = ty.to_token_stream().to_string();
+                        match types.get(&ty_string).unwrap() {
+                            BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                                let name = &shared_struct.name;
+                                quote! { #arrow #name }
+                            }
+                            BridgedType::Opaque(_) => {
+                                let ptr = if is_const_ptr {
+                                    quote! { *const }
+                                } else {
+                                    quote! { *mut }
+                                };
 
-                        quote_spanned! {ty.span()=> -> #ptr super::#ty }
+                                quote_spanned! {ty.span()=> -> #ptr super::#ty }
+                            }
+                        }
                     } else {
-                        quote_spanned! {ty.span()=> -> *mut std::ffi::c_void }
+                        quote_spanned! {ty.span()=> #arrow *mut std::ffi::c_void }
                     }
                 }
             }
@@ -123,7 +136,11 @@ impl ParsedExternFn {
     // fn foo (&self, arg1: u8, arg2: u32, &SomeType)
     //  becomes..
     // self.0, arg1, arg2, & unsafe { Box::from_raw(bar }
-    pub fn to_call_rust_args(&self, swift_bridge_path: &Path) -> TokenStream {
+    pub fn to_call_rust_args(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
@@ -160,18 +177,34 @@ impl ParsedExternFn {
                             );
                         };
                     } else {
-                        let (maybe_ref, maybe_mut) = match pat_ty.ty.deref() {
-                            Type::Reference(ty_ref) => (Some(ty_ref.and_token), ty_ref.mutability),
-                            _ => (None, None),
+                        let ty_string = match pat_ty.ty.deref() {
+                            Type::Reference(reference) => {
+                                reference.elem.to_token_stream().to_string()
+                            }
+                            Type::Path(ty_path) => {
+                                ty_path.path.segments.to_token_stream().to_string()
+                            }
+                            _ => todo!(),
                         };
+                        match types.get(&ty_string).unwrap() {
+                            BridgedType::Shared(SharedType::Struct(_)) => {}
+                            BridgedType::Opaque(_) => {
+                                let (maybe_ref, maybe_mut) = match pat_ty.ty.deref() {
+                                    Type::Reference(ty_ref) => {
+                                        (Some(ty_ref.and_token), ty_ref.mutability)
+                                    }
+                                    _ => (None, None),
+                                };
 
-                        let dereferenced = if maybe_ref.is_some() {
-                            quote! { unsafe { #maybe_ref #maybe_mut * #arg } }
-                        } else {
-                            quote! { unsafe { *Box::from_raw(#arg) } }
+                                let dereferenced = if maybe_ref.is_some() {
+                                    quote! { unsafe { #maybe_ref #maybe_mut * #arg } }
+                                } else {
+                                    quote! { unsafe { *Box::from_raw(#arg) } }
+                                };
+
+                                arg = dereferenced;
+                            }
                         };
-
-                        arg = dereferenced;
                     }
 
                     args.push(arg);
@@ -370,7 +403,7 @@ mod tests {
 
         for method in methods {
             let rust_call_args =
-                &method.to_call_rust_args(&syn::parse2(quote! { swift_bridge }).unwrap());
+                &method.to_call_rust_args(&module.swift_bridge_path, &module.types);
             assert_eq!(
                 rust_call_args.to_string(),
                 "",
@@ -394,7 +427,7 @@ mod tests {
         };
         let module = parse_ok(tokens);
         assert_tokens_eq(
-            &module.functions[0].to_call_rust_args(&syn::parse2(quote! { swift_bridge }).unwrap()),
+            &module.functions[0].to_call_rust_args(&module.swift_bridge_path, &module.types),
             &quote! {unsafe { *Box::from_raw(arg) }},
         );
     }

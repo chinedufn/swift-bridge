@@ -1,4 +1,5 @@
 use crate::built_in_types::BuiltInType;
+use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{pat_type_pat_is_self, BridgedType};
 use proc_macro2::TokenStream;
@@ -29,7 +30,11 @@ use syn::{FnArg, PatType, Path, ReturnType, Type, TypeReference};
 /// }
 /// ```
 impl ParsedExternFn {
-    pub fn to_rust_fn_that_calls_a_swift_extern(&self, swift_bridge_path: &Path) -> TokenStream {
+    pub fn to_rust_fn_that_calls_a_swift_extern(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
 
@@ -52,7 +57,7 @@ impl ParsedExternFn {
         };
 
         let params = self.params_with_explicit_self_types_removed();
-        let call_args = self.to_call_rust_args(swift_bridge_path);
+        let call_args = self.to_call_rust_args(swift_bridge_path, types);
         let linked_fn_name = self.extern_swift_linked_fn_new();
 
         let mut inner = quote! {
@@ -254,7 +259,7 @@ mod tests {
     fn assert_impl_fn_tokens_eq(module: TokenStream, expected_impl_fn_tokens: &TokenStream) {
         let module = parse_ok(module);
         let tokens = module.functions[0]
-            .to_rust_fn_that_calls_a_swift_extern(&syn::parse2(quote! {swift_bridge}).unwrap());
+            .to_rust_fn_that_calls_a_swift_extern(&module.swift_bridge_path, &module.types);
         assert_tokens_eq(&tokens, &expected_impl_fn_tokens);
     }
 }
