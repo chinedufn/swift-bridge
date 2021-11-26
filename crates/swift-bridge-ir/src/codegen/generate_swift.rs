@@ -1115,4 +1115,31 @@ func some_function(_ arg: Renamed) -> Renamed {
 
         assert_generated_contains_expected(&generated, &expected);
     }
+
+    /// Verify that we generate the correct function for an extern "Rust" fn that takes an owned
+    /// opaque Swift type.
+    #[test]
+    fn extern_rust_fn_with_extern_swift_owned_opaque_arg() {
+        let tokens = quote! {
+            mod ffi {
+                extern "Rust" {
+                    fn some_function (arg: Foo);
+                }
+
+                extern "Swift" {
+                    type Foo;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func some_function(_ arg: Foo) {
+    __swift_bridge__$some_function(Unmanaged.passRetained(arg).toOpaque())
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
+    }
 }

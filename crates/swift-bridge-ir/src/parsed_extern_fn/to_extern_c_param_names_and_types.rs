@@ -74,9 +74,15 @@ impl ParsedExternFn {
                                     #ty
                                 }
                             }
-                            BridgedType::Opaque(_) => {
-                                quote! {
-                                    *mut super::#bridged_type
+                            BridgedType::Opaque(opaque) => {
+                                if opaque.host_lang.is_rust() {
+                                    quote! {
+                                        *mut super::#bridged_type
+                                    }
+                                } else {
+                                    quote! {
+                                        *mut std::ffi::c_void
+                                    }
                                 }
                             }
                         };

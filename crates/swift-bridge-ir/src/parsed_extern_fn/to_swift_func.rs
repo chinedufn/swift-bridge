@@ -129,11 +129,20 @@ impl ParsedExternFn {
 
                             match types.get(&ty_string).unwrap() {
                                 BridgedType::Shared(_) => arg,
-                                BridgedType::Opaque(_) => {
-                                    format!(
-                                        "{{{arg}.isOwned = false; return {arg}.ptr;}}()",
-                                        arg = arg
-                                    )
+                                BridgedType::Opaque(opaque) => {
+                                    if opaque.host_lang.is_rust() {
+                                        format!(
+                                            "{{{arg}.isOwned = false; return {arg}.ptr;}}()",
+                                            arg = arg
+                                        )
+                                    } else {
+                                        // TODO: passUnretained if we're taking the argument by
+                                        //  reference. passRetained if owned
+                                        format!(
+                                            "Unmanaged.passRetained({arg}).toOpaque()",
+                                            arg = arg
+                                        )
+                                    }
                                 }
                             }
                         }

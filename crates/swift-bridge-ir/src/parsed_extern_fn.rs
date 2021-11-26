@@ -188,21 +188,26 @@ impl ParsedExternFn {
                         };
                         match types.get(&ty_string).unwrap() {
                             BridgedType::Shared(SharedType::Struct(_)) => {}
-                            BridgedType::Opaque(_) => {
-                                let (maybe_ref, maybe_mut) = match pat_ty.ty.deref() {
-                                    Type::Reference(ty_ref) => {
-                                        (Some(ty_ref.and_token), ty_ref.mutability)
-                                    }
-                                    _ => (None, None),
-                                };
+                            BridgedType::Opaque(opaque) => {
+                                if opaque.host_lang.is_rust() {
+                                    let (maybe_ref, maybe_mut) = match pat_ty.ty.deref() {
+                                        Type::Reference(ty_ref) => {
+                                            (Some(ty_ref.and_token), ty_ref.mutability)
+                                        }
+                                        _ => (None, None),
+                                    };
 
-                                let dereferenced = if maybe_ref.is_some() {
-                                    quote! { unsafe { #maybe_ref #maybe_mut * #arg } }
+                                    let dereferenced = if maybe_ref.is_some() {
+                                        quote! { unsafe { #maybe_ref #maybe_mut * #arg } }
+                                    } else {
+                                        quote! { unsafe { *Box::from_raw(#arg) } }
+                                    };
+
+                                    arg = dereferenced;
                                 } else {
-                                    quote! { unsafe { *Box::from_raw(#arg) } }
-                                };
-
-                                arg = dereferenced;
+                                    let ty = &opaque.ty.ident;
+                                    arg = quote! { #ty(#arg) };
+                                }
                             }
                         };
                     }

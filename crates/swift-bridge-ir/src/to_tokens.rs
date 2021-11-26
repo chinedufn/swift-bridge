@@ -352,6 +352,36 @@ mod tests {
         assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
     }
 
+    /// Verify that we generate tokens for a freestanding Rust function with an argument of a
+    /// declared type.
+    #[test]
+    fn freestanding_rust_func_with_declared_swift_type_arg() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    fn some_function (bar: MyType);
+                }
+
+                extern "Swift" {
+                    type MyType;
+                }
+            }
+        };
+        let expected = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function (
+                bar: *mut std::ffi::c_void
+            ) {
+                super::some_function(
+                    MyType(bar)
+                )
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
+    }
+
     /// Verify that we generate tokens for a freestanding Rust function with a return type.
     #[test]
     fn freestanding_rust_with_built_in_return_type() {
