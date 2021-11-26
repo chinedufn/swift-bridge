@@ -1,6 +1,6 @@
 use crate::built_in_types::BuiltInType;
-use crate::parse::HostLang;
-use crate::{pat_type_pat_is_self, BridgedType, SWIFT_BRIDGE_PREFIX};
+use crate::parse::{HostLang, TypeDeclarations};
+use crate::{pat_type_pat_is_self, BridgedType, SharedType, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
@@ -187,7 +187,7 @@ impl ParsedExternFn {
     // fn foo (&self, arg1: u8, arg2: u32)
     //  becomes..
     // void* self, uint8_t u8, uint32_t arg2
-    pub fn to_c_header_params(&self) -> String {
+    pub fn to_c_header_params(&self, types: &TypeDeclarations) -> String {
         let mut params = vec![];
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
@@ -200,9 +200,16 @@ impl ParsedExternFn {
                         params.push("void* self".to_string());
                     } else {
                         let ty = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
-                            built_in.to_c().to_string()
+                            built_in.to_c()
                         } else {
-                            "void*".to_string()
+                            let ty = &pat_ty.ty;
+                            let ty_string = ty.to_token_stream().to_string();
+                            match types.get(&ty_string).unwrap() {
+                                BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                                    format!("struct {}", shared_struct.swift_name_string())
+                                }
+                                BridgedType::Opaque(_) => "void*".to_string(),
+                            }
                         };
 
                         let arg_name = pat.to_token_stream().to_string();
@@ -219,14 +226,20 @@ impl ParsedExternFn {
         }
     }
 
-    pub fn to_c_header_return(&self) -> String {
+    pub fn to_c_header_return(&self, types: &TypeDeclarations) -> String {
         match &self.func.sig.output {
             ReturnType::Default => "void".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(ty) = BuiltInType::new_with_type(&ty) {
                     ty.to_c()
                 } else {
-                    "void*".to_string()
+                    let ty_string = ty.to_token_stream().to_string();
+                    match types.get(&ty_string).unwrap() {
+                        BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                            format!("struct {}", shared_struct.swift_name_string())
+                        }
+                        BridgedType::Opaque(_) => "void*".to_string(),
+                    }
                 }
             }
         }

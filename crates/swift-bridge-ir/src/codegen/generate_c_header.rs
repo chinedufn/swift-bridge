@@ -1,4 +1,5 @@
 use crate::built_in_types::BuiltInType;
+use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{BridgedType, SharedType, SwiftBridgeModule};
 use std::collections::HashSet;
@@ -31,7 +32,7 @@ impl SwiftBridgeModule {
             slice_types: HashSet::new(),
         };
 
-        for ty in self.types.iter() {
+        for ty in self.types.types() {
             match ty {
                 BridgedType::Shared(ty) => match ty {
                     SharedType::Struct(ty_struct) => {
@@ -101,7 +102,7 @@ impl SwiftBridgeModule {
                 continue;
             }
 
-            header += &declare_func(&function, &mut bookkeeping);
+            header += &declare_func(&function, &mut bookkeeping, &self.types);
         }
 
         for slice_ty in bookkeeping.slice_types.iter() {
@@ -127,10 +128,14 @@ impl SwiftBridgeModule {
     }
 }
 
-fn declare_func(func: &ParsedExternFn, bookkeeping: &mut Bookkeeping) -> String {
-    let ret = func.to_c_header_return();
+fn declare_func(
+    func: &ParsedExternFn,
+    bookkeeping: &mut Bookkeeping,
+    types: &TypeDeclarations,
+) -> String {
+    let ret = func.to_c_header_return(types);
     let name = func.link_name();
-    let params = func.to_c_header_params();
+    let params = func.to_c_header_params(types);
 
     if let ReturnType::Type(_, ty) = &func.func.sig.output {
         if let Some(ty) = BuiltInType::new_with_type(&ty) {

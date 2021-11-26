@@ -221,9 +221,9 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        assert_eq!(module.types.len(), 3);
+        assert_eq!(module.types.types().len(), 3);
         for (idx, name) in vec!["Foo", "Bar", "Bazz"].into_iter().enumerate() {
-            let ty = &module.types[idx].unwrap_shared_struct();
+            let ty = &module.types.types()[idx].unwrap_shared_struct();
 
             assert_eq!(ty.name, name);
             assert_eq!(ty.swift_repr, StructSwiftRepr::Structure);
@@ -332,7 +332,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        let ty = module.types[0].unwrap_shared_struct();
+        let ty = module.types.types()[0].unwrap_shared_struct();
         let field = &ty.fields[0];
 
         assert_eq!(field.name.as_ref().unwrap(), "bar");
@@ -352,7 +352,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        let ty = module.types[0].unwrap_shared_struct();
+        let ty = module.types.types()[0].unwrap_shared_struct();
         assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
     }
 }

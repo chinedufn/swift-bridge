@@ -2,14 +2,10 @@ use crate::BridgedType;
 use std::collections::HashMap;
 
 #[derive(Default)]
-pub(super) struct TypeDeclarations {
+pub(crate) struct TypeDeclarations {
     decls: HashMap<String, BridgedType>,
     order: Vec<String>,
 }
-
-impl TypeDeclarations {}
-
-impl TypeDeclarations {}
 
 impl TypeDeclarations {
     pub(crate) fn get(&self, type_name: &String) -> Option<&BridgedType> {
@@ -27,5 +23,12 @@ impl TypeDeclarations {
 
     pub fn order(&self) -> &Vec<String> {
         &self.order
+    }
+
+    pub fn types(&self) -> Vec<&BridgedType> {
+        self.order
+            .iter()
+            .map(|ty| self.decls.get(ty).unwrap())
+            .collect()
     }
 }

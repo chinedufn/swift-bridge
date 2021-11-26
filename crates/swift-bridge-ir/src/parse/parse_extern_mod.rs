@@ -278,7 +278,10 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        assert_eq!(module.types[0].unwrap_opaque().ident.to_string(), "Foo");
+        assert_eq!(
+            module.types.types()[0].unwrap_opaque().ident.to_string(),
+            "Foo"
+        );
     }
 
     /// Verify that we return an error if the declared type is a built in type.
@@ -322,7 +325,7 @@ mod tests {
 
             let module = parse_ok(tokens);
 
-            let ty = &module.types[0].unwrap_opaque();
+            let ty = &module.types.types()[0].unwrap_opaque();
             assert_eq!(ty.ident.to_string(), "Foo");
 
             assert_eq!(
@@ -350,7 +353,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        let ty = &module.types[0].unwrap_opaque();
+        let ty = &module.types.types()[0].unwrap_opaque();
         assert_eq!(ty.ident.to_string(), "Foo");
 
         assert_eq!(module.functions.len(), 1,);
@@ -372,7 +375,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        let ty = &module.types[0].unwrap_opaque();
+        let ty = &module.types.types()[0].unwrap_opaque();
         assert_eq!(ty.ident.to_string(), "Foo");
 
         assert_eq!(module.functions.len(), 1,);

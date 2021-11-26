@@ -54,7 +54,7 @@ impl ToTokens for SwiftBridgeModule {
             };
         }
 
-        for ty in &self.types {
+        for ty in &self.types.types() {
             match ty {
                 BridgedType::Shared(_) => {
                     //

@@ -7,7 +7,7 @@
 
 #![deny(missing_docs)]
 
-use crate::parse::HostLang;
+use crate::parse::{HostLang, TypeDeclarations};
 use proc_macro2::Ident;
 use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
@@ -55,7 +55,7 @@ const SWIFT_BRIDGE_PREFIX: &'static str = "__swift_bridge__";
 /// ```
 pub struct SwiftBridgeModule {
     name: Ident,
-    types: Vec<BridgedType>,
+    types: TypeDeclarations,
     functions: Vec<ParsedExternFn>,
     swift_bridge_path: Path,
 }

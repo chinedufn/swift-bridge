@@ -1,7 +1,6 @@
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::parse::parse_struct::SharedStructParser;
-use crate::parse::type_declarations::TypeDeclarations;
 use crate::{BridgedType, SharedType, SwiftBridgeModule};
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
@@ -11,6 +10,7 @@ mod parse_extern_mod;
 mod parse_struct;
 
 mod type_declarations;
+pub(crate) use self::type_declarations::TypeDeclarations;
 
 impl Parse for SwiftBridgeModule {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -101,15 +101,9 @@ impl Parse for SwiftBridgeModuleAndErrors {
                 });
             }
 
-            let types = all_type_declarations
-                .order()
-                .into_iter()
-                .map(|name| all_type_declarations.get(name).unwrap().clone())
-                .collect();
-
             let module = SwiftBridgeModule {
                 name: module_name,
-                types,
+                types: all_type_declarations,
                 functions,
                 swift_bridge_path: syn::parse2(quote! { swift_bridge }).unwrap(),
             };

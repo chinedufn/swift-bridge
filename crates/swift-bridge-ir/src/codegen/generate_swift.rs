@@ -45,7 +45,7 @@ impl SwiftBridgeModule {
             swift += "\n";
         }
 
-        for ty in &self.types {
+        for ty in self.types.types() {
             let generated = match ty {
                 BridgedType::Shared(_) => {
                     //
