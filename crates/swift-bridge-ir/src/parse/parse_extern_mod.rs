@@ -81,12 +81,12 @@ impl<'a> ForeignModParser<'a> {
 
                     for arg in func.sig.inputs.iter() {
                         if let FnArg::Typed(pat_ty) = arg {
-                            self.check_supported_type(&pat_ty.ty);
+                            self.maybe_push_undeclared_ty(&pat_ty.ty);
                         }
                     }
 
                     if let ReturnType::Type(_, ty) = &func.sig.output {
-                        self.check_supported_type(ty);
+                        self.maybe_push_undeclared_ty(ty);
                     }
 
                     let first_input = func.sig.inputs.iter().next();
@@ -112,7 +112,7 @@ impl<'a> ForeignModParser<'a> {
         Ok(())
     }
 
-    fn check_supported_type(&mut self, ty: &Type) {
+    fn maybe_push_undeclared_ty(&mut self, ty: &Type) {
         let (ty_string, ty_span) = match ty.deref() {
             Type::Path(path) => (path.path.to_token_stream().to_string(), path.path.span()),
             Type::Reference(ref_ty) => (

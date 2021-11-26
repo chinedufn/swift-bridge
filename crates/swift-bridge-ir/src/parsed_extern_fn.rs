@@ -26,12 +26,6 @@ pub(crate) struct ParsedExternFn {
     pub associated_type: Option<BridgedType>,
     pub is_initializer: bool,
     pub host_lang: HostLang,
-    // pub output_type: SwiftBridgeReturnType,
-}
-
-enum SwiftBridgeReturnType {
-    Bridged(BridgedType),
-    BuiltIn(BuiltInType),
 }
 
 impl ParsedExternFn {
