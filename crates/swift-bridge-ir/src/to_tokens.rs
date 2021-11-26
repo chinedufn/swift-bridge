@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use quote::ToTokens;
-use syn::spanned::Spanned;
 
 use crate::parse::HostLang;
 use crate::{BridgedType, FieldsFormat, SharedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
@@ -73,11 +72,11 @@ impl ToTokens for SwiftBridgeModule {
                             match f.name.as_ref() {
                                 Some(name) => {
                                     quote! {
-                                        #name: #ty
+                                        pub #name: #ty
                                     }
                                 }
                                 None => {
-                                    quote! { #ty }
+                                    quote! { pub #ty }
                                 }
                             }
                         })
@@ -894,8 +893,8 @@ mod tests {
         let expected_func = quote! {
             #[repr(C)]
             pub struct Foo {
-                a: u8,
-                b: u32
+                pub a: u8,
+                pub b: u32
             }
         };
 
@@ -909,12 +908,12 @@ mod tests {
             #[swift_bridge::bridge]
             mod foo {
                 #[swift_bridge(swift_repr = "struct")]
-                struct Foo ( u8, u32 );
+                pub struct Foo ( u8, u32 );
             }
         };
         let expected_func = quote! {
             #[repr(C)]
-            pub struct Foo (u8, u32);
+            pub struct Foo (pub u8, pub u32);
         };
 
         assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);

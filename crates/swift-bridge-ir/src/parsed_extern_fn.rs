@@ -266,7 +266,12 @@ impl ParsedExternFn {
                 if let Some(ty) = BuiltInType::new_with_type(&ty) {
                     ty.to_c()
                 } else {
-                    let ty_string = ty.to_token_stream().to_string();
+                    let ty_string = match ty.deref() {
+                        Type::Reference(reference) => reference.elem.to_token_stream().to_string(),
+                        Type::Path(path) => path.path.to_token_stream().to_string(),
+                        _ => todo!(),
+                    };
+
                     match types.get(&ty_string).unwrap() {
                         BridgedType::Shared(SharedType::Struct(shared_struct)) => {
                             format!("struct {}", shared_struct.swift_name_string())

@@ -1,7 +1,10 @@
 use crate::built_in_types::BuiltInType;
 use crate::parse::HostLang;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::{BridgedType, OpaqueForeignType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use crate::{
+    BridgedType, OpaqueForeignType, SharedType, StructSwiftRepr, SwiftBridgeModule,
+    SWIFT_BRIDGE_PREFIX,
+};
 use quote::ToTokens;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -47,9 +50,18 @@ impl SwiftBridgeModule {
 
         for ty in self.types.types() {
             let generated = match ty {
-                BridgedType::Shared(_) => {
-                    //
-                    todo!()
+                BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                    match shared_struct.swift_repr {
+                        StructSwiftRepr::Class => {
+                            todo!()
+                        }
+                        StructSwiftRepr::Structure => {
+                            // No need to generate any code. Swift will automatically generate a
+                            //  struct from our C header typedef that we generate for this struct.
+
+                            continue;
+                        }
+                    }
                 }
                 BridgedType::Opaque(ty) => match ty.host_lang {
                     HostLang::Rust => generate_swift_class(ty, &associated_funcs_and_methods),
@@ -994,7 +1006,7 @@ func get_owned_foo() -> Foo {
 
     /// Verify that we can return a reference to a declared type.
     #[test]
-    fn extern_rust_return_reference_to_declared_declared_type() {
+    fn extern_rust_return_reference_to_declared_type() {
         let tokens = quote! {
             mod foo {
                 extern "Rust" {
@@ -1010,6 +1022,80 @@ func get_owned_foo() -> Foo {
         let expected = r#"
 func get_ref_foo() -> Foo {
     Foo(ptr: __swift_bridge__$get_ref_foo(), isOwned: false)
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
+    }
+
+    /// Verify that we can return a shared struct type.
+    #[test]
+    fn extern_rust_return_shared_struct() {
+        let tokens = quote! {
+            mod ffi {
+                struct Foo;
+
+                extern "Rust" {
+                    fn get_foo () -> Foo;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func get_foo() -> Foo {
+    __swift_bridge__$get_foo()
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
+    }
+
+    /// Verify that we can take a shared struct as an argument.
+    #[test]
+    fn extern_rust_shared_struct_arg() {
+        let tokens = quote! {
+            mod ffi {
+                struct Foo;
+
+                extern "Rust" {
+                    fn some_function (arg: Foo);
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func some_function(arg: Foo) -> Foo {
+    __swift_bridge__$some_function(arg)
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
+    }
+
+    /// Verify that we rename shared struct arguments and return values if there is a swift_name
+    /// attribute.
+    #[test]
+    fn extern_rust_fn_uses_swift_name_for_shared_struct_attrib() {
+        let tokens = quote! {
+            mod ffi {
+                #[swift_bridge(swift_name = "Renamed")]
+                struct Foo;
+
+                extern "Rust" {
+                    fn some_function (arg: Foo) -> Foo;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func some_function(arg: Renamed) -> Renamed {
+    __swift_bridge__$some_function(arg)
 }
 "#;
 

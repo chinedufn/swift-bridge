@@ -25,6 +25,20 @@ struct StructAttribs {
     swift_name: Option<LitStr>,
 }
 
+struct ParsedAttribs(Vec<StructAttr>);
+
+impl Parse for ParsedAttribs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.is_empty() {
+            return Ok(ParsedAttribs(vec![]));
+        }
+
+        let opts = syn::punctuated::Punctuated::<_, syn::token::Comma>::parse_terminated(input)?;
+
+        Ok(ParsedAttribs(opts.into_iter().collect()))
+    }
+}
+
 impl Parse for StructAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let key: Ident = input.parse()?;
@@ -58,23 +72,26 @@ impl<'a> SharedStructParser<'a> {
         let mut fields = vec![];
 
         for attr in item_struct.attrs {
-            let attr: StructAttr = attr.parse_args()?;
-            match attr {
-                StructAttr::SwiftRepr((repr, lit_str)) => {
-                    attribs.swift_repr = Some((repr, lit_str));
-                }
-                StructAttr::SwiftName(name) => {
-                    attribs.swift_name = Some(name);
-                }
-                StructAttr::Error(err) => match err {
-                    StructAttrParseError::InvalidSwiftRepr(val) => {
-                        self.errors.push(ParseError::StructInvalidSwiftRepr {
-                            struct_ident: item_struct.ident.clone(),
-                            swift_repr_attr_value: val.clone(),
-                        });
-                        attribs.swift_repr = Some((StructSwiftRepr::Structure, val));
+            let sections: ParsedAttribs = attr.parse_args()?;
+
+            for attr in sections.0 {
+                match attr {
+                    StructAttr::SwiftRepr((repr, lit_str)) => {
+                        attribs.swift_repr = Some((repr, lit_str));
                     }
-                },
+                    StructAttr::SwiftName(name) => {
+                        attribs.swift_name = Some(name);
+                    }
+                    StructAttr::Error(err) => match err {
+                        StructAttrParseError::InvalidSwiftRepr(val) => {
+                            self.errors.push(ParseError::StructInvalidSwiftRepr {
+                                struct_ident: item_struct.ident.clone(),
+                                swift_repr_attr_value: val.clone(),
+                            });
+                            attribs.swift_repr = Some((StructSwiftRepr::Structure, val));
+                        }
+                    },
+                };
             }
         }
 
@@ -279,5 +296,25 @@ mod tests {
 
         let ty = module.types.types()[0].unwrap_shared_struct();
         assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
+    }
+
+    /// Verify that we properly parse multiple comma separated struct attributes.
+    #[test]
+    fn parses_multiple_attributes() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(swift_name = "FfiFoo", swift_repr = "class")]
+                struct Foo {
+                    fied: u8
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let ty = module.types.types()[0].unwrap_shared_struct();
+        assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
+        assert_eq!(ty.swift_repr, StructSwiftRepr::Class);
     }
 }
