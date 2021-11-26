@@ -154,6 +154,7 @@ struct SharedStruct {
     swift_repr: StructSwiftRepr,
     fields: Vec<StructField>,
     swift_name: Option<LitStr>,
+    fields_format: FieldsFormat,
 }
 
 impl SharedStruct {
@@ -188,6 +189,13 @@ enum StructSwiftRepr {
 struct StructField {
     name: Option<Ident>,
     ty: Type,
+}
+
+#[derive(Copy, Clone)]
+enum FieldsFormat {
+    Named,
+    Unnamed,
+    Unit,
 }
 
 #[derive(Clone)]

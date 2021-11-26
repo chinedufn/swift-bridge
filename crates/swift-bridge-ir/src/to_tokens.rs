@@ -3,9 +3,10 @@ use std::collections::HashMap;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use quote::ToTokens;
+use syn::spanned::Spanned;
 
 use crate::parse::HostLang;
-use crate::{BridgedType, SharedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use crate::{BridgedType, FieldsFormat, SharedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
 mod option;
 
@@ -63,15 +64,40 @@ impl ToTokens for SwiftBridgeModule {
                 BridgedType::Shared(SharedType::Struct(shared_struct)) => {
                     let name = &shared_struct.name;
 
-                    let maybe_fields = if shared_struct.fields.len() == 0 {
-                        quote! { ; }
-                    } else {
-                        todo!("Create field tokens")
+                    let fields: Vec<TokenStream> = shared_struct
+                        .fields
+                        .iter()
+                        .map(|f| {
+                            let ty = &f.ty;
+
+                            match f.name.as_ref() {
+                                Some(name) => {
+                                    quote! {
+                                        #name: #ty
+                                    }
+                                }
+                                None => {
+                                    quote! { #ty }
+                                }
+                            }
+                        })
+                        .collect();
+
+                    let fields = match shared_struct.fields_format {
+                        FieldsFormat::Named => {
+                            quote! { { #(#fields),* } }
+                        }
+                        FieldsFormat::Unnamed => {
+                            quote! { ( #(#fields),*  ); }
+                        }
+                        FieldsFormat::Unit => {
+                            quote! { ; }
+                        }
                     };
 
                     let definition = quote! {
                         #[repr(C)]
-                        pub struct #name #maybe_fields
+                        pub struct #name #fields
                     };
                     shared_struct_definitions.push(definition);
                 }

@@ -1,90 +1,8 @@
 use crate::errors::{ParseError, ParseErrors};
-use crate::{SharedStruct, StructField, StructSwiftRepr};
+use crate::{FieldsFormat, SharedStruct, StructField, StructSwiftRepr};
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseStream};
-use syn::{ItemStruct, LitStr, Token};
-
-// Ok.. let's plan what we need to support for our current Afia needs...
-//
-// So.. we want to generate a `struct` and a header for that struct that will allow us to use
-// our existing pos_ffi_uuid.
-//
-// We want to always guarantee that the Rust side of the boat is safe... Any unsafety would be
-// because of the Swift side.
-// So... if a struct has all copy fields we can make it a Swift struct.
-// We do not allow swift structs to be passed by reference, only by value.
-//
-// So we want to
-// 1. Create a C typedef that Swift can see (pos_ffi_uuid)
-// 2. Convert that into and from our Rust type (Uuid)
-// 3. Ensure that only copy types can be passed as structs.
-//
-// Cool.. so just add some tests and code for these guarantees.
-// Let's plan the steps to do that.
-//
-// # Implementation
-//
-// 1. (DONE) Add a test for parsing a unit struct. Unit structs are always C structs.
-//
-// 2. (DONE) Add a test for parsing an empty struct {}. Empty structs are always C structs.
-//
-// 3. (DONE) Add a test for parsing an empty tuple struct (). Empty structs are always C structs.
-//
-// 4. (DONE) Add a test for parsing a struct with one field. Check that we get an error that structs
-//    with one or more fields need to be annotated with `#[swift_bridge(swift_repr = "...")]`
-//
-// 5. (DONE) Add a test for successfully parsing a struct with one field that is marked `swift_repr =
-//    "struct"`
-//
-// 6. For now we can panic if the swift_repr is "class" that it is not yet implemented.
-//
-// 7. (SKIP) Add test verifying that we can parse a struct with a `[T: Copy; N]` array field.
-//    - I don't need this right now. Afia can just transmute u128 into [u64, u64] and use that
-//
-// 8. (SKIP) Add a test verifying we get an error if we try to parse a field that is not copy
-//    when the swift_repr is struct.
-//    - We can parse it, it just has certain rules for how it can be used in functions.
-//
-// 9. (DONE) Add a C header generation test where we verify that a `typedef struct` is emitted
-//    for a struct.
-//
-// 10. (DONE) Add test verifying that we properly emit the C typedef for a struct
-//
-// 11. (SKIP) Add test that we cannot parse a `swift_repr "struct"` if there is a non copy field.
-//     - See number 8
-//
-// 12. (DONE) Add test verifying that we parse the `rust_into = SomeType` attribute
-//
-// 13. (SKIP) Add test verifying that we parse the `rust_from = SomeType` attribute
-//     - I don't need this yet
-//
-// 14. (DONE) Add extern "Rust" function test where accept a swift_repr=struct type
-//
-// 15. (DONE) Add extern "Rust" function test where we return a swift_repr=struct type
-//
-// 16. (SKIP) Add extern "Swift" function test where accept a swift_repr=struct type
-//     - I don't need this yet
-//
-// 17. (SKIP) Add extern "Swift" function test where we return a swift_repr=struct type
-//     - I don't need this yet
-//
-// 18. (SKIP) Add extern "Rust" function test for accepting a `rust_into = Foo` argument
-//     and making sure that we convert it into the function that takes a `Foo`
-//     - Skipping this.. We can just make our real function taken an `impl Into<Uuid>`
-//
-// 19. (Skip_ Add extern "Rust" function test for returning a `rust_into = Foo` argument
-//     - Skipping this.. We can just make our real function taken an `impl Into<Uuid>`
-//
-// 20. (SKIP) Add extern "Swift" function test for accepting a `rust_into = Foo` argument
-//     - I don't need this yet
-//
-// 21. (SKIP) Add extern "Swift" function test for returning a `rust_into = Foo` argument
-//     - I don't need this yet
-//
-// 22. (DONE) Add test that we use the `swift_name = "..."` attribute on the struct when creating
-//     the typedef
-//
-// 23. Add swift-integration-test file `shared_types.rs` test out shared structs
+use syn::{Fields, ItemStruct, LitStr, Token};
 
 pub(crate) struct SharedStructParser<'a> {
     pub item_struct: ItemStruct,
@@ -181,6 +99,12 @@ impl<'a> SharedStructParser<'a> {
             StructSwiftRepr::Structure
         };
 
+        let fields_format = match &item_struct.fields {
+            Fields::Named(_) => FieldsFormat::Named,
+            Fields::Unnamed(_) => FieldsFormat::Unnamed,
+            Fields::Unit => FieldsFormat::Unit,
+        };
+
         for field in item_struct.fields.iter() {
             let field = StructField {
                 name: field.ident.clone(),
@@ -194,6 +118,7 @@ impl<'a> SharedStructParser<'a> {
             swift_repr,
             fields,
             swift_name: attribs.swift_name,
+            fields_format,
         };
 
         Ok(shared_struct)
