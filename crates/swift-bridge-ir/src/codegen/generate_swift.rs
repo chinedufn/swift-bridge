@@ -1,5 +1,5 @@
 use crate::built_in_types::BuiltInType;
-use crate::parse::HostLang;
+use crate::parse::{HostLang, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{
     BridgedType, OpaqueForeignType, SharedType, StructSwiftRepr, SwiftBridgeModule,
@@ -40,7 +40,7 @@ impl SwiftBridgeModule {
             }
 
             let func_definition = match function.host_lang {
-                HostLang::Rust => gen_func_swift_calls_rust(function),
+                HostLang::Rust => gen_func_swift_calls_rust(function, &self.types),
                 HostLang::Swift => gen_function_exposes_swift_to_rust(function),
             };
 
@@ -64,7 +64,9 @@ impl SwiftBridgeModule {
                     }
                 }
                 BridgedType::Opaque(ty) => match ty.host_lang {
-                    HostLang::Rust => generate_swift_class(ty, &associated_funcs_and_methods),
+                    HostLang::Rust => {
+                        generate_swift_class(ty, &associated_funcs_and_methods, &self.types)
+                    }
                     HostLang::Swift => generate_drop_swift_instance_reference_count(ty),
                 },
             };
@@ -80,6 +82,7 @@ impl SwiftBridgeModule {
 fn generate_swift_class(
     ty: &OpaqueForeignType,
     associated_funcs_and_methods: &HashMap<String, Vec<&ParsedExternFn>>,
+    types: &TypeDeclarations,
 ) -> String {
     let type_name = ty.ident.to_string();
 
@@ -94,7 +97,7 @@ fn generate_swift_class(
         for type_method in methods {
             // TODO: Normalize with freestanding func codegen above
 
-            let func_definition = gen_func_swift_calls_rust(type_method);
+            let func_definition = gen_func_swift_calls_rust(type_method, types);
 
             if type_method.is_initializer {
                 initializers.push(func_definition);
@@ -171,7 +174,7 @@ func {fn_name} (ptr: UnsafeMutableRawPointer) {{
     )
 }
 
-fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
+fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations) -> String {
     let fn_name = function.sig.ident.to_string();
     let params = function.to_swift_param_names_and_types(false);
     let call_args = function.to_swift_call_args(true, false);
@@ -237,13 +240,24 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn) -> String {
                     unreachable!()
                 }
                 ReturnType::Type(_, ty) => {
-                    let (is_owned, ty) = match ty.deref() {
-                        Type::Reference(reference) => ("false", &reference.elem),
-                        _ => ("true", ty),
+                    let ty_name = match ty.deref() {
+                        Type::Reference(reference) => reference.elem.to_token_stream().to_string(),
+                        Type::Path(path) => path.path.segments.to_token_stream().to_string(),
+                        _ => todo!(),
                     };
 
-                    let ty = ty.to_token_stream().to_string();
-                    format!("{}(ptr: {}, isOwned: {})", ty, call_rust, is_owned)
+                    match types.get(&ty_name).unwrap() {
+                        BridgedType::Shared(_) => call_rust,
+                        BridgedType::Opaque(_) => {
+                            let (is_owned, ty) = match ty.deref() {
+                                Type::Reference(reference) => ("false", &reference.elem),
+                                _ => ("true", ty),
+                            };
+
+                            let ty = ty.to_token_stream().to_string();
+                            format!("{}(ptr: {}, isOwned: {})", ty, call_rust, is_owned)
+                        }
+                    }
                 }
             }
         }
