@@ -1,16 +1,18 @@
 use crate::built_in_types::BuiltInType;
 use crate::errors::{ParseError, ParseErrors};
+use crate::parse::parse_extern_mod::function_attributes::{FunctionAttr, FunctionAttributes};
 use crate::parse::type_declarations::TypeDeclarations;
 use crate::parse::HostLang;
 use crate::{BridgedType, OpaqueForeignType, ParsedExternFn};
-use proc_macro2::{Ident, Span};
+use proc_macro2::Span;
 use quote::ToTokens;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::ops::Deref;
-use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItem, ForeignItemFn, ItemForeignMod, Pat, ReturnType, Token, Type};
+use syn::{FnArg, ForeignItem, ForeignItemFn, ItemForeignMod, Pat, ReturnType, Type};
+
+mod function_attributes;
 
 pub(super) struct ForeignModParser<'a> {
     pub errors: &'a mut ParseErrors,
@@ -22,7 +24,6 @@ pub(super) struct ForeignModParser<'a> {
 }
 
 impl<'a> ForeignModParser<'a> {
-    // TODO: Refactor internals into smaller functions
     pub fn parse(mut self, mut foreign_mod: ItemForeignMod) -> Result<(), syn::Error> {
         if foreign_mod.abi.name.is_none() {
             self.errors.push(ParseError::AbiNameMissing {
@@ -90,18 +91,19 @@ impl<'a> ForeignModParser<'a> {
 
                     let first_input = func.sig.inputs.iter().next();
 
-                    if let Some(first) = first_input {
-                        self.parse_function_with_inputs(
-                            first,
-                            func.clone(),
-                            &attributes,
-                            host_lang,
-                            &mut local_type_declarations,
-                        )?;
-                    } else {
-                        let f = self.parse_function(func.clone(), &attributes, host_lang);
-                        self.functions.push(f);
-                    }
+                    let associated_type = self.get_associated_type(
+                        first_input,
+                        func.clone(),
+                        &attributes,
+                        &mut local_type_declarations,
+                    )?;
+
+                    self.functions.push(ParsedExternFn {
+                        func,
+                        associated_type,
+                        is_initializer: attributes.is_initializer,
+                        host_lang,
+                    });
                 }
                 _ => {}
             }
@@ -128,175 +130,83 @@ impl<'a> ForeignModParser<'a> {
         }
     }
 
-    // Parse a freestanding or associated function.
-    fn parse_function(
-        &mut self,
-        func: ForeignItemFn,
-        attributes: &FunctionAttributes,
-        host_lang: HostLang,
-    ) -> ParsedExternFn {
-        let associated_type = if let Some(associated_to) = &attributes.associated_to {
-            let ty = self
-                .all_type_declarations
-                .get(&associated_to.to_string())
-                .unwrap();
-            Some(ty.clone())
-        } else if attributes.initializes {
-            let ty_string = match &func.sig.output {
-                ReturnType::Default => {
-                    todo!("Push error if initializer does not return a type")
-                }
-                ReturnType::Type(_, ty) => ty.deref().to_token_stream().to_string(),
-            };
-
-            let ty = self.all_type_declarations.get(&ty_string);
-
-            ty.map(|ty| ty.clone())
-        } else {
-            None
-        };
-
-        ParsedExternFn {
-            func,
-            is_initializer: attributes.initializes,
-            host_lang,
-            associated_type,
-        }
-    }
-
     // Parse a function that has inputs (i.e. perhaps self or arguments)
-    fn parse_function_with_inputs(
+    fn get_associated_type(
         &mut self,
-        first: &FnArg,
+        first: Option<&FnArg>,
         func: ForeignItemFn,
         attributes: &FunctionAttributes,
-        host_lang: HostLang,
         local_type_declarations: &mut HashMap<String, OpaqueForeignType>,
-    ) -> syn::Result<()> {
-        match first {
-            FnArg::Receiver(recv) => {
+    ) -> syn::Result<Option<BridgedType>> {
+        let associated_type = match first {
+            Some(FnArg::Receiver(recv)) => {
                 if local_type_declarations.len() == 1 {
                     let ty = local_type_declarations.iter_mut().next().unwrap().1;
-                    self.functions.push(ParsedExternFn {
-                        func,
-                        is_initializer: attributes.initializes,
-                        associated_type: Some(BridgedType::Opaque(ty.clone())),
-                        host_lang,
-                    });
+                    let associated_type = Some(BridgedType::Opaque(ty.clone()));
+                    associated_type
                 } else {
                     self.errors.push(ParseError::AmbiguousSelf {
                         self_: recv.clone(),
                     });
+                    return Ok(None);
                 }
             }
-            FnArg::Typed(arg) => {
-                match arg.pat.deref() {
-                    Pat::Ident(pat_ident) => {
-                        if pat_ident.ident.to_string() == "self" {
-                            let self_ty = arg.ty.deref();
+            Some(FnArg::Typed(arg)) => match arg.pat.deref() {
+                Pat::Ident(pat_ident) => {
+                    if pat_ident.ident.to_string() == "self" {
+                        let self_ty = match arg.ty.deref() {
+                            Type::Path(ty_path) => ty_path.path.segments.to_token_stream(),
+                            Type::Reference(type_ref) => type_ref.elem.deref().to_token_stream(),
+                            _ => {
+                                todo!("Add a test that hits this branch")
+                            }
+                        };
 
-                            match self_ty {
-                                Type::Path(_path) => {
-                                    self.parse_method(func.clone(), attributes, host_lang, self_ty);
-                                }
-                                Type::Reference(type_ref) => {
-                                    let self_ty = type_ref.elem.deref();
-
-                                    self.parse_method(func.clone(), attributes, host_lang, self_ty);
-                                }
-                                _ => {}
-                            };
-                        } else if let Some(_associated_to) = &attributes.associated_to {
-                            let f = self.parse_function(func, attributes, host_lang);
-                            self.functions.push(f);
-                        } else if attributes.initializes {
-                            let f = self.parse_function(func, attributes, host_lang);
-                            self.functions.push(f);
-                        } else {
-                            self.functions.push(ParsedExternFn {
-                                func,
-                                is_initializer: false,
-                                associated_type: None,
-                                host_lang,
-                            });
-                        }
+                        let self_ty_string = self_ty.to_string();
+                        let ty = self.all_type_declarations.get(&self_ty_string).unwrap();
+                        let associated_type = Some(ty.clone());
+                        associated_type
+                    } else {
+                        let associated_type = self.get_associated_type(
+                            None,
+                            func.clone(),
+                            attributes,
+                            local_type_declarations,
+                        )?;
+                        associated_type
                     }
-                    _ => {}
-                };
-            }
-        };
-
-        Ok(())
-    }
-
-    // Parse a function that has `self`
-    fn parse_method(
-        &mut self,
-        func: ForeignItemFn,
-        attributes: &FunctionAttributes,
-        host_lang: HostLang,
-        self_ty: &Type,
-    ) {
-        match self_ty {
-            Type::Path(path) => {
-                let self_ty_string = path.path.segments.to_token_stream().to_string();
-
-                if let Some(ty) = self.all_type_declarations.get(&self_ty_string) {
-                    self.functions.push(ParsedExternFn {
-                        func,
-                        is_initializer: attributes.initializes,
-                        associated_type: Some(ty.clone()),
-                        host_lang,
-                    });
-                } else {
-                    todo!("Handle type not present in this extern push pushing a ParseError")
                 }
-            }
-            _ => {
-                todo!("Add a test that hits this block..")
+                _ => {
+                    todo!("Add test that hits this block")
+                }
+            },
+            None => {
+                let associated_type = if let Some(associated_to) = &attributes.associated_to {
+                    let ty = self
+                        .all_type_declarations
+                        .get(&associated_to.to_string())
+                        .unwrap();
+                    Some(ty.clone())
+                } else if attributes.is_initializer {
+                    let ty_string = match &func.sig.output {
+                        ReturnType::Default => {
+                            todo!("Push error if initializer does not return a type")
+                        }
+                        ReturnType::Type(_, ty) => ty.deref().to_token_stream().to_string(),
+                    };
+
+                    let ty = self.all_type_declarations.get(&ty_string);
+
+                    ty.map(|ty| ty.clone())
+                } else {
+                    None
+                };
+
+                associated_type
             }
         };
-    }
-}
 
-#[derive(Default)]
-struct FunctionAttributes {
-    associated_to: Option<Ident>,
-    initializes: bool,
-}
-
-impl FunctionAttributes {
-    fn store_attrib(&mut self, attrib: FunctionAttr) {
-        match attrib {
-            FunctionAttr::AssociatedTo(ident) => {
-                self.associated_to = Some(ident);
-            }
-            FunctionAttr::Init => self.initializes = true,
-        }
-    }
-}
-
-enum FunctionAttr {
-    AssociatedTo(Ident),
-    Init,
-}
-
-impl Parse for FunctionAttr {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let key: Ident = input.parse()?;
-
-        let attrib = match key.to_string().as_str() {
-            "associated_to" => {
-                input.parse::<Token![=]>()?;
-                let value: Ident = input.parse()?;
-
-                FunctionAttr::AssociatedTo(value)
-            }
-            "init" => FunctionAttr::Init,
-            _ => panic!("TODO: Return spanned error"),
-        };
-
-        Ok(attrib)
+        Ok(associated_type)
     }
 }
 
