@@ -41,7 +41,7 @@ impl SwiftBridgeModule {
 
             let func_definition = match function.host_lang {
                 HostLang::Rust => gen_func_swift_calls_rust(function, &self.types),
-                HostLang::Swift => gen_function_exposes_swift_to_rust(function),
+                HostLang::Swift => gen_function_exposes_swift_to_rust(function, &self.types),
             };
 
             swift += &func_definition;
@@ -176,8 +176,8 @@ func {fn_name} (ptr: UnsafeMutableRawPointer) {{
 
 fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations) -> String {
     let fn_name = function.sig.ident.to_string();
-    let params = function.to_swift_param_names_and_types(false);
-    let call_args = function.to_swift_call_args(true, false);
+    let params = function.to_swift_param_names_and_types(false, types);
+    let call_args = function.to_swift_call_args(true, false, types);
     let call_fn = format!("{}({})", fn_name, call_args);
 
     let type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
@@ -205,7 +205,7 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
     let maybe_return = if function.is_initializer {
         "".to_string()
     } else {
-        function.to_swift_return_type(false)
+        function.to_swift_return_type(false, types)
     };
 
     let swift_class_func_name = if function.is_initializer {
@@ -278,15 +278,15 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
     func_definition
 }
 
-fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn) -> String {
+fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn, types: &TypeDeclarations) -> String {
     let link_name = func.link_name();
     let prefixed_fn_name = func.prefixed_fn_name();
     let fn_name = &func.sig.ident;
 
-    let params = func.to_swift_param_names_and_types(true);
-    let ret = func.to_swift_return_type(true);
+    let params = func.to_swift_param_names_and_types(true, types);
+    let ret = func.to_swift_return_type(true, types);
 
-    let args = func.to_swift_call_args(false, true);
+    let args = func.to_swift_call_args(false, true, types);
     let mut call_fn = format!("{}({})", fn_name, args);
 
     if let Some(associated_type) = func.associated_type.as_ref() {
@@ -1082,7 +1082,7 @@ func get_foo() -> Foo {
         let generated = module.generate_swift();
 
         let expected = r#"
-func some_function(arg: Foo) -> Foo {
+func some_function(_ arg: Foo) {
     __swift_bridge__$some_function(arg)
 }
 "#;
@@ -1108,7 +1108,7 @@ func some_function(arg: Foo) -> Foo {
         let generated = module.generate_swift();
 
         let expected = r#"
-func some_function(arg: Renamed) -> Renamed {
+func some_function(_ arg: Renamed) -> Renamed {
     __swift_bridge__$some_function(arg)
 }
 "#;

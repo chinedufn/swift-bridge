@@ -1,12 +1,17 @@
 use crate::built_in_types::BuiltInType;
+use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::pat_type_pat_is_self;
+use crate::{pat_type_pat_is_self, BridgedType, SharedType};
 use quote::ToTokens;
 use std::ops::Deref;
 use syn::{FnArg, ReturnType, Type};
 
 impl ParsedExternFn {
-    pub fn to_swift_param_names_and_types(&self, include_receiver_if_present: bool) -> String {
+    pub fn to_swift_param_names_and_types(
+        &self,
+        include_receiver_if_present: bool,
+        types: &TypeDeclarations,
+    ) -> String {
         let mut params: Vec<String> = vec![];
 
         for arg in &self.func.sig.inputs {
@@ -29,16 +34,23 @@ impl ParsedExternFn {
 
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
-                    if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
-                        format!("{}: {}", arg_name, built_in.to_swift_type(false))
+                    let ty = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
+                        built_in.to_swift_type(false)
                     } else {
                         // &mut Foo -> "& mut Foo"
                         let ty = pat_ty.ty.to_token_stream().to_string();
                         // Remove all references "&" and mut keywords.
-                        let ty = ty.split_whitespace().last().unwrap();
+                        let ty = ty.split_whitespace().last().unwrap().to_string();
 
-                        format!("{}: {}", arg_name, ty)
-                    }
+                        match types.get(&ty).unwrap() {
+                            BridgedType::Shared(SharedType::Struct(shared)) => {
+                                shared.swift_name_string()
+                            }
+                            BridgedType::Opaque(_) => ty,
+                        }
+                    };
+
+                    format!("{}: {}", arg_name, ty)
                 }
             };
 
@@ -58,6 +70,7 @@ impl ParsedExternFn {
         &self,
         include_receiver_if_present: bool,
         include_var_name: bool,
+        types: &TypeDeclarations,
     ) -> String {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
@@ -104,7 +117,25 @@ impl ParsedExternFn {
                         if is_reference {
                             format!("{}.ptr", arg)
                         } else {
-                            format!("{{{arg}.isOwned = false; return {arg}.ptr;}}()", arg = arg)
+                            let ty_string = match pat_ty.ty.deref() {
+                                Type::Reference(reference) => {
+                                    reference.elem.to_token_stream().to_string()
+                                }
+                                Type::Path(ty_path) => {
+                                    ty_path.path.segments.to_token_stream().to_string()
+                                }
+                                _ => todo!(),
+                            };
+
+                            match types.get(&ty_string).unwrap() {
+                                BridgedType::Shared(_) => arg,
+                                BridgedType::Opaque(_) => {
+                                    format!(
+                                        "{{{arg}.isOwned = false; return {arg}.ptr;}}()",
+                                        arg = arg
+                                    )
+                                }
+                            }
                         }
                     };
 
@@ -122,7 +153,11 @@ impl ParsedExternFn {
         args.join(", ")
     }
 
-    pub fn to_swift_return_type(&self, must_be_c_compatible: bool) -> String {
+    pub fn to_swift_return_type(
+        &self,
+        must_be_c_compatible: bool,
+        types: &TypeDeclarations,
+    ) -> String {
         match &self.func.sig.output {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
@@ -136,7 +171,16 @@ impl ParsedExternFn {
                             Type::Reference(reference) => &reference.elem,
                             _ => ty,
                         };
-                        format!(" -> {}", ty.to_token_stream().to_string())
+                        let ty = ty.to_token_stream().to_string();
+
+                        let ty = match types.get(&ty).unwrap() {
+                            BridgedType::Shared(SharedType::Struct(shared)) => {
+                                shared.swift_name_string()
+                            }
+                            BridgedType::Opaque(_) => ty,
+                        };
+
+                        format!(" -> {}", ty)
                     }
                 }
             }
@@ -171,7 +215,10 @@ mod tests {
         assert_eq!(functions.len(), 3);
 
         for idx in 0..3 {
-            assert_eq!(functions[idx].to_swift_return_type(false), " -> Foo");
+            assert_eq!(
+                functions[idx].to_swift_return_type(false, &module.types),
+                " -> Foo"
+            );
         }
     }
 
@@ -197,7 +244,10 @@ mod tests {
         assert_eq!(methods.len(), 6);
 
         for method in methods {
-            assert_eq!(method.to_swift_param_names_and_types(false), "");
+            assert_eq!(
+                method.to_swift_param_names_and_types(false, &module.types),
+                ""
+            );
         }
     }
 
@@ -221,7 +271,7 @@ mod tests {
 
         for idx in 0..3 {
             assert_eq!(
-                functions[idx].to_swift_param_names_and_types(false),
+                functions[idx].to_swift_param_names_and_types(false, &module.types),
                 "_ other: Foo"
             );
         }
@@ -246,7 +296,10 @@ mod tests {
         assert_eq!(functions.len(), 2);
 
         for idx in 0..2 {
-            assert_eq!(functions[idx].to_swift_call_args(true, false), "other.ptr");
+            assert_eq!(
+                functions[idx].to_swift_call_args(true, false, &module.types),
+                "other.ptr"
+            );
         }
     }
 
@@ -269,17 +322,17 @@ mod tests {
         let functions = &module.functions;
 
         assert_eq!(
-            functions[0].to_swift_call_args(true, false),
+            functions[0].to_swift_call_args(true, false, &module.types),
             "{isOwned = false; return ptr;}()"
         );
 
         assert_eq!(
-            functions[1].to_swift_call_args(true, false),
+            functions[1].to_swift_call_args(true, false, &module.types),
             "{isOwned = false; return ptr;}()"
         );
 
         assert_eq!(
-            functions[2].to_swift_call_args(true, false),
+            functions[2].to_swift_call_args(true, false, &module.types),
             "{other.isOwned = false; return other.ptr;}()"
         );
     }
@@ -300,7 +353,7 @@ mod tests {
         let functions = &module.functions;
 
         assert_eq!(
-            functions[0].to_swift_call_args(false, false),
+            functions[0].to_swift_call_args(false, false, &module.types),
             "someArg.toFfiSlice()"
         );
     }
