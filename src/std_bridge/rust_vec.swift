@@ -37,8 +37,10 @@ class RustVec<T: Vectorizable & FfiOption> {
         }
     }
 
-    func len() -> UInt {
-        T.vecOfSelfLen(vecPtr: ptr)
+    /// Rust returns a UInt, but we cast to an Int because many Swift APIs such as
+    /// `ForEach(0..rustVec.len())` expect Int.
+    func len() -> Int {
+        Int(T.vecOfSelfLen(vecPtr: ptr))
     }
 
     func asPtr() -> UnsafePointer<T> {
@@ -46,7 +48,7 @@ class RustVec<T: Vectorizable & FfiOption> {
     }
 
     func toUnsafeBufferPointer() -> UnsafeBufferPointer<T> {
-        UnsafeBufferPointer(start: asPtr(), count: Int(len()))
+        UnsafeBufferPointer(start: asPtr(), count: len())
     }
 
     deinit {
@@ -75,6 +77,28 @@ struct RustVecIterator<T: Vectorizable & FfiOption>: IteratorProtocol {
     }
 }
 
+extension RustVec: Collection {
+    typealias Index = Int
+
+    func index(after i: Int) -> Int {
+        i + 1
+    }
+
+    subscript(position: Int) -> T {
+        self.get(index: UInt(position))!
+    }
+
+    var startIndex: Int {
+        0
+    }
+
+    var endIndex: Int {
+        self.len()
+    }
+}
+
+extension RustVec: RandomAccessCollection {
+}
 
 extension UnsafeBufferPointer {
     func toFfiSlice () -> __private__FfiSlice {
