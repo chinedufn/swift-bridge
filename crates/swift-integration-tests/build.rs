@@ -10,7 +10,8 @@ fn main() {
         "src/bool.rs",
         "src/option.rs",
         "src/pointer.rs",
-        "src/shared.rs",
+        // TODO: Write the test
+        // "src/shared_types.rs",
         "src/string.rs",
         "src/vec.rs",
     ];

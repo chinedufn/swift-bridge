@@ -107,6 +107,16 @@ extension UnsafeBufferPointer {
 }
 
 extension Array {
+    /// Get an UnsafeBufferPointer to the array's content's first byte with the array's length.
+    ///
+    /// ```
+    /// // BAD! Swift will immediately free the arrays memory and so your pointer is invalid.
+    /// let pointer = useMyPointer([1, 2, 3].toUnsafeBufferPointer())
+    ///
+    /// // GOOD! The array will outlive the buffer pointer.
+    /// let array = [1, 2, 3]
+    /// useMyPointer(array.toUnsafeBufferPointer())
+    /// ```
     func toUnsafeBufferPointer() -> UnsafeBufferPointer<Element> {
         UnsafeBufferPointer(start: UnsafePointer(self), count: self.count)
     }

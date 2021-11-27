@@ -17,27 +17,8 @@ class ExternalCTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
     
-    func testRustReturnOwnedSharedType() throws {
-        fatalError("TODO: Fill this test out")
-    }
-    func testRustReturnReferenceSharedType() throws {
-        fatalError("TODO: Fill this test out")
-    }
-    func testRustReturnMutableReferenceSharedType() throws {
-        fatalError("TODO: Fill this test out")
-    }
-    func testRustReceiveOwnedSharedType() throws {
-        fatalError("TODO: Fill this test out")
-    }
-    func testRustReceiveReferenceSharedType() throws {
-        fatalError("TODO: Fill this test out")
-    }
-    func testRustReceiveRefMutSharedType() throws {
-        fatalError("TODO: Fill this test out")
-    }
-    
-    func testRustTests() throws {
-        rust_run_shared_type_tests()
+    func testFoo() throws {
+        fatalError("TODO: Write tests for shared types")
     }
 }
 
