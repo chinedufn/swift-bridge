@@ -26,6 +26,7 @@ pub(crate) struct ParsedExternFn {
     pub associated_type: Option<BridgedType>,
     pub is_initializer: bool,
     pub host_lang: HostLang,
+    pub swift_name_override: Option<syn::LitStr>,
 }
 
 impl ParsedExternFn {
@@ -83,14 +84,18 @@ impl ParsedExternFn {
                                 let name = &shared_struct.name;
                                 quote! { #arrow #name }
                             }
-                            BridgedType::Opaque(_) => {
-                                let ptr = if is_const_ptr {
-                                    quote! { *const }
-                                } else {
-                                    quote! { *mut }
-                                };
+                            BridgedType::Opaque(opaque) => {
+                                if opaque.host_lang.is_rust() {
+                                    let ptr = if is_const_ptr {
+                                        quote! { *const }
+                                    } else {
+                                        quote! { *mut }
+                                    };
 
-                                quote_spanned! {ty.span()=> -> #ptr super::#ty }
+                                    quote_spanned! {ty.span()=> #arrow #ptr super::#ty }
+                                } else {
+                                    quote! { #arrow #ty }
+                                }
                             }
                         }
                     } else {
@@ -281,7 +286,13 @@ impl ParsedExternFn {
                         BridgedType::Shared(SharedType::Struct(shared_struct)) => {
                             format!("struct {}", shared_struct.swift_name_string())
                         }
-                        BridgedType::Opaque(_) => "void*".to_string(),
+                        BridgedType::Opaque(opaque) => {
+                            if opaque.host_lang.is_rust() {
+                                "void*".to_string()
+                            } else {
+                                "struct __private__PointerToSwiftType".to_string()
+                            }
+                        }
                     }
                 }
             }

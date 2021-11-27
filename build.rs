@@ -74,6 +74,7 @@ fn core_c_header() -> String {
 #include <stdbool.h> 
 typedef struct RustStr { uint8_t* const start; uintptr_t len; } RustStr;
 typedef struct __private__FfiSlice { void* const start; uintptr_t len; } __private__FfiSlice;
+typedef struct __private__PointerToSwiftType { void* ptr; } __private__RustHandleToSwiftType;
 bool _get_option_arg(uint8_t is_some);
 void _set_option_arg(uint8_t idx, bool is_some);
 bool _get_option_return();

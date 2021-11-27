@@ -138,6 +138,7 @@ impl ToTokens for SwiftBridgeModule {
                             };
 
                             let struct_tokens = quote! {
+                                #[repr(C)]
                                 pub struct #ty_name(*mut std::ffi::c_void);
 
                                 #impls
@@ -382,6 +383,32 @@ mod tests {
         assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
     }
 
+    /// Verify that we generate tokens for a freestanding Rust function with an argument of a
+    /// declared type.
+    #[test]
+    fn freestanding_rust_func_returns_declared_swift_type() {
+        let start = quote! {
+            mod foo {
+                extern "Rust" {
+                    fn some_function () -> MyType;
+                }
+
+                extern "Swift" {
+                    type MyType;
+                }
+            }
+        };
+        let expected = quote! {
+            #[no_mangle]
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function () -> MyType {
+                super::some_function()
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
+    }
+
     /// Verify that we generate tokens for a freestanding Rust function with a return type.
     #[test]
     fn freestanding_rust_with_built_in_return_type() {
@@ -488,6 +515,7 @@ mod tests {
             }
         };
         let expected = quote! {
+            #[repr(C)]
             pub struct Foo(*mut std::ffi::c_void);
 
             impl Drop for Foo {
@@ -544,6 +572,7 @@ mod tests {
             }
         };
         let expected = quote! {
+            #[repr(C)]
             pub struct Foo(*mut std::ffi::c_void);
 
             impl Foo {
@@ -658,6 +687,7 @@ mod tests {
             }
         };
         let expected = quote! {
+            #[repr(C)]
             pub struct Foo(*mut std::ffi::c_void);
 
             impl Foo {

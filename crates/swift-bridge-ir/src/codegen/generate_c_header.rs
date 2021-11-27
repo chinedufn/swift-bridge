@@ -521,4 +521,28 @@ struct FfiFoo __swift_bridge__$some_function(struct FfiFoo arg);
         let module = parse_ok(tokens);
         assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
     }
+
+    /// Verify that we generate a proper header for a Rust function that returns an owned Swift
+    /// type.
+    #[test]
+    fn extern_rust_fn_returns_extern_swift_owned_opaque_type() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    fn some_function() -> Foo;
+                }
+
+                extern "Swift" {
+                    type Foo;
+                }
+            }
+        };
+        let expected = r#"
+struct __private__PointerToSwiftType __swift_bridge__$some_function(void);
+        "#;
+
+        let module = parse_ok(tokens);
+        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+    }
 }

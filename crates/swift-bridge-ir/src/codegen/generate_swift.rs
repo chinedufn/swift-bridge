@@ -26,7 +26,7 @@ impl SwiftBridgeModule {
                     match ty {
                         BridgedType::Shared(_) => {
                             //
-                            todo!()
+                            todo!("Think about what to do here..")
                         }
                         BridgedType::Opaque(ty) => {
                             associated_funcs_and_methods
@@ -248,14 +248,22 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
 
                     match types.get(&ty_name).unwrap() {
                         BridgedType::Shared(_) => call_rust,
-                        BridgedType::Opaque(_) => {
-                            let (is_owned, ty) = match ty.deref() {
-                                Type::Reference(reference) => ("false", &reference.elem),
-                                _ => ("true", ty),
-                            };
+                        BridgedType::Opaque(opaque) => {
+                            if opaque.host_lang.is_rust() {
+                                let (is_owned, ty) = match ty.deref() {
+                                    Type::Reference(reference) => ("false", &reference.elem),
+                                    _ => ("true", ty),
+                                };
 
-                            let ty = ty.to_token_stream().to_string();
-                            format!("{}(ptr: {}, isOwned: {})", ty, call_rust, is_owned)
+                                let ty = ty.to_token_stream().to_string();
+                                format!("{}(ptr: {}, isOwned: {})", ty, call_rust, is_owned)
+                            } else {
+                                let ty = ty.to_token_stream().to_string();
+                                format!(
+                                    "Unmanaged<{}>.fromOpaque({}.ptr).takeRetainedValue()",
+                                    ty, call_rust
+                                )
+                            }
                         }
                     }
                 }
@@ -281,7 +289,11 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
 fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn, types: &TypeDeclarations) -> String {
     let link_name = func.link_name();
     let prefixed_fn_name = func.prefixed_fn_name();
-    let fn_name = &func.sig.ident;
+    let fn_name = if let Some(swift_name) = func.swift_name_override.as_ref() {
+        swift_name.value()
+    } else {
+        func.sig.ident.to_string()
+    };
 
     let params = func.to_swift_param_names_and_types(true, types);
     let ret = func.to_swift_return_type(true, types);
@@ -1137,6 +1149,58 @@ func some_function(_ arg: Renamed) -> Renamed {
         let expected = r#"
 func some_function(_ arg: Foo) {
     __swift_bridge__$some_function(Unmanaged.passRetained(arg).toOpaque())
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
+    }
+
+    /// Verify that we generate the correct function for an extern "Rust" fn that returns an owned
+    /// opaque Swift type.
+    #[test]
+    fn extern_rust_fn_returns_extern_swift_owned_opaque_type() {
+        let tokens = quote! {
+            mod ffi {
+                extern "Rust" {
+                    fn some_function () -> Foo;
+                }
+
+                extern "Swift" {
+                    type Foo;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+func some_function() -> Foo {
+    Unmanaged<Foo>.fromOpaque(__swift_bridge__$some_function().ptr).takeRetainedValue()
+}
+"#;
+
+        assert_generated_contains_expected(&generated, &expected);
+    }
+
+    /// Verify that we use a function's `swift_name = "..."` attribute during Swift codegen for
+    /// extern Swift functions.
+    #[test]
+    fn extern_swift_uses_swift_name_function_attribute() {
+        let start = quote! {
+            mod foo {
+                extern "Swift" {
+                    #[swift_bridge(swift_name = "someFunctionSwiftName")]
+                    fn some_function ();
+                }
+            }
+        };
+        let module: SwiftBridgeModule = syn::parse2(start).unwrap();
+        let generated = module.generate_swift();
+
+        let expected = r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function () {
+    someFunctionSwiftName()
 }
 "#;
 

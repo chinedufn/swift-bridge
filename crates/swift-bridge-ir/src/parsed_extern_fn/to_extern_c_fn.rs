@@ -97,8 +97,10 @@ impl ParsedExternFn {
                         let ty_string = return_ty.deref().to_token_stream().to_string();
                         match types.get(&ty_string).unwrap() {
                             BridgedType::Shared(SharedType::Struct(_)) => {}
-                            BridgedType::Opaque(_) => {
-                                call_fn = quote! { Box::into_raw(Box::new(#call_fn)) as *mut super::#return_ty };
+                            BridgedType::Opaque(opaque) => {
+                                if opaque.host_lang.is_rust() {
+                                    call_fn = quote! { Box::into_raw(Box::new(#call_fn)) as *mut super::#return_ty };
+                                }
                             }
                         };
                     }

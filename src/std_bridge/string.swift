@@ -23,6 +23,10 @@ extension RustStr {
     func toBufferPointer() -> UnsafeBufferPointer<UInt8> {
         UnsafeBufferPointer(start: self.start, count: Int(self.len))
     }
+
+    func toString() -> String {
+        String(bytes: self.toBufferPointer(), encoding: .utf8)!
+    }
 }
 
 extension String {

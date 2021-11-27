@@ -103,6 +103,7 @@ impl<'a> ForeignModParser<'a> {
                         associated_type,
                         is_initializer: attributes.is_initializer,
                         host_lang,
+                        swift_name_override: attributes.swift_name,
                     });
                 }
                 _ => {}

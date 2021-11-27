@@ -14,6 +14,7 @@ fn main() {
         // "src/shared_types.rs",
         "src/string.rs",
         "src/vec.rs",
+        "src/rust_function_returns_opaque_swift_type.rs",
     ];
     for path in &bridges {
         println!("cargo:rerun-if-changed={}", path);
