@@ -20,5 +20,7 @@ members = [
   "crates/swift-bridge-build",
   "crates/swift-bridge-ir",
   "crates/swift-integration-tests",
+
+  "examples/codegen-visualizer",
   "examples/swift-ui"
 ]

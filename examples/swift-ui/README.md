@@ -1,18 +1,17 @@
-# swift-ui
+# SwiftUI
 
-This example demonstrates calling [SwiftUI[(https://developer.apple.com/xcode/swiftui/)'s APIs from Rust.
+This example demonstrates calling [SwiftUI](https://developer.apple.com/xcode/swiftui/)'s APIs from Rust.
 
-This simple example isn't meant to be practical (at least not at this time).
+This simple example isn't meant to be practical.
 
-It's more so meant to be a quick and fun demo.
+It's more so meant to be a quick and fun demo that could hopefully inspire someone in the future to explore
+a more robust integration between Rust and SwiftUI.
 
 ## To Run
 
 ```
-# To this once
-cargo install cargo-lipo
-
-# Run the project
+open SwiftUIExample/SwiftUIExample.xcodeproj
+# Click the "Run" button at the top left of Xcode
 ```
 
 ## Screenshots

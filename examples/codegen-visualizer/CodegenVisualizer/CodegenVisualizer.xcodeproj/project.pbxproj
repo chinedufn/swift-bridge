@@ -1,0 +1,435 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 55;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		22FD1C642753EACE00F64281 /* CodegenVisualizerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C632753EACE00F64281 /* CodegenVisualizerApp.swift */; };
+		22FD1C662753EACE00F64281 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C652753EACE00F64281 /* ContentView.swift */; };
+		22FD1C682753EAD000F64281 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 22FD1C672753EAD000F64281 /* Assets.xcassets */; };
+		22FD1C6B2753EAD000F64281 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 22FD1C6A2753EAD000F64281 /* Preview Assets.xcassets */; };
+		22FD1C762753EC2C00F64281 /* CodeEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 22FD1C752753EC2C00F64281 /* CodeEditor */; };
+		22FD1C7D2753F24400F64281 /* SwiftBridgeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C792753F24400F64281 /* SwiftBridgeCore.swift */; };
+		22FD1C7E2753F24400F64281 /* codegen-visualizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C7B2753F24400F64281 /* codegen-visualizer.swift */; };
+		22FD1C822753F43000F64281 /* libcodegen_visualizer.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 22FD1C802753F2B100F64281 /* libcodegen_visualizer.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		22FD1C602753EACE00F64281 /* CodegenVisualizer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CodegenVisualizer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		22FD1C632753EACE00F64281 /* CodegenVisualizerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodegenVisualizerApp.swift; sourceTree = "<group>"; };
+		22FD1C652753EACE00F64281 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		22FD1C672753EAD000F64281 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		22FD1C6A2753EAD000F64281 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		22FD1C6C2753EAD000F64281 /* CodegenVisualizer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CodegenVisualizer.entitlements; sourceTree = "<group>"; };
+		22FD1C732753EB8600F64281 /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
+		22FD1C782753F24400F64281 /* SwiftBridgeCore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SwiftBridgeCore.h; sourceTree = "<group>"; };
+		22FD1C792753F24400F64281 /* SwiftBridgeCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SwiftBridgeCore.swift; sourceTree = "<group>"; };
+		22FD1C7B2753F24400F64281 /* codegen-visualizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "codegen-visualizer.swift"; sourceTree = "<group>"; };
+		22FD1C7C2753F24400F64281 /* codegen-visualizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "codegen-visualizer.h"; sourceTree = "<group>"; };
+		22FD1C802753F2B100F64281 /* libcodegen_visualizer.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcodegen_visualizer.a; path = ../../../target/debug/libcodegen_visualizer.a; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		22FD1C5D2753EACE00F64281 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				22FD1C762753EC2C00F64281 /* CodeEditor in Frameworks */,
+				22FD1C822753F43000F64281 /* libcodegen_visualizer.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		22FD1C572753EACE00F64281 = {
+			isa = PBXGroup;
+			children = (
+				22FD1C732753EB8600F64281 /* BridgingHeader.h */,
+				22FD1C722753EB7500F64281 /* Generated */,
+				22FD1C622753EACE00F64281 /* CodegenVisualizer */,
+				22FD1C612753EACE00F64281 /* Products */,
+				22FD1C7F2753F2B100F64281 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		22FD1C612753EACE00F64281 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				22FD1C602753EACE00F64281 /* CodegenVisualizer.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		22FD1C622753EACE00F64281 /* CodegenVisualizer */ = {
+			isa = PBXGroup;
+			children = (
+				22FD1C632753EACE00F64281 /* CodegenVisualizerApp.swift */,
+				22FD1C652753EACE00F64281 /* ContentView.swift */,
+				22FD1C672753EAD000F64281 /* Assets.xcassets */,
+				22FD1C6C2753EAD000F64281 /* CodegenVisualizer.entitlements */,
+				22FD1C692753EAD000F64281 /* Preview Content */,
+			);
+			path = CodegenVisualizer;
+			sourceTree = "<group>";
+		};
+		22FD1C692753EAD000F64281 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				22FD1C6A2753EAD000F64281 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		22FD1C722753EB7500F64281 /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				22FD1C7A2753F24400F64281 /* codegen-visualizer */,
+				22FD1C782753F24400F64281 /* SwiftBridgeCore.h */,
+				22FD1C792753F24400F64281 /* SwiftBridgeCore.swift */,
+			);
+			path = Generated;
+			sourceTree = "<group>";
+		};
+		22FD1C7A2753F24400F64281 /* codegen-visualizer */ = {
+			isa = PBXGroup;
+			children = (
+				22FD1C7B2753F24400F64281 /* codegen-visualizer.swift */,
+				22FD1C7C2753F24400F64281 /* codegen-visualizer.h */,
+			);
+			path = "codegen-visualizer";
+			sourceTree = "<group>";
+		};
+		22FD1C7F2753F2B100F64281 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				22FD1C802753F2B100F64281 /* libcodegen_visualizer.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		22FD1C5F2753EACE00F64281 /* CodegenVisualizer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 22FD1C6F2753EAD000F64281 /* Build configuration list for PBXNativeTarget "CodegenVisualizer" */;
+			buildPhases = (
+				22FD1C772753F1B200F64281 /* ShellScript */,
+				22FD1C5C2753EACE00F64281 /* Sources */,
+				22FD1C5D2753EACE00F64281 /* Frameworks */,
+				22FD1C5E2753EACE00F64281 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CodegenVisualizer;
+			packageProductDependencies = (
+				22FD1C752753EC2C00F64281 /* CodeEditor */,
+			);
+			productName = CodegenVisualizer;
+			productReference = 22FD1C602753EACE00F64281 /* CodegenVisualizer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		22FD1C582753EACE00F64281 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1310;
+				LastUpgradeCheck = 1310;
+				TargetAttributes = {
+					22FD1C5F2753EACE00F64281 = {
+						CreatedOnToolsVersion = 13.1;
+					};
+				};
+			};
+			buildConfigurationList = 22FD1C5B2753EACE00F64281 /* Build configuration list for PBXProject "CodegenVisualizer" */;
+			compatibilityVersion = "Xcode 13.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 22FD1C572753EACE00F64281;
+			packageReferences = (
+				22FD1C742753EC2C00F64281 /* XCRemoteSwiftPackageReference "CodeEditor" */,
+			);
+			productRefGroup = 22FD1C612753EACE00F64281 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				22FD1C5F2753EACE00F64281 /* CodegenVisualizer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		22FD1C5E2753EACE00F64281 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				22FD1C6B2753EAD000F64281 /* Preview Assets.xcassets in Resources */,
+				22FD1C682753EAD000F64281 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		22FD1C772753F1B200F64281 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n./xcode-build-rust.sh\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		22FD1C5C2753EACE00F64281 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				22FD1C7D2753F24400F64281 /* SwiftBridgeCore.swift in Sources */,
+				22FD1C662753EACE00F64281 /* ContentView.swift in Sources */,
+				22FD1C642753EACE00F64281 /* CodegenVisualizerApp.swift in Sources */,
+				22FD1C7E2753F24400F64281 /* codegen-visualizer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		22FD1C6D2753EAD000F64281 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 11.6;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		22FD1C6E2753EAD000F64281 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 11.6;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		22FD1C702753EAD000F64281 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CodegenVisualizer/CodegenVisualizer.entitlements;
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"CodegenVisualizer/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../../target/debug";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.CodegenVisualizer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/BridgingHeader.h";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		22FD1C712753EAD000F64281 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CodegenVisualizer/CodegenVisualizer.entitlements;
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"CodegenVisualizer/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../../target/release";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.CodegenVisualizer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/BridgingHeader.h";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		22FD1C5B2753EACE00F64281 /* Build configuration list for PBXProject "CodegenVisualizer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				22FD1C6D2753EAD000F64281 /* Debug */,
+				22FD1C6E2753EAD000F64281 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		22FD1C6F2753EAD000F64281 /* Build configuration list for PBXNativeTarget "CodegenVisualizer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				22FD1C702753EAD000F64281 /* Debug */,
+				22FD1C712753EAD000F64281 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		22FD1C742753EC2C00F64281 /* XCRemoteSwiftPackageReference "CodeEditor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ZeeZide/CodeEditor.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		22FD1C752753EC2C00F64281 /* CodeEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 22FD1C742753EC2C00F64281 /* XCRemoteSwiftPackageReference "CodeEditor" */;
+			productName = CodeEditor;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 22FD1C582753EACE00F64281 /* Project object */;
+}
