@@ -11,6 +11,9 @@
 		220432C42752CFCA00BAE645 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220432C32752CFCA00BAE645 /* ContentView.swift */; };
 		220432C62752CFCD00BAE645 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 220432C52752CFCD00BAE645 /* Assets.xcassets */; };
 		220432C92752CFCD00BAE645 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 220432C82752CFCD00BAE645 /* Preview Assets.xcassets */; };
+		220432E42752E4D500BAE645 /* SwiftBridgeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220432E22752E4D500BAE645 /* SwiftBridgeCore.swift */; };
+		220432E82752E77A00BAE645 /* swift-ui.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220432E62752E77A00BAE645 /* swift-ui.swift */; };
+		22FD1C522753269E00F64281 /* libswift_ui.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 220432D82752D6F500BAE645 /* libswift_ui.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +23,13 @@
 		220432C52752CFCD00BAE645 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		220432C82752CFCD00BAE645 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		220432CA2752CFCD00BAE645 /* SwiftUIExample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SwiftUIExample.entitlements; sourceTree = "<group>"; };
+		220432D52752D08300BAE645 /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
+		220432D82752D6F500BAE645 /* libswift_ui.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswift_ui.a; path = ../../../target/debug/libswift_ui.a; sourceTree = "<group>"; };
+		220432DA2752D73D00BAE645 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
+		220432E22752E4D500BAE645 /* SwiftBridgeCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SwiftBridgeCore.swift; sourceTree = "<group>"; };
+		220432E32752E4D500BAE645 /* SwiftBridgeCore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SwiftBridgeCore.h; sourceTree = "<group>"; };
+		220432E62752E77A00BAE645 /* swift-ui.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "swift-ui.swift"; sourceTree = "<group>"; };
+		220432E72752E77A00BAE645 /* swift-ui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "swift-ui.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -27,6 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				22FD1C522753269E00F64281 /* libswift_ui.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -36,8 +47,11 @@
 		220432B52752CFCA00BAE645 = {
 			isa = PBXGroup;
 			children = (
+				220432D52752D08300BAE645 /* BridgingHeader.h */,
+				220432D02752D02200BAE645 /* Generated */,
 				220432C02752CFCA00BAE645 /* SwiftUIExample */,
 				220432BF2752CFCA00BAE645 /* Products */,
+				220432D72752D6F400BAE645 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -69,6 +83,34 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		220432D02752D02200BAE645 /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				220432E52752E77A00BAE645 /* swift-ui */,
+				220432E32752E4D500BAE645 /* SwiftBridgeCore.h */,
+				220432E22752E4D500BAE645 /* SwiftBridgeCore.swift */,
+			);
+			path = Generated;
+			sourceTree = "<group>";
+		};
+		220432D72752D6F400BAE645 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				220432DA2752D73D00BAE645 /* libresolv.tbd */,
+				220432D82752D6F500BAE645 /* libswift_ui.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		220432E52752E77A00BAE645 /* swift-ui */ = {
+			isa = PBXGroup;
+			children = (
+				220432E62752E77A00BAE645 /* swift-ui.swift */,
+				220432E72752E77A00BAE645 /* swift-ui.h */,
+			);
+			path = "swift-ui";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -76,6 +118,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 220432CD2752CFCD00BAE645 /* Build configuration list for PBXNativeTarget "SwiftUIExample" */;
 			buildPhases = (
+				220432D62752D55800BAE645 /* Run Script */,
 				220432BA2752CFCA00BAE645 /* Sources */,
 				220432BB2752CFCA00BAE645 /* Frameworks */,
 				220432BC2752CFCA00BAE645 /* Resources */,
@@ -134,13 +177,36 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		220432D62752D55800BAE645 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "./xcode-build-rust.sh\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		220432BA2752CFCA00BAE645 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				220432C42752CFCA00BAE645 /* ContentView.swift in Sources */,
+				220432E82752E77A00BAE645 /* swift-ui.swift in Sources */,
 				220432C22752CFCA00BAE645 /* SwiftUIExampleApp.swift in Sources */,
+				220432E42752E4D500BAE645 /* SwiftBridgeCore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -279,11 +345,13 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../../target/debug";
+				MACOSX_DEPLOYMENT_TARGET = 11.3;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftUIExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -305,11 +373,13 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../../target/release";
+				MACOSX_DEPLOYMENT_TARGET = 11.3;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftUIExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;

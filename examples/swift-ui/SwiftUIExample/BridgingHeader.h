@@ -8,5 +8,7 @@
 #ifndef BridgingHeader_h
 #define BridgingHeader_h
 
+#include "./Generated/SwiftBridgeCore.h"
+#include "./Generated/swift-ui/swift-ui.h"
 
 #endif /* BridgingHeader_h */

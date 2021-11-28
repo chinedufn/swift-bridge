@@ -1008,7 +1008,7 @@ func __swift_bridge__void_pointer (_ arg: UnsafeRawPointer) {
 
     /// Verify that we can return a reference to a declared type.
     #[test]
-    fn extern_rust_return_owned_declared_type() {
+    fn extern_rust_return_opaque_rust_type() {
         let tokens = quote! {
             mod foo {
                 extern "Rust" {
@@ -1032,7 +1032,7 @@ func get_owned_foo() -> Foo {
 
     /// Verify that we can return a reference to a declared type.
     #[test]
-    fn extern_rust_return_reference_to_declared_type() {
+    fn extern_rust_return_reference_to_opaque_rust_type() {
         let tokens = quote! {
             mod foo {
                 extern "Rust" {

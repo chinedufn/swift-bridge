@@ -182,39 +182,45 @@ impl ParsedExternFn {
                             );
                         };
                     } else {
-                        let ty_string = match pat_ty.ty.deref() {
-                            Type::Reference(reference) => {
-                                reference.elem.to_token_stream().to_string()
-                            }
-                            Type::Path(ty_path) => {
-                                ty_path.path.segments.to_token_stream().to_string()
-                            }
-                            _ => todo!(),
-                        };
-                        match types.get(&ty_string).unwrap() {
-                            BridgedType::Shared(SharedType::Struct(_)) => {}
-                            BridgedType::Opaque(opaque) => {
-                                if opaque.host_lang.is_rust() {
-                                    let (maybe_ref, maybe_mut) = match pat_ty.ty.deref() {
-                                        Type::Reference(ty_ref) => {
-                                            (Some(ty_ref.and_token), ty_ref.mutability)
-                                        }
-                                        _ => (None, None),
-                                    };
+                        if self.host_lang.is_rust() {
+                            match types.get_with_pat_type(pat_ty).unwrap() {
+                                BridgedType::Shared(SharedType::Struct(_)) => {}
+                                BridgedType::Opaque(opaque) => {
+                                    if opaque.host_lang.is_rust() {
+                                        let (maybe_ref, maybe_mut) = match pat_ty.ty.deref() {
+                                            Type::Reference(ty_ref) => {
+                                                (Some(ty_ref.and_token), ty_ref.mutability)
+                                            }
+                                            _ => (None, None),
+                                        };
 
-                                    let dereferenced = if maybe_ref.is_some() {
-                                        quote! { unsafe { #maybe_ref #maybe_mut * #arg } }
+                                        let dereferenced = if maybe_ref.is_some() {
+                                            quote! { unsafe { #maybe_ref #maybe_mut * #arg } }
+                                        } else {
+                                            quote! { unsafe { *Box::from_raw(#arg) } }
+                                        };
+
+                                        arg = dereferenced;
                                     } else {
-                                        quote! { unsafe { *Box::from_raw(#arg) } }
-                                    };
-
-                                    arg = dereferenced;
-                                } else {
-                                    let ty = &opaque.ty.ident;
-                                    arg = quote! { #ty(#arg) };
+                                        let ty = &opaque.ty.ident;
+                                        arg = quote! { #ty(#arg) };
+                                    }
                                 }
-                            }
-                        };
+                            };
+                        } else {
+                            match types.get_with_pat_type(pat_ty).unwrap() {
+                                BridgedType::Shared(SharedType::Struct(_)) => {
+                                    todo!("Add a test that hits this code path")
+                                }
+                                BridgedType::Opaque(opaque) => {
+                                    if opaque.host_lang.is_rust() {
+                                        arg = quote! { Box::into_raw(Box::new(#arg)) };
+                                    } else {
+                                        arg = quote! { #arg };
+                                    }
+                                }
+                            };
+                        }
                     }
 
                     args.push(arg);
@@ -245,9 +251,9 @@ impl ParsedExternFn {
                         let ty = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
                             built_in.to_c()
                         } else {
-                            let ty = &pat_ty.ty;
-                            let ty_string = ty.to_token_stream().to_string();
-                            match types.get(&ty_string).unwrap() {
+                            let bridged_type = types.get_with_pat_type(&pat_ty).unwrap();
+
+                            match bridged_type {
                                 BridgedType::Shared(SharedType::Struct(shared_struct)) => {
                                     format!("struct {}", shared_struct.swift_name_string())
                                 }

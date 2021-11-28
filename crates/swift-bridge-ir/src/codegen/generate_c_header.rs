@@ -23,7 +23,7 @@ impl SwiftBridgeModule {
         )
     }
 
-    fn generate_c_header_inner(&self) -> String {
+    pub(crate) fn generate_c_header_inner(&self) -> String {
         let mut header = "".to_string();
 
         let mut bookkeeping = Bookkeeping {

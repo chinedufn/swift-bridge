@@ -1,5 +1,5 @@
 fn main() {
-    let out_dir = "generated-code";
+    let out_dir = "./SwiftUIExample/Generated/";
 
     let bridges = vec!["src/bridge.rs"];
     for path in &bridges {

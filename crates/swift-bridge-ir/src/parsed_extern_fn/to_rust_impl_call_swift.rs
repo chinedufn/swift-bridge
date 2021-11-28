@@ -1,7 +1,7 @@
 use crate::built_in_types::BuiltInType;
 use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::{pat_type_pat_is_self, BridgedType};
+use crate::{pat_type_pat_is_self, BridgedType, SharedType};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use std::ops::Deref;
@@ -56,7 +56,7 @@ impl ParsedExternFn {
             }
         };
 
-        let params = self.params_with_explicit_self_types_removed();
+        let params = self.params_with_explicit_self_types_removed(types);
         let call_args = self.to_call_rust_args(swift_bridge_path, types);
         let linked_fn_name = self.extern_swift_linked_fn_new();
 
@@ -92,7 +92,7 @@ impl ParsedExternFn {
     // `self: Foo` becomes `self`,
     // `self: &Foo` -> `&self`,
     // `self: &mut Foo` -> `&mut self`
-    fn params_with_explicit_self_types_removed(&self) -> TokenStream {
+    fn params_with_explicit_self_types_removed(&self, types: &TypeDeclarations) -> TokenStream {
         let params = self
             .sig
             .inputs
@@ -108,16 +108,30 @@ impl ParsedExternFn {
                 } else {
                     match fn_arg {
                         FnArg::Receiver(_) => {
-                            quote! { #fn_arg}
+                            quote! { #fn_arg }
                         }
                         FnArg::Typed(pat_ty) => {
+                            let pat = &pat_ty.pat;
+
                             if let Some(built_in) = BuiltInType::new_with_fn_arg(fn_arg) {
-                                let pat = &pat_ty.pat;
                                 let ty = built_in.maybe_convert_pointer_to_super_pointer();
 
                                 quote! { #pat: #ty}
                             } else {
-                                quote! { #fn_arg}
+                                match types.get_with_pat_type(pat_ty).unwrap() {
+                                    BridgedType::Shared(SharedType::Struct(_)) => {
+                                        // quote! { #pat: #fn_arg}
+                                        todo!("Add a test that hits this code path")
+                                    }
+                                    BridgedType::Opaque(opaque) => {
+                                        let ty = &opaque.ty.ident;
+                                        if opaque.host_lang.is_rust() {
+                                            quote! { #pat: super:: #ty}
+                                        } else {
+                                            quote! { #pat: #ty }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

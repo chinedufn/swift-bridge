@@ -383,10 +383,10 @@ mod tests {
         assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
     }
 
-    /// Verify that we generate tokens for a freestanding Rust function with an argument of a
-    /// declared type.
+    /// Verify that we generate tokens for a freestanding Rust function that returns an opaque
+    /// Swift type.
     #[test]
-    fn freestanding_rust_func_returns_declared_swift_type() {
+    fn freestanding_rust_func_returns_opaque_swift_type() {
         let start = quote! {
             mod foo {
                 extern "Rust" {
@@ -855,31 +855,6 @@ mod tests {
         assert_to_extern_c_function_tokens(start, &expected);
     }
 
-    /// Verify that type method tokens get written into the final token stream.
-    /// We have other tests that verify that the generated method tokens are correct.
-    /// This test just verifies that we're actually making use of the generated function tokens.
-    #[test]
-    fn writes_method_tokens() {
-        let start = quote! {
-            mod foo {
-                extern "Rust" {
-                    type SomeType;
-
-                    fn new (&self) -> SomeType;
-                }
-            }
-        };
-        let module = parse_ok(start);
-        let tokens = module.to_token_stream();
-
-        assert_tokens_contain(&tokens, &quote! { SomeType_new });
-    }
-
-    fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
-        let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
-        module_and_errors.module
-    }
-
     /// Verify that we generate tokens for a freestanding function that has a shared struct as
     /// as argument type.
     #[test]
@@ -968,7 +943,7 @@ mod tests {
             #[swift_bridge::bridge]
             mod foo {
                 #[swift_bridge(swift_repr = "struct")]
-                pub struct Foo ( u8, u32 );
+                pub struct Foo (u8, u32);
             }
         };
         let expected_func = quote! {
@@ -977,6 +952,11 @@ mod tests {
         };
 
         assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
+    }
+
+    fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
+        let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
+        module_and_errors.module
     }
 
     fn assert_to_extern_c_function_tokens(module: TokenStream, expected_fn: &TokenStream) {

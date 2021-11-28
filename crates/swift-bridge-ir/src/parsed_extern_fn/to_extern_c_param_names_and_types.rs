@@ -55,15 +55,15 @@ impl ParsedExternFn {
                         }
                     };
 
+                    let mut bridged_type = &pat_ty.ty;
+
+                    // `&Foo` becomes `Foo`
+                    // `&mut Foo` beomces `Foo`
+                    if let Type::Reference(ty_ref) = pat_ty.ty.deref() {
+                        bridged_type = &ty_ref.elem;
+                    };
+
                     if self.host_lang.is_rust() {
-                        let mut bridged_type = &pat_ty.ty;
-
-                        // `&Foo` becomes `Foo`
-                        // `&mut Foo` beomces `Foo`
-                        if let Type::Reference(ty_ref) = pat_ty.ty.deref() {
-                            bridged_type = &ty_ref.elem;
-                        };
-
                         let arg_ty = match types
                             .get(&bridged_type.to_token_stream().to_string())
                             .unwrap()
@@ -91,8 +91,51 @@ impl ParsedExternFn {
                              #arg_name: #arg_ty
                         });
                     } else {
+                        if pat_type_pat_is_self(&pat_ty) {
+                            params.push(quote! {
+                                 #arg_name: *mut std::ffi::c_void
+                            });
+
+                            continue;
+                        }
+
+                        let arg_ty = types
+                            .get(&bridged_type.to_token_stream().to_string())
+                            .unwrap();
+
+                        let arg_ty_tokens = if self.host_lang.is_rust() {
+                            match arg_ty {
+                                BridgedType::Shared(_) => {
+                                    todo!("Add a test that hits this code path")
+                                }
+                                BridgedType::Opaque(opaque) => {
+                                    if opaque.host_lang.is_swift() {
+                                        quote! { *mut std::ffi::c_void }
+                                    } else {
+                                        let ty = &opaque.ty.ident;
+                                        quote! { *mut super::#ty }
+                                    }
+                                }
+                            }
+                        } else {
+                            match arg_ty {
+                                BridgedType::Shared(_) => {
+                                    todo!("Add a test that hits this code path")
+                                }
+                                BridgedType::Opaque(opaque) => {
+                                    let ty = &opaque.ty.ident;
+
+                                    if opaque.host_lang.is_swift() {
+                                        quote! { #ty }
+                                    } else {
+                                        quote! { *mut super::#ty }
+                                    }
+                                }
+                            }
+                        };
+
                         params.push(quote! {
-                             #arg_name: *mut std::ffi::c_void
+                             #arg_name: #arg_ty_tokens
                         });
                     }
                 }

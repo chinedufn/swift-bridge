@@ -25,7 +25,6 @@ impl ParsedExternFn {
     ///     fn fn_name() -> ReturnTypeHere;
     /// }
     /// ```
-    // FIXME: Combine this and host_type into one struct
     pub fn to_extern_c_function_tokens(
         &self,
         swift_bridge_path: &Path,

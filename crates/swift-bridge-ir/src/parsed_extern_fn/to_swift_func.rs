@@ -37,16 +37,28 @@ impl ParsedExternFn {
                     let ty = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
                         built_in.to_swift_type(false)
                     } else {
-                        // &mut Foo -> "& mut Foo"
-                        let ty = pat_ty.ty.to_token_stream().to_string();
-                        // Remove all references "&" and mut keywords.
-                        let ty = ty.split_whitespace().last().unwrap().to_string();
+                        let bridged_type = types.get_with_pat_type(&pat_ty).unwrap();
 
-                        match types.get(&ty).unwrap() {
-                            BridgedType::Shared(SharedType::Struct(shared)) => {
-                                shared.swift_name_string()
+                        if self.host_lang.is_rust() {
+                            match bridged_type {
+                                BridgedType::Shared(SharedType::Struct(shared)) => {
+                                    shared.swift_name_string()
+                                }
+                                BridgedType::Opaque(opaque) => opaque.ty.ident.to_string(),
                             }
-                            BridgedType::Opaque(_) => ty,
+                        } else {
+                            match bridged_type {
+                                BridgedType::Shared(SharedType::Struct(shared)) => {
+                                    todo!("Add a codegen test that hits this code path")
+                                }
+                                BridgedType::Opaque(opaque) => {
+                                    if opaque.host_lang.is_rust() {
+                                        "UnsafeMutableRawPointer".to_string()
+                                    } else {
+                                        "__private__PointerToSwiftType".to_string()
+                                    }
+                                }
+                            }
                         }
                     };
 
@@ -117,31 +129,46 @@ impl ParsedExternFn {
                         if is_reference {
                             format!("{}.ptr", arg)
                         } else {
-                            let ty_string = match pat_ty.ty.deref() {
-                                Type::Reference(reference) => {
-                                    reference.elem.to_token_stream().to_string()
-                                }
-                                Type::Path(ty_path) => {
-                                    ty_path.path.segments.to_token_stream().to_string()
-                                }
-                                _ => todo!(),
-                            };
+                            let bridged_type = types.get_with_pat_type(&pat_ty).unwrap();
 
-                            match types.get(&ty_string).unwrap() {
-                                BridgedType::Shared(_) => arg,
-                                BridgedType::Opaque(opaque) => {
-                                    if opaque.host_lang.is_rust() {
-                                        format!(
-                                            "{{{arg}.isOwned = false; return {arg}.ptr;}}()",
-                                            arg = arg
-                                        )
-                                    } else {
-                                        // TODO: passUnretained if we're taking the argument by
-                                        //  reference. passRetained if owned
-                                        format!(
-                                            "Unmanaged.passRetained({arg}).toOpaque()",
-                                            arg = arg
-                                        )
+                            if self.host_lang.is_rust() {
+                                match bridged_type {
+                                    BridgedType::Shared(_) => arg,
+                                    BridgedType::Opaque(opaque) => {
+                                        if opaque.host_lang.is_rust() {
+                                            format!(
+                                                "{{{arg}.isOwned = false; return {arg}.ptr;}}()",
+                                                arg = arg
+                                            )
+                                        } else {
+                                            // TODO: passUnretained if we're taking the argument by
+                                            //  reference. passRetained if owned
+                                            format!(
+                                                "Unmanaged.passRetained({arg}).toOpaque()",
+                                                arg = arg
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                match bridged_type {
+                                    BridgedType::Shared(_) => arg,
+                                    BridgedType::Opaque(opaque) => {
+                                        let ty = &opaque.ty.ident;
+
+                                        if opaque.host_lang.is_rust() {
+                                            format!(
+                                                "{ty}(ptr: {arg}, isOwned: true)",
+                                                ty = ty.to_string(),
+                                                arg = arg
+                                            )
+                                        } else {
+                                            format!(
+                                                "Unmanaged<{ty}>.fromOpaque({arg}.ptr).takeRetainedValue()",
+                                                ty = ty.to_string(),
+                                                arg = arg
+                                            )
+                                        }
                                     }
                                 }
                             }
