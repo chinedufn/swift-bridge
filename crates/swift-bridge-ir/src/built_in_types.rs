@@ -703,7 +703,12 @@ impl BuiltInType {
                 }
             },
             BuiltInType::Str => value.to_string(),
-            BuiltInType::String => value.to_string(),
+            BuiltInType::String => {
+                format!(
+                    "{{{value}.isOwned = false; return {value}.ptr}}()",
+                    value = value
+                )
+            }
             BuiltInType::Vec(_) => {
                 format!("{}.ptr", value)
             }

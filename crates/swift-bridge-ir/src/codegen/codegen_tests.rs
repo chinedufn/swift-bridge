@@ -141,6 +141,55 @@ func __swift_bridge__some_function (_ arg: __private__PointerToSwiftType) {
     }
 }
 
+/// Test code generation for Rust function that takes an owned String argument.
+mod extern_rust_fn_with_owned_string_argument {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod foo {
+                extern "Rust" {
+                    fn some_function (arg: String);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function(
+                arg: *mut swift_bridge::string::RustString
+            ) {
+                super::some_function(unsafe { Box::from_raw(arg).0 })
+            }
+        })
+    }
+
+    const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::Contains(
+        r#"
+func some_function(_ arg: RustString) {
+    __swift_bridge__$some_function({arg.isOwned = false; return arg.ptr}())
+}
+"#,
+    );
+
+    const EXPECTED_C_HEADER: &'static str = r#"
+void __swift_bridge__$some_function(void* arg);
+    "#;
+
+    #[test]
+    fn extern_rust_fn_with_owned_string_argument() {
+        CodegenTest {
+            bridge_module_tokens: bridge_module_tokens(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: EXPECTED_SWIFT_CODE,
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}
+
 struct CodegenTest {
     bridge_module_tokens: TokenStream,
     // Gets turned into a Vec<String> and compared to a Vec<String> of the generated Rust tokens.

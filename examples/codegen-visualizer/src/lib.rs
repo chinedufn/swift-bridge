@@ -17,6 +17,10 @@ mod ffi {
 
         fn start_generated_rust_code_formatter_thread(&self);
 
+        // TODO: We really want `String` or `&str` here... but need to make our implementations
+        //  more sound since right now (Nov 30 2021) this leads to a bug where if Swift's automatic
+        //  reference counter drops the undelying Swift standard String before our function runs
+        //  we end up getting a corrupted String.
         fn generate_swift_bridge_code(&self, bridge_module_source: &str);
     }
 
@@ -69,7 +73,13 @@ impl RustApp {
             while let Ok(()) = receiver.recv() {
                 println!("Reran rustfmt");
 
-                let most_recent_rust_source = most_recent_rust_source.lock().unwrap().clone();
+                let most_recent_rust_source = most_recent_rust_source.lock().unwrap();
+                let generated_rust = generate_code(&most_recent_rust_source);
+                if generated_rust.is_err() {
+                    continue;
+                }
+
+                let generated_rust = generated_rust.expect("Generated Rust");
 
                 let mut command = Command::new("bash")
                     .args(&["-c", "$HOME/.cargo/bin/rustfmt"])
@@ -83,13 +93,13 @@ impl RustApp {
                 let mut stdin = command.stdin.take().unwrap();
                 std::thread::spawn(move || {
                     stdin
-                        .write_all(most_recent_rust_source.as_bytes())
+                        .write_all(generated_rust.rust.as_bytes())
                         .expect("Failed to write to stdin");
                 });
 
-                let output = command.wait_with_output().unwrap();
-                let err = String::from_utf8(output.stderr.to_vec()).unwrap();
-                let generated = String::from_utf8(output.stdout.to_vec()).unwrap();
+                let output = command.wait_with_output().expect("Rustfmt Output");
+                let err = String::from_utf8(output.stderr.to_vec()).expect("Rustfmt stderr");
+                let generated = String::from_utf8(output.stdout.to_vec()).expect("Rustfmt stdout");
 
                 if err.len() > 0 {
                     dbg!(&err);
@@ -101,8 +111,6 @@ impl RustApp {
     }
 
     pub fn generate_swift_bridge_code(&self, bridge_module_source: &str) {
-        let bridge_module_source = bridge_module_source.to_string();
-
         let mut previous = self.most_recent_rust_source.lock().unwrap();
 
         let previous_tokens = TokenStream::from_str(&previous).ok().map(|t| t.to_string());
@@ -128,7 +136,7 @@ impl RustApp {
             holder.set_error_message(&err);
         }
 
-        *previous = bridge_module_source;
+        *previous = bridge_module_source.to_string();
     }
 }
 

@@ -10,8 +10,9 @@ class SwiftString {
     }
 
     func as_ptr() -> UnsafePointer<UInt8> {
-        let buf: [UInt8] = Array(string.utf8)
-        return UnsafePointer(buf)
+        let ptr = UnsafeRawPointer((self.string as NSString).utf8String)!
+        let start = ptr.assumingMemoryBound(to: UInt8.self)
+        return start
     }
 
     func len () -> UInt {
@@ -29,10 +30,11 @@ extension RustStr {
     }
 }
 
+import Foundation
 extension String {
     func toRustStr() -> RustStr {
-        let buf: [UInt8] = Array(self.utf8)
-        let start = UnsafeMutablePointer(mutating: buf)
+        let ptr = UnsafeMutableRawPointer(mutating: (self as NSString).utf8String)!
+        let start = ptr.assumingMemoryBound(to: UInt8.self)
         let len = UInt(self.count)
         return RustStr(start: start, len: len)
     }

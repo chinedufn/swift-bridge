@@ -1,4 +1,5 @@
 pub use self::ffi::*;
+use std::ptr::NonNull;
 
 #[swift_bridge_macro::bridge(swift_bridge_path = crate)]
 mod ffi {
@@ -8,6 +9,9 @@ mod ffi {
         #[swift_bridge(init)]
         fn new() -> RustString;
 
+        // TODO: We need to prevent footguns where you can call this with a Swift standard library
+        //  String .toRustStr() but then that String gets de-allocated under our feet.
+        //  Needs more research...
         #[swift_bridge(init)]
         fn new_with_str(str: &str) -> RustString;
 
@@ -71,16 +75,14 @@ impl RustStr {
         self.len
     }
 
-    pub fn to_str(&self) -> &str {
-        std::str::from_utf8(self.as_bytes()).unwrap()
+    // TODO: Think through these lifetimes and the implications of them...
+    pub fn to_str<'a>(self) -> &'a str {
+        let bytes = unsafe { std::slice::from_raw_parts(self.start, self.len) };
+        std::str::from_utf8(bytes).expect("Failed to convert RustStr to &str")
     }
 
-    pub fn to_string(&self) -> String {
+    pub fn to_string(self) -> String {
         self.to_str().to_string()
-    }
-
-    pub fn as_bytes(&self) -> &'static [u8] {
-        unsafe { std::slice::from_raw_parts(self.start, self.len) }
     }
 
     pub fn from_str(str: &str) -> Self {
@@ -100,6 +102,6 @@ impl SwiftString {
     }
 
     pub fn to_str(&self) -> &str {
-        std::str::from_utf8(self.as_bytes()).unwrap()
+        std::str::from_utf8(self.as_bytes()).expect("Failed to convert Swift String to &str")
     }
 }

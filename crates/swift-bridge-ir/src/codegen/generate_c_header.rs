@@ -40,19 +40,21 @@ impl SwiftBridgeModule {
 
                         let mut fields = vec![];
                         for (idx, field) in ty_struct.fields.iter().enumerate() {
-                            let ty = BuiltInType::new_with_type(&field.ty).unwrap();
+                            if let Some(ty) = BuiltInType::new_with_type(&field.ty) {
+                                if let Some(include) = ty.c_include() {
+                                    bookkeeping.includes.insert(include);
+                                }
 
-                            if let Some(include) = ty.c_include() {
-                                bookkeeping.includes.insert(include);
+                                let name = format!("_{}", idx);
+
+                                fields.push(format!(
+                                    "{} {}",
+                                    ty.to_c(),
+                                    field.name.as_ref().map(|f| f.to_string()).unwrap_or(name)
+                                ));
+                            } else {
+                                // TODO... Handle opaque types
                             }
-
-                            let name = format!("_{}", idx);
-
-                            fields.push(format!(
-                                "{} {}",
-                                ty.to_c(),
-                                field.name.as_ref().map(|f| f.to_string()).unwrap_or(name)
-                            ));
                         }
 
                         let maybe_fields = if fields.len() > 0 {

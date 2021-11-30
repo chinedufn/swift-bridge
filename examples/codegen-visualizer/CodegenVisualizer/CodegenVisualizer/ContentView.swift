@@ -35,6 +35,11 @@ struct ContentView: View {
     var generatedSwift = "func main () {}"
     var generatedRust = "let foo = 0"
     
+    let swiftSectionHeaderBackground = Color.gray
+    let cSectionHeaderBackground = Color(red: 0.34, green: 0.35, blue: 0.36, opacity: 1.0)
+    let rustSectionHeaderBackground = Color(red: 0.24, green: 0.25, blue: 0.26, opacity: 1.0)
+    
+    
     var body: some View {
         
         VStack {
@@ -54,25 +59,59 @@ struct ContentView: View {
                             rustApp.generate_swift_bridge_code(source.toRustStr())
                         })
                     
-                    CodeEditor(
-                        source: generatedCodeHolder.generatedC,
-                        language: .c
+                    GeneratedCodeView(
+                        header: "Generated C Header",
+                        headerBackgroundColor: cSectionHeaderBackground,
+                        editor: CodeEditor(
+                            source: generatedCodeHolder.generatedC,
+                            language: .c,
+                            theme: .ocean
+                        )
                     )
                 }
                 
                 VStack {
-
-                    CodeEditor(
-                        source: generatedCodeHolder.generatedRust,
-                        language: .rust
-                    )
-                    CodeEditor(
-                        source: generatedCodeHolder.generatedSwift,
-                        language: .swift
+                    GeneratedCodeView (
+                        header: "Generated Rust Code",
+                        headerBackgroundColor: rustSectionHeaderBackground,
+                        editor: CodeEditor(
+                            source: generatedCodeHolder.generatedRust,
+                            language: .rust,
+                            theme: .pojoaque
+                        ))
+                    
+                    GeneratedCodeView (
+                        header: "Generated Swift Code",
+                        headerBackgroundColor: swiftSectionHeaderBackground,
+                        editor:
+                            CodeEditor(
+                                source: generatedCodeHolder.generatedSwift,
+                                language: .swift,
+                                theme: .agate
+                            )
                     )
                 }
             }
-            
+        }
+    }
+}
+
+
+struct GeneratedCodeView: View {
+    var header: String
+    var headerBackgroundColor: Color
+    var editor: CodeEditor
+    
+    var body: some View {
+        VStack {
+            HStack {
+                Text(header)
+                    .font(.title)
+                    .padding(0)
+                Spacer()
+            }
+            .background(headerBackgroundColor)
+            editor
         }
     }
 }
