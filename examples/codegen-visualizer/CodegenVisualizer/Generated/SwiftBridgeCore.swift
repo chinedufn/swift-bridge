@@ -10,6 +10,8 @@ class SwiftString {
     }
 
     func as_ptr() -> UnsafePointer<UInt8> {
+        // TODO: Does the utf8String have the same lifetime as our String?
+        //  If not this can lead to undefined behavior..
         let ptr = UnsafeRawPointer((self.string as NSString).utf8String)!
         let start = ptr.assumingMemoryBound(to: UInt8.self)
         return start
@@ -33,6 +35,8 @@ extension RustStr {
 import Foundation
 extension String {
     func toRustStr() -> RustStr {
+        // TODO: Does the utf8String have the same lifetime as our String?
+        //  If not this can lead to undefined behavior..
         let ptr = UnsafeMutableRawPointer(mutating: (self as NSString).utf8String)!
         let start = ptr.assumingMemoryBound(to: UInt8.self)
         let len = UInt(self.count)
