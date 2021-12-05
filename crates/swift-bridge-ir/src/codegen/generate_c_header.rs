@@ -1,7 +1,7 @@
-use crate::built_in_types::BuiltInType;
+use crate::built_in_types::{BuiltInType, ForeignBridgedType, SharedType, StdLibType};
 use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::{BridgedType, SharedType, SwiftBridgeModule};
+use crate::SwiftBridgeModule;
 use std::collections::HashSet;
 use syn::ReturnType;
 
@@ -34,13 +34,13 @@ impl SwiftBridgeModule {
 
         for ty in self.types.types() {
             match ty {
-                BridgedType::Shared(ty) => match ty {
+                ForeignBridgedType::Shared(ty) => match ty {
                     SharedType::Struct(ty_struct) => {
                         let name = ty_struct.swift_name_string();
 
                         let mut fields = vec![];
                         for (idx, field) in ty_struct.fields.iter().enumerate() {
-                            if let Some(ty) = BuiltInType::new_with_type(&field.ty) {
+                            if let Some(ty) = BuiltInType::new_with_type(&field.ty, &self.types) {
                                 if let Some(include) = ty.c_include() {
                                     bookkeeping.includes.insert(include);
                                 }
@@ -78,7 +78,7 @@ impl SwiftBridgeModule {
                         header += "\n";
                     }
                 },
-                BridgedType::Opaque(ty) => {
+                ForeignBridgedType::Opaque(ty) => {
                     if ty.host_lang.is_swift() {
                         continue;
                     }
@@ -140,14 +140,14 @@ fn declare_func(
     let params = func.to_c_header_params(types);
 
     if let ReturnType::Type(_, ty) = &func.func.sig.output {
-        if let Some(ty) = BuiltInType::new_with_type(&ty) {
-            if let BuiltInType::RefSlice(ref_slice) = ty {
+        if let Some(ty) = BuiltInType::new_with_type(&ty, types) {
+            if let BuiltInType::StdLib(StdLibType::RefSlice(ref_slice)) = ty {
                 bookkeeping.slice_types.insert(ref_slice.ty.to_c());
             }
         }
     }
 
-    if let Some(includes) = func.c_includes() {
+    if let Some(includes) = func.c_includes(types) {
         for include in includes {
             bookkeeping.includes.insert(include);
         }

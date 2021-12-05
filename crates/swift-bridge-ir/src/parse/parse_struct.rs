@@ -1,5 +1,5 @@
+use crate::built_in_types::{FieldsFormat, SharedStruct, StructField, StructSwiftRepr};
 use crate::errors::{ParseError, ParseErrors};
-use crate::{FieldsFormat, SharedStruct, StructField, StructSwiftRepr};
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseStream};
 use syn::{Fields, ItemStruct, LitStr, Token};

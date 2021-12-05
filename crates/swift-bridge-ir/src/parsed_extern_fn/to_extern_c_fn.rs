@@ -1,7 +1,6 @@
-use crate::built_in_types::BuiltInType;
+use crate::built_in_types::{BuiltInType, ForeignBridgedType, SharedType};
 use crate::parse::{HostLang, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::{BridgedType, SharedType};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use std::ops::Deref;
@@ -75,7 +74,7 @@ impl ParsedExternFn {
             self.call_function_tokens(&call_fn)
         };
 
-        if let Some(ty) = self.return_ty_built_in() {
+        if let Some(ty) = self.return_ty_built_in(types) {
             call_fn = ty.convert_rust_value_to_ffi_compatible_value(swift_bridge_path, &call_fn);
         } else {
             if let ReturnType::Type(_, return_ty) = &sig.output {
@@ -95,8 +94,8 @@ impl ParsedExternFn {
                     _ => {
                         let ty_string = return_ty.deref().to_token_stream().to_string();
                         match types.get(&ty_string).unwrap() {
-                            BridgedType::Shared(SharedType::Struct(_)) => {}
-                            BridgedType::Opaque(opaque) => {
+                            ForeignBridgedType::Shared(SharedType::Struct(_)) => {}
+                            ForeignBridgedType::Opaque(opaque) => {
                                 if opaque.host_lang.is_rust() {
                                     call_fn = quote! { Box::into_raw(Box::new(#call_fn)) as *mut super::#return_ty };
                                 }
@@ -134,11 +133,11 @@ impl ParsedExternFn {
     fn call_function_tokens(&self, call_fn: &TokenStream) -> TokenStream {
         let maybe_associated_type = self.associated_type.as_ref().map(|ty| {
             match ty {
-                BridgedType::Shared(_) => {
+                ForeignBridgedType::Shared(_) => {
                     //
                     todo!()
                 }
-                BridgedType::Opaque(ty) => {
+                ForeignBridgedType::Opaque(ty) => {
                     let ty = &ty.ident;
                     quote! {#ty::}
                 }
@@ -151,8 +150,8 @@ impl ParsedExternFn {
     }
 
     /// If the functions return type is a BuiltInType, return it.
-    pub(crate) fn return_ty_built_in(&self) -> Option<BuiltInType> {
-        BuiltInType::new_with_return_type(&self.func.sig.output)
+    pub(crate) fn return_ty_built_in(&self, types: &TypeDeclarations) -> Option<BuiltInType> {
+        BuiltInType::new_with_return_type(&self.func.sig.output, types)
     }
 }
 

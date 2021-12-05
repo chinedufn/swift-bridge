@@ -1,7 +1,6 @@
-use crate::built_in_types::BuiltInType;
+use crate::built_in_types::{pat_type_pat_is_self, BuiltInType, ForeignBridgedType, SharedType};
 use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::{pat_type_pat_is_self, BridgedType, SharedType};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use std::ops::Deref;
@@ -45,7 +44,7 @@ impl ParsedExternFn {
                 quote! {#ret}
             }
             ReturnType::Type(arrow, _ty) => {
-                if let Some(built_in) = BuiltInType::new_with_return_type(&sig.output) {
+                if let Some(built_in) = BuiltInType::new_with_return_type(&sig.output, types) {
                     let ty = built_in.maybe_convert_pointer_to_super_pointer();
                     let return_ty_span = sig.output.span();
 
@@ -64,14 +63,14 @@ impl ParsedExternFn {
             unsafe { #linked_fn_name(#call_args) }
         };
 
-        if let Some(built_in) = BuiltInType::new_with_return_type(&sig.output) {
+        if let Some(built_in) = BuiltInType::new_with_return_type(&sig.output, types) {
             inner = built_in.convert_ffi_value_to_rust_value(swift_bridge_path, &inner, true);
         } else if let Some(bridged_ty) = &self.associated_type.as_ref() {
             match bridged_ty {
-                BridgedType::Shared(_) => {
+                ForeignBridgedType::Shared(_) => {
                     todo!()
                 }
-                BridgedType::Opaque(bridged_ty) => {
+                ForeignBridgedType::Opaque(bridged_ty) => {
                     let ty_name = &bridged_ty.ident;
                     inner = quote! {
                         #ty_name ( #inner )
@@ -113,17 +112,17 @@ impl ParsedExternFn {
                         FnArg::Typed(pat_ty) => {
                             let pat = &pat_ty.pat;
 
-                            if let Some(built_in) = BuiltInType::new_with_fn_arg(fn_arg) {
+                            if let Some(built_in) = BuiltInType::new_with_fn_arg(fn_arg, types) {
                                 let ty = built_in.maybe_convert_pointer_to_super_pointer();
 
                                 quote! { #pat: #ty}
                             } else {
                                 match types.get_with_pat_type(pat_ty).unwrap() {
-                                    BridgedType::Shared(SharedType::Struct(_)) => {
+                                    ForeignBridgedType::Shared(SharedType::Struct(_)) => {
                                         // quote! { #pat: #fn_arg}
                                         todo!("Add a test that hits this code path")
                                     }
-                                    BridgedType::Opaque(opaque) => {
+                                    ForeignBridgedType::Opaque(opaque) => {
                                         let ty = &opaque.ty.ident;
                                         if opaque.host_lang.is_rust() {
                                             quote! { #pat: super:: #ty}

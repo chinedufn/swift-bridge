@@ -1,9 +1,9 @@
-use crate::built_in_types::BuiltInType;
+use crate::built_in_types::{BuiltInType, ForeignBridgedType, OpaqueForeignType};
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::function_attributes::{FunctionAttr, FunctionAttributes};
 use crate::parse::type_declarations::TypeDeclarations;
 use crate::parse::HostLang;
-use crate::{BridgedType, OpaqueForeignType, ParsedExternFn};
+use crate::ParsedExternFn;
 use proc_macro2::Span;
 use quote::ToTokens;
 use std::cmp::Ordering;
@@ -67,8 +67,10 @@ impl<'a> ForeignModParser<'a> {
                         ty: foreign_ty.clone(),
                         host_lang,
                     };
-                    self.all_type_declarations
-                        .insert(ty_name.clone(), BridgedType::Opaque(foreign_type.clone()));
+                    self.all_type_declarations.insert(
+                        ty_name.clone(),
+                        ForeignBridgedType::Opaque(foreign_type.clone()),
+                    );
                     local_type_declarations.insert(ty_name, foreign_type);
                 }
                 ForeignItem::Fn(func) => {
@@ -125,7 +127,7 @@ impl<'a> ForeignModParser<'a> {
         };
 
         if !self.all_type_declarations.contains_key(&ty_string)
-            && BuiltInType::new_with_type(ty).is_none()
+            && BuiltInType::new_with_type(ty, &self.all_type_declarations).is_none()
         {
             self.maybe_undeclared_types.push((ty_string, ty_span));
         }
@@ -138,12 +140,12 @@ impl<'a> ForeignModParser<'a> {
         func: ForeignItemFn,
         attributes: &FunctionAttributes,
         local_type_declarations: &mut HashMap<String, OpaqueForeignType>,
-    ) -> syn::Result<Option<BridgedType>> {
+    ) -> syn::Result<Option<ForeignBridgedType>> {
         let associated_type = match first {
             Some(FnArg::Receiver(recv)) => {
                 if local_type_declarations.len() == 1 {
                     let ty = local_type_declarations.iter_mut().next().unwrap().1;
-                    let associated_type = Some(BridgedType::Opaque(ty.clone()));
+                    let associated_type = Some(ForeignBridgedType::Opaque(ty.clone()));
                     associated_type
                 } else {
                     self.errors.push(ParseError::AmbiguousSelf {

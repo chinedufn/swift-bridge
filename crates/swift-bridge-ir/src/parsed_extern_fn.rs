@@ -1,6 +1,6 @@
-use crate::built_in_types::BuiltInType;
+use crate::built_in_types::{pat_type_pat_is_self, BuiltInType, ForeignBridgedType, SharedType};
 use crate::parse::{HostLang, TypeDeclarations};
-use crate::{pat_type_pat_is_self, BridgedType, SharedType, SWIFT_BRIDGE_PREFIX};
+use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
@@ -23,7 +23,7 @@ mod to_swift_func;
 /// ... etc
 pub(crate) struct ParsedExternFn {
     pub func: ForeignItemFn,
-    pub associated_type: Option<BridgedType>,
+    pub associated_type: Option<ForeignBridgedType>,
     pub is_initializer: bool,
     pub host_lang: HostLang,
     pub swift_name_override: Option<syn::LitStr>,
@@ -66,7 +66,7 @@ impl ParsedExternFn {
                 quote! {}
             }
             ReturnType::Type(arrow, ty) => {
-                if let Some(built_in) = BuiltInType::new_with_type(&ty) {
+                if let Some(built_in) = BuiltInType::new_with_type(&ty, types) {
                     let ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path);
                     quote! {#arrow #ty}
                 } else {
@@ -80,11 +80,11 @@ impl ParsedExternFn {
 
                         let ty_string = ty.to_token_stream().to_string();
                         match types.get(&ty_string).unwrap() {
-                            BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                            ForeignBridgedType::Shared(SharedType::Struct(shared_struct)) => {
                                 let name = &shared_struct.name;
                                 quote! { #arrow #name }
                             }
-                            BridgedType::Opaque(opaque) => {
+                            ForeignBridgedType::Opaque(opaque) => {
                                 if opaque.host_lang.is_rust() {
                                     let ptr = if is_const_ptr {
                                         quote! { *const }
@@ -113,10 +113,10 @@ impl ParsedExternFn {
 
         let prefix = if let Some(associated_ty) = self.associated_type.as_ref() {
             match associated_ty {
-                BridgedType::Shared(_) => {
+                ForeignBridgedType::Shared(_) => {
                     todo!()
                 }
-                BridgedType::Opaque(associated_ty) => {
+                ForeignBridgedType::Opaque(associated_ty) => {
                     format!("{}_", associated_ty.ident)
                 }
             }
@@ -168,7 +168,7 @@ impl ParsedExternFn {
 
                     let mut arg = quote! {#pat};
 
-                    if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
+                    if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty, types) {
                         if self.host_lang.is_rust() {
                             arg = built_in.convert_ffi_value_to_rust_value(
                                 swift_bridge_path,
@@ -184,8 +184,8 @@ impl ParsedExternFn {
                     } else {
                         if self.host_lang.is_rust() {
                             match types.get_with_pat_type(pat_ty).unwrap() {
-                                BridgedType::Shared(SharedType::Struct(_)) => {}
-                                BridgedType::Opaque(opaque) => {
+                                ForeignBridgedType::Shared(SharedType::Struct(_)) => {}
+                                ForeignBridgedType::Opaque(opaque) => {
                                     if opaque.host_lang.is_rust() {
                                         let (maybe_ref, maybe_mut) = match pat_ty.ty.deref() {
                                             Type::Reference(ty_ref) => {
@@ -209,10 +209,10 @@ impl ParsedExternFn {
                             };
                         } else {
                             match types.get_with_pat_type(pat_ty).unwrap() {
-                                BridgedType::Shared(SharedType::Struct(_)) => {
+                                ForeignBridgedType::Shared(SharedType::Struct(_)) => {
                                     todo!("Add a test that hits this code path")
                                 }
-                                BridgedType::Opaque(opaque) => {
+                                ForeignBridgedType::Opaque(opaque) => {
                                     if opaque.host_lang.is_rust() {
                                         arg = quote! { Box::into_raw(Box::new(#arg)) };
                                     } else {
@@ -248,16 +248,18 @@ impl ParsedExternFn {
                     if pat_type_pat_is_self(pat_ty) {
                         params.push("void* self".to_string());
                     } else {
-                        let ty = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty) {
+                        let ty = if let Some(built_in) =
+                            BuiltInType::new_with_type(&pat_ty.ty, types)
+                        {
                             built_in.to_c()
                         } else {
                             let bridged_type = types.get_with_pat_type(&pat_ty).unwrap();
 
                             match bridged_type {
-                                BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                                ForeignBridgedType::Shared(SharedType::Struct(shared_struct)) => {
                                     format!("struct {}", shared_struct.swift_name_string())
                                 }
-                                BridgedType::Opaque(_) => "void*".to_string(),
+                                ForeignBridgedType::Opaque(_) => "void*".to_string(),
                             }
                         };
 
@@ -279,7 +281,7 @@ impl ParsedExternFn {
         match &self.func.sig.output {
             ReturnType::Default => "void".to_string(),
             ReturnType::Type(_, ty) => {
-                if let Some(ty) = BuiltInType::new_with_type(&ty) {
+                if let Some(ty) = BuiltInType::new_with_type(&ty, types) {
                     ty.to_c()
                 } else {
                     let ty_string = match ty.deref() {
@@ -289,10 +291,10 @@ impl ParsedExternFn {
                     };
 
                     match types.get(&ty_string).unwrap() {
-                        BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                        ForeignBridgedType::Shared(SharedType::Struct(shared_struct)) => {
                             format!("struct {}", shared_struct.swift_name_string())
                         }
-                        BridgedType::Opaque(opaque) => {
+                        ForeignBridgedType::Opaque(opaque) => {
                             if opaque.host_lang.is_rust() {
                                 "void*".to_string()
                             } else {
@@ -305,11 +307,11 @@ impl ParsedExternFn {
         }
     }
 
-    pub fn c_includes(&self) -> Option<Vec<&'static str>> {
+    pub fn c_includes(&self, types: &TypeDeclarations) -> Option<Vec<&'static str>> {
         let mut includes = vec![];
 
         if let ReturnType::Type(_, ty) = &self.func.sig.output {
-            if let Some(ty) = BuiltInType::new_with_type(&ty) {
+            if let Some(ty) = BuiltInType::new_with_type(&ty, types) {
                 if let Some(include) = ty.c_include() {
                     includes.push(include);
                 }
@@ -318,7 +320,7 @@ impl ParsedExternFn {
 
         for param in &self.func.sig.inputs {
             if let FnArg::Typed(pat_ty) = param {
-                if let Some(ty) = BuiltInType::new_with_type(&pat_ty.ty) {
+                if let Some(ty) = BuiltInType::new_with_type(&pat_ty.ty, types) {
                     if let Some(include) = ty.c_include() {
                         includes.push(include);
                     }
@@ -341,11 +343,11 @@ impl ParsedExternFn {
             .as_ref()
             .map(|h| {
                 match h {
-                    BridgedType::Shared(_) => {
+                    ForeignBridgedType::Shared(_) => {
                         //
                         todo!()
                     }
-                    BridgedType::Opaque(h) => {
+                    ForeignBridgedType::Opaque(h) => {
                         format!("${}", h.ident.to_string())
                     }
                 }
@@ -366,11 +368,11 @@ impl ParsedExternFn {
             .as_ref()
             .map(|h| {
                 match h {
-                    BridgedType::Shared(_) => {
+                    ForeignBridgedType::Shared(_) => {
                         //
                         todo!()
                     }
-                    BridgedType::Opaque(h) => {
+                    ForeignBridgedType::Opaque(h) => {
                         format!("{}_", h.ident.to_token_stream().to_string())
                     }
                 }

@@ -1,10 +1,9 @@
-use crate::built_in_types::BuiltInType;
+use crate::built_in_types::{
+    BuiltInType, ForeignBridgedType, OpaqueForeignType, SharedType, StructSwiftRepr,
+};
 use crate::parse::{HostLang, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::{
-    BridgedType, OpaqueForeignType, SharedType, StructSwiftRepr, SwiftBridgeModule,
-    SWIFT_BRIDGE_PREFIX,
-};
+use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use quote::ToTokens;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -24,11 +23,11 @@ impl SwiftBridgeModule {
             if function.host_lang.is_rust() {
                 if let Some(ty) = function.associated_type.as_ref() {
                     match ty {
-                        BridgedType::Shared(_) => {
+                        ForeignBridgedType::Shared(_) => {
                             //
                             todo!("Think about what to do here..")
                         }
-                        BridgedType::Opaque(ty) => {
+                        ForeignBridgedType::Opaque(ty) => {
                             associated_funcs_and_methods
                                 .entry(ty.ident.to_string())
                                 .or_default()
@@ -50,7 +49,7 @@ impl SwiftBridgeModule {
 
         for ty in self.types.types() {
             let generated = match ty {
-                BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                ForeignBridgedType::Shared(SharedType::Struct(shared_struct)) => {
                     match shared_struct.swift_repr {
                         StructSwiftRepr::Class => {
                             todo!()
@@ -63,7 +62,7 @@ impl SwiftBridgeModule {
                         }
                     }
                 }
-                BridgedType::Opaque(ty) => match ty.host_lang {
+                ForeignBridgedType::Opaque(ty) => match ty.host_lang {
                     HostLang::Rust => {
                         generate_swift_class(ty, &associated_funcs_and_methods, &self.types)
                     }
@@ -182,11 +181,11 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
 
     let type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
         match ty {
-            BridgedType::Shared(_) => {
+            ForeignBridgedType::Shared(_) => {
                 //
                 todo!()
             }
-            BridgedType::Opaque(ty) => {
+            ForeignBridgedType::Opaque(ty) => {
                 format!("${}", ty.ident.to_string())
             }
         }
@@ -228,7 +227,7 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
     );
     let call_rust = if function.is_initializer {
         format!("ptr = {}", call_rust)
-    } else if let Some(built_in) = function.return_ty_built_in() {
+    } else if let Some(built_in) = function.return_ty_built_in(types) {
         built_in.convert_ffi_value_to_swift_value(&call_rust)
     } else {
         if function.host_lang.is_swift() {
@@ -247,8 +246,8 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
                     };
 
                     match types.get(&ty_name).unwrap() {
-                        BridgedType::Shared(_) => call_rust,
-                        BridgedType::Opaque(opaque) => {
+                        ForeignBridgedType::Shared(_) => call_rust,
+                        ForeignBridgedType::Opaque(opaque) => {
                             if opaque.host_lang.is_rust() {
                                 let (is_owned, ty) = match ty.deref() {
                                     Type::Reference(reference) => ("false", &reference.elem),
@@ -303,11 +302,11 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn, types: &TypeDeclara
 
     if let Some(associated_type) = func.associated_type.as_ref() {
         let ty_name = match associated_type {
-            BridgedType::Shared(_) => {
+            ForeignBridgedType::Shared(_) => {
                 //
                 todo!()
             }
-            BridgedType::Opaque(associated_type) => associated_type.ident.to_string(),
+            ForeignBridgedType::Opaque(associated_type) => associated_type.ident.to_string(),
         };
 
         if func.is_method() {
@@ -323,7 +322,7 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn, types: &TypeDeclara
         }
     }
 
-    if let Some(built_in) = BuiltInType::new_with_return_type(&func.sig.output) {
+    if let Some(built_in) = BuiltInType::new_with_return_type(&func.sig.output, types) {
         call_fn = built_in.convert_swift_expression_to_ffi_compatible(&call_fn, func.host_lang);
     }
 
