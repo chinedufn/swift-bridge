@@ -45,7 +45,6 @@ class VecTests: XCTestCase {
         XCTAssertEqual(vec.len(), 5)
         
         XCTAssertEqual(vec.get(index: 1), 9)
-        fatalError("Ran")
     }
     
     func testRustVecIterator() throws {
@@ -64,7 +63,7 @@ class VecTests: XCTestCase {
     /// Here we call the rest of the types, confident that if we can construct them then the rest of their
     /// methods will work since they worked for the other types above.
     func testConstructPrimitiveRustVecs() throws {
-        XCTAssertEqual(RustVec<UInt8>().pop(), 0);
+        XCTAssertEqual(RustVec<UInt8>().pop(), nil);
         XCTAssertEqual(RustVec<UInt16>().len(), 0);
         XCTAssertEqual(RustVec<UInt32>().len(), 0);
         XCTAssertEqual(RustVec<UInt64>().len(), 0);

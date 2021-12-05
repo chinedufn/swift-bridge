@@ -48,7 +48,7 @@ impl ParsedExternFn {
                             }
                         } else {
                             match bridged_type {
-                                BridgedType::Shared(SharedType::Struct(shared)) => {
+                                BridgedType::Shared(SharedType::Struct(_shared)) => {
                                     todo!("Add a codegen test that hits this code path")
                                 }
                                 BridgedType::Opaque(opaque) => {

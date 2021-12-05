@@ -914,28 +914,6 @@ func foo() -> RustString {
         assert_eq!(generated.trim(), expected.trim());
     }
 
-    /// Verify that we properly generate a Swift function that returns an &String.
-    #[test]
-    fn return_string_reference() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    fn foo () -> &String;
-                }
-            }
-        };
-        let module: SwiftBridgeModule = syn::parse2(tokens).unwrap();
-        let generated = module.generate_swift();
-
-        let expected = r#"
-func foo() -> RustString {
-    RustString(ptr: __swift_bridge__$foo(), isOwned: false)
-}
-"#;
-
-        assert_eq!(generated.trim(), expected.trim());
-    }
-
     /// Verify that we generate the corresponding Swift for extern "Rust" functions that accept
     /// a *const void pointer.
     #[test]

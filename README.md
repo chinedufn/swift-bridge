@@ -4,7 +4,7 @@
 
 `swift-bridge` generates code that helps you call Swift from Rust and vice versa.
 
-_`swift-bridge` takes inspiration from the awesome bridge module macro based approach pioneered by [cxx](https://github.com/dtolnay/cxx)._
+_`swift-bridge` takes inspiration from the bridge module idea pioneered by [cxx](https://github.com/dtolnay/cxx)._
 
 ## Installation
 
@@ -194,7 +194,7 @@ git clone git@github.com:chinedufn/swift-bridge.git
 cd swift-bridge
 
 # Run tests
-cargo test --all
+cargo test --all && ./test-integration.sh
 ```
 
 ## See Also

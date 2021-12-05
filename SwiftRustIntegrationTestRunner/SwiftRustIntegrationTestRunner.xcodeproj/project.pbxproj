@@ -195,7 +195,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 228FE5F62740DB6D00805D9E /* Build configuration list for PBXNativeTarget "SwiftRustIntegrationTestRunner" */;
 			buildPhases = (
-				228FE60D2740F66400805D9E /* ShellScript */,
+				228FE60D2740F66400805D9E /* Run Script */,
 				228FE5CD2740DB6A00805D9E /* Sources */,
 				228FE5CE2740DB6A00805D9E /* Frameworks */,
 				228FE5CF2740DB6A00805D9E /* Resources */,
@@ -285,7 +285,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		228FE60D2740F66400805D9E /* ShellScript */ = {
+		228FE60D2740F66400805D9E /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -294,13 +294,14 @@
 			);
 			inputPaths = (
 			);
+			name = "Run Script";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export PATH=\"$HOME/.cargo/bin:$PATH\"\n\nexport SWIFT_BRIDGE_OUT_DIR=\"${PROJECT_DIR}/Generated\"\n\n# Without this we can't comppile on MacOS Big Sur\n# https://github.com/TimNN/cargo-lipo/issues/41#issuecomment-774793892\nif [[ -n \"${DEVELOPER_SDK_DIR:-}\" ]]; then\n  export LIBRARY_PATH=\"${DEVELOPER_SDK_DIR}/MacOSX.sdk/usr/lib:${LIBRARY_PATH:-}\"\nfi\n\nif [ $ENABLE_PREVIEWS == \"NO\" ]; then\n\n  if [[ $CONFIGURATION == \"Release\" ]]; then\n      echo \"BUIlDING FOR RELEASE\"\n      \n      cargo build --release --manifest-path ../crates/swift-integration-tests/Cargo.toml\n  else\n      echo \"BUIlDING FOR DEBUG\"\n\n      cargo build --manifest-path ../crates/swift-integration-tests/Cargo.toml\n  fi\n  \nelse\n  echo \"Skipping the script because of preview mode\"\nfi\n";
+			shellScript = "./build-rust.sh\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

@@ -11,7 +11,7 @@ use crate::parse::{HostLang, TypeDeclarations};
 use proc_macro2::Ident;
 use std::ops::Deref;
 use syn::parse::{Parse, ParseStream};
-use syn::{ForeignItemType, LitStr, Path, PatType, Token, Type};
+use syn::{ForeignItemType, LitStr, PatType, Path, Token, Type};
 
 use crate::parsed_extern_fn::ParsedExternFn;
 
