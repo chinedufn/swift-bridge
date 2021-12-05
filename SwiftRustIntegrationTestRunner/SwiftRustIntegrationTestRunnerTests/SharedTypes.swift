@@ -18,7 +18,7 @@ class ExternalCTests: XCTestCase {
     }
     
     func testFoo() throws {
-        fatalError("TODO: Write tests for shared types")
+//        fatalError("TODO: Write tests for shared types")
     }
 }
 

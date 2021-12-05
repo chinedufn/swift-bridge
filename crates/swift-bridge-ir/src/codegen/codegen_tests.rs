@@ -71,7 +71,7 @@ void __swift_bridge__$MyType$_free(void* self);
         CodegenTest {
             bridge_module_tokens: bridge_module_tokens(),
             expected_rust_tokens: ExpectedRustTokens::Contains(expected_rust_tokens()),
-            expected_swift_code: ExpectedSwiftCode::Contains(EXPECTED_SWIFT),
+            expected_swift_code: ExpectedSwiftCode::ContainsAfterTrim(EXPECTED_SWIFT),
             expected_c_header: EXPECTED_C_HEADER,
         }
         .test();
@@ -118,7 +118,7 @@ mod extern_swift_freestanding_fn_with_owned_opaque_swift_type_arg {
         })
     }
 
-    const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::Contains(
+    const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
         r#"
 @_cdecl("__swift_bridge__$some_function")
 func __swift_bridge__some_function (_ arg: __private__PointerToSwiftType) {
@@ -166,7 +166,7 @@ mod extern_rust_fn_with_owned_string_argument {
         })
     }
 
-    const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::Contains(
+    const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
         r#"
 func some_function(_ arg: RustString) {
     __swift_bridge__$some_function({arg.isOwned = false; return arg.ptr}())
@@ -202,15 +202,16 @@ struct CodegenTest {
 
 enum ExpectedRustTokens {
     /// The generated Rust token stream matches the provided stream.
+    #[allow(unused)]
     Exact(TokenStream),
     /// The generated Rust tokens stream contains the provided stream.
     Contains(TokenStream),
 }
 
 enum ExpectedSwiftCode {
-    /// Assert that after we trim our
+    #[allow(unused)]
     ExactAfterTrim(&'static str),
-    Contains(&'static str),
+    ContainsAfterTrim(&'static str),
 }
 
 impl CodegenTest {
@@ -231,7 +232,7 @@ impl CodegenTest {
             ExpectedSwiftCode::ExactAfterTrim(expected_swift) => {
                 assert_generated_equals_expected(&module.generate_swift(), expected_swift);
             }
-            ExpectedSwiftCode::Contains(expected_contained_swift) => {
+            ExpectedSwiftCode::ContainsAfterTrim(expected_contained_swift) => {
                 assert_generated_contains_expected(
                     &module.generate_swift(),
                     expected_contained_swift,

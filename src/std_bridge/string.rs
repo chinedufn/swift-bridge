@@ -1,5 +1,4 @@
 pub use self::ffi::*;
-use std::ptr::NonNull;
 
 #[swift_bridge_macro::bridge(swift_bridge_path = crate)]
 mod ffi {

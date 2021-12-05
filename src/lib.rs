@@ -16,6 +16,7 @@ pub struct FfiSlice<T> {
 }
 
 impl<T> FfiSlice<T> {
+    /// Create an FfiSlice from a slice.
     pub fn from_slice(slice: &[T]) -> Self {
         FfiSlice {
             start: slice.as_ptr(),
@@ -23,6 +24,7 @@ impl<T> FfiSlice<T> {
         }
     }
 
+    /// Get a reference to the slice that this FfiSlice points to.
     pub fn as_slice(&self) -> &'static [T] {
         unsafe { std::slice::from_raw_parts(self.start, self.len) }
     }

@@ -15,14 +15,14 @@ impl ParsedExternFn {
     /// // Functions in extern "Rust" blocks become
     /// #[no_mangle]
     /// #[export_name = "..."]
-    /// pub extern "C" fn fn_name () -> ReturnTypeHere {
+    /// pub extern "C" fn a_function_name () -> ReturnTypeHere {
     ///   // ...
     /// }
     ///
     /// // Functions in extern "Swift" blocks become
     /// extern "C" {
     ///     #[link_name = "..."]
-    ///     fn fn_name() -> ReturnTypeHere;
+    ///     fn some_function() -> ReturnTypeHere;
     /// }
     /// ```
     pub fn to_extern_c_function_tokens(

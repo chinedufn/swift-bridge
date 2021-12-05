@@ -2,9 +2,6 @@ use quote::quote;
 use swift_bridge_ir::{SwiftBridgeModule, SwiftBridgeModuleAttr, SwiftBridgeModuleAttrs};
 use syn::parse_macro_input;
 
-#[cfg(test)]
-mod test_utils;
-
 #[proc_macro_attribute]
 pub fn bridge(
     args: proc_macro::TokenStream,

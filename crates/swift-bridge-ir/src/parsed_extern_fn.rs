@@ -402,10 +402,7 @@ impl Deref for ParsedExternFn {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::{ParseError, ParseErrors};
-    use crate::parse::SwiftBridgeModuleAndErrors;
-    use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
-    use crate::SwiftBridgeModule;
+    use crate::test_utils::{assert_tokens_contain, assert_tokens_eq, parse_ok};
 
     /// Verify that when generating rust call args we do not include the receiver.
     #[test]
@@ -457,41 +454,6 @@ mod tests {
             &module.functions[0].to_call_rust_args(&module.swift_bridge_path, &module.types),
             &quote! {unsafe { *Box::from_raw(arg) }},
         );
-    }
-
-    /// Verify that arguments that are owned declared types get unboxed.
-    #[test]
-    fn does_not_allow_owned_foreign_type_args() {
-        let tokens = quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                extern "Rust" {
-                    type Foo;
-
-                    fn freestanding (arg: Foo);
-
-                    #[swift_bridge(associated_to = Foo)]
-                    fn associated_func (arg: Foo);
-
-                    fn method (&self, arg: Foo);
-
-                    fn owned_method(self);
-
-                    fn owned_method_explicit(self: Foo);
-                }
-            }
-        };
-        let errors = parse_errors(tokens);
-        assert_eq!(errors.len(), 5);
-
-        for err in errors.iter() {
-            match err {
-                ParseError::OwnedForeignTypeArgNotAllowed { ty } => {
-                    assert_eq!(ty.to_token_stream().to_string(), "Foo");
-                }
-                _ => panic!(),
-            };
-        }
     }
 
     /// Verify that if a foreign type is marked as enabled we allow taking owned foreign type args.
@@ -565,15 +527,5 @@ mod tests {
         };
 
         assert_tokens_contain(&parse_ok(tokens).to_token_stream(), &expected);
-    }
-
-    fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
-        let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
-        module_and_errors.module
-    }
-
-    fn parse_errors(tokens: TokenStream) -> ParseErrors {
-        let parsed: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
-        parsed.errors
     }
 }

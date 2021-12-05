@@ -133,24 +133,3 @@ struct GeneratedFromSwiftBridgeModule {
     c_header: String,
     swift: String,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn foo() {
-        let generated = parse_file(MOCK_FILE).unwrap();
-        dbg!(&generated);
-        todo!("Delete this test.. just a scratchpad..")
-    }
-
-    const MOCK_FILE: &'static str = r#"
-#[swift_bridge::bridge]
-mod ffi {
-    extern "Rust" {
-        type Foo;
-    }
-} 
-    "#;
-}

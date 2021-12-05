@@ -85,7 +85,6 @@ impl<'a> SharedStructParser<'a> {
                     StructAttr::Error(err) => match err {
                         StructAttrParseError::InvalidSwiftRepr(val) => {
                             self.errors.push(ParseError::StructInvalidSwiftRepr {
-                                struct_ident: item_struct.ident.clone(),
                                 swift_repr_attr_value: val.clone(),
                             });
                             attribs.swift_repr = Some((StructSwiftRepr::Structure, val));
@@ -214,10 +213,8 @@ mod tests {
 
         match &errors[0] {
             ParseError::StructInvalidSwiftRepr {
-                struct_ident,
                 swift_repr_attr_value,
             } => {
-                assert_eq!(struct_ident, "Foo");
                 assert_eq!(swift_repr_attr_value.value(), "an-invalid-value");
             }
             _ => panic!(),

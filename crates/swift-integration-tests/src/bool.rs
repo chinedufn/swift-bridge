@@ -7,13 +7,14 @@ mod ffi {
     }
 
     extern "Swift" {
-        fn swiftNegateBool(start: bool) -> bool;
+        #[swift_bridge(swift_name = "swiftNegateBool")]
+        fn swift_negate_bool(start: bool) -> bool;
     }
 }
 
 fn run_bool_test() {
-    assert_eq!(ffi::swiftNegateBool(true), false);
-    assert_eq!(ffi::swiftNegateBool(false), true);
+    assert_eq!(ffi::swift_negate_bool(true), false);
+    assert_eq!(ffi::swift_negate_bool(false), true);
 }
 
 fn rust_negate_bool(start: bool) -> bool {

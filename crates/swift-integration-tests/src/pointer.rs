@@ -32,8 +32,8 @@ fn rust_run_opaque_pointer_tests() {
     let ptr = num as *const i32 as *const c_void;
     let ptr_mut = num_mut as *mut i32 as *mut c_void;
 
-    let ptr_copy = unsafe { ffi::swift_echo_const_c_void(ptr) };
-    let ptr_mut_copy = unsafe { ffi::swift_echo_mut_c_void(ptr_mut) };
+    let ptr_copy = ffi::swift_echo_const_c_void(ptr);
+    let ptr_mut_copy = ffi::swift_echo_mut_c_void(ptr_mut);
 
     assert_eq!(unsafe { *(ptr_copy as *const i32) }, 123);
 
@@ -48,8 +48,8 @@ fn rust_run_u8_pointer_tests() {
     let ptr = num as *const u8;
     let ptr_mut = num_mut as *mut u8;
 
-    let ptr_copy = unsafe { ffi::swift_echo_const_u8(ptr) };
-    let ptr_mut_copy = unsafe { ffi::swift_echo_mut_u8(ptr_mut) };
+    let ptr_copy = ffi::swift_echo_const_u8(ptr);
+    let ptr_mut_copy = ffi::swift_echo_mut_u8(ptr_mut);
 
     assert_eq!(unsafe { *ptr_copy }, 5);
 
