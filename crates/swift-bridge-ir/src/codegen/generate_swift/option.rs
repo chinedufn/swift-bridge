@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::{assert_generated_contains_expected, parse_ok};
+    use crate::test_utils::{assert_trimmed_generated_contains_trimmed_expected, parse_ok};
     use quote::quote;
 
     /// Verify that we generate correct code for an extern "Swift" block that returns an Option<T>
@@ -20,11 +20,11 @@ mod tests {
         let expected = r#"
 @_cdecl("__swift_bridge__$foo")
 func __swift_bridge__foo () -> UInt8 {
-    if case let val? = foo() { return markReturnTypeSome(val); } else { return markReturnTypeNone(); }
+    if case let val? = foo() { _set_option_return(true); return val; } else { _set_option_return(false); return 123; }
 } 
 "#;
 
-        assert_generated_contains_expected(generated.trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(generated.trim(), expected.trim());
     }
 
     /// Verify that we generate correct code for an extern "Rust" block that returns an Option<T>

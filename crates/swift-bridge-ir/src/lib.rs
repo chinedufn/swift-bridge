@@ -17,7 +17,7 @@ use crate::parsed_extern_fn::ParsedExternFn;
 mod errors;
 mod parse;
 
-mod built_in_types;
+mod bridged_type;
 mod parsed_extern_fn;
 
 mod codegen;

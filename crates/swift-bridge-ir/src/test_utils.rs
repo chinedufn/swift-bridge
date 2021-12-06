@@ -47,7 +47,7 @@ Inner Tokens:
 }
 
 /// Trims both generated and expected.
-pub fn assert_generated_equals_expected(generated: &str, expected: &str) {
+pub fn assert_trimmed_generated_equals_trimmed_expected(generated: &str, expected: &str) {
     assert_eq!(
         generated.trim(),
         expected.trim(),
@@ -62,7 +62,7 @@ Expected:
 }
 
 /// Trims both generated and expected.
-pub fn assert_generated_contains_expected(generated: &str, expected: &str) {
+pub fn assert_trimmed_generated_contains_trimmed_expected(generated: &str, expected: &str) {
     assert!(
         generated.trim().contains(&expected.trim()),
         r#"Expected was not contained by generated.

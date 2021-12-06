@@ -1,7 +1,6 @@
-use crate::built_in_types::{ForeignBridgedType, SharedType};
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::ForeignModParser;
-use crate::parse::parse_struct::SharedStructParser;
+use crate::parse::parse_struct::SharedStructDeclarationParser;
 use crate::SwiftBridgeModule;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
@@ -11,7 +10,7 @@ mod parse_extern_mod;
 mod parse_struct;
 
 mod type_declarations;
-pub(crate) use self::type_declarations::TypeDeclarations;
+pub(crate) use self::type_declarations::*;
 
 impl Parse for SwiftBridgeModule {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -70,14 +69,14 @@ impl Parse for SwiftBridgeModuleAndErrors {
                         .parse(foreign_mod)?;
                     }
                     Item::Struct(item_struct) => {
-                        let shared_struct = SharedStructParser {
+                        let shared_struct = SharedStructDeclarationParser {
                             item_struct,
                             errors: &mut errors,
                         }
                         .parse()?;
                         all_type_declarations.insert(
                             shared_struct.name.to_string(),
-                            ForeignBridgedType::Shared(SharedType::Struct(shared_struct)),
+                            TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)),
                         );
                     }
                     _ => {

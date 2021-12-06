@@ -1,5 +1,5 @@
-use crate::built_in_types::{BuiltInType, ForeignBridgedType, SharedType, StdLibType};
-use crate::parse::TypeDeclarations;
+use crate::bridged_type::{BridgedType, StdLibType};
+use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::SwiftBridgeModule;
 use std::collections::HashSet;
@@ -34,13 +34,13 @@ impl SwiftBridgeModule {
 
         for ty in self.types.types() {
             match ty {
-                ForeignBridgedType::Shared(ty) => match ty {
-                    SharedType::Struct(ty_struct) => {
+                TypeDeclaration::Shared(ty) => match ty {
+                    SharedTypeDeclaration::Struct(ty_struct) => {
                         let name = ty_struct.swift_name_string();
 
                         let mut fields = vec![];
                         for (idx, field) in ty_struct.fields.iter().enumerate() {
-                            if let Some(ty) = BuiltInType::new_with_type(&field.ty, &self.types) {
+                            if let Some(ty) = BridgedType::new_with_type(&field.ty, &self.types) {
                                 if let Some(include) = ty.c_include() {
                                     bookkeeping.includes.insert(include);
                                 }
@@ -78,7 +78,7 @@ impl SwiftBridgeModule {
                         header += "\n";
                     }
                 },
-                ForeignBridgedType::Opaque(ty) => {
+                TypeDeclaration::Opaque(ty) => {
                     if ty.host_lang.is_swift() {
                         continue;
                     }
@@ -87,13 +87,16 @@ impl SwiftBridgeModule {
 
                     let ty_decl = format!("typedef struct {ty_name} {ty_name};", ty_name = ty_name);
                     let drop_ty = format!(
-                        "void __swift_bridge__${ty_name}$_free(void* self);",
+                        r#"void __swift_bridge__${ty_name}$_free(void* self);"#,
                         ty_name = ty_name
                     );
+                    let vec_functions = vec_functions(&ty_name);
 
                     header += &ty_decl;
                     header += "\n";
                     header += &drop_ty;
+                    header += "\n";
+                    header += &vec_functions;
                     header += "\n";
                 }
             }
@@ -130,6 +133,21 @@ impl SwiftBridgeModule {
     }
 }
 
+fn vec_functions(ty_name: &str) -> String {
+    format!(
+        r#"
+void* __swift_bridge__$Vec_{ty_name}$new(void);
+void __swift_bridge__$Vec_{ty_name}$drop(void* vec_ptr);
+void __swift_bridge__$Vec_{ty_name}$push(void* vec_ptr, void* item_ptr);
+void* __swift_bridge__$Vec_{ty_name}$pop(void* vec_ptr);
+void* __swift_bridge__$Vec_{ty_name}$get(void* vec_ptr, uintptr_t index);
+uintptr_t __swift_bridge__$Vec_{ty_name}$len(void* vec_ptr);
+void* __swift_bridge__$Vec_{ty_name}$as_ptr(void* vec_ptr);
+"#,
+        ty_name = ty_name
+    )
+}
+
 fn declare_func(
     func: &ParsedExternFn,
     bookkeeping: &mut Bookkeeping,
@@ -140,8 +158,8 @@ fn declare_func(
     let params = func.to_c_header_params(types);
 
     if let ReturnType::Type(_, ty) = &func.func.sig.output {
-        if let Some(ty) = BuiltInType::new_with_type(&ty, types) {
-            if let BuiltInType::StdLib(StdLibType::RefSlice(ref_slice)) = ty {
+        if let Some(ty) = BridgedType::new_with_type(&ty, types) {
+            if let BridgedType::StdLib(StdLibType::RefSlice(ref_slice)) = ty {
                 bookkeeping.slice_types.insert(ref_slice.ty.to_c());
             }
         }
@@ -169,7 +187,10 @@ mod tests {
     use quote::quote;
 
     use crate::parse::SwiftBridgeModuleAndErrors;
-    use crate::test_utils::assert_generated_equals_expected;
+    use crate::test_utils::{
+        assert_trimmed_generated_contains_trimmed_expected,
+        assert_trimmed_generated_equals_trimmed_expected,
+    };
     use crate::SwiftBridgeModule;
 
     use super::*;
@@ -278,10 +299,14 @@ uint8_t __swift_bridge__$foo(void);
                 }
             }
         };
-        let expected = r#"
+        let expected = format!(
+            r#"
 typedef struct SomeType SomeType;
 void __swift_bridge__$SomeType$_free(void* self);
-"#;
+{}
+"#,
+            vec_functions("SomeType")
+        );
 
         let module = parse_ok(tokens);
         assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
@@ -304,19 +329,22 @@ void __swift_bridge__$SomeType$_free(void* self);
                 }
             }
         };
-        let expected = r#"
-typedef struct SomeType SomeType;
-void __swift_bridge__$SomeType$_free(void* self);
+        let expected = format!(
+            r#"
 void __swift_bridge__$SomeType$a(void* self);
 void __swift_bridge__$SomeType$b(void* self);
 void __swift_bridge__$SomeType$c(void* self);
 void __swift_bridge__$SomeType$d(void* self);
 void __swift_bridge__$SomeType$e(void* self);
 void __swift_bridge__$SomeType$f(void* self);
-        "#;
+        "#,
+        );
 
         let module = parse_ok(tokens);
-        assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(
+            &module.generate_c_header_inner(),
+            &expected,
+        );
     }
 
     /// Verify that we generate a type definition for a method with no arguments.
@@ -331,12 +359,16 @@ void __swift_bridge__$SomeType$f(void* self);
                 }
             }
         };
-        let expected = r#"
+        let expected = format!(
+            r#"
 #include <stdint.h>
 typedef struct SomeType SomeType;
 void __swift_bridge__$SomeType$_free(void* self);
+{}
 void __swift_bridge__$SomeType$foo(void* self, uint8_t val);
-        "#;
+        "#,
+            vec_functions("SomeType")
+        );
 
         let module = parse_ok(tokens);
         assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
@@ -354,11 +386,15 @@ void __swift_bridge__$SomeType$foo(void* self, uint8_t val);
                 }
             }
         };
-        let expected = r#"
+        let expected = format!(
+            r#"
 typedef struct SomeType SomeType;
 void __swift_bridge__$SomeType$_free(void* self);
+{}
 void __swift_bridge__$SomeType$foo(void* self, void* val);
-        "#;
+        "#,
+            vec_functions("SomeType")
+        );
 
         let module = parse_ok(tokens);
         assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
@@ -376,12 +412,16 @@ void __swift_bridge__$SomeType$foo(void* self, void* val);
                 }
             }
         };
-        let expected = r#"
+        let expected = format!(
+            r#"
 #include <stdint.h>
 typedef struct SomeType SomeType;
 void __swift_bridge__$SomeType$_free(void* self);
+{}
 uint8_t __swift_bridge__$SomeType$foo(void* self);
-        "#;
+        "#,
+            vec_functions("SomeType")
+        );
 
         let module = parse_ok(tokens);
         assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
@@ -435,7 +475,10 @@ typedef struct Bazz Bazz;
         "#;
 
         let module = parse_ok(tokens);
-        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+        assert_trimmed_generated_equals_trimmed_expected(
+            &module.generate_c_header_inner(),
+            &expected,
+        );
     }
 
     /// Verify that we emit a typedef for a struct with one fields.
@@ -458,7 +501,10 @@ typedef struct Bar { uint8_t _0; } Bar;
         "#;
 
         let module = parse_ok(tokens);
-        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+        assert_trimmed_generated_equals_trimmed_expected(
+            &module.generate_c_header_inner(),
+            &expected,
+        );
     }
 
     /// Verify that we emit a typedef for a struct with two field.
@@ -480,7 +526,10 @@ typedef struct Foo { uint8_t field1; uint16_t field2; } Foo;
         "#;
 
         let module = parse_ok(tokens);
-        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+        assert_trimmed_generated_equals_trimmed_expected(
+            &module.generate_c_header_inner(),
+            &expected,
+        );
     }
 
     /// Verify that we use the swift_name when generating the struct typedef.
@@ -498,7 +547,10 @@ typedef struct FfiFoo FfiFoo;
         "#;
 
         let module = parse_ok(tokens);
-        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+        assert_trimmed_generated_equals_trimmed_expected(
+            &module.generate_c_header_inner(),
+            &expected,
+        );
     }
 
     /// Verify that we use the struct's swift_name attribute when generating function signatures.
@@ -521,7 +573,10 @@ struct FfiFoo __swift_bridge__$some_function(struct FfiFoo arg);
         "#;
 
         let module = parse_ok(tokens);
-        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+        assert_trimmed_generated_equals_trimmed_expected(
+            &module.generate_c_header_inner(),
+            &expected,
+        );
     }
 
     /// Verify that we generate a proper header for a Rust function that returns an owned Swift
@@ -545,6 +600,9 @@ struct __private__PointerToSwiftType __swift_bridge__$some_function(void);
         "#;
 
         let module = parse_ok(tokens);
-        assert_generated_equals_expected(&module.generate_c_header_inner(), &expected);
+        assert_trimmed_generated_equals_trimmed_expected(
+            &module.generate_c_header_inner(),
+            &expected,
+        );
     }
 }
