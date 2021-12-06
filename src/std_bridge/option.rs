@@ -9,6 +9,8 @@ thread_local! {
 
 use self::macro_::impl_ffi_optional;
 
+// TODO: Can probably ditch this trait and instead just add a method in `BuiltInType` that generates
+//  a placeholder value.
 #[doc(hidden)]
 pub trait FfiOptional {
     /// Used to create a value of this type that won't actually be used by the other side of the

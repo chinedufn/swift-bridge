@@ -47,6 +47,13 @@ class VecTests: XCTestCase {
         XCTAssertEqual(vec.get(index: 1), 9)
     }
     
+    func testVecOfOpaqueRustType() throws {
+        let vec = create_vec_opaque_rust_type()
+        
+        XCTAssertEqual(vec.len(), 1)
+        XCTAssertEqual(vec.get(index: 0)!.text().toString(), "hello there, friend")
+    }
+    
     func testRustVecIterator() throws {
         let numbers: [Int32] = [5, 6, 7]
         let vec = create_vec_i32(numbers.toUnsafeBufferPointer())

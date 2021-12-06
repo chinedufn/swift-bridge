@@ -61,7 +61,7 @@ mod macro_ {
                 #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$get")]
                 #[doc(hidden)]
                 pub extern "C" fn _get(vec: *mut Vec<$ty>, index: usize) -> $ty {
-                    let vec = unsafe { &mut *vec };
+                    let vec = unsafe { & *vec };
                     if let Some(val) = vec.get(index) {
                         crate::option::_set_option_return(true);
                         *val

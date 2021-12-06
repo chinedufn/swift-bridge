@@ -4,8 +4,9 @@ use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use quote::ToTokens;
 
+use crate::built_in_types::{FieldsFormat, ForeignBridgedType, SharedType};
 use crate::parse::HostLang;
-use crate::{BridgedType, FieldsFormat, SharedType, SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
 mod option;
 
@@ -35,12 +36,12 @@ impl ToTokens for SwiftBridgeModule {
 
                     if let Some(ty) = func.associated_type.as_ref() {
                         match ty {
-                            BridgedType::Shared(_) => {
+                            ForeignBridgedType::Shared(_) => {
                                 //
 
                                 todo!()
                             }
-                            BridgedType::Opaque(ty) => {
+                            ForeignBridgedType::Opaque(ty) => {
                                 impl_fn_tokens
                                     .entry(ty.ident.to_string())
                                     .or_default()
@@ -60,7 +61,7 @@ impl ToTokens for SwiftBridgeModule {
 
         for ty in &self.types.types() {
             match ty {
-                BridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                ForeignBridgedType::Shared(SharedType::Struct(shared_struct)) => {
                     let name = &shared_struct.name;
 
                     let fields: Vec<TokenStream> = shared_struct
@@ -100,7 +101,7 @@ impl ToTokens for SwiftBridgeModule {
                     };
                     shared_struct_definitions.push(definition);
                 }
-                BridgedType::Opaque(ty) => {
+                ForeignBridgedType::Opaque(ty) => {
                     let link_name =
                         format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
                     let free_mem_func_name = Ident::new(

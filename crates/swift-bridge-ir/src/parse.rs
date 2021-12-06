@@ -1,7 +1,8 @@
+use crate::built_in_types::{ForeignBridgedType, SharedType};
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::parse::parse_struct::SharedStructParser;
-use crate::{BridgedType, SharedType, SwiftBridgeModule};
+use crate::SwiftBridgeModule;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::{Item, ItemMod};
@@ -28,7 +29,7 @@ pub(crate) struct SwiftBridgeModuleAndErrors {
 }
 
 /// The language that a bridge type or function's implementation lives in.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub(crate) enum HostLang {
     /// The type or function is defined Rust.
     Rust,
@@ -76,7 +77,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                         .parse()?;
                         all_type_declarations.insert(
                             shared_struct.name.to_string(),
-                            BridgedType::Shared(SharedType::Struct(shared_struct)),
+                            ForeignBridgedType::Shared(SharedType::Struct(shared_struct)),
                         );
                     }
                     _ => {

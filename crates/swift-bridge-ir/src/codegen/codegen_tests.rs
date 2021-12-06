@@ -41,8 +41,8 @@ mod extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg {
         }
     }
 
-    fn expected_rust_tokens() -> TokenStream {
-        quote! {
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
             pub fn some_function (arg: super::MyType) {
                 unsafe { __swift_bridge__some_function( Box::into_raw(Box::new(arg)) ) }
             }
@@ -51,15 +51,17 @@ mod extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg {
                 #[link_name = "__swift_bridge__$some_function"]
                 fn __swift_bridge__some_function (arg: *mut super::MyType);
             }
-        }
+        })
     }
 
-    const EXPECTED_SWIFT: &'static str = r#"
+    const EXPECTED_SWIFT: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
+        r#"
 @_cdecl("__swift_bridge__$some_function")
 func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer) {
     some_function(arg: MyType(ptr: arg, isOwned: true))
 }
-"#;
+"#,
+    );
 
     const EXPECTED_C_HEADER: &'static str = r#"
 typedef struct MyType MyType;
@@ -70,8 +72,8 @@ void __swift_bridge__$MyType$_free(void* self);
     fn extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg() {
         CodegenTest {
             bridge_module_tokens: bridge_module_tokens(),
-            expected_rust_tokens: ExpectedRustTokens::Contains(expected_rust_tokens()),
-            expected_swift_code: ExpectedSwiftCode::ContainsAfterTrim(EXPECTED_SWIFT),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: EXPECTED_SWIFT,
             expected_c_header: EXPECTED_C_HEADER,
         }
         .test();
@@ -187,6 +189,114 @@ void __swift_bridge__$some_function(void* arg);
             expected_c_header: EXPECTED_C_HEADER,
         }
         .test();
+    }
+}
+
+/// Test code generation for Rust function that returns a Vec<T> where T is an opaque Rust type.
+mod extern_rust_fn_return_vec_of_opaque_rust_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    type MyRustType;
+
+                    fn some_function () -> Vec<MyRustType>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            const _: () = {
+                #[doc(hdden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$new"]
+                pub extern "C" fn _new() -> *mut Vec<super::MyRustType> {
+                    Box::into_raw(Box::new(Vec::new()))
+                }
+
+                #[doc(hdden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$drop"]
+                pub extern "C" fn _drop(vec: *mut Vec<super::MyRustType>) {
+                    let vec = unsafe { Box::from_raw(vec) };
+                    drop(vec)
+                }
+
+                #[doc(hdden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$len"]
+                pub extern "C" fn _len(vec: *mut Vec<super::MyRustType>) -> usize {
+                    unsafe { &*vec }.len()
+                }
+
+                #[doc(hdden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$get"]
+                pub extern "C" fn _get(vec: *mut Vec<super::MyRustType>, index: usize) -> *const super::MyRustType {
+                    let vec = unsafe { & *vec };
+                    if let Some(val) = vec.get(index) {
+                        swift_bridge::option::_set_option_return(true);
+                        val as *const super::MyRustType
+                    } else {
+                        swift_bridge::option::_set_option_return(false);
+                        std::ptr::null()
+                    }
+                }
+
+                #[doc(hdden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$push"]
+                pub extern "C" fn _as_ptr(vec: *mut Vec<super::MyRustType>, val: *mut super::MyRustType) {
+                    unsafe { &mut *vec }.push(Box::from_raw(val))
+                }
+
+                #[doc(hdden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$pop"]
+                pub extern "C" fn _pop(vec: *mut Vec<super::MyRustType>) -> *const super::MyRustType {
+                    let vec = unsafe { & *vec };
+                    if let Some(val) = vec.pop() {
+                        swift_bridge::option::_set_option_return(true);
+                        val as *const super::MyRustType
+                    } else {
+                        swift_bridge::option::_set_option_return(false);
+                        std::ptr::null()
+                    }
+                }
+
+                #[doc(hdden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$as_ptr"]
+                pub extern "C" fn _as_ptr(vec: *mut Vec<super::MyRustType>) -> *const super::MyRustType {
+                    unsafe { & *vec }.as_ptr()
+                }
+            };
+
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function() -> *mut Vec<MyRustType> {
+                Box::into_raw(Box::new(super::some_function()))
+            }
+        })
+    }
+
+    const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
+        r#"
+func some_function() -> RustVec<MyRustType> {
+    RustVec(ptr: __swift_bridge__$some_function(), isOwned: true)
+}
+"#,
+    );
+
+    const EXPECTED_C_HEADER: &'static str = r#"
+void* __swift_bridge__$some_function(void);
+    "#;
+
+    #[test]
+    fn extern_rust_fn_return_vec_of_opaque_rust_type() {
+        // CodegenTest {
+        //     bridge_module_tokens: bridge_module_tokens(),
+        //     expected_rust_tokens: expected_rust_tokens(),
+        //     expected_swift_code: EXPECTED_SWIFT_CODE,
+        //     expected_c_header: EXPECTED_C_HEADER,
+        // }
+        // .test();
     }
 }
 
