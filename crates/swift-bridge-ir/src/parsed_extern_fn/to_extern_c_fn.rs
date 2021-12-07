@@ -1,5 +1,5 @@
-use crate::built_in_types::{BuiltInType, ForeignBridgedType, SharedType};
-use crate::parse::{HostLang, TypeDeclarations};
+use crate::bridged_type::BridgedType;
+use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
@@ -12,7 +12,6 @@ impl ParsedExternFn {
     /// ```
     /// # type ReturnTypeHere = ();
     /// // Functions in extern "Rust" blocks become
-    /// #[no_mangle]
     /// #[export_name = "..."]
     /// pub extern "C" fn a_function_name () -> ReturnTypeHere {
     ///   // ...
@@ -35,14 +34,13 @@ impl ParsedExternFn {
 
         let prefixed_fn_name = self.prefixed_fn_name();
 
-        let ret = self.rust_return_type(swift_bridge_path, types);
+        let ret = self.rust_return_type(self.host_lang, swift_bridge_path, types);
 
         match self.host_lang {
             HostLang::Rust => {
                 let call_fn = self.call_fn_tokens(swift_bridge_path, types);
 
                 quote! {
-                    #[no_mangle]
                     #[export_name = #link_name]
                     pub extern "C" fn #prefixed_fn_name ( #params ) #ret {
                         #call_fn
@@ -94,8 +92,8 @@ impl ParsedExternFn {
                     _ => {
                         let ty_string = return_ty.deref().to_token_stream().to_string();
                         match types.get(&ty_string).unwrap() {
-                            ForeignBridgedType::Shared(SharedType::Struct(_)) => {}
-                            ForeignBridgedType::Opaque(opaque) => {
+                            TypeDeclaration::Shared(SharedTypeDeclaration::Struct(_)) => {}
+                            TypeDeclaration::Opaque(opaque) => {
                                 if opaque.host_lang.is_rust() {
                                     call_fn = quote! { Box::into_raw(Box::new(#call_fn)) as *mut super::#return_ty };
                                 }
@@ -133,11 +131,11 @@ impl ParsedExternFn {
     fn call_function_tokens(&self, call_fn: &TokenStream) -> TokenStream {
         let maybe_associated_type = self.associated_type.as_ref().map(|ty| {
             match ty {
-                ForeignBridgedType::Shared(_) => {
+                TypeDeclaration::Shared(_) => {
                     //
                     todo!()
                 }
-                ForeignBridgedType::Opaque(ty) => {
+                TypeDeclaration::Opaque(ty) => {
                     let ty = &ty.ident;
                     quote! {#ty::}
                 }
@@ -150,8 +148,8 @@ impl ParsedExternFn {
     }
 
     /// If the functions return type is a BuiltInType, return it.
-    pub(crate) fn return_ty_built_in(&self, types: &TypeDeclarations) -> Option<BuiltInType> {
-        BuiltInType::new_with_return_type(&self.func.sig.output, types)
+    pub(crate) fn return_ty_built_in(&self, types: &TypeDeclarations) -> Option<BridgedType> {
+        BridgedType::new_with_return_type(&self.func.sig.output, types)
     }
 }
 
@@ -173,7 +171,6 @@ mod tests {
             }
         };
         let expected_fn = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$make_slice"]
             pub extern "C" fn __swift_bridge__make_slice() -> swift_bridge::FfiSlice<u8> {
                 swift_bridge::FfiSlice::from_slice(super::make_slice())
@@ -195,7 +192,6 @@ mod tests {
             }
         };
         let expected_fn = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$make_string"]
             pub extern "C" fn __swift_bridge__make_string() -> *mut swift_bridge::string::RustString {
                 swift_bridge::string::RustString(super::make_string()).box_into_raw()

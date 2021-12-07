@@ -4,11 +4,13 @@ use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use quote::ToTokens;
 
-use crate::built_in_types::{FieldsFormat, ForeignBridgedType, SharedType};
-use crate::parse::HostLang;
+use crate::bridged_type::FieldsFormat;
+use crate::codegen::generate_rust_tokens::vec::generate_vec_of_opaque_rust_type_functions;
+use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
 mod option;
+mod vec;
 
 impl ToTokens for SwiftBridgeModule {
     fn to_tokens(&self, tokens: &mut TokenStream) {
@@ -36,12 +38,12 @@ impl ToTokens for SwiftBridgeModule {
 
                     if let Some(ty) = func.associated_type.as_ref() {
                         match ty {
-                            ForeignBridgedType::Shared(_) => {
+                            TypeDeclaration::Shared(_) => {
                                 //
 
                                 todo!()
                             }
-                            ForeignBridgedType::Opaque(ty) => {
+                            TypeDeclaration::Opaque(ty) => {
                                 impl_fn_tokens
                                     .entry(ty.ident.to_string())
                                     .or_default()
@@ -61,7 +63,7 @@ impl ToTokens for SwiftBridgeModule {
 
         for ty in &self.types.types() {
             match ty {
-                ForeignBridgedType::Shared(SharedType::Struct(shared_struct)) => {
+                TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
                     let name = &shared_struct.name;
 
                     let fields: Vec<TokenStream> = shared_struct
@@ -101,7 +103,7 @@ impl ToTokens for SwiftBridgeModule {
                     };
                     shared_struct_definitions.push(definition);
                 }
-                ForeignBridgedType::Opaque(ty) => {
+                TypeDeclaration::Opaque(ty) => {
                     let link_name =
                         format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
                     let free_mem_func_name = Ident::new(
@@ -109,18 +111,25 @@ impl ToTokens for SwiftBridgeModule {
                         ty.ident.span(),
                     );
                     let this = &ty.ident;
+                    let ty_name = &ty.ident;
 
                     match ty.host_lang {
                         HostLang::Rust => {
                             let free = quote! {
-                                #[no_mangle]
                                 #[export_name = #link_name]
                                 pub extern "C" fn #free_mem_func_name (this: *mut super::#this) {
                                     let this = unsafe { Box::from_raw(this) };
                                     drop(this);
                                 }
                             };
+
+                            let vec_functions = generate_vec_of_opaque_rust_type_functions(
+                                ty_name,
+                                &self.swift_bridge_path,
+                            );
+
                             extern_rust_fn_tokens.push(free);
+                            extern_rust_fn_tokens.push(vec_functions);
                         }
                         HostLang::Swift => {
                             let ty_name = &ty.ident;
@@ -186,6 +195,7 @@ impl ToTokens for SwiftBridgeModule {
         };
 
         let t = quote! {
+            #[allow(non_snake_case)]
             mod #mod_name {
                 #module_inner
             }
@@ -215,19 +225,16 @@ mod tests {
             }
         };
         let expected = quote! {
-            mod foo {
-                #[no_mangle]
-                #[export_name = "__swift_bridge__$SomeType$_free"]
-                pub extern "C" fn __swift_bridge__SomeType__free (
-                    this: *mut super::SomeType
-                ) {
-                    let this = unsafe { Box::from_raw(this) };
-                    drop(this);
-                }
+            #[export_name = "__swift_bridge__$SomeType$_free"]
+            pub extern "C" fn __swift_bridge__SomeType__free (
+                this: *mut super::SomeType
+            ) {
+                let this = unsafe { Box::from_raw(this) };
+                drop(this);
             }
         };
 
-        assert_tokens_eq(&parse_ok(start).to_token_stream(), &expected);
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
     }
 
     /// Verify that we generate tokens for a freestanding Rust function with no arguments.
@@ -241,8 +248,8 @@ mod tests {
             }
         };
         let expected = quote! {
+            #[allow(non_snake_case)]
             mod foo {
-                #[no_mangle]
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function () {
                     super::some_function()
@@ -264,6 +271,7 @@ mod tests {
             }
         };
         let expected = quote! {
+            #[allow(non_snake_case)]
             mod foo {
                 pub fn some_function() {
                     unsafe { __swift_bridge__some_function() }
@@ -291,6 +299,7 @@ mod tests {
             }
         };
         let expected = quote! {
+            #[allow(non_snake_case)]
             mod foo {
                 pub fn some_function(start: bool) {
                     unsafe { __swift_bridge__some_function(start) }
@@ -317,8 +326,8 @@ mod tests {
             }
         };
         let expected = quote! {
+            #[allow(non_snake_case)]
             mod foo {
-                #[no_mangle]
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function (bar: u8) {
                     super::some_function(bar)
@@ -342,10 +351,9 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function (
-                bar: *mut super::MyType
+                bar: *const super::MyType
             ) {
                 super::some_function(unsafe { & * bar } )
             }
@@ -370,13 +378,12 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function (
-                bar: *mut std::ffi::c_void
+                bar: MyType
             ) {
                 super::some_function(
-                    MyType(bar)
+                    bar
                 )
             }
         };
@@ -400,7 +407,6 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function () -> MyType {
                 super::some_function()
@@ -421,8 +427,8 @@ mod tests {
             }
         };
         let expected = quote! {
+            #[allow(non_snake_case)]
             mod foo {
-                #[no_mangle]
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function () -> u8 {
                     super::some_function()
@@ -446,7 +452,6 @@ mod tests {
             }
         };
         let expected_func = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function () -> *mut super::Foo {
                 Box::into_raw(Box::new(super::some_function())) as *mut super::Foo
@@ -469,7 +474,6 @@ mod tests {
             }
         };
         let expected_func = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function () -> *const super::Foo {
                 super::some_function() as *const super::Foo
@@ -492,7 +496,6 @@ mod tests {
             }
         };
         let expected_func = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$Foo$some_function"]
             pub extern "C" fn __swift_bridge__Foo_some_function (
                 this: *mut super::Foo
@@ -548,7 +551,6 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$new"]
             pub extern "C" fn __swift_bridge__SomeType_new () -> *mut super::SomeType {
                 Box::into_raw(Box::new(super::SomeType::new())) as *mut super::SomeType
@@ -578,7 +580,7 @@ mod tests {
 
             impl Foo {
                 pub fn new () -> Foo {
-                    Foo(unsafe{ __swift_bridge__Foo_new() })
+                    unsafe{ __swift_bridge__Foo_new() }
                 }
             }
 
@@ -590,7 +592,7 @@ mod tests {
 
             extern "C" {
                 #[link_name = "__swift_bridge__$Foo$new"]
-                fn __swift_bridge__Foo_new() -> *mut std::ffi::c_void;
+                fn __swift_bridge__Foo_new() -> Foo;
 
                 #[link_name = "__swift_bridge__$Foo$_free"]
                 fn __swift_bridge__Foo__free (this: *mut std::ffi::c_void);
@@ -614,7 +616,6 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$new"]
             pub extern "C" fn __swift_bridge__SomeType_new (foo: u8) -> u8 {
                 super::SomeType::new(foo)
@@ -638,7 +639,6 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$new"]
             pub extern "C" fn __swift_bridge__SomeType_new ()  {
                  super::SomeType::new()
@@ -660,7 +660,6 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$MyType$increment"]
             pub extern "C" fn __swift_bridge__MyType_increment (
                 this: *mut super::MyType
@@ -693,15 +692,15 @@ mod tests {
 
             impl Foo {
                 pub fn notify (&self) {
-                    unsafe { __swift_bridge__Foo_notify(self.0) }
+                    unsafe { __swift_bridge__Foo_notify(swift_bridge::PointerToSwiftType(self.0)) }
                 }
 
                 pub fn message (&self) {
-                    unsafe { __swift_bridge__Foo_message(self.0) }
+                    unsafe { __swift_bridge__Foo_message(swift_bridge::PointerToSwiftType(self.0)) }
                 }
 
                 pub fn call (&mut self, volume: u8) {
-                    unsafe { __swift_bridge__Foo_call(self.0, volume) }
+                    unsafe { __swift_bridge__Foo_call(swift_bridge::PointerToSwiftType(self.0), volume) }
                 }
             }
 
@@ -713,13 +712,13 @@ mod tests {
 
             extern "C" {
                 #[link_name = "__swift_bridge__$Foo$notify"]
-                fn __swift_bridge__Foo_notify(this: *mut std::ffi::c_void);
+                fn __swift_bridge__Foo_notify(this: swift_bridge::PointerToSwiftType);
 
                 #[link_name = "__swift_bridge__$Foo$message"]
-                fn __swift_bridge__Foo_message(this: *mut std::ffi::c_void);
+                fn __swift_bridge__Foo_message(this: swift_bridge::PointerToSwiftType);
 
                 #[link_name = "__swift_bridge__$Foo$call"]
-                fn __swift_bridge__Foo_call(this: *mut std::ffi::c_void, volume: u8);
+                fn __swift_bridge__Foo_call(this: swift_bridge::PointerToSwiftType, volume: u8);
 
                 #[link_name = "__swift_bridge__$Foo$_free"]
                 fn __swift_bridge__Foo__free (this: *mut std::ffi::c_void);
@@ -741,7 +740,6 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$message"]
             pub extern "C" fn __swift_bridge__SomeType_message (
                 this: *mut super::SomeType,
@@ -765,7 +763,6 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$void_pointers"]
             pub extern "C" fn __swift_bridge__void_pointers (
                 arg1: *const super::c_void,
@@ -844,7 +841,6 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$SomeType$consume"]
             pub extern "C" fn __swift_bridge__SomeType_consume (
                 this: *mut super::SomeType
@@ -875,7 +871,6 @@ mod tests {
             #[repr(C)]
             pub struct Foo;
 
-            #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function (arg: Foo) {
                 super::some_function(arg)
@@ -903,7 +898,6 @@ mod tests {
             #[repr(C)]
             pub struct Foo;
 
-            #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function () -> Foo {
                 super::some_function()

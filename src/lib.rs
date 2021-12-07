@@ -15,6 +15,15 @@ pub struct FfiSlice<T> {
     pub len: usize,
 }
 
+// Unlike the Swift pointer wrapper types that we generate, this type does not implement drop.
+// So we can freely construct it and pass it over the FFI boundary without worrying about drop
+//
+// It has the same layout as the __private__PointerToSwift C struct, so when we pass this to
+// Swift it can receive it as a __private__PointerToSwift.
+#[doc(hidden)]
+#[repr(C)]
+pub struct PointerToSwiftType(pub *mut std::ffi::c_void);
+
 impl<T> FfiSlice<T> {
     /// Create an FfiSlice from a slice.
     pub fn from_slice(slice: &[T]) -> Self {

@@ -19,7 +19,6 @@ mod tests {
         let tokens = module.to_token_stream();
 
         let expected = quote! {
-            #[no_mangle]
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function () -> u8 {
                 if let Some(val) = super::some_function() {
@@ -27,7 +26,7 @@ mod tests {
                     val
                 } else {
                     swift_bridge::option::_set_option_return(false);
-                    <u8 as swift_bridge::option::FfiOptional>::unused_value()
+                    123
                 }
             }
         };

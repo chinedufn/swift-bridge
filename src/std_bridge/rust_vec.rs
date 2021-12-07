@@ -1,22 +1,25 @@
 use macro_::vec_externs;
 
-vec_externs!(u8);
-vec_externs!(u16);
-vec_externs!(u32);
-vec_externs!(u64);
-vec_externs!(usize);
+vec_externs!(u8, 123);
+vec_externs!(u16, 123);
+vec_externs!(u32, 123);
+vec_externs!(u64, 123);
+vec_externs!(usize, 123);
 
-vec_externs!(i8);
-vec_externs!(i16);
-vec_externs!(i32);
-vec_externs!(i64);
-vec_externs!(isize);
+vec_externs!(i8, 123);
+vec_externs!(i16, 123);
+vec_externs!(i32, 123);
+vec_externs!(i64, 123);
+vec_externs!(isize, 123);
 
-vec_externs!(bool);
+vec_externs!(f32, 0.123);
+vec_externs!(f64, 0.123);
+
+vec_externs!(bool, false);
 
 mod macro_ {
     macro_rules! vec_externs {
-        ($ty:ty) => {
+        ($ty:ty, $unused_none:expr) => {
             const _: () = {
                 #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$new")]
                 #[doc(hidden)]
@@ -54,20 +57,20 @@ mod macro_ {
                         val
                     } else {
                         crate::option::_set_option_return(false);
-                        <$ty as crate::option::FfiOptional>::unused_value()
+                        $unused_none
                     }
                 }
 
                 #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$get")]
                 #[doc(hidden)]
                 pub extern "C" fn _get(vec: *mut Vec<$ty>, index: usize) -> $ty {
-                    let vec = unsafe { & *vec };
+                    let vec = unsafe { &*vec };
                     if let Some(val) = vec.get(index) {
                         crate::option::_set_option_return(true);
                         *val
                     } else {
                         crate::option::_set_option_return(false);
-                        <$ty as crate::option::FfiOptional>::unused_value()
+                        $unused_none
                     }
                 }
 

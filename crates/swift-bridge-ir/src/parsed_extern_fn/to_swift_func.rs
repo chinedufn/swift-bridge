@@ -1,4 +1,4 @@
-use crate::built_in_types::{pat_type_pat_is_self, BuiltInType, ForeignBridgedType, SharedType};
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
 use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
 use quote::ToTokens;
@@ -33,32 +33,10 @@ impl ParsedExternFn {
 
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
-                    let ty = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty, types) {
-                        built_in.to_swift_type(false)
+                    let ty = if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
+                        built_in.to_swift_type(self.host_lang, false)
                     } else {
-                        let bridged_type = types.get_with_pat_type(&pat_ty).unwrap();
-
-                        if self.host_lang.is_rust() {
-                            match bridged_type {
-                                ForeignBridgedType::Shared(SharedType::Struct(shared)) => {
-                                    shared.swift_name_string()
-                                }
-                                ForeignBridgedType::Opaque(opaque) => opaque.ty.ident.to_string(),
-                            }
-                        } else {
-                            match bridged_type {
-                                ForeignBridgedType::Shared(SharedType::Struct(_shared)) => {
-                                    todo!("Add a codegen test that hits this code path")
-                                }
-                                ForeignBridgedType::Opaque(opaque) => {
-                                    if opaque.host_lang.is_rust() {
-                                        "UnsafeMutableRawPointer".to_string()
-                                    } else {
-                                        "__private__PointerToSwiftType".to_string()
-                                    }
-                                }
-                            }
-                        }
+                        todo!("Push to ParsedErrors")
                     };
 
                     format!("{}: {}", arg_name, ty)
@@ -122,57 +100,12 @@ impl ParsedExternFn {
                     let arg = pat.to_token_stream().to_string();
                     let arg_name = arg.clone();
 
-                    let arg = if let Some(built_in) = BuiltInType::new_with_type(&pat_ty.ty, types)
+                    let arg = if let Some(bridged_ty) =
+                        BridgedType::new_with_type(&pat_ty.ty, types)
                     {
-                        built_in.convert_swift_expression_to_ffi_compatible(&arg, self.host_lang)
+                        bridged_ty.convert_swift_expression_to_ffi_compatible(&arg, self.host_lang)
                     } else {
-                        if is_reference {
-                            format!("{}.ptr", arg)
-                        } else {
-                            let bridged_type = types.get_with_pat_type(&pat_ty).unwrap();
-
-                            if self.host_lang.is_rust() {
-                                match bridged_type {
-                                    ForeignBridgedType::Shared(_) => arg,
-                                    ForeignBridgedType::Opaque(opaque) => {
-                                        if opaque.host_lang.is_rust() {
-                                            format!(
-                                                "{{{arg}.isOwned = false; return {arg}.ptr;}}()",
-                                                arg = arg
-                                            )
-                                        } else {
-                                            // TODO: passUnretained if we're taking the argument by
-                                            //  reference. passRetained if owned
-                                            format!(
-                                                "Unmanaged.passRetained({arg}).toOpaque()",
-                                                arg = arg
-                                            )
-                                        }
-                                    }
-                                }
-                            } else {
-                                match bridged_type {
-                                    ForeignBridgedType::Shared(_) => arg,
-                                    ForeignBridgedType::Opaque(opaque) => {
-                                        let ty = &opaque.ty.ident;
-
-                                        if opaque.host_lang.is_rust() {
-                                            format!(
-                                                "{ty}(ptr: {arg}, isOwned: true)",
-                                                ty = ty.to_string(),
-                                                arg = arg
-                                            )
-                                        } else {
-                                            format!(
-                                                "Unmanaged<{ty}>.fromOpaque({arg}.ptr).takeRetainedValue()",
-                                                ty = ty.to_string(),
-                                                arg = arg
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        todo!("Push to ParsedErrors")
                     };
 
                     let arg = if include_var_name {
@@ -197,27 +130,16 @@ impl ParsedExternFn {
         match &self.func.sig.output {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
-                if let Some(built_in) = BuiltInType::new_with_type(&ty, types) {
-                    format!(" -> {}", built_in.to_swift_type(must_be_c_compatible))
+                if let Some(built_in) = BridgedType::new_with_type(&ty, types) {
+                    format!(
+                        " -> {}",
+                        built_in.to_ffi_compatible_swift_return_type(
+                            self.host_lang,
+                            must_be_c_compatible
+                        )
+                    )
                 } else {
-                    if self.host_lang.is_swift() {
-                        format!(" -> UnsafeMutableRawPointer")
-                    } else {
-                        let ty = match ty.deref() {
-                            Type::Reference(reference) => &reference.elem,
-                            _ => ty,
-                        };
-                        let ty = ty.to_token_stream().to_string();
-
-                        let ty = match types.get(&ty).unwrap() {
-                            ForeignBridgedType::Shared(SharedType::Struct(shared)) => {
-                                shared.swift_name_string()
-                            }
-                            ForeignBridgedType::Opaque(_) => ty,
-                        };
-
-                        format!(" -> {}", ty)
-                    }
+                    todo!("Push ParsedErrors")
                 }
             }
         }

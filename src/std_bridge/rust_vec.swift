@@ -1,7 +1,7 @@
 // TODO:
 //  Implement iterator https://developer.apple.com/documentation/swift/iteratorprotocol
 
-class RustVec<T: Vectorizable & FfiOption> {
+class RustVec<T: Vectorizable> {
     var ptr: UnsafeMutableRawPointer
     var isOwned: Bool
 
@@ -43,14 +43,6 @@ class RustVec<T: Vectorizable & FfiOption> {
         Int(T.vecOfSelfLen(vecPtr: ptr))
     }
 
-    func asPtr() -> UnsafePointer<T> {
-        T.vecOfSelfAsPtr(vecPtr: ptr)
-    }
-
-    func toUnsafeBufferPointer() -> UnsafeBufferPointer<T> {
-        UnsafeBufferPointer(start: asPtr(), count: len())
-    }
-
     deinit {
          T.vecOfSelfFree(vecPtr: ptr)
     }
@@ -62,7 +54,7 @@ extension RustVec: Sequence {
     }
 }
 
-struct RustVecIterator<T: Vectorizable & FfiOption>: IteratorProtocol {
+struct RustVecIterator<T: Vectorizable>: IteratorProtocol {
     var rustVec: RustVec<T>
     var index: UInt = 0
 
@@ -134,6 +126,4 @@ protocol Vectorizable {
     static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self>
 
     static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt
-
-    static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Self>
 }

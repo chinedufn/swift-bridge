@@ -606,13 +606,13 @@ extension Bool: FfiOption {
 }
     
 @_cdecl("__swift_bridge__$SwiftString$new")
-func __swift_bridge__SwiftString_new () -> UnsafeMutableRawPointer {
-    Unmanaged.passRetained(SwiftString()).toOpaque()
+func __swift_bridge__SwiftString_new () -> __private__PointerToSwiftType {
+    __private__PointerToSwiftType(ptr: Unmanaged.passRetained(SwiftString()).toOpaque())
 }
 
 @_cdecl("__swift_bridge__$SwiftString$new_with_str")
-func __swift_bridge__SwiftString_new_with_str (_ str: RustStr) -> UnsafeMutableRawPointer {
-    Unmanaged.passRetained(SwiftString(str: str)).toOpaque()
+func __swift_bridge__SwiftString_new_with_str (_ str: RustStr) -> __private__PointerToSwiftType {
+    __private__PointerToSwiftType(ptr: Unmanaged.passRetained(SwiftString(str: str)).toOpaque())
 }
 
 @_cdecl("__swift_bridge__$SwiftString$as_ptr")

@@ -52,6 +52,18 @@ class VecTests: XCTestCase {
         
         XCTAssertEqual(vec.len(), 1)
         XCTAssertEqual(vec.get(index: 0)!.text().toString(), "hello there, friend")
+        
+        let popped = vec.pop()
+        XCTAssertEqual(popped?.text().toString(), "hello there, friend")
+        
+        XCTAssertEqual(vec.len(), 0)
+        XCTAssertNil(vec.pop())
+        XCTAssertNil(vec.get(index: 1))
+        
+        let text = "My pushed text"
+        vec.push(value: ARustTypeInsideVecT(text.toRustStr()))
+        XCTAssertEqual(vec.len(), 1)
+        XCTAssertEqual(vec.get(index: 0)!.text().toString(), "My pushed text")
     }
     
     func testRustVecIterator() throws {

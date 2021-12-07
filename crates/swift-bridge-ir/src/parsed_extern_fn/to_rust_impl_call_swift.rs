@@ -1,5 +1,5 @@
-use crate::built_in_types::{pat_type_pat_is_self, BuiltInType, ForeignBridgedType, SharedType};
-use crate::parse::TypeDeclarations;
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
+use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
@@ -44,7 +44,7 @@ impl ParsedExternFn {
                 quote! {#ret}
             }
             ReturnType::Type(arrow, _ty) => {
-                if let Some(built_in) = BuiltInType::new_with_return_type(&sig.output, types) {
+                if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
                     let ty = built_in.maybe_convert_pointer_to_super_pointer();
                     let return_ty_span = sig.output.span();
 
@@ -63,20 +63,10 @@ impl ParsedExternFn {
             unsafe { #linked_fn_name(#call_args) }
         };
 
-        if let Some(built_in) = BuiltInType::new_with_return_type(&sig.output, types) {
+        if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
             inner = built_in.convert_ffi_value_to_rust_value(swift_bridge_path, &inner, true);
-        } else if let Some(bridged_ty) = &self.associated_type.as_ref() {
-            match bridged_ty {
-                ForeignBridgedType::Shared(_) => {
-                    todo!()
-                }
-                ForeignBridgedType::Opaque(bridged_ty) => {
-                    let ty_name = &bridged_ty.ident;
-                    inner = quote! {
-                        #ty_name ( #inner )
-                    };
-                }
-            }
+        } else {
+            todo!("Push to ParsedErrors")
         }
 
         quote! {
@@ -112,17 +102,17 @@ impl ParsedExternFn {
                         FnArg::Typed(pat_ty) => {
                             let pat = &pat_ty.pat;
 
-                            if let Some(built_in) = BuiltInType::new_with_fn_arg(fn_arg, types) {
+                            if let Some(built_in) = BridgedType::new_with_fn_arg(fn_arg, types) {
                                 let ty = built_in.maybe_convert_pointer_to_super_pointer();
 
                                 quote! { #pat: #ty}
                             } else {
                                 match types.get_with_pat_type(pat_ty).unwrap() {
-                                    ForeignBridgedType::Shared(SharedType::Struct(_)) => {
+                                    TypeDeclaration::Shared(SharedTypeDeclaration::Struct(_)) => {
                                         // quote! { #pat: #fn_arg}
                                         todo!("Add a test that hits this code path")
                                     }
-                                    ForeignBridgedType::Opaque(opaque) => {
+                                    TypeDeclaration::Opaque(opaque) => {
                                         let ty = &opaque.ty.ident;
                                         if opaque.host_lang.is_rust() {
                                             quote! { #pat: super:: #ty}
@@ -208,7 +198,7 @@ mod tests {
         };
         let expected = quote! {
             pub fn new () -> Foo {
-                Foo( unsafe { __swift_bridge__Foo_new() } )
+                unsafe { __swift_bridge__Foo_new() }
             }
         };
 
@@ -229,7 +219,7 @@ mod tests {
         };
         let expected = quote! {
             pub fn as_slice (&self) -> &[u8] {
-                unsafe { __swift_bridge__Foo_as_slice(self.0) }.as_slice()
+                unsafe { __swift_bridge__Foo_as_slice(swift_bridge::PointerToSwiftType(self.0)) }.as_slice()
             }
         };
 
@@ -253,7 +243,7 @@ mod tests {
             pub fn some_function (&self, arg: &str) -> &str {
                 unsafe {
                     __swift_bridge__Foo_some_function(
-                        self.0,
+                        swift_bridge::PointerToSwiftType(self.0),
                         swift_bridge::string::RustStr::from_str(arg)
                     )
                 }.to_str()

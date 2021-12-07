@@ -1,7 +1,9 @@
-use crate::built_in_types::{BuiltInType, ForeignBridgedType, OpaqueForeignType};
+use crate::bridged_type::BridgedType;
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::function_attributes::{FunctionAttr, FunctionAttributes};
-use crate::parse::type_declarations::TypeDeclarations;
+use crate::parse::type_declarations::{
+    OpaqueForeignTypeDeclaration, TypeDeclaration, TypeDeclarations,
+};
 use crate::parse::HostLang;
 use crate::ParsedExternFn;
 use proc_macro2::Span;
@@ -57,19 +59,22 @@ impl<'a> ForeignModParser<'a> {
                 ForeignItem::Type(foreign_ty) => {
                     let ty_name = foreign_ty.ident.to_string();
 
-                    if let Some(_builtin) = BuiltInType::with_str(&foreign_ty.ident.to_string()) {
+                    if let Some(_builtin) = BridgedType::with_str(
+                        &foreign_ty.ident.to_string(),
+                        &self.all_type_declarations,
+                    ) {
                         self.errors.push(ParseError::DeclaredBuiltInType {
                             ty: foreign_ty.clone(),
                         });
                     }
 
-                    let foreign_type = OpaqueForeignType {
+                    let foreign_type = OpaqueForeignTypeDeclaration {
                         ty: foreign_ty.clone(),
                         host_lang,
                     };
                     self.all_type_declarations.insert(
                         ty_name.clone(),
-                        ForeignBridgedType::Opaque(foreign_type.clone()),
+                        TypeDeclaration::Opaque(foreign_type.clone()),
                     );
                     local_type_declarations.insert(ty_name, foreign_type);
                 }
@@ -127,7 +132,7 @@ impl<'a> ForeignModParser<'a> {
         };
 
         if !self.all_type_declarations.contains_key(&ty_string)
-            && BuiltInType::new_with_type(ty, &self.all_type_declarations).is_none()
+            && BridgedType::new_with_type(ty, &self.all_type_declarations).is_none()
         {
             self.maybe_undeclared_types.push((ty_string, ty_span));
         }
@@ -139,13 +144,13 @@ impl<'a> ForeignModParser<'a> {
         first: Option<&FnArg>,
         func: ForeignItemFn,
         attributes: &FunctionAttributes,
-        local_type_declarations: &mut HashMap<String, OpaqueForeignType>,
-    ) -> syn::Result<Option<ForeignBridgedType>> {
+        local_type_declarations: &mut HashMap<String, OpaqueForeignTypeDeclaration>,
+    ) -> syn::Result<Option<TypeDeclaration>> {
         let associated_type = match first {
             Some(FnArg::Receiver(recv)) => {
                 if local_type_declarations.len() == 1 {
                     let ty = local_type_declarations.iter_mut().next().unwrap().1;
-                    let associated_type = Some(ForeignBridgedType::Opaque(ty.clone()));
+                    let associated_type = Some(TypeDeclaration::Opaque(ty.clone()));
                     associated_type
                 } else {
                     self.errors.push(ParseError::AmbiguousSelf {

@@ -1,7 +1,9 @@
-use crate::built_in_types::{
-    BuiltInType, ForeignBridgedType, OpaqueForeignType, SharedType, StructSwiftRepr,
+use crate::bridged_type::{BridgedType, StructSwiftRepr};
+use crate::codegen::generate_swift::vec::generate_vectorizable_extension;
+use crate::parse::{
+    HostLang, OpaqueForeignTypeDeclaration, SharedTypeDeclaration, TypeDeclaration,
+    TypeDeclarations,
 };
-use crate::parse::{HostLang, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use quote::ToTokens;
@@ -10,6 +12,7 @@ use std::ops::Deref;
 use syn::{ReturnType, Type};
 
 mod option;
+mod vec;
 
 impl SwiftBridgeModule {
     /// Generate the corresponding Swift code for the bridging module.
@@ -23,11 +26,11 @@ impl SwiftBridgeModule {
             if function.host_lang.is_rust() {
                 if let Some(ty) = function.associated_type.as_ref() {
                     match ty {
-                        ForeignBridgedType::Shared(_) => {
+                        TypeDeclaration::Shared(_) => {
                             //
                             todo!("Think about what to do here..")
                         }
-                        ForeignBridgedType::Opaque(ty) => {
+                        TypeDeclaration::Opaque(ty) => {
                             associated_funcs_and_methods
                                 .entry(ty.ident.to_string())
                                 .or_default()
@@ -48,8 +51,8 @@ impl SwiftBridgeModule {
         }
 
         for ty in self.types.types() {
-            let generated = match ty {
-                ForeignBridgedType::Shared(SharedType::Struct(shared_struct)) => {
+            match ty {
+                TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
                     match shared_struct.swift_repr {
                         StructSwiftRepr::Class => {
                             todo!()
@@ -62,16 +65,21 @@ impl SwiftBridgeModule {
                         }
                     }
                 }
-                ForeignBridgedType::Opaque(ty) => match ty.host_lang {
+                TypeDeclaration::Opaque(ty) => match ty.host_lang {
                     HostLang::Rust => {
-                        generate_swift_class(ty, &associated_funcs_and_methods, &self.types)
+                        swift +=
+                            &generate_swift_class(ty, &associated_funcs_and_methods, &self.types);
+                        swift += "\n";
+
+                        swift += &generate_vectorizable_extension(&ty.ident);
+                        swift += "\n";
                     }
-                    HostLang::Swift => generate_drop_swift_instance_reference_count(ty),
+                    HostLang::Swift => {
+                        swift += &generate_drop_swift_instance_reference_count(ty);
+                        swift += "\n";
+                    }
                 },
             };
-
-            swift += &generated;
-            swift += "\n";
         }
 
         swift
@@ -79,7 +87,7 @@ impl SwiftBridgeModule {
 }
 
 fn generate_swift_class(
-    ty: &OpaqueForeignType,
+    ty: &OpaqueForeignTypeDeclaration,
     associated_funcs_and_methods: &HashMap<String, Vec<&ParsedExternFn>>,
     types: &TypeDeclarations,
 ) -> String {
@@ -156,7 +164,7 @@ public class {type_name} {{
 //     let _ = Unmanaged<Foo>.fromOpaque(ptr).takeRetainedValue()
 // }
 // ```
-fn generate_drop_swift_instance_reference_count(ty: &OpaqueForeignType) -> String {
+fn generate_drop_swift_instance_reference_count(ty: &OpaqueForeignTypeDeclaration) -> String {
     let link_name = ty.free_link_name();
     let fn_name = ty.free_func_name();
 
@@ -181,11 +189,11 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
 
     let type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
         match ty {
-            ForeignBridgedType::Shared(_) => {
+            TypeDeclaration::Shared(_) => {
                 //
                 todo!()
             }
-            ForeignBridgedType::Opaque(ty) => {
+            TypeDeclaration::Opaque(ty) => {
                 format!("${}", ty.ident.to_string())
             }
         }
@@ -228,7 +236,7 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
     let call_rust = if function.is_initializer {
         format!("ptr = {}", call_rust)
     } else if let Some(built_in) = function.return_ty_built_in(types) {
-        built_in.convert_ffi_value_to_swift_value(&call_rust)
+        built_in.convert_ffi_value_to_swift_value(function.host_lang, &call_rust)
     } else {
         if function.host_lang.is_swift() {
             call_rust
@@ -246,8 +254,8 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
                     };
 
                     match types.get(&ty_name).unwrap() {
-                        ForeignBridgedType::Shared(_) => call_rust,
-                        ForeignBridgedType::Opaque(opaque) => {
+                        TypeDeclaration::Shared(_) => call_rust,
+                        TypeDeclaration::Opaque(opaque) => {
                             if opaque.host_lang.is_rust() {
                                 let (is_owned, ty) = match ty.deref() {
                                     Type::Reference(reference) => ("false", &reference.elem),
@@ -300,31 +308,36 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn, types: &TypeDeclara
     let args = func.to_swift_call_args(false, true, types);
     let mut call_fn = format!("{}({})", fn_name, args);
 
-    if let Some(associated_type) = func.associated_type.as_ref() {
-        let ty_name = match associated_type {
-            ForeignBridgedType::Shared(_) => {
-                //
-                todo!()
-            }
-            ForeignBridgedType::Opaque(associated_type) => associated_type.ident.to_string(),
-        };
-
-        if func.is_method() {
-            call_fn = format!(
-                "Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{call_fn}",
-                ty_name = ty_name,
-                call_fn = call_fn
-            );
-        } else if func.is_initializer {
-            call_fn = format!("Unmanaged.passRetained({}({})).toOpaque()", ty_name, args);
-        } else {
-            call_fn = format!("{}::{}", ty_name, call_fn);
-        }
-    }
-
-    if let Some(built_in) = BuiltInType::new_with_return_type(&func.sig.output, types) {
+    if let Some(built_in) = BridgedType::new_with_return_type(&func.sig.output, types) {
         call_fn = built_in.convert_swift_expression_to_ffi_compatible(&call_fn, func.host_lang);
-    }
+
+        if let Some(associated_type) = func.associated_type.as_ref() {
+            let ty_name = match associated_type {
+                TypeDeclaration::Shared(_) => {
+                    //
+                    todo!()
+                }
+                TypeDeclaration::Opaque(associated_type) => associated_type.ident.to_string(),
+            };
+
+            if func.is_method() {
+                call_fn = format!(
+                    "Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{call_fn}",
+                    ty_name = ty_name,
+                    call_fn = call_fn
+                );
+            } else if func.is_initializer {
+                call_fn = format!(
+                    "__private__PointerToSwiftType(ptr: Unmanaged.passRetained({}({})).toOpaque())",
+                    ty_name, args
+                );
+            } else {
+                call_fn = format!("{}::{}", ty_name, call_fn);
+            }
+        }
+    } else {
+        todo!("Push to ParsedErrors")
+    };
 
     let generated_func = format!(
         r#"@_cdecl("{link_name}")
@@ -344,7 +357,7 @@ func {prefixed_fn_name} ({params}){ret} {{
 
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::assert_generated_contains_expected;
+    use crate::test_utils::assert_trimmed_generated_contains_trimmed_expected;
     use crate::SwiftBridgeModule;
     use quote::quote;
     use syn::parse_quote;
@@ -391,7 +404,7 @@ func __swift_bridge__foo () {
 } 
 "#;
 
-        assert_generated_contains_expected(generated.trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(generated.trim(), expected.trim());
     }
 
     /// Verify that we convert slices.
@@ -414,7 +427,31 @@ func __swift_bridge__foo () -> __private__FfiSlice {
 } 
 "#;
 
-        assert_generated_contains_expected(generated.trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(generated.trim(), expected.trim());
+    }
+
+    /// Verify that we convert a Swift method's returned slice.
+    #[test]
+    fn swift_function_return_slice() {
+        let tokens = quote! {
+            mod foo {
+                extern "Swift" {
+                    type MyType;
+                    fn foo (&self) -> &'static [u8];
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift();
+
+        let expected = r#"
+@_cdecl("__swift_bridge__$MyType$foo")
+func __swift_bridge__MyType_foo (_ this: UnsafeMutableRawPointer) -> __private__FfiSlice {
+    Unmanaged<MyType>.fromOpaque(this).takeUnretainedValue().foo().toFfiSlice()
+}
+"#;
+
+        assert_trimmed_generated_contains_trimmed_expected(generated.trim(), expected.trim());
     }
 
     /// Verify that we generated a Swift function to call a freestanding function with one arg.
@@ -481,7 +518,7 @@ func foo() -> UnsafeBufferPointer<UInt8> {
 } 
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we generated a Swift class for a Rust type.
@@ -519,7 +556,7 @@ public class Foo {
 }
 "#;
 
-        assert_eq!(generated.trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
     }
 
     /// Verify that we generated a function that Rust can use to reduce a Swift class instance's
@@ -543,7 +580,7 @@ func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we generated a Swift class with an init method.
@@ -584,7 +621,7 @@ public class Foo {
 }
 "#;
 
-        assert_eq!(generated.trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
     }
 
     /// Verify that we generated a function that Rust can use to reduce a Swift class instance's
@@ -606,12 +643,12 @@ public class Foo {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$new")
-func __swift_bridge__Foo_new (_ a: UInt8) -> UnsafeMutableRawPointer {
-    Unmanaged.passRetained(Foo(a: a)).toOpaque()
+func __swift_bridge__Foo_new (_ a: UInt8) -> __private__PointerToSwiftType {
+    __private__PointerToSwiftType(ptr: Unmanaged.passRetained(Foo(a: a)).toOpaque())
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we generated a Swift class with an init method with params.
@@ -652,7 +689,7 @@ public class Foo {
 }
 "#;
 
-        assert_eq!(generated.trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
     }
 
     /// Verify that we can generate an instance method.
@@ -696,7 +733,7 @@ public class Foo {
 }
 "#;
 
-        assert_eq!(generated.trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
     }
 
     /// Verify that we generate a Swift function that allows us to access a class instance method
@@ -728,7 +765,7 @@ func __swift_bridge__Foo_pop (_ this: UnsafeMutableRawPointer) {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we can generate an instance method that has a return value.
@@ -772,7 +809,7 @@ public class Foo {
 }
 "#;
 
-        assert_eq!(generated.trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
     }
 
     /// Verify that we can generate a Swift instance method with an argument to a declared type.
@@ -816,7 +853,7 @@ public class Foo {
 }
 "#;
 
-        assert_eq!(generated.trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
     }
 
     /// Verify that we can generate a static class mehod.
@@ -861,7 +898,7 @@ public class Foo {
 }
 "#;
 
-        assert_eq!(generated.trim(), expected.trim());
+        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
     }
 
     /// Verify that we generate a Swift function that allows us to access a static class method
@@ -888,7 +925,7 @@ func __swift_bridge__Foo_bar (_ arg: UInt8) {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
     }
 
     /// Verify that we properly generate a Swift function that returns a String.
@@ -933,7 +970,7 @@ func void_pointer(_ arg1: UnsafeRawPointer) {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we generate the corresponding Swift for extern "Rust" functions that returns
@@ -956,7 +993,7 @@ func void_pointer() -> UnsafeRawPointer {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we generate the corresponding Swift for extern "Rust" functions that accept
@@ -980,7 +1017,7 @@ func __swift_bridge__void_pointer (_ arg: UnsafeRawPointer) {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we can return a reference to a declared type.
@@ -1004,7 +1041,7 @@ func get_owned_foo() -> Foo {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we can return a reference to a declared type.
@@ -1028,7 +1065,7 @@ func get_ref_foo() -> Foo {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we can return a shared struct type.
@@ -1052,7 +1089,7 @@ func get_foo() -> Foo {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we can take a shared struct as an argument.
@@ -1076,7 +1113,7 @@ func some_function(_ arg: Foo) {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we rename shared struct arguments and return values if there is a swift_name
@@ -1102,7 +1139,7 @@ func some_function(_ arg: Renamed) -> Renamed {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we generate the correct function for an extern "Rust" fn that takes an owned
@@ -1125,11 +1162,11 @@ func some_function(_ arg: Renamed) -> Renamed {
 
         let expected = r#"
 func some_function(_ arg: Foo) {
-    __swift_bridge__$some_function(Unmanaged.passRetained(arg).toOpaque())
+    __swift_bridge__$some_function(__private__PointerToSwiftType(ptr: Unmanaged.passRetained(arg).toOpaque()))
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we generate the correct function for an extern "Rust" fn that returns an owned
@@ -1156,7 +1193,7 @@ func some_function() -> Foo {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
     /// Verify that we use a function's `swift_name = "..."` attribute during Swift codegen for
@@ -1181,6 +1218,6 @@ func __swift_bridge__some_function () {
 }
 "#;
 
-        assert_generated_contains_expected(&generated, &expected);
+        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 }

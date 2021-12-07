@@ -1,10 +1,11 @@
-use crate::built_in_types::{FieldsFormat, SharedStruct, StructField, StructSwiftRepr};
+use crate::bridged_type::{FieldsFormat, StructField, StructSwiftRepr};
 use crate::errors::{ParseError, ParseErrors};
+use crate::parse::SharedStructDeclaration;
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseStream};
 use syn::{Fields, ItemStruct, LitStr, Token};
 
-pub(crate) struct SharedStructParser<'a> {
+pub(crate) struct SharedStructDeclarationParser<'a> {
     pub item_struct: ItemStruct,
     pub errors: &'a mut ParseErrors,
 }
@@ -64,8 +65,8 @@ impl Parse for StructAttr {
     }
 }
 
-impl<'a> SharedStructParser<'a> {
-    pub fn parse(self) -> Result<SharedStruct, syn::Error> {
+impl<'a> SharedStructDeclarationParser<'a> {
+    pub fn parse(self) -> Result<SharedStructDeclaration, syn::Error> {
         let item_struct = self.item_struct;
 
         let mut attribs = StructAttribs::default();
@@ -129,7 +130,7 @@ impl<'a> SharedStructParser<'a> {
             fields.push(field);
         }
 
-        let shared_struct = SharedStruct {
+        let shared_struct = SharedStructDeclaration {
             name: item_struct.ident,
             swift_repr,
             fields,

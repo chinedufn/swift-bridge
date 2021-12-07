@@ -1,21 +1,20 @@
 use crate::parse::{HostLang, TypeDeclarations};
-use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
-use quote::quote;
 use quote::ToTokens;
+use quote::{quote, quote_spanned};
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use syn::{FnArg, ForeignItemType, LitStr, PatType, Path, ReturnType, Type};
 
 // FIXME: Rename to BridgedType
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) enum BuiltInType {
+pub(crate) enum BridgedType {
     StdLib(StdLibType),
-    Foreign(ForeignBridgedType),
+    Foreign(CustomBridgedType),
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) enum ForeignBridgedType {
+pub(crate) enum CustomBridgedType {
     Shared(SharedType),
     Opaque(OpaqueForeignType),
 }
@@ -48,12 +47,6 @@ pub(crate) enum StdLibType {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) struct BuiltInReference {
-    pub mutable: bool,
-    pub ty: Box<BuiltInType>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
 pub(crate) struct BuiltInPointer {
     pub kind: PointerKind,
     pub pointee: Pointee,
@@ -62,7 +55,7 @@ pub(crate) struct BuiltInPointer {
 /// The target of an `*const` or `*mut` pointer.
 #[derive(Clone)]
 pub(crate) enum Pointee {
-    BuiltIn(Box<BuiltInType>),
+    BuiltIn(Box<BridgedType>),
     /// `*const SomeType`
     ///         ^^^^^^^^ This is the Pointee
     Void(Type),
@@ -108,19 +101,19 @@ impl PartialEq for Pointee {
 /// &[T]
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct BuiltInRefSlice {
-    pub ty: Box<BuiltInType>,
+    pub ty: Box<BridgedType>,
 }
 
 /// Vec<T>
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct BuiltInVec {
-    pub ty: Box<BuiltInType>,
+    pub ty: Box<BridgedType>,
 }
 
 /// Option<T>
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct BuiltInOption {
-    pub ty: Box<BuiltInType>,
+    pub ty: Box<BridgedType>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -145,48 +138,10 @@ impl ToTokens for PointerKind {
 }
 
 #[cfg(test)]
-impl BuiltInType {
+impl BridgedType {
     fn unwrap_stdlib(&self) -> &StdLibType {
         match self {
-            BuiltInType::StdLib(s) => s,
-            _ => panic!(),
-        }
-    }
-
-    fn _unwrap_shared(&self) -> &SharedType {
-        match self {
-            BuiltInType::Foreign(ForeignBridgedType::Shared(s)) => s,
-            _ => panic!(),
-        }
-    }
-
-    fn unwrap_shared_struct(&self) -> &SharedStruct {
-        match self {
-            BuiltInType::Foreign(ForeignBridgedType::Shared(SharedType::Struct(s))) => s,
-            _ => panic!(),
-        }
-    }
-
-    fn unwrap_opaque(&self) -> &OpaqueForeignType {
-        match self {
-            BuiltInType::Foreign(ForeignBridgedType::Opaque(o)) => o,
-            _ => panic!(),
-        }
-    }
-}
-
-#[cfg(test)]
-impl ForeignBridgedType {
-    pub fn unwrap_shared_struct(&self) -> &SharedStruct {
-        match self {
-            ForeignBridgedType::Shared(SharedType::Struct(s)) => s,
-            _ => panic!(),
-        }
-    }
-
-    pub fn unwrap_opaque(&self) -> &OpaqueForeignType {
-        match self {
-            ForeignBridgedType::Opaque(o) => o,
+            BridgedType::StdLib(s) => s,
             _ => panic!(),
         }
     }
@@ -204,6 +159,17 @@ pub(crate) struct SharedStruct {
     pub fields: Vec<StructField>,
     pub swift_name: Option<LitStr>,
     pub fields_format: FieldsFormat,
+    // pub reference: bool,
+    // pub mutable: bool,
+}
+
+impl SharedStruct {
+    fn swift_type_name(&self) -> String {
+        match self.swift_name.as_ref() {
+            Some(ty) => ty.value(),
+            None => self.name.to_string(),
+        }
+    }
 }
 
 impl PartialEq for SharedStruct {
@@ -214,15 +180,8 @@ impl PartialEq for SharedStruct {
             && self.swift_name.as_ref().map(|l| l.value())
                 == other.swift_name.as_ref().map(|l| l.value())
             && self.fields_format == other.fields_format
-    }
-}
-
-impl SharedStruct {
-    pub fn swift_name_string(&self) -> String {
-        self.swift_name
-            .as_ref()
-            .map(|s| s.value())
-            .unwrap_or(self.name.to_string())
+        // && self.reference == other.reference
+        // && self.mutable == other.mutable
     }
 }
 
@@ -234,6 +193,8 @@ impl Debug for SharedStruct {
             .field("fields", &self.fields)
             .field("swift_name", &self.swift_name.as_ref().map(|l| l.value()))
             .field("fields_format", &self.fields_format)
+            // .field("reference", &self.reference)
+            // .field("mutable", &self.mutable)
             .finish()
     }
 }
@@ -290,6 +251,8 @@ pub(crate) enum FieldsFormat {
 pub(crate) struct OpaqueForeignType {
     pub ty: ForeignItemType,
     pub host_lang: HostLang,
+    pub reference: bool,
+    pub mutable: bool,
 }
 
 impl Debug for OpaqueForeignType {
@@ -297,6 +260,8 @@ impl Debug for OpaqueForeignType {
         f.debug_struct("OpaqueForeignType")
             .field("ty", &self.ty.to_token_stream())
             .field("host_lang", &self.host_lang)
+            .field("reference", &self.reference)
+            .field("mutable", &self.mutable)
             .finish()
     }
 }
@@ -305,32 +270,14 @@ impl PartialEq for OpaqueForeignType {
     fn eq(&self, other: &Self) -> bool {
         self.ty.to_token_stream().to_string() == other.ty.to_token_stream().to_string()
             && self.host_lang == other.host_lang
-    }
-}
-
-impl OpaqueForeignType {
-    // "__swift_bridge__$TypeName$_free"
-    pub fn free_link_name(&self) -> String {
-        format!(
-            "{}${}$_free",
-            SWIFT_BRIDGE_PREFIX,
-            self.ty.ident.to_string()
-        )
-    }
-
-    // "__swift_bridge__TypeName__free"
-    pub fn free_func_name(&self) -> String {
-        format!("{}{}__free", SWIFT_BRIDGE_PREFIX, self.ty.ident.to_string())
-    }
-
-    pub fn ty_name_ident(&self) -> &Ident {
-        &self.ty.ident
+            && self.reference == other.reference
+            && self.mutable == other.mutable
     }
 }
 
 /// Whether or not a PatType's pattern is `self`.
 ///
-/// `self: &Fpp` would be true
+/// `self: &Foo` would be true
 /// `arg: &Foo` would be false.
 pub(crate) fn pat_type_pat_is_self(pat_type: &PatType) -> bool {
     match pat_type.pat.deref() {
@@ -347,11 +294,18 @@ impl Deref for OpaqueForeignType {
     }
 }
 
-impl BuiltInType {
+impl BridgedType {
     pub fn new_with_type(ty: &Type, types: &TypeDeclarations) -> Option<Self> {
         match ty {
             Type::Path(path) => {
-                Self::with_str(path.path.segments.to_token_stream().to_string().as_str())
+                if let Some(ty) = types.get_with_type_path(path) {
+                    Some(ty.to_bridged_type(false, false))
+                } else {
+                    Self::with_str(
+                        path.path.segments.to_token_stream().to_string().as_str(),
+                        types,
+                    )
+                }
             }
             Type::Ptr(ptr) => {
                 let kind = if ptr.const_token.is_some() {
@@ -361,12 +315,12 @@ impl BuiltInType {
                 };
 
                 let ty = if let Some(ty) = Self::new_with_type(&ptr.elem, types) {
-                    BuiltInType::StdLib(StdLibType::Pointer(BuiltInPointer {
+                    BridgedType::StdLib(StdLibType::Pointer(BuiltInPointer {
                         kind,
                         pointee: Pointee::BuiltIn(Box::new(ty)),
                     }))
                 } else {
-                    BuiltInType::StdLib(StdLibType::Pointer(BuiltInPointer {
+                    BridgedType::StdLib(StdLibType::Pointer(BuiltInPointer {
                         kind,
                         pointee: Pointee::Void(*ptr.elem.clone()),
                     }))
@@ -375,15 +329,19 @@ impl BuiltInType {
             }
             Type::Reference(ty_ref) => match ty_ref.elem.deref() {
                 Type::Path(p) => {
-                    let path = p.path.to_token_stream().to_string();
-                    if path == "str" {
-                        return Some(BuiltInType::StdLib(StdLibType::Str));
-                    }
+                    if let Some(ty) = types.get_with_type_path(p) {
+                        Some(ty.to_bridged_type(true, ty_ref.mutability.is_some()))
+                    } else {
+                        let path = p.path.to_token_stream().to_string();
+                        if path == "str" {
+                            return Some(BridgedType::StdLib(StdLibType::Str));
+                        }
 
-                    None
+                        None
+                    }
                 }
                 Type::Slice(slice) => Self::new_with_type(&slice.elem, types).map(|ty| {
-                    BuiltInType::StdLib(StdLibType::RefSlice(BuiltInRefSlice { ty: Box::new(ty) }))
+                    BridgedType::StdLib(StdLibType::RefSlice(BuiltInRefSlice { ty: Box::new(ty) }))
                 }),
                 _ => None,
             },
@@ -393,52 +351,57 @@ impl BuiltInType {
 
     pub fn new_with_return_type(ty: &ReturnType, types: &TypeDeclarations) -> Option<Self> {
         match ty {
-            ReturnType::Default => Some(BuiltInType::StdLib(StdLibType::Null)),
-            ReturnType::Type(_, ty) => BuiltInType::new_with_type(&ty, types),
+            ReturnType::Default => Some(BridgedType::StdLib(StdLibType::Null)),
+            ReturnType::Type(_, ty) => BridgedType::new_with_type(&ty, types),
         }
     }
 
     pub fn new_with_fn_arg(fn_arg: &FnArg, types: &TypeDeclarations) -> Option<Self> {
         match fn_arg {
             FnArg::Receiver(_) => None,
-            FnArg::Typed(pat_ty) => BuiltInType::new_with_type(&pat_ty.ty, types),
+            FnArg::Typed(pat_ty) => BridgedType::new_with_type(&pat_ty.ty, types),
         }
     }
 
-    pub fn with_str(string: &str) -> Option<BuiltInType> {
+    pub fn with_str(string: &str, types: &TypeDeclarations) -> Option<BridgedType> {
         if string.starts_with("Vec < ") {
             let inner = string.trim_start_matches("Vec < ");
             let inner = inner.trim_end_matches(" >");
-            let inner = BuiltInType::with_str(inner)?;
 
-            return Some(BuiltInType::StdLib(StdLibType::Vec(BuiltInVec {
+            let inner = if let Some(declared_ty) = types.get(inner) {
+                declared_ty.to_bridged_type(false, false)
+            } else {
+                BridgedType::with_str(inner, types)?
+            };
+
+            return Some(BridgedType::StdLib(StdLibType::Vec(BuiltInVec {
                 ty: Box::new(inner),
             })));
         } else if string.starts_with("Option < ") {
             let inner = string.trim_start_matches("Option < ");
             let inner = inner.trim_end_matches(" >");
-            let inner = BuiltInType::with_str(inner)?;
+            let inner = BridgedType::with_str(inner, types)?;
 
-            return Some(BuiltInType::StdLib(StdLibType::Option(BuiltInOption {
+            return Some(BridgedType::StdLib(StdLibType::Option(BuiltInOption {
                 ty: Box::new(inner),
             })));
         }
 
         let ty = match string {
-            "u8" => BuiltInType::StdLib(StdLibType::U8),
-            "i8" => BuiltInType::StdLib(StdLibType::I8),
-            "u16" => BuiltInType::StdLib(StdLibType::U16),
-            "i16" => BuiltInType::StdLib(StdLibType::I16),
-            "u32" => BuiltInType::StdLib(StdLibType::U32),
-            "i32" => BuiltInType::StdLib(StdLibType::I32),
-            "u64" => BuiltInType::StdLib(StdLibType::U64),
-            "i64" => BuiltInType::StdLib(StdLibType::I64),
-            "usize" => BuiltInType::StdLib(StdLibType::Usize),
-            "isize" => BuiltInType::StdLib(StdLibType::Isize),
-            "f32" => BuiltInType::StdLib(StdLibType::F32),
-            "f64" => BuiltInType::StdLib(StdLibType::F64),
-            "String" => BuiltInType::StdLib(StdLibType::String),
-            "bool" => BuiltInType::StdLib(StdLibType::Bool),
+            "u8" => BridgedType::StdLib(StdLibType::U8),
+            "i8" => BridgedType::StdLib(StdLibType::I8),
+            "u16" => BridgedType::StdLib(StdLibType::U16),
+            "i16" => BridgedType::StdLib(StdLibType::I16),
+            "u32" => BridgedType::StdLib(StdLibType::U32),
+            "i32" => BridgedType::StdLib(StdLibType::I32),
+            "u64" => BridgedType::StdLib(StdLibType::U64),
+            "i64" => BridgedType::StdLib(StdLibType::I64),
+            "usize" => BridgedType::StdLib(StdLibType::Usize),
+            "isize" => BridgedType::StdLib(StdLibType::Isize),
+            "f32" => BridgedType::StdLib(StdLibType::F32),
+            "f64" => BridgedType::StdLib(StdLibType::F64),
+            "String" => BridgedType::StdLib(StdLibType::String),
+            "bool" => BridgedType::StdLib(StdLibType::Bool),
             _ => {
                 return None;
             }
@@ -451,7 +414,7 @@ impl BuiltInType {
     // Vec<U32> -> Vec<u32>
     fn to_rust(&self) -> TokenStream {
         match self {
-            BuiltInType::StdLib(stdlib_type) => {
+            BridgedType::StdLib(stdlib_type) => {
                 match stdlib_type {
                     StdLibType::Null => {
                         quote! {()}
@@ -499,7 +462,25 @@ impl BuiltInType {
                     }
                 }
             }
-            _ => todo!(),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                let ty_name = &shared_struct.name;
+                quote! {
+                    #ty_name
+                }
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                let ty_name = &opaque.ty.ident;
+
+                if opaque.host_lang.is_rust() {
+                    quote! {
+                        super:: #ty_name
+                    }
+                } else {
+                    quote! {
+                        #ty_name
+                    }
+                }
+            }
         }
     }
 
@@ -508,9 +489,13 @@ impl BuiltInType {
     // U8 -> u8
     // RefSlice(U8) -> FfiSlice
     // Str -> RustStr
-    pub fn to_ffi_compatible_rust_type(&self, swift_bridge_path: &Path) -> TokenStream {
+    pub fn to_ffi_compatible_rust_type(
+        &self,
+        func_host_lang: HostLang,
+        swift_bridge_path: &Path,
+    ) -> TokenStream {
         let ty = match self {
-            BuiltInType::StdLib(stdlib_type) => match stdlib_type {
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::U8 => quote! {u8},
                 StdLibType::I8 => quote! { i8 },
                 StdLibType::U16 => quote! { u16 },
@@ -528,7 +513,9 @@ impl BuiltInType {
                     let kind = ptr.kind.to_token_stream();
 
                     let ty = match &ptr.pointee {
-                        Pointee::BuiltIn(ty) => ty.to_ffi_compatible_rust_type(swift_bridge_path),
+                        Pointee::BuiltIn(ty) => {
+                            ty.to_ffi_compatible_rust_type(func_host_lang, swift_bridge_path)
+                        }
                         Pointee::Void(ty) => {
                             quote! { super::#ty }
                         }
@@ -537,7 +524,9 @@ impl BuiltInType {
                     quote! { #kind #ty}
                 }
                 StdLibType::RefSlice(slice) => {
-                    let ty = slice.ty.to_ffi_compatible_rust_type(swift_bridge_path);
+                    let ty = slice
+                        .ty
+                        .to_ffi_compatible_rust_type(func_host_lang, swift_bridge_path);
                     quote! {#swift_bridge_path::FfiSlice<#ty>}
                 }
                 StdLibType::Str => {
@@ -555,7 +544,36 @@ impl BuiltInType {
                 }
                 StdLibType::Option(opt) => opt.ty.to_rust(),
             },
-            _ => todo!(),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                let ty_name = &shared_struct.name;
+                quote! {
+                    #ty_name
+                }
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                let ty_name = &opaque.ty.ident;
+
+                if opaque.host_lang.is_rust() {
+                    if opaque.reference {
+                        let ptr = if opaque.mutable {
+                            quote! { *mut }
+                        } else {
+                            quote! { *const }
+                        };
+
+                        quote_spanned! {ty_name.span()=> #ptr super::#ty_name }
+                    } else {
+                        quote! { *mut super::#ty_name }
+                    }
+                } else {
+                    if func_host_lang.is_rust() {
+                        // quote_spanned! {ty_name.span()=> *mut std::ffi::c_void }
+                        quote! { #ty_name }
+                    } else {
+                        quote! { #ty_name }
+                    }
+                }
+            }
         };
 
         quote!(#ty)
@@ -564,9 +582,9 @@ impl BuiltInType {
     // U8 -> UInt8
     // *const u32 -> UnsafePointer<UInt32>
     // ... etc
-    pub fn to_swift_type(&self, must_be_c_compatible: bool) -> String {
+    pub fn to_swift_type(&self, func_host_lang: HostLang, must_be_c_compatible: bool) -> String {
         match self {
-            BuiltInType::StdLib(stdlib_type) => match stdlib_type {
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::U8 => "UInt8".to_string(),
                 StdLibType::I8 => "Int8".to_string(),
                 StdLibType::U16 => "UInt16".to_string(),
@@ -591,7 +609,7 @@ impl BuiltInType {
                             format!(
                                 "Unsafe{}Pointer<{}>",
                                 maybe_mutable,
-                                ty.to_swift_type(must_be_c_compatible)
+                                ty.to_swift_type(func_host_lang, must_be_c_compatible)
                             )
                         }
                         Pointee::Void(_) => {
@@ -605,7 +623,7 @@ impl BuiltInType {
                     } else {
                         format!(
                             "UnsafeBufferPointer<{}>",
-                            slice.ty.to_swift_type(must_be_c_compatible)
+                            slice.ty.to_swift_type(func_host_lang, must_be_c_compatible)
                         )
                     }
                 }
@@ -613,23 +631,75 @@ impl BuiltInType {
                 StdLibType::Str => "RustStr".to_string(),
                 StdLibType::String => "RustString".to_string(),
                 StdLibType::Vec(ty) => {
-                    format!("RustVec<{}>", ty.ty.to_swift_type(must_be_c_compatible))
+                    format!(
+                        "RustVec<{}>",
+                        ty.ty.to_swift_type(func_host_lang, must_be_c_compatible)
+                    )
                 }
                 StdLibType::Option(opt) => {
                     if must_be_c_compatible {
-                        opt.ty.to_swift_type(must_be_c_compatible)
+                        opt.ty.to_swift_type(func_host_lang, must_be_c_compatible)
                     } else {
-                        format!("Optional<{}>", opt.ty.to_swift_type(must_be_c_compatible))
+                        format!(
+                            "Optional<{}>",
+                            opt.ty.to_swift_type(func_host_lang, must_be_c_compatible)
+                        )
                     }
                 }
             },
-            _ => panic!(),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                shared_struct.swift_type_name()
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                if opaque.host_lang.is_rust() {
+                    if func_host_lang.is_rust() {
+                        opaque.ty.ident.to_string()
+                    } else {
+                        format!("UnsafeMutableRawPointer")
+                    }
+                } else {
+                    if func_host_lang.is_rust() {
+                        opaque.ty.ident.to_string()
+                    } else {
+                        "__private__PointerToSwiftType".to_string()
+                    }
+                }
+            }
+        }
+    }
+
+    // U8 -> UInt8
+    // *const u32 -> UnsafePointer<UInt32>
+    // SomeOpaqueSwiftType -> UnsafeMutablePointer
+    pub fn to_ffi_compatible_swift_return_type(
+        &self,
+        func_host_lang: HostLang,
+        must_be_c_compatible: bool,
+    ) -> String {
+        match self {
+            BridgedType::StdLib(_stdlib_type) => {
+                self.to_swift_type(func_host_lang, must_be_c_compatible)
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                shared_struct.swift_type_name()
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                if opaque.host_lang.is_rust() {
+                    opaque.ty.ident.to_string()
+                } else {
+                    if func_host_lang.is_rust() {
+                        opaque.ty.ident.to_string()
+                    } else {
+                        "__private__PointerToSwiftType".to_string()
+                    }
+                }
+            }
         }
     }
 
     pub fn to_c(&self) -> String {
         match self {
-            BuiltInType::StdLib(stdlib_type) => match stdlib_type {
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::U8 => "uint8_t".to_string(),
                 StdLibType::I8 => "int8_t".to_string(),
                 StdLibType::U16 => "uint16_t".to_string(),
@@ -663,7 +733,16 @@ impl BuiltInType {
                 StdLibType::Vec(_) => "void*".to_string(),
                 StdLibType::Option(opt) => opt.ty.to_c(),
             },
-            _ => todo!(),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                format!("struct {}", shared_struct.swift_type_name())
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                if opaque.host_lang.is_rust() {
+                    "void*".to_string()
+                } else {
+                    "struct __private__PointerToSwiftType".to_string()
+                }
+            }
         }
     }
 
@@ -690,7 +769,7 @@ impl BuiltInType {
     ///
     pub fn maybe_convert_pointer_to_super_pointer(&self) -> TokenStream {
         match self {
-            BuiltInType::StdLib(stdlib_type) => {
+            BridgedType::StdLib(stdlib_type) => {
                 match stdlib_type {
                     StdLibType::Pointer(pointer) => match &pointer.pointee {
                         Pointee::BuiltIn(_built_in) => {
@@ -707,7 +786,7 @@ impl BuiltInType {
                     _ => self.to_rust(),
                 }
             }
-            _ => todo!(),
+            _ => self.to_rust(),
         }
     }
 
@@ -722,7 +801,7 @@ impl BuiltInType {
         expression: &TokenStream,
     ) -> TokenStream {
         match self {
-            BuiltInType::StdLib(stdlib_type) => match stdlib_type {
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::Null
                 | StdLibType::U8
                 | StdLibType::I8
@@ -763,7 +842,7 @@ impl BuiltInType {
                     quote! { Box::into_raw(Box::new( #expression )) }
                 }
                 StdLibType::Option(opt) => {
-                    let ty = opt.ty.to_rust();
+                    let unused_none_value = opt.ty.rust_unused_option_none_val().rust;
 
                     quote! {
                         if let Some(val) = #expression {
@@ -771,12 +850,41 @@ impl BuiltInType {
                             val
                         } else {
                             #swift_bridge_path::option::_set_option_return(false);
-                            <#ty as #swift_bridge_path::option::FfiOptional>::unused_value()
+                            #unused_none_value
                         }
                     }
                 }
             },
-            _ => todo!(),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                quote! {
+                    #expression
+                }
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                let ty_name = &opaque.ty.ident;
+
+                if opaque.host_lang.is_rust() {
+                    if opaque.reference {
+                        let ptr = if opaque.mutable {
+                            quote! { *mut }
+                        } else {
+                            quote! { *const }
+                        };
+
+                        quote! {
+                            #expression as #ptr super::#ty_name
+                        }
+                    } else {
+                        quote! {
+                            Box::into_raw(Box::new(#expression)) as *mut super::#ty_name
+                        }
+                    }
+                } else {
+                    quote! {
+                        #expression
+                    }
+                }
+            }
         }
     }
 
@@ -793,7 +901,7 @@ impl BuiltInType {
         is_returned_value: bool,
     ) -> TokenStream {
         match self {
-            BuiltInType::StdLib(stdlib_type) => match stdlib_type {
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::Null
                 | StdLibType::U8
                 | StdLibType::I8
@@ -844,7 +952,38 @@ impl BuiltInType {
                     }
                 }
             },
-            _ => todo!(),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                quote! {
+                    #value
+                }
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                if opaque.host_lang.is_rust() {
+                    if opaque.reference {
+                        let maybe_mut = if opaque.mutable {
+                            quote! { mut }
+                        } else {
+                            quote! {}
+                        };
+
+                        quote! {
+                            unsafe {  & #maybe_mut * #value }
+                        }
+                    } else {
+                        quote! {
+                            unsafe { * Box::from_raw(  #value ) }
+                        }
+                    }
+                } else {
+                    if opaque.reference {
+                        todo!("Handle referenced opaque Swift types")
+                    } else {
+                        quote! {
+                            #value
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -862,9 +1001,13 @@ impl BuiltInType {
     //
     // Where this function converts
     //  `__swift_bridge__$create_string(str)` to `RustString(ptr: __swift_bridge__$create_string(str))`
-    pub fn convert_ffi_value_to_swift_value(&self, value: &str) -> String {
+    pub fn convert_ffi_value_to_swift_value(
+        &self,
+        func_host_lang: HostLang,
+        value: &str,
+    ) -> String {
         match self {
-            BuiltInType::StdLib(stdlib_type) => match stdlib_type {
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::Null
                 | StdLibType::U8
                 | StdLibType::I8
@@ -892,7 +1035,7 @@ impl BuiltInType {
                     format!(
                            "let slice = {value}; return UnsafeBufferPointer(start: slice.start.assumingMemoryBound(to: {ty}.self), count: Int(slice.len));",
                            value = value,
-                           ty = ty.ty.to_swift_type(false)
+                           ty = ty.ty.to_swift_type(func_host_lang, false)
                        )
                 }
                 StdLibType::Str => value.to_string(),
@@ -906,7 +1049,29 @@ impl BuiltInType {
                     format!("let val = {val}; if _get_option_return() {{ return val; }} else {{ return nil; }}", val = value)
                 }
             },
-            _ => todo!(),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                format!("{}", value)
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                let ty_name = &opaque.ty.ident;
+
+                if opaque.host_lang.is_rust() {
+                    let is_owned = if opaque.reference { "false" } else { "true" };
+
+                    format!(
+                        "{ty_name}(ptr: {value}, isOwned: {is_owned})",
+                        ty_name = ty_name,
+                        value = value,
+                        is_owned = is_owned
+                    )
+                } else {
+                    format!(
+                        "Unmanaged<{ty_name}>.fromOpaque({value}.ptr).takeRetainedValue()",
+                        ty_name = ty_name,
+                        value = value
+                    )
+                }
+            }
         }
     }
 
@@ -920,10 +1085,10 @@ impl BuiltInType {
     pub fn convert_swift_expression_to_ffi_compatible(
         &self,
         value: &str,
-        host_lang: HostLang,
+        func_host_lang: HostLang,
     ) -> String {
         match self {
-            BuiltInType::StdLib(stdlib_type) => match stdlib_type {
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::Null
                 | StdLibType::U8
                 | StdLibType::I8
@@ -944,7 +1109,7 @@ impl BuiltInType {
                 StdLibType::Pointer(ptr) => match &ptr.pointee {
                     Pointee::BuiltIn(_) => value.to_string(),
                     Pointee::Void(_ty) => {
-                        if ptr.kind == PointerKind::Const && host_lang.is_rust() {
+                        if ptr.kind == PointerKind::Const && func_host_lang.is_rust() {
                             format!("UnsafeMutableRawPointer(mutating: {})", value)
                         } else {
                             value.to_string()
@@ -961,17 +1126,54 @@ impl BuiltInType {
                 StdLibType::Vec(_) => {
                     format!("{}.ptr", value)
                 }
-                StdLibType::Option(_) => {
-                    format!("if case let val? = {value} {{ return markReturnTypeSome(val); }} else {{ return markReturnTypeNone(); }}", value = value)
+                StdLibType::Option(option) => {
+                    format!("if case let val? = {value} {{ _set_option_return(true); return val; }} else {{ _set_option_return(false); return {unused_none}; }}", value = value, unused_none =
+                        option.ty.rust_unused_option_none_val().swift
+                    )
                 }
             },
-            _ => todo!(),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                format!("{}", value)
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                let ty_name = &opaque.ty.ident;
+
+                if opaque.host_lang.is_rust() {
+                    if opaque.reference {
+                        format!("{}.ptr", value)
+                    } else {
+                        if func_host_lang.is_rust() {
+                            format!("{{{}.isOwned = false; return {}.ptr;}}()", value, value)
+                        } else {
+                            format!(
+                                "{type_name}(ptr: {value}, isOwned: true)",
+                                type_name = ty_name,
+                                value = value
+                            )
+                        }
+                    }
+                } else {
+                    if func_host_lang.is_rust() {
+                        format!(
+                            "__private__PointerToSwiftType(ptr: Unmanaged.passRetained({}).toOpaque())",
+                            value
+                        )
+                    } else {
+                        // format!("Unmanaged.passRetained({}).toOpaque()", value)
+                        format!(
+                            "Unmanaged<{type_name}>.fromOpaque({value}.ptr).takeRetainedValue()",
+                            type_name = ty_name,
+                            value = value
+                        )
+                    }
+                }
+            }
         }
     }
 
     pub fn c_include(&self) -> Option<&'static str> {
         match self {
-            BuiltInType::StdLib(stdlib_type) => match stdlib_type {
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::U8
                 | StdLibType::I8
                 | StdLibType::U16
@@ -988,11 +1190,88 @@ impl BuiltInType {
                     Pointee::Void(_) => None,
                 },
                 StdLibType::RefSlice(slice) => slice.ty.c_include(),
+                StdLibType::Vec(_vec) => Some("stdint.h"),
                 _ => None,
             },
-            _ => None,
+            // TODO: Iterate over the fields and see if any of them need imports..
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                None
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => None,
         }
     }
+
+    /// When we want to return an Option::None we still need to return a dummy value to appease the
+    /// type checker, even though it never gets used by the caller.
+    fn rust_unused_option_none_val(&self) -> UnusedOptionNoneValue {
+        match self {
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
+                StdLibType::Null => UnusedOptionNoneValue {
+                    rust: quote! { () },
+                    swift: "()".into(),
+                },
+                StdLibType::U8
+                | StdLibType::I8
+                | StdLibType::U16
+                | StdLibType::I16
+                | StdLibType::U32
+                | StdLibType::I32
+                | StdLibType::U64
+                | StdLibType::I64
+                | StdLibType::Usize
+                | StdLibType::Isize => UnusedOptionNoneValue {
+                    rust: quote! { 123 },
+                    swift: "123".into(),
+                },
+                StdLibType::F32 | StdLibType::F64 => UnusedOptionNoneValue {
+                    rust: quote! { 0.123 },
+                    swift: "0.123".into(),
+                },
+                StdLibType::Bool => UnusedOptionNoneValue {
+                    rust: quote! { bool },
+                    swift: "bool".into(),
+                },
+                StdLibType::Pointer(_) => {
+                    todo!("Support Option<*const T> and Option<*mut T>")
+                }
+                StdLibType::RefSlice(_) => {
+                    todo!("Support Option<&[T]>")
+                }
+                StdLibType::Str => {
+                    todo!("Support Option<&str>")
+                }
+                StdLibType::String => {
+                    todo!("Support Option<String>")
+                }
+                StdLibType::Vec(_) => {
+                    todo!("Support Option<Vec<T>>")
+                }
+                StdLibType::Option(_) => {
+                    todo!("Support nested Option<Option<T>>")
+                }
+            },
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                todo!("Support Option<SharedStruct>")
+            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                let ty_name = &opaque.ty.ident;
+
+                if opaque.reference {
+                    todo!("Support returning Option<&T> where T is an opaque type")
+                } else {
+                    UnusedOptionNoneValue {
+                        rust: quote! { std::ptr::null::<#ty_name>() as *mut super::#ty_name },
+                        swift: "TODO..Support Swift Option<T>::None value".into(),
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct UnusedOptionNoneValue {
+    rust: TokenStream,
+    swift: String,
 }
 
 #[cfg(test)]
@@ -1022,27 +1301,27 @@ mod tests {
             (
                 quote! { Vec<u32>},
                 StdLibType::Vec(BuiltInVec {
-                    ty: Box::new(BuiltInType::StdLib(StdLibType::U32)),
+                    ty: Box::new(BridgedType::StdLib(StdLibType::U32)),
                 }),
             ),
             (
                 quote! { Option<u32>},
                 StdLibType::Option(BuiltInOption {
-                    ty: Box::new(BuiltInType::StdLib(StdLibType::U32)),
+                    ty: Box::new(BridgedType::StdLib(StdLibType::U32)),
                 }),
             ),
             (
                 quote! {*const u8},
                 StdLibType::Pointer(BuiltInPointer {
                     kind: PointerKind::Const,
-                    pointee: Pointee::BuiltIn(Box::new(BuiltInType::StdLib(StdLibType::U8))),
+                    pointee: Pointee::BuiltIn(Box::new(BridgedType::StdLib(StdLibType::U8))),
                 }),
             ),
             (
                 quote! {*mut f64},
                 StdLibType::Pointer(BuiltInPointer {
                     kind: PointerKind::Mut,
-                    pointee: Pointee::BuiltIn(Box::new(BuiltInType::StdLib(StdLibType::F64))),
+                    pointee: Pointee::BuiltIn(Box::new(BridgedType::StdLib(StdLibType::F64))),
                 }),
             ),
             (
@@ -1056,7 +1335,7 @@ mod tests {
         for (tokens, expected) in tests {
             let ty: Type = parse_quote! {#tokens};
             assert_eq!(
-                BuiltInType::new_with_type(&ty, &TypeDeclarations::default())
+                BridgedType::new_with_type(&ty, &TypeDeclarations::default())
                     .unwrap()
                     .unwrap_stdlib(),
                 &expected,
