@@ -6,12 +6,10 @@ use crate::parse::type_declarations::{
 };
 use crate::parse::HostLang;
 use crate::ParsedExternFn;
-use proc_macro2::Span;
 use quote::ToTokens;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::ops::Deref;
-use syn::spanned::Spanned;
 use syn::{FnArg, ForeignItem, ForeignItemFn, ItemForeignMod, Pat, ReturnType, Type};
 
 mod function_attributes;
@@ -20,9 +18,9 @@ pub(super) struct ForeignModParser<'a> {
     pub errors: &'a mut ParseErrors,
     /// All of the type declarations across all of the extern "..." foreign modules in the
     /// `mod` module that this foreign module is in.
-    pub all_type_declarations: &'a mut TypeDeclarations,
+    pub type_declarations: &'a mut TypeDeclarations,
     pub functions: &'a mut Vec<ParsedExternFn>,
-    pub maybe_undeclared_types: &'a mut Vec<(String, Span)>,
+    pub unresolved_types: &'a mut Vec<Type>,
 }
 
 impl<'a> ForeignModParser<'a> {
@@ -61,7 +59,7 @@ impl<'a> ForeignModParser<'a> {
 
                     if let Some(_builtin) = BridgedType::with_str(
                         &foreign_ty.ident.to_string(),
-                        &self.all_type_declarations,
+                        &self.type_declarations,
                     ) {
                         self.errors.push(ParseError::DeclaredBuiltInType {
                             ty: foreign_ty.clone(),
@@ -72,7 +70,7 @@ impl<'a> ForeignModParser<'a> {
                         ty: foreign_ty.clone(),
                         host_lang,
                     };
-                    self.all_type_declarations.insert(
+                    self.type_declarations.insert(
                         ty_name.clone(),
                         TypeDeclaration::Opaque(foreign_type.clone()),
                     );
@@ -88,12 +86,20 @@ impl<'a> ForeignModParser<'a> {
 
                     for arg in func.sig.inputs.iter() {
                         if let FnArg::Typed(pat_ty) = arg {
-                            self.maybe_push_undeclared_ty(&pat_ty.ty);
+                            let ty = &pat_ty.ty;
+                            if BridgedType::new_with_type(&ty, &self.type_declarations).is_none() {
+                                self.unresolved_types.push(ty.deref().clone());
+                            }
                         }
                     }
 
-                    if let ReturnType::Type(_, ty) = &func.sig.output {
-                        self.maybe_push_undeclared_ty(ty);
+                    let return_type = &func.sig.output;
+                    if let ReturnType::Type(_, return_ty) = return_type {
+                        if BridgedType::new_with_type(return_ty.deref(), &self.type_declarations)
+                            .is_none()
+                        {
+                            self.unresolved_types.push(return_ty.deref().clone());
+                        }
                     }
 
                     let first_input = func.sig.inputs.iter().next();
@@ -120,25 +126,6 @@ impl<'a> ForeignModParser<'a> {
         Ok(())
     }
 
-    fn maybe_push_undeclared_ty(&mut self, ty: &Type) {
-        let (ty_string, ty_span) = match ty.deref() {
-            Type::Path(path) => (path.path.to_token_stream().to_string(), path.path.span()),
-            Type::Reference(ref_ty) => (
-                ref_ty.elem.to_token_stream().to_string(),
-                ref_ty.elem.span(),
-            ),
-            Type::Ptr(ptr) => (ptr.elem.to_token_stream().to_string(), ptr.elem.span()),
-            _ => todo!("Handle other type possibilities"),
-        };
-
-        if !self.all_type_declarations.contains_key(&ty_string)
-            && BridgedType::new_with_type(ty, &self.all_type_declarations).is_none()
-        {
-            self.maybe_undeclared_types.push((ty_string, ty_span));
-        }
-    }
-
-    // Parse a function that has inputs (i.e. perhaps self or arguments)
     fn get_associated_type(
         &mut self,
         first: Option<&FnArg>,
@@ -171,7 +158,7 @@ impl<'a> ForeignModParser<'a> {
                         };
 
                         let self_ty_string = self_ty.to_string();
-                        let ty = self.all_type_declarations.get(&self_ty_string).unwrap();
+                        let ty = self.type_declarations.get(&self_ty_string).unwrap();
                         let associated_type = Some(ty.clone());
                         associated_type
                     } else {
@@ -191,7 +178,7 @@ impl<'a> ForeignModParser<'a> {
             None => {
                 let associated_type = if let Some(associated_to) = &attributes.associated_to {
                     let ty = self
-                        .all_type_declarations
+                        .type_declarations
                         .get(&associated_to.to_string())
                         .unwrap();
                     Some(ty.clone())
@@ -203,7 +190,7 @@ impl<'a> ForeignModParser<'a> {
                         ReturnType::Type(_, ty) => ty.deref().to_token_stream().to_string(),
                     };
 
-                    let ty = self.all_type_declarations.get(&ty_string);
+                    let ty = self.type_declarations.get(&ty_string);
 
                     ty.map(|ty| ty.clone())
                 } else {
@@ -223,7 +210,7 @@ mod tests {
     use crate::errors::ParseError;
     use crate::test_utils::{parse_errors, parse_ok};
     use crate::SwiftBridgeModule;
-    use quote::quote;
+    use quote::{quote, ToTokens};
     use syn::parse_quote;
 
     /// Verify that we can parse a SwiftBridgeModule from an empty module.
@@ -445,8 +432,8 @@ mod tests {
         assert_eq!(errors.len(), 1);
 
         match &errors[0] {
-            ParseError::UndeclaredType { ty, span: _ } => {
-                assert_eq!(ty.to_string(), "Foo")
+            ParseError::UndeclaredType { ty } => {
+                assert_eq!(ty.to_token_stream().to_string(), "Foo")
             }
             _ => panic!(),
         }
@@ -525,8 +512,12 @@ mod tests {
 
         for error in errors.iter() {
             match error {
-                ParseError::UndeclaredType { ty, span: _ } => {
-                    assert_eq!(ty, "Bar");
+                ParseError::UndeclaredType { ty } => {
+                    let ty_name = ty.to_token_stream().to_string();
+                    // "& Bar" -> "Bar"
+                    let ty_name = ty_name.split_whitespace().last().unwrap();
+
+                    assert_eq!(ty_name, "Bar");
                 }
                 _ => panic!(),
             }
@@ -570,8 +561,12 @@ mod tests {
 
         for error in errors.iter() {
             match error {
-                ParseError::UndeclaredType { ty, span: _ } => {
-                    assert_eq!(ty, "Bar");
+                ParseError::UndeclaredType { ty } => {
+                    let ty_name = ty.to_token_stream().to_string();
+                    // "& Bar" -> "Bar"
+                    let ty_name = ty_name.split_whitespace().last().unwrap();
+
+                    assert_eq!(ty_name, "Bar");
                 }
                 _ => panic!(),
             }
@@ -674,5 +669,28 @@ mod tests {
                 expected_count
             );
         }
+    }
+
+    /// Verify that we we do not get any parsing errors when we use a type that is declared in
+    /// an extern block that comes after the block that it is used in.
+    #[test]
+    fn type_declared_in_separate_extern_block_after_use() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    fn a () -> AnotherType;
+                    fn b () -> Vec<AnotherType>;
+                    // TODO: (Dec 2021) Uncomment this when we support Option<OpaqueRustType>
+                    // fn c () -> Option<AnotherType>;
+                    fn d (arg: AnotherType);
+                }
+
+                extern "Rust" {
+                    type AnotherType;
+                }
+            }
+        };
+
+        assert_eq!(parse_errors(tokens).len(), 0,);
     }
 }

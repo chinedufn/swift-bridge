@@ -1,8 +1,8 @@
-use proc_macro2::{Ident, Span};
+use proc_macro2::Ident;
 use quote::ToTokens;
-use syn::Token;
 use syn::{Error, Receiver};
 use syn::{ForeignItemType, LitStr};
+use syn::{Token, Type};
 
 pub(crate) enum ParseError {
     /// `extern {}`
@@ -22,7 +22,7 @@ pub(crate) enum ParseError {
     AmbiguousSelf { self_: Receiver },
     /// fn foo (bar: &Bar);
     /// If Bar wasn't declared using a `type Bar` declaration.
-    UndeclaredType { ty: String, span: Span },
+    UndeclaredType { ty: Type },
     /// Declared a type that we already support.
     /// Example: `type u32`
     DeclaredBuiltInType { ty: ForeignItemType },
@@ -68,13 +68,17 @@ self: &SomeType
 self: &mut SomeType
 "#,
             ),
-            ParseError::UndeclaredType { ty, span } => {
+            ParseError::UndeclaredType { ty } => {
+                let ty_name = ty.to_token_stream().to_string();
+                // "& Bar" -> "Bar"
+                let ty_name = ty_name.split_whitespace().last().unwrap();
+
                 let message = format!(
                     r#"Type must be declared with `type {}`.
 "#,
-                    ty
+                    ty_name
                 );
-                Error::new(span, message)
+                Error::new_spanned(ty, message)
             }
             ParseError::DeclaredBuiltInType { ty } => {
                 let message = format!(

@@ -137,10 +137,6 @@ impl TypeDeclarations {
         self.order.push(type_name);
     }
 
-    pub(crate) fn contains_key(&self, type_name: &String) -> bool {
-        self.decls.contains_key(type_name)
-    }
-
     pub fn types(&self) -> Vec<&TypeDeclaration> {
         self.order
             .iter()

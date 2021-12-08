@@ -1,3 +1,4 @@
+use crate::bridged_type::BridgedType;
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::parse::parse_struct::SharedStructDeclarationParser;
@@ -54,17 +55,17 @@ impl Parse for SwiftBridgeModuleAndErrors {
             let module_name = item_mod.ident;
 
             let mut functions = vec![];
-            let mut all_type_declarations = TypeDeclarations::default();
-            let mut maybe_undeclared = vec![];
+            let mut type_declarations = TypeDeclarations::default();
+            let mut unresolved_types = vec![];
 
             for outer_mod_item in item_mod.content.unwrap().1 {
                 match outer_mod_item {
                     Item::ForeignMod(foreign_mod) => {
                         ForeignModParser {
                             errors: &mut errors,
-                            all_type_declarations: &mut all_type_declarations,
+                            type_declarations: &mut type_declarations,
                             functions: &mut functions,
-                            maybe_undeclared_types: &mut maybe_undeclared,
+                            unresolved_types: &mut unresolved_types,
                         }
                         .parse(foreign_mod)?;
                     }
@@ -74,7 +75,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                             errors: &mut errors,
                         }
                         .parse()?;
-                        all_type_declarations.insert(
+                        type_declarations.insert(
                             shared_struct.name.to_string(),
                             TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)),
                         );
@@ -90,20 +91,19 @@ impl Parse for SwiftBridgeModuleAndErrors {
                 };
             }
 
-            for (ty_name, ty_span) in maybe_undeclared.into_iter() {
-                if all_type_declarations.contains_key(&ty_name) {
+            for unresolved_type in unresolved_types.into_iter() {
+                if BridgedType::new_with_type(&unresolved_type, &type_declarations).is_some() {
                     continue;
                 }
 
                 errors.push(ParseError::UndeclaredType {
-                    ty: ty_name,
-                    span: ty_span,
+                    ty: unresolved_type.clone(),
                 });
             }
 
             let module = SwiftBridgeModule {
                 name: module_name,
-                types: all_type_declarations,
+                types: type_declarations,
                 functions,
                 swift_bridge_path: syn::parse2(quote! { swift_bridge }).unwrap(),
             };
