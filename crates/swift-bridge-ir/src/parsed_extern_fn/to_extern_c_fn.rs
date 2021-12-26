@@ -72,6 +72,10 @@ impl ParsedExternFn {
             self.call_function_tokens(&call_fn)
         };
 
+        if self.into_return_type {
+            call_fn = quote! { #call_fn.into() };
+        }
+
         if let Some(ty) = self.return_ty_built_in(types) {
             call_fn = ty.convert_rust_value_to_ffi_compatible_value(swift_bridge_path, &call_fn);
         } else {

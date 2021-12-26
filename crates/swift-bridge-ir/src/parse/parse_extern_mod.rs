@@ -117,6 +117,7 @@ impl<'a> ForeignModParser<'a> {
                         is_initializer: attributes.is_initializer,
                         host_lang,
                         swift_name_override: attributes.swift_name,
+                        into_return_type: attributes.into_return_type,
                     });
                 }
                 _ => {}
@@ -330,6 +331,25 @@ mod tests {
                 quote! {#fn_definition}.to_string()
             );
         }
+    }
+
+    /// Verify that we can parse the into_return_type attribute from extern "Rust" blocks.
+    #[test]
+    fn parse_extern_rust_into_return_type_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(into_return_type)]
+                    fn some_function () -> Foo;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        assert!(module.functions[0].into_return_type);
     }
 
     /// Verify that we can parse an associated function.

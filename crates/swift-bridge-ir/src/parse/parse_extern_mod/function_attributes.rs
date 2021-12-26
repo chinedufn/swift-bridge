@@ -7,6 +7,7 @@ pub(super) struct FunctionAttributes {
     pub associated_to: Option<Ident>,
     pub is_initializer: bool,
     pub swift_name: Option<LitStr>,
+    pub into_return_type: bool,
 }
 
 impl FunctionAttributes {
@@ -19,6 +20,9 @@ impl FunctionAttributes {
             FunctionAttr::SwiftName(name) => {
                 self.swift_name = Some(name);
             }
+            FunctionAttr::IntoReturnType => {
+                self.into_return_type = true;
+            }
         }
     }
 }
@@ -27,6 +31,7 @@ pub(super) enum FunctionAttr {
     AssociatedTo(Ident),
     SwiftName(LitStr),
     Init,
+    IntoReturnType,
 }
 
 impl Parse for FunctionAttr {
@@ -47,6 +52,7 @@ impl Parse for FunctionAttr {
                 FunctionAttr::SwiftName(value)
             }
             "init" => FunctionAttr::Init,
+            "into_return_type" => FunctionAttr::IntoReturnType,
             _ => panic!("TODO: Return spanned error"),
         };
 

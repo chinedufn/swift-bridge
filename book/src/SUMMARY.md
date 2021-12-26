@@ -6,6 +6,7 @@
 
 - [The Bridge Module](./bridge-module/README.md)
   - [Shared Structs](./bridge-module/structs/README.md)
+  - [extern "Rust"](./bridge-module/extern-rust/README.md)
 
 - [Built In Types](./built-in/README.md)
   - [Option<T> <---> Optional<T>](./built-in/option/README.md)

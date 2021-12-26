@@ -26,6 +26,18 @@ pub(crate) struct ParsedExternFn {
     pub is_initializer: bool,
     pub host_lang: HostLang,
     pub swift_name_override: Option<syn::LitStr>,
+    /// If true, we call `.into()` on the expression that the function returns before returning it.
+    ///
+    /// ```no_run,ignore
+    /// // Definition
+    /// fn some_function() -> SomeType;
+    ///
+    /// // Generated Code
+    /// fn some_function() -> SomeType {
+    ///     super::some_function().into()
+    /// }
+    /// ```
+    pub into_return_type: bool,
 }
 
 impl ParsedExternFn {

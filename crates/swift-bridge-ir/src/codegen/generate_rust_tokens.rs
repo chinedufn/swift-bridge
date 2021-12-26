@@ -461,6 +461,30 @@ mod tests {
         assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
     }
 
+    /// Verify that we respect the `into_return_type` attribute from within extern "Rust" blocks.
+    #[test]
+    fn extern_rust_into_return_type() {
+        let start = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(into_return_type)]
+                    fn some_function () -> Foo;
+                }
+            }
+        };
+        let expected_func = quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function () -> *mut super::Foo {
+                Box::into_raw(Box::new(super::some_function().into())) as *mut super::Foo
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
+    }
+
     /// Verify that an associated function we can return a reference to a declared type.
     #[test]
     fn associated_fn_return_reference_to_bridged_type() {
