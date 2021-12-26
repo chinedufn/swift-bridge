@@ -4,6 +4,9 @@ mod ffi {
         fn create_rust_option_u8_some() -> Option<u8>;
         fn create_rust_option_u8_none() -> Option<u8>;
 
+        fn create_rust_option_string_some() -> Option<String>;
+        fn create_rust_option_string_none() -> Option<String>;
+
         fn run_option_tests();
     }
 
@@ -21,7 +24,13 @@ fn run_option_tests() {
 fn create_rust_option_u8_some() -> Option<u8> {
     Some(70)
 }
-
 fn create_rust_option_u8_none() -> Option<u8> {
+    None
+}
+
+fn create_rust_option_string_some() -> Option<String> {
+    Some("hello world".to_string())
+}
+fn create_rust_option_string_none() -> Option<String> {
     None
 }

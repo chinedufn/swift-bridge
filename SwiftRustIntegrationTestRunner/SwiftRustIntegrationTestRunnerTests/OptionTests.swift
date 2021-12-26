@@ -17,9 +17,15 @@ class OptionTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
-    func testSwiftCallRustReturnOption() throws {
+    func testSwiftCallRustReturnOptionU8() throws {
         XCTAssertEqual(create_rust_option_u8_some(), 70)
         XCTAssertEqual(create_rust_option_u8_none(), nil)
+    }
+    
+    func testSwiftCallRustReturnOptionString() throws {
+        let string = create_rust_option_string_some()!
+        XCTAssertEqual(string.trim().toString(), "hello world")
+        XCTAssertNil(create_rust_option_string_none())
     }
     
     func testRustCallSwiftReturnOption() {

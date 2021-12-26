@@ -9,7 +9,7 @@ use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use quote::ToTokens;
 use std::collections::HashMap;
 use std::ops::Deref;
-use syn::{ReturnType, Type};
+use syn::{Path, ReturnType, Type};
 
 mod option;
 mod vec;
@@ -42,8 +42,14 @@ impl SwiftBridgeModule {
             }
 
             let func_definition = match function.host_lang {
-                HostLang::Rust => gen_func_swift_calls_rust(function, &self.types),
-                HostLang::Swift => gen_function_exposes_swift_to_rust(function, &self.types),
+                HostLang::Rust => {
+                    gen_func_swift_calls_rust(function, &self.types, &self.swift_bridge_path)
+                }
+                HostLang::Swift => gen_function_exposes_swift_to_rust(
+                    function,
+                    &self.types,
+                    &self.swift_bridge_path,
+                ),
             };
 
             swift += &func_definition;
@@ -67,8 +73,12 @@ impl SwiftBridgeModule {
                 }
                 TypeDeclaration::Opaque(ty) => match ty.host_lang {
                     HostLang::Rust => {
-                        swift +=
-                            &generate_swift_class(ty, &associated_funcs_and_methods, &self.types);
+                        swift += &generate_swift_class(
+                            ty,
+                            &associated_funcs_and_methods,
+                            &self.types,
+                            &self.swift_bridge_path,
+                        );
                         swift += "\n";
 
                         swift += &generate_vectorizable_extension(&ty.ident);
@@ -90,6 +100,7 @@ fn generate_swift_class(
     ty: &OpaqueForeignTypeDeclaration,
     associated_funcs_and_methods: &HashMap<String, Vec<&ParsedExternFn>>,
     types: &TypeDeclarations,
+    swift_bridge_path: &Path,
 ) -> String {
     let type_name = ty.ident.to_string();
 
@@ -104,7 +115,7 @@ fn generate_swift_class(
         for type_method in methods {
             // TODO: Normalize with freestanding func codegen above
 
-            let func_definition = gen_func_swift_calls_rust(type_method, types);
+            let func_definition = gen_func_swift_calls_rust(type_method, types, swift_bridge_path);
 
             if type_method.is_initializer {
                 initializers.push(func_definition);
@@ -181,10 +192,14 @@ func {fn_name} (ptr: UnsafeMutableRawPointer) {{
     )
 }
 
-fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations) -> String {
+fn gen_func_swift_calls_rust(
+    function: &ParsedExternFn,
+    types: &TypeDeclarations,
+    swift_bridge_path: &Path,
+) -> String {
     let fn_name = function.sig.ident.to_string();
     let params = function.to_swift_param_names_and_types(false, types);
-    let call_args = function.to_swift_call_args(true, false, types);
+    let call_args = function.to_swift_call_args(true, false, types, swift_bridge_path);
     let call_fn = format!("{}({})", fn_name, call_args);
 
     let type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
@@ -293,7 +308,11 @@ fn gen_func_swift_calls_rust(function: &ParsedExternFn, types: &TypeDeclarations
     func_definition
 }
 
-fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn, types: &TypeDeclarations) -> String {
+fn gen_function_exposes_swift_to_rust(
+    func: &ParsedExternFn,
+    types: &TypeDeclarations,
+    swift_bridge_path: &Path,
+) -> String {
     let link_name = func.link_name();
     let prefixed_fn_name = func.prefixed_fn_name();
     let fn_name = if let Some(swift_name) = func.swift_name_override.as_ref() {
@@ -305,11 +324,15 @@ fn gen_function_exposes_swift_to_rust(func: &ParsedExternFn, types: &TypeDeclara
     let params = func.to_swift_param_names_and_types(true, types);
     let ret = func.to_swift_return_type(true, types);
 
-    let args = func.to_swift_call_args(false, true, types);
+    let args = func.to_swift_call_args(false, true, types, swift_bridge_path);
     let mut call_fn = format!("{}({})", fn_name, args);
 
     if let Some(built_in) = BridgedType::new_with_return_type(&func.sig.output, types) {
-        call_fn = built_in.convert_swift_expression_to_ffi_compatible(&call_fn, func.host_lang);
+        call_fn = built_in.convert_swift_expression_to_ffi_compatible(
+            &call_fn,
+            func.host_lang,
+            swift_bridge_path,
+        );
 
         if let Some(associated_type) = func.associated_type.as_ref() {
             let ty_name = match associated_type {

@@ -3,7 +3,7 @@ use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
 use quote::ToTokens;
 use std::ops::Deref;
-use syn::{FnArg, ReturnType, Type};
+use syn::{FnArg, Path, ReturnType, Type};
 
 impl ParsedExternFn {
     pub fn to_swift_param_names_and_types(
@@ -60,6 +60,7 @@ impl ParsedExternFn {
         include_receiver_if_present: bool,
         include_var_name: bool,
         types: &TypeDeclarations,
+        swift_bridge_path: &Path,
     ) -> String {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
@@ -100,13 +101,16 @@ impl ParsedExternFn {
                     let arg = pat.to_token_stream().to_string();
                     let arg_name = arg.clone();
 
-                    let arg = if let Some(bridged_ty) =
-                        BridgedType::new_with_type(&pat_ty.ty, types)
-                    {
-                        bridged_ty.convert_swift_expression_to_ffi_compatible(&arg, self.host_lang)
-                    } else {
-                        todo!("Push to ParsedErrors")
-                    };
+                    let arg =
+                        if let Some(bridged_ty) = BridgedType::new_with_type(&pat_ty.ty, types) {
+                            bridged_ty.convert_swift_expression_to_ffi_compatible(
+                                &arg,
+                                self.host_lang,
+                                swift_bridge_path,
+                            )
+                        } else {
+                            todo!("Push to ParsedErrors")
+                        };
 
                     let arg = if include_var_name {
                         format!("{}: {}", arg_name, arg)
@@ -255,7 +259,12 @@ mod tests {
 
         for idx in 0..2 {
             assert_eq!(
-                functions[idx].to_swift_call_args(true, false, &module.types),
+                functions[idx].to_swift_call_args(
+                    true,
+                    false,
+                    &module.types,
+                    &module.swift_bridge_path
+                ),
                 "other.ptr"
             );
         }
@@ -280,17 +289,17 @@ mod tests {
         let functions = &module.functions;
 
         assert_eq!(
-            functions[0].to_swift_call_args(true, false, &module.types),
+            functions[0].to_swift_call_args(true, false, &module.types, &module.swift_bridge_path),
             "{isOwned = false; return ptr;}()"
         );
 
         assert_eq!(
-            functions[1].to_swift_call_args(true, false, &module.types),
+            functions[1].to_swift_call_args(true, false, &module.types, &module.swift_bridge_path),
             "{isOwned = false; return ptr;}()"
         );
 
         assert_eq!(
-            functions[2].to_swift_call_args(true, false, &module.types),
+            functions[2].to_swift_call_args(true, false, &module.types, &module.swift_bridge_path),
             "{other.isOwned = false; return other.ptr;}()"
         );
     }
@@ -311,7 +320,7 @@ mod tests {
         let functions = &module.functions;
 
         assert_eq!(
-            functions[0].to_swift_call_args(false, false, &module.types),
+            functions[0].to_swift_call_args(false, false, &module.types, &module.swift_bridge_path),
             "someArg.toFfiSlice()"
         );
     }

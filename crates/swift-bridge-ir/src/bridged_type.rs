@@ -6,6 +6,10 @@ use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use syn::{FnArg, ForeignItemType, LitStr, PatType, Path, ReturnType, Type};
 
+use self::bridged_option::BridgedOption;
+
+mod bridged_option;
+
 // FIXME: Rename to BridgedType
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum BridgedType {
@@ -43,7 +47,7 @@ pub(crate) enum StdLibType {
     Str,
     String,
     Vec(BuiltInVec),
-    Option(BuiltInOption),
+    Option(BridgedOption),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -107,12 +111,6 @@ pub(crate) struct BuiltInRefSlice {
 /// Vec<T>
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct BuiltInVec {
-    pub ty: Box<BridgedType>,
-}
-
-/// Option<T>
-#[derive(Debug, PartialEq, Clone)]
-pub(crate) struct BuiltInOption {
     pub ty: Box<BridgedType>,
 }
 
@@ -382,7 +380,7 @@ impl BridgedType {
             let inner = inner.trim_end_matches(" >");
             let inner = BridgedType::with_str(inner, types)?;
 
-            return Some(BridgedType::StdLib(StdLibType::Option(BuiltInOption {
+            return Some(BridgedType::StdLib(StdLibType::Option(BridgedOption {
                 ty: Box::new(inner),
             })));
         }
@@ -542,7 +540,9 @@ impl BridgedType {
                     let ty = ty.ty.to_rust();
                     quote! { *mut Vec<#ty> }
                 }
-                StdLibType::Option(opt) => opt.ty.to_rust(),
+                StdLibType::Option(opt) => opt
+                    .ty
+                    .to_ffi_compatible_rust_type(func_host_lang, swift_bridge_path),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let ty_name = &shared_struct.name;
@@ -637,7 +637,9 @@ impl BridgedType {
                     )
                 }
                 StdLibType::Option(opt) => {
-                    if must_be_c_compatible {
+                    // TODO: This logic is wrong.. but as we add more Option integration tests
+                    // we'll be forced to take care of this logic..
+                    if func_host_lang.is_swift() && must_be_c_compatible {
                         opt.ty.to_swift_type(func_host_lang, must_be_c_compatible)
                     } else {
                         format!(
@@ -842,12 +844,18 @@ impl BridgedType {
                     quote! { Box::into_raw(Box::new( #expression )) }
                 }
                 StdLibType::Option(opt) => {
-                    let unused_none_value = opt.ty.rust_unused_option_none_val().rust;
+                    let unused_none_value =
+                        opt.ty.rust_unused_option_none_val(swift_bridge_path).rust;
+
+                    let val = opt.ty.convert_rust_value_to_ffi_compatible_value(
+                        swift_bridge_path,
+                        &quote! {val},
+                    );
 
                     quote! {
                         if let Some(val) = #expression {
                             #swift_bridge_path::option::_set_option_return(true);
-                            val
+                            #val
                         } else {
                             #swift_bridge_path::option::_set_option_return(false);
                             #unused_none_value
@@ -1045,8 +1053,14 @@ impl BridgedType {
                 StdLibType::Vec(_ty) => {
                     format!("RustVec(ptr: {}, isOwned: true)", value)
                 }
-                StdLibType::Option(_) => {
-                    format!("let val = {val}; if _get_option_return() {{ return val; }} else {{ return nil; }}", val = value)
+                StdLibType::Option(opt) => {
+                    let inner_val = opt.convert_ffi_value_to_swift_value(func_host_lang);
+
+                    format!(
+                        "let val = {val}; if _get_option_return() {{ return {inner_val}; }} else {{ return nil; }}",
+                        val = value,
+                        inner_val = inner_val
+                    )
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
@@ -1086,6 +1100,7 @@ impl BridgedType {
         &self,
         value: &str,
         func_host_lang: HostLang,
+        swift_bridge_path: &Path,
     ) -> String {
         match self {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
@@ -1127,8 +1142,10 @@ impl BridgedType {
                     format!("{}.ptr", value)
                 }
                 StdLibType::Option(option) => {
-                    format!("if case let val? = {value} {{ _set_option_return(true); return val; }} else {{ _set_option_return(false); return {unused_none}; }}", value = value, unused_none =
-                        option.ty.rust_unused_option_none_val().swift
+                    format!(
+                        "if case let val? = {value} {{ _set_option_return(true); return val; }} else {{ _set_option_return(false); return {unused_none}; }}",
+                        value = value,
+                        unused_none = option.ty.rust_unused_option_none_val(swift_bridge_path).swift
                     )
                 }
             },
@@ -1203,7 +1220,7 @@ impl BridgedType {
 
     /// When we want to return an Option::None we still need to return a dummy value to appease the
     /// type checker, even though it never gets used by the caller.
-    fn rust_unused_option_none_val(&self) -> UnusedOptionNoneValue {
+    fn rust_unused_option_none_val(&self, swift_bridge_path: &Path) -> UnusedOptionNoneValue {
         match self {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::Null => UnusedOptionNoneValue {
@@ -1241,7 +1258,15 @@ impl BridgedType {
                     todo!("Support Option<&str>")
                 }
                 StdLibType::String => {
-                    todo!("Support Option<String>")
+                    UnusedOptionNoneValue {
+                        rust: quote! {
+                            std::ptr::null::<#swift_bridge_path::string::RustString>() as *mut #swift_bridge_path::string::RustString
+                        },
+                        // TODO: Add integration tests:
+                        //  Rust: crates/swift-integration-tests/src/option.rs
+                        //  Swift: OptionTests.swift
+                        swift: "TODO_SWIFT_OPTIONAL_STRING_SUPPORT".to_string(),
+                    }
                 }
                 StdLibType::Vec(_) => {
                     todo!("Support Option<Vec<T>>")
@@ -1306,7 +1331,7 @@ mod tests {
             ),
             (
                 quote! { Option<u32>},
-                StdLibType::Option(BuiltInOption {
+                StdLibType::Option(BridgedOption {
                     ty: Box::new(BridgedType::StdLib(StdLibType::U32)),
                 }),
             ),
