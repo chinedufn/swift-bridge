@@ -1,6 +1,6 @@
 [package]
 name = "swift-bridge-macro"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 keywords = ["swift", "ffi", "bindings", "ios", "mac"]
 description = "Powers swift-bridge module code generation."
@@ -13,4 +13,4 @@ proc-macro = true
 proc-macro2 = "1"
 quote = "1"
 syn = { version = "1", features = ["full"] }
-swift-bridge-ir = {version = "0.1.8", path = "../swift-bridge-ir"}
+swift-bridge-ir = {version = "0.1.9", path = "../swift-bridge-ir"}
