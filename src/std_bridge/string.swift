@@ -24,8 +24,16 @@ class SwiftString {
 
 extension RustString {
     func toString() -> String {
+        // We prevent the RustString from getting dropped until we've cloned the memory
+        // into a Swift String
+        let opaque = Unmanaged.passRetained(self)
+
         let str = self.as_str()
-        return str.toString()
+        let string = str.toString()
+
+        let _ = opaque.takeRetainedValue()
+
+        return string
     }
 }
 
