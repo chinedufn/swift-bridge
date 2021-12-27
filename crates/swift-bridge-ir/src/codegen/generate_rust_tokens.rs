@@ -461,6 +461,30 @@ mod tests {
         assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
     }
 
+    /// Verify that the `rust_name` attribute works on extern "Rust" functions.
+    #[test]
+    fn extern_rust_freestanding_function_rust_name() {
+        let start = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(rust_name = "another_function")]
+                    fn some_function () -> Foo;
+                }
+            }
+        };
+        let expected_func = quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function () -> *mut super::Foo {
+                Box::into_raw(Box::new(super::another_function())) as *mut super::Foo
+            }
+        };
+
+        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
+    }
+
     /// Verify that we respect the `into_return_type` attribute from within extern "Rust" blocks.
     #[test]
     fn extern_rust_into_return_type() {

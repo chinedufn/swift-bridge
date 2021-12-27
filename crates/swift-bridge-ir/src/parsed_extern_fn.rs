@@ -25,6 +25,7 @@ pub(crate) struct ParsedExternFn {
     pub associated_type: Option<TypeDeclaration>,
     pub is_initializer: bool,
     pub host_lang: HostLang,
+    pub rust_name_override: Option<syn::LitStr>,
     pub swift_name_override: Option<syn::LitStr>,
     /// If true, we call `.into()` on the expression that the function returns before returning it.
     ///

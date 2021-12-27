@@ -116,6 +116,7 @@ impl<'a> ForeignModParser<'a> {
                         associated_type,
                         is_initializer: attributes.is_initializer,
                         host_lang,
+                        rust_name_override: attributes.rust_name,
                         swift_name_override: attributes.swift_name,
                         into_return_type: attributes.into_return_type,
                     });

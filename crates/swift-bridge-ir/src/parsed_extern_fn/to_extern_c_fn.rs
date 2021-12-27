@@ -1,7 +1,7 @@
 use crate::bridged_type::BridgedType;
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
 use std::ops::Deref;
 use syn::{Path, ReturnType, Type};
@@ -58,7 +58,17 @@ impl ParsedExternFn {
 
     fn call_fn_tokens(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream {
         let sig = &self.func.sig;
-        let fn_name = &sig.ident;
+        let fn_name = if let Some(fn_name) = self.rust_name_override.as_ref() {
+            let span = fn_name.span();
+            let fn_name = Ident::new(&fn_name.value(), span);
+
+            quote! { #fn_name }
+        } else {
+            let fn_name = &sig.ident;
+            quote! {
+                #fn_name
+            }
+        };
 
         let call_args = self.to_call_rust_args(swift_bridge_path, types);
 

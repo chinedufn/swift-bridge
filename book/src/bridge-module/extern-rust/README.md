@@ -46,6 +46,25 @@ impl Water {
 
 ## Function Attributes
 
+#### #[swift_bridge(rust_name = "function_name")]
+
+Use the given `rust_name` to find the function's implementation.
+
+```rust
+use some_other_crate::Uuid;
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        #[swift_bridge(rust_name = "another_function")]
+        fn some_function();
+    }
+}
+
+fn another_function() {
+}
+```
+
 #### #[swift_bridge(into_return_type)]
 
 Allows a swift-bridge definition of `fn foo() -> T` to work for any `fn foo() -> impl Into<T>`.

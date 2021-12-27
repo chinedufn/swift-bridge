@@ -6,6 +6,7 @@ use syn::{LitStr, Token};
 pub(super) struct FunctionAttributes {
     pub associated_to: Option<Ident>,
     pub is_initializer: bool,
+    pub rust_name: Option<LitStr>,
     pub swift_name: Option<LitStr>,
     pub into_return_type: bool,
 }
@@ -17,6 +18,9 @@ impl FunctionAttributes {
                 self.associated_to = Some(ident);
             }
             FunctionAttr::Init => self.is_initializer = true,
+            FunctionAttr::RustName(name) => {
+                self.rust_name = Some(name);
+            }
             FunctionAttr::SwiftName(name) => {
                 self.swift_name = Some(name);
             }
@@ -30,6 +34,7 @@ impl FunctionAttributes {
 pub(super) enum FunctionAttr {
     AssociatedTo(Ident),
     SwiftName(LitStr),
+    RustName(LitStr),
     Init,
     IntoReturnType,
 }
@@ -53,6 +58,13 @@ impl Parse for FunctionAttr {
             }
             "init" => FunctionAttr::Init,
             "into_return_type" => FunctionAttr::IntoReturnType,
+            "rust_name" => {
+                input.parse::<Token![=]>()?;
+                let value: LitStr = input.parse()?;
+
+                FunctionAttr::RustName(value)
+            }
+
             _ => panic!("TODO: Return spanned error"),
         };
 
