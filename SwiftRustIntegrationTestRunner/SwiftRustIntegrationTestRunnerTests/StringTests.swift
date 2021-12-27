@@ -21,11 +21,18 @@ class StringTests: XCTestCase {
         run_string_tests()
     }
     
-    func testRustString() throws {
+    /// Verify that we can get a RustString's length
+    func testRustStringLen() throws {
         let string = " hello "
+        let rustString: RustString = create_string(string)
         
-        let rustString: RustString = create_string(string.toRustStr())
         XCTAssertEqual(rustString.len(), 7)
+    }
+    
+    /// Verify that we can trim a RustString
+    func testTrimRustString() throws {
+        let string = " hello "
+        let rustString: RustString = create_string(string)
         
         let trimmed: RustStr = rustString.trim()
         XCTAssertEqual(trimmed.len, 5)
@@ -35,7 +42,7 @@ class StringTests: XCTestCase {
         let string = "hi"
         
         XCTAssertEqual(
-            create_string(string.toRustStr()).toString(),
+            create_string(string).toString(),
             "hi"
         )
     }

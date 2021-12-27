@@ -61,7 +61,7 @@ class VecTests: XCTestCase {
         XCTAssertNil(vec.get(index: 1))
         
         let text = "My pushed text"
-        vec.push(value: ARustTypeInsideVecT(text.toRustStr()))
+        vec.push(value: ARustTypeInsideVecT(text))
         XCTAssertEqual(vec.len(), 1)
         XCTAssertEqual(vec.get(index: 0)!.text().toString(), "My pushed text")
     }

@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgedType, StructSwiftRepr};
+use crate::bridged_type::{fn_arg_name, BridgedType, StdLibType, StructSwiftRepr, TypePosition};
 use crate::codegen::generate_swift::vec::generate_vectorizable_extension;
 use crate::parse::{
     HostLang, OpaqueForeignTypeDeclaration, SharedTypeDeclaration, TypeDeclaration,
@@ -224,12 +224,6 @@ fn gen_func_swift_calls_rust(
         ""
     };
 
-    let maybe_return = if function.is_initializer {
-        "".to_string()
-    } else {
-        function.to_swift_return_type(false, types)
-    };
-
     let swift_class_func_name = if function.is_initializer {
         "init".to_string()
     } else {
@@ -248,10 +242,14 @@ fn gen_func_swift_calls_rust(
         type_name_segment = type_name_segment,
         call_fn = call_fn
     );
-    let call_rust = if function.is_initializer {
-        format!("ptr = {}", call_rust)
+    let mut call_rust = if function.is_initializer {
+        call_rust
     } else if let Some(built_in) = function.return_ty_built_in(types) {
-        built_in.convert_ffi_value_to_swift_value(function.host_lang, &call_rust)
+        built_in.convert_ffi_value_to_swift_value(
+            function.host_lang,
+            TypePosition::FnReturn,
+            &call_rust,
+        )
     } else {
         if function.host_lang.is_swift() {
             call_rust
@@ -293,6 +291,41 @@ fn gen_func_swift_calls_rust(
         }
     };
 
+    let returns_null = Some(BridgedType::StdLib(StdLibType::Null))
+        == BridgedType::new_with_return_type(&function.func.sig.output, types);
+
+    let maybe_return = if returns_null || function.is_initializer {
+        ""
+    } else {
+        "return "
+    };
+    for arg in function.func.sig.inputs.iter() {
+        if let Some(BridgedType::StdLib(StdLibType::Str)) = BridgedType::new_with_fn_arg(arg, types)
+        {
+            let arg_name = fn_arg_name(arg).unwrap().to_string();
+
+            call_rust = format!(
+                r#"{maybe_return}{arg}.utf8CString.withUnsafeBufferPointer({{{arg}Ptr in
+{indentation}        {call_rust}
+{indentation}    }})"#,
+                maybe_return = maybe_return,
+                indentation = indentation,
+                arg = arg_name,
+                call_rust = call_rust
+            );
+        }
+    }
+
+    if function.is_initializer {
+        call_rust = format!("ptr = {}", call_rust)
+    }
+
+    let maybe_return = if function.is_initializer {
+        "".to_string()
+    } else {
+        function.to_swift_return_type(types)
+    };
+
     let func_definition = format!(
         r#"{indentation}{maybe_static_class_func}{swift_class_func_name}({params}){maybe_ret} {{
 {indentation}    {call_rust}
@@ -322,7 +355,7 @@ fn gen_function_exposes_swift_to_rust(
     };
 
     let params = func.to_swift_param_names_and_types(true, types);
-    let ret = func.to_swift_return_type(true, types);
+    let ret = func.to_swift_return_type(types);
 
     let args = func.to_swift_call_args(false, true, types, swift_bridge_path);
     let mut call_fn = format!("{}({})", fn_name, args);

@@ -4,7 +4,7 @@ use quote::ToTokens;
 use quote::{quote, quote_spanned};
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
-use syn::{FnArg, ForeignItemType, LitStr, PatType, Path, ReturnType, Type};
+use syn::{FnArg, ForeignItemType, LitStr, Pat, PatType, Path, ReturnType, Type};
 
 use self::bridged_option::BridgedOption;
 
@@ -48,6 +48,12 @@ pub(crate) enum StdLibType {
     String,
     Vec(BuiltInVec),
     Option(BridgedOption),
+}
+
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum TypePosition {
+    FnArg,
+    FnReturn,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -281,6 +287,17 @@ pub(crate) fn pat_type_pat_is_self(pat_type: &PatType) -> bool {
     match pat_type.pat.deref() {
         syn::Pat::Ident(pat_ident) if pat_ident.ident == "self" => true,
         _ => false,
+    }
+}
+
+/// foo: u8 -> Some("foo")
+pub(crate) fn fn_arg_name(fn_arg: &FnArg) -> Option<&Ident> {
+    match fn_arg {
+        FnArg::Receiver(_) => None,
+        FnArg::Typed(pat_ty) => match pat_ty.pat.deref() {
+            Pat::Ident(i) => Some(&i.ident),
+            _ => None,
+        },
     }
 }
 
@@ -582,7 +599,7 @@ impl BridgedType {
     // U8 -> UInt8
     // *const u32 -> UnsafePointer<UInt32>
     // ... etc
-    pub fn to_swift_type(&self, func_host_lang: HostLang, must_be_c_compatible: bool) -> String {
+    pub fn to_swift_type(&self, func_host_lang: HostLang, type_pos: TypePosition) -> String {
         match self {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::U8 => "UInt8".to_string(),
@@ -609,7 +626,7 @@ impl BridgedType {
                             format!(
                                 "Unsafe{}Pointer<{}>",
                                 maybe_mutable,
-                                ty.to_swift_type(func_host_lang, must_be_c_compatible)
+                                ty.to_swift_type(func_host_lang, type_pos)
                             )
                         }
                         Pointee::Void(_) => {
@@ -618,33 +635,40 @@ impl BridgedType {
                     }
                 }
                 StdLibType::RefSlice(slice) => {
-                    if must_be_c_compatible {
+                    if func_host_lang.is_swift() {
                         "__private__FfiSlice".to_string()
                     } else {
                         format!(
                             "UnsafeBufferPointer<{}>",
-                            slice.ty.to_swift_type(func_host_lang, must_be_c_compatible)
+                            slice.ty.to_swift_type(func_host_lang, type_pos)
                         )
                     }
                 }
                 StdLibType::Null => "()".to_string(),
-                StdLibType::Str => "RustStr".to_string(),
+                StdLibType::Str => {
+                    use HostLang::{Rust, Swift};
+                    use TypePosition::{FnArg, FnReturn};
+
+                    match (func_host_lang, type_pos) {
+                        (Swift, FnArg) => "RustStr".to_string(),
+                        (Swift, FnReturn) => "RustStr".to_string(),
+                        (Rust, FnArg) => "String".to_string(),
+                        (Rust, FnReturn) => "RustStr".to_string(),
+                    }
+                }
                 StdLibType::String => "RustString".to_string(),
                 StdLibType::Vec(ty) => {
-                    format!(
-                        "RustVec<{}>",
-                        ty.ty.to_swift_type(func_host_lang, must_be_c_compatible)
-                    )
+                    format!("RustVec<{}>", ty.ty.to_swift_type(func_host_lang, type_pos))
                 }
                 StdLibType::Option(opt) => {
                     // TODO: This logic is wrong.. but as we add more Option integration tests
                     // we'll be forced to take care of this logic..
-                    if func_host_lang.is_swift() && must_be_c_compatible {
-                        opt.ty.to_swift_type(func_host_lang, must_be_c_compatible)
+                    if func_host_lang.is_swift() {
+                        opt.ty.to_swift_type(func_host_lang, type_pos)
                     } else {
                         format!(
                             "Optional<{}>",
-                            opt.ty.to_swift_type(func_host_lang, must_be_c_compatible)
+                            opt.ty.to_swift_type(func_host_lang, type_pos)
                         )
                     }
                 }
@@ -673,14 +697,10 @@ impl BridgedType {
     // U8 -> UInt8
     // *const u32 -> UnsafePointer<UInt32>
     // SomeOpaqueSwiftType -> UnsafeMutablePointer
-    pub fn to_ffi_compatible_swift_return_type(
-        &self,
-        func_host_lang: HostLang,
-        must_be_c_compatible: bool,
-    ) -> String {
+    pub fn to_ffi_compatible_swift_return_type(&self, func_host_lang: HostLang) -> String {
         match self {
             BridgedType::StdLib(_stdlib_type) => {
-                self.to_swift_type(func_host_lang, must_be_c_compatible)
+                self.to_swift_type(func_host_lang, TypePosition::FnReturn)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 shared_struct.swift_type_name()
@@ -1012,6 +1032,7 @@ impl BridgedType {
     pub fn convert_ffi_value_to_swift_value(
         &self,
         func_host_lang: HostLang,
+        type_pos: TypePosition,
         value: &str,
     ) -> String {
         match self {
@@ -1043,7 +1064,7 @@ impl BridgedType {
                     format!(
                            "let slice = {value}; return UnsafeBufferPointer(start: slice.start.assumingMemoryBound(to: {ty}.self), count: Int(slice.len));",
                            value = value,
-                           ty = ty.ty.to_swift_type(func_host_lang, false)
+                           ty = ty.ty.to_swift_type(func_host_lang, type_pos)
                        )
                 }
                 StdLibType::Str => value.to_string(),
@@ -1054,7 +1075,7 @@ impl BridgedType {
                     format!("RustVec(ptr: {}, isOwned: true)", value)
                 }
                 StdLibType::Option(opt) => {
-                    let inner_val = opt.convert_ffi_value_to_swift_value(func_host_lang);
+                    let inner_val = opt.convert_ffi_value_to_swift_value(func_host_lang, type_pos);
 
                     format!(
                         "let val = {val}; if _get_option_return() {{ return {inner_val}; }} else {{ return nil; }}",
@@ -1131,7 +1152,17 @@ impl BridgedType {
                         }
                     }
                 },
-                StdLibType::Str => value.to_string(),
+                StdLibType::Str => {
+                    if func_host_lang.is_rust() {
+                        // Convert UnsafePointer<CChar> -> RustStr
+                        format!(
+                        "RustStr(start: UnsafeMutableRawPointer(mutating: {val}Ptr.baseAddress!).assumingMemoryBound(to: UInt8.self), len: UInt({val}.count))",
+                        val = value
+                    )
+                    } else {
+                        value.to_string()
+                    }
+                }
                 StdLibType::String => {
                     format!(
                         "{{{value}.isOwned = false; return {value}.ptr}}()",

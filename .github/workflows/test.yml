@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
     - uses: actions/checkout@v2
@@ -25,6 +26,8 @@ jobs:
   
   integration-test:
     runs-on: macOS-11
+    timeout-minutes: 15
+
     steps:
     - uses: actions/checkout@v1
 

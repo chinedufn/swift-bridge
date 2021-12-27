@@ -1,4 +1,4 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType, TypePosition};
 use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
 use quote::ToTokens;
@@ -34,7 +34,7 @@ impl ParsedExternFn {
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
                     let ty = if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
-                        built_in.to_swift_type(self.host_lang, false)
+                        built_in.to_swift_type(self.host_lang, TypePosition::FnArg)
                     } else {
                         todo!("Push to ParsedErrors")
                     };
@@ -126,21 +126,14 @@ impl ParsedExternFn {
         args.join(", ")
     }
 
-    pub fn to_swift_return_type(
-        &self,
-        must_be_c_compatible: bool,
-        types: &TypeDeclarations,
-    ) -> String {
+    pub fn to_swift_return_type(&self, types: &TypeDeclarations) -> String {
         match &self.func.sig.output {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(built_in) = BridgedType::new_with_type(&ty, types) {
                     format!(
                         " -> {}",
-                        built_in.to_ffi_compatible_swift_return_type(
-                            self.host_lang,
-                            must_be_c_compatible
-                        )
+                        built_in.to_ffi_compatible_swift_return_type(self.host_lang,)
                     )
                 } else {
                     todo!("Push ParsedErrors")
@@ -178,7 +171,7 @@ mod tests {
 
         for idx in 0..3 {
             assert_eq!(
-                functions[idx].to_swift_return_type(false, &module.types),
+                functions[idx].to_swift_return_type(&module.types),
                 " -> Foo"
             );
         }
