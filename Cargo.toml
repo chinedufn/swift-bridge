@@ -1,6 +1,6 @@
 [package]
 name = "swift-bridge"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2021"
 keywords = ["swift", "ffi", "bindings", "ios", "mac"]
 description = "Generate FFI bindings for safe interop between Rust and Swift."
@@ -9,10 +9,10 @@ license = "Apache-2.0/MIT"
 build = "build.rs"
 
 [build-dependencies]
-swift-bridge-build = {version = "0.1.10", path = "crates/swift-bridge-build"}
+swift-bridge-build = {version = "0.1.11", path = "crates/swift-bridge-build"}
 
 [dependencies]
-swift-bridge-macro = {version = "0.1.10", path = "crates/swift-bridge-macro"}
+swift-bridge-macro = {version = "0.1.11", path = "crates/swift-bridge-macro"}
 
 [workspace]
 members = [
