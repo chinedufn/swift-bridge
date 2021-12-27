@@ -22,6 +22,13 @@ class SwiftString {
     }
 }
 
+extension RustString {
+    func toString() -> String {
+        let str = self.as_str()
+        return str.toString()
+    }
+}
+
 extension RustStr {
     func toBufferPointer() -> UnsafeBufferPointer<UInt8> {
         UnsafeBufferPointer(start: self.start, count: Int(self.len))

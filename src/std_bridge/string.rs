@@ -16,6 +16,8 @@ mod ffi {
 
         fn len(&self) -> usize;
 
+        fn as_str(&self) -> &str;
+
         fn trim(&self) -> &str;
     }
 
@@ -55,6 +57,10 @@ impl RustString {
 
     fn len(&self) -> usize {
         self.0.len()
+    }
+
+    fn as_str(&self) -> &str {
+        self.0.as_str()
     }
 
     fn trim(&self) -> &str {
