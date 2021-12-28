@@ -34,6 +34,12 @@ swift-bridge-build = "0.1"
 swift-bridge = "0.1"
 ```
 
+## Resources
+
+- Book - https://chinedufn.github.io/swift-bridge
+
+- [Examples](./examples)
+
 ## Quick Peek
 
 Here's a quick peek at how bindings look.
