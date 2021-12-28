@@ -1,0 +1,17 @@
+[package]
+name = "ios-rust-analyzer"
+version = "0.1.0"
+edition = "2021"
+
+build = "build.rs"
+
+[build-dependencies]
+swift-bridge-build = {path = "../../crates/swift-bridge-build"}
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+swift-bridge = {path = "../../"}
+ide = {git = "https://github.com/rust-analyzer/rust-analyzer"}
+
