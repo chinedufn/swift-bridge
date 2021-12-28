@@ -2,13 +2,15 @@
 
 > Call Rust from Swift and vice versa. 
 
-`swift-bridge` generates code that helps you call Swift from Rust and vice versa.
+`swift-bridge` generates code that helps you call Rust from Swift and vice versa.
 
 _`swift-bridge` takes inspiration from the bridge module idea pioneered by [cxx](https://github.com/dtolnay/cxx)._
 
 ## Current Status
 
-`swift-bridge` is not yet production ready.
+`swift-bridge` works, but there are still some edge cases where it's easy to make a mistake if you don't know about that. All of them are addressable.
+
+So, `swift-bridge` is not yet production ready.
 
 Right now I'm looking for feedback from bleeding-edge users in order to continue to improve the APIs and the generated code.
 
@@ -36,7 +38,9 @@ swift-bridge = "0.1"
 
 ## Resources
 
-- Book - https://chinedufn.github.io/swift-bridge
+- [Book](https://chinedufn.github.io/swift-bridge)
+
+- [Tutorial](https://chinedufn.github.io/swift-bridge/tutorial/running-rust-analyzer-on-an-iphone/index.html)
 
 - [Examples](./examples)
 
@@ -44,7 +48,7 @@ swift-bridge = "0.1"
 
 Here's a quick peek at how bindings look.
 
-A more thorough walk through of `swift-bridge` can be found in the book (TODO: Link to GitHub pages).
+A more thorough walk through of `swift-bridge` can be found in the [book](https://chinedufn.github.io/swift-bridge/index.html). 
 
 ```rust
 // lib.rs
