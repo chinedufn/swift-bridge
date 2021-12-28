@@ -18,6 +18,7 @@ pub(super) fn generate_vec_of_opaque_rust_type_functions(
     let export_name_drop = make_export_name("drop");
     let export_name_len = make_export_name("len");
     let export_name_get = make_export_name("get");
+    let export_name_get_mut = make_export_name("get_mut");
     let export_name_push = make_export_name("push");
     let export_name_pop = make_export_name("pop");
     let export_name_as_ptr = make_export_name("as_ptr");
@@ -53,6 +54,19 @@ pub(super) fn generate_vec_of_opaque_rust_type_functions(
                 } else {
                     #swift_bridge_path::option::_set_option_return(false);
                     std::ptr::null()
+                }
+            }
+
+            #[doc(hidden)]
+            #[export_name = #export_name_get_mut]
+            pub extern "C" fn _get_mut(vec: *mut Vec<super::#ty>, index: usize) -> *mut super::#ty {
+                let vec = unsafe { &mut *vec };
+                if let Some(val) = vec.get_mut(index) {
+                    #swift_bridge_path::option::_set_option_return(true);
+                    val as *mut super::#ty
+                } else {
+                    #swift_bridge_path::option::_set_option_return(false);
+                    std::ptr::null::<super::#ty>() as *mut super::#ty
                 }
             }
 
@@ -128,6 +142,21 @@ mod tests {
                     } else {
                         swift_bridge::option::_set_option_return(false);
                         std::ptr::null()
+                    }
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_ARustType$get_mut"]
+                pub extern "C" fn _get_mut(vec: *mut Vec<super::ARustType>, index: usize) -> *mut super::ARustType {
+                    let vec = unsafe { &mut *vec };
+                    // TODO: No need to use _set_option_return since on the Swift side we're just
+                    //  checking whether or not the pointer is null
+                    if let Some(val) = vec.get_mut(index) {
+                        swift_bridge::option::_set_option_return(true);
+                        val as *mut super::ARustType
+                    } else {
+                        swift_bridge::option::_set_option_return(false);
+                        std::ptr::null::<super::ARustType>() as *mut super::ARustType
                     }
                 }
 

@@ -105,7 +105,10 @@ fn generate_swift_class(
     let type_name = ty.ident.to_string();
 
     let mut initializers = vec![];
-    let mut instance_methods = vec![];
+
+    let mut owned_self_methods = vec![];
+    let mut ref_self_methods = vec![];
+    let mut ref_mut_self_methods = vec![];
 
     let default_init = r#"    init() {
         fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
@@ -117,10 +120,22 @@ fn generate_swift_class(
 
             let func_definition = gen_func_swift_calls_rust(type_method, types, swift_bridge_path);
 
+            let is_class_func = type_method.func.sig.inputs.is_empty();
+
             if type_method.is_initializer {
                 initializers.push(func_definition);
+            } else if is_class_func {
+                ref_self_methods.push(func_definition);
             } else {
-                instance_methods.push(func_definition);
+                if type_method.self_reference().is_some() {
+                    if type_method.self_mutability().is_some() {
+                        ref_mut_self_methods.push(func_definition);
+                    } else {
+                        ref_self_methods.push(func_definition);
+                    }
+                } else {
+                    owned_self_methods.push(func_definition);
+                }
             }
         }
     }
@@ -130,35 +145,58 @@ fn generate_swift_class(
     }
 
     let initializers: String = initializers.join("\n\n");
-    let mut instance_methods: String = instance_methods.join("\n\n");
-    if instance_methods.len() > 0 {
-        instance_methods = format!("\n\n{}", instance_methods);
+
+    let mut owned_instance_methods: String = owned_self_methods.join("\n\n");
+    if owned_instance_methods.len() > 0 {
+        owned_instance_methods = format!("\n\n{}", owned_instance_methods);
+    }
+
+    let mut ref_instance_methods: String = ref_self_methods.join("\n\n");
+    if ref_instance_methods.len() > 0 {
+        ref_instance_methods = format!("\n\n{}", ref_instance_methods);
+    }
+
+    let mut ref_mut_instance_methods: String = ref_mut_self_methods.join("\n\n");
+    if ref_mut_instance_methods.len() > 0 {
+        ref_mut_instance_methods = format!("\n\n{}", ref_mut_instance_methods);
     }
 
     let free_func_call = format!("{}${}$_free(ptr)", SWIFT_BRIDGE_PREFIX, type_name);
 
     let class = format!(
         r#"
-public class {type_name} {{
-    var ptr: UnsafeMutableRawPointer
+public class {type_name}: {type_name}RefMut {{
     var isOwned: Bool = true
 
 {initializers}
 
-    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {{
-        self.ptr = ptr
-        self.isOwned = isOwned
+    override init(ptr: UnsafeMutableRawPointer) {{
+        super.init(ptr: ptr)
     }}
 
     deinit {{
         if isOwned {{
             {free_func_call}
         }}
-    }}{instance_methods}
+    }}{owned_instance_methods}
+}}
+public class {type_name}RefMut: {type_name}Ref {{
+    override init(ptr: UnsafeMutableRawPointer) {{
+        super.init(ptr: ptr)
+    }}{ref_mut_instance_methods}
+}}
+public class {type_name}Ref {{
+    var ptr: UnsafeMutableRawPointer
+
+    init(ptr: UnsafeMutableRawPointer) {{
+        self.ptr = ptr
+    }}{ref_instance_methods}
 }}"#,
         type_name = type_name,
         initializers = initializers,
-        instance_methods = instance_methods,
+        owned_instance_methods = owned_instance_methods,
+        ref_mut_instance_methods = ref_mut_instance_methods,
+        ref_instance_methods = ref_instance_methods,
         free_func_call = free_func_call
     );
 
@@ -317,7 +355,7 @@ fn gen_func_swift_calls_rust(
     }
 
     if function.is_initializer {
-        call_rust = format!("ptr = {}", call_rust)
+        call_rust = format!("super.init(ptr: {})", call_rust)
     }
 
     let maybe_return = if function.is_initializer {
@@ -413,6 +451,9 @@ func {prefixed_fn_name} ({params}){ret} {{
 
 #[cfg(test)]
 mod tests {
+    //! TODO: We're progressively moving most of these tests to `codegen_tests.rs`,
+    //!  along with their corresponding Rust token and C header generation tests.
+
     use crate::test_utils::assert_trimmed_generated_contains_trimmed_expected;
     use crate::SwiftBridgeModule;
     use quote::quote;
@@ -577,44 +618,6 @@ func foo() -> UnsafeBufferPointer<UInt8> {
         assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
-    /// Verify that we generated a Swift class for a Rust type.
-    #[test]
-    fn generate_class() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-                }
-            }
-        };
-        let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
-
-        let expected = r#"
-public class Foo {
-    var ptr: UnsafeMutableRawPointer
-    var isOwned: Bool = true
-
-    init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
-    }
-
-    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
-        self.ptr = ptr
-        self.isOwned = isOwned
-    }
-
-    deinit {
-        if isOwned {
-            __swift_bridge__$Foo$_free(ptr)
-        }
-    }
-}
-"#;
-
-        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
-    }
-
     /// Verify that we generated a function that Rust can use to reduce a Swift class instance's
     /// reference count.
     #[test]
@@ -656,17 +659,15 @@ func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
         let generated = module.generate_swift();
 
         let expected = r#"
-public class Foo {
-    var ptr: UnsafeMutableRawPointer
+public class Foo: FooRefMut {
     var isOwned: Bool = true
 
     init() {
-        ptr = __swift_bridge__$Foo$new()
+        super.init(ptr: __swift_bridge__$Foo$new())
     }
 
-    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
-        self.ptr = ptr
-        self.isOwned = isOwned
+    override init(ptr: UnsafeMutableRawPointer) {
+        super.init(ptr: ptr)
     }
 
     deinit {
@@ -724,67 +725,21 @@ func __swift_bridge__Foo_new (_ a: UInt8) -> __private__PointerToSwiftType {
         let generated = module.generate_swift();
 
         let expected = r#"
-public class Foo {
-    var ptr: UnsafeMutableRawPointer
+public class Foo: FooRefMut {
     var isOwned: Bool = true
 
     init(_ val: UInt8) {
-        ptr = __swift_bridge__$Foo$new(val)
+        super.init(ptr: __swift_bridge__$Foo$new(val))
     }
 
-    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
-        self.ptr = ptr
-        self.isOwned = isOwned
-    }
-
-    deinit {
-        if isOwned {
-            __swift_bridge__$Foo$_free(ptr)
-        }
-    }
-}
-"#;
-
-        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
-    }
-
-    /// Verify that we can generate an instance method.
-    #[test]
-    fn instance_method() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-
-                    fn bar(&self);
-                }
-            }
-        };
-        let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
-
-        let expected = r#"
-public class Foo {
-    var ptr: UnsafeMutableRawPointer
-    var isOwned: Bool = true
-
-    init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
-    }
-
-    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
-        self.ptr = ptr
-        self.isOwned = isOwned
+    override init(ptr: UnsafeMutableRawPointer) {
+        super.init(ptr: ptr)
     }
 
     deinit {
         if isOwned {
             __swift_bridge__$Foo$_free(ptr)
         }
-    }
-
-    func bar() {
-        __swift_bridge__$Foo$bar(ptr)
     }
 }
 "#;
@@ -840,23 +795,11 @@ func __swift_bridge__Foo_pop (_ this: UnsafeMutableRawPointer) {
         let generated = module.generate_swift();
 
         let expected = r#"
-public class Foo {
+public class FooRef {
     var ptr: UnsafeMutableRawPointer
-    var isOwned: Bool = true
 
-    init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
-    }
-
-    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
+    init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
-        self.isOwned = isOwned
-    }
-
-    deinit {
-        if isOwned {
-            __swift_bridge__$Foo$_free(ptr)
-        }
     }
 
     func bar() -> UInt8 {
@@ -884,26 +827,14 @@ public class Foo {
         let generated = module.generate_swift();
 
         let expected = r#"
-public class Foo {
+public class FooRef {
     var ptr: UnsafeMutableRawPointer
-    var isOwned: Bool = true
 
-    init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
-    }
-
-    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
+    init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
-        self.isOwned = isOwned
     }
 
-    deinit {
-        if isOwned {
-            __swift_bridge__$Foo$_free(ptr)
-        }
-    }
-
-    func bar(_ other: Foo) {
+    func bar(_ other: FooRef) {
         __swift_bridge__$Foo$bar(ptr, other.ptr)
     }
 }
@@ -912,7 +843,7 @@ public class Foo {
         assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
     }
 
-    /// Verify that we can generate a static class mehod.
+    /// Verify that we can generate a static class method.
     #[test]
     fn static_class_method() {
         let tokens = quote! {
@@ -929,23 +860,11 @@ public class Foo {
         let generated = module.generate_swift();
 
         let expected = r#"
-public class Foo {
+public class FooRef {
     var ptr: UnsafeMutableRawPointer
-    var isOwned: Bool = true
 
-    init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
-    }
-
-    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
+    init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
-        self.isOwned = isOwned
-    }
-
-    deinit {
-        if isOwned {
-            __swift_bridge__$Foo$_free(ptr)
-        }
     }
 
     class func bar() {
@@ -999,7 +918,7 @@ func __swift_bridge__Foo_bar (_ arg: UInt8) {
 
         let expected = r#"
 func foo() -> RustString {
-    RustString(ptr: __swift_bridge__$foo(), isOwned: true)
+    RustString(ptr: __swift_bridge__$foo())
 }
 "#;
 
@@ -1070,54 +989,6 @@ func void_pointer() -> UnsafeRawPointer {
 @_cdecl("__swift_bridge__$void_pointer")
 func __swift_bridge__void_pointer (_ arg: UnsafeRawPointer) {
     void_pointer(arg: arg)
-}
-"#;
-
-        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
-    }
-
-    /// Verify that we can return a reference to a declared type.
-    #[test]
-    fn extern_rust_return_opaque_rust_type() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-
-                    fn get_owned_foo () -> Foo;
-                }
-            }
-        };
-        let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
-
-        let expected = r#"
-func get_owned_foo() -> Foo {
-    Foo(ptr: __swift_bridge__$get_owned_foo(), isOwned: true)
-}
-"#;
-
-        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
-    }
-
-    /// Verify that we can return a reference to a declared type.
-    #[test]
-    fn extern_rust_return_reference_to_opaque_rust_type() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-
-                    fn get_ref_foo () -> &Foo;
-                }
-            }
-        };
-        let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
-
-        let expected = r#"
-func get_ref_foo() -> Foo {
-    Foo(ptr: __swift_bridge__$get_ref_foo(), isOwned: false)
 }
 "#;
 

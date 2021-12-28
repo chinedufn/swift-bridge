@@ -61,10 +61,27 @@ mod macro_ {
                     }
                 }
 
+                // TODO: Return *const $ty and have that be an `UnsafePointer<$ty>` on the Swift
+                //  side.
                 #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$get")]
                 #[doc(hidden)]
                 pub extern "C" fn _get(vec: *mut Vec<$ty>, index: usize) -> $ty {
                     let vec = unsafe { &*vec };
+                    if let Some(val) = vec.get(index) {
+                        crate::option::_set_option_return(true);
+                        *val
+                    } else {
+                        crate::option::_set_option_return(false);
+                        $unused_none
+                    }
+                }
+
+                // TODO: Return *mut $ty and have that be an `UnsafeMutablePointer<$ty>` on the Swift
+                //  side.
+                #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$get_mut")]
+                #[doc(hidden)]
+                pub extern "C" fn _get_mut(vec: *mut Vec<$ty>, index: usize) -> $ty {
+                    let vec = unsafe { &mut *vec };
                     if let Some(val) = vec.get(index) {
                         crate::option::_set_option_return(true);
                         *val

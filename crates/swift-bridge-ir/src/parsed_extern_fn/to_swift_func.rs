@@ -169,10 +169,12 @@ mod tests {
         let functions = &module.functions;
         assert_eq!(functions.len(), 3);
 
-        for idx in 0..3 {
+        let expected = vec!["Foo", "FooRef", "FooRefMut"];
+
+        for (idx, expected) in expected.into_iter().enumerate() {
             assert_eq!(
                 functions[idx].to_swift_return_type(&module.types),
-                " -> Foo"
+                format!(" -> {}", expected)
             );
         }
     }
@@ -224,10 +226,12 @@ mod tests {
         let functions = &module.functions;
         assert_eq!(functions.len(), 3);
 
-        for idx in 0..3 {
+        let expected = vec!["Foo", "FooRef", "FooRefMut"];
+
+        for (idx, expected) in expected.into_iter().enumerate() {
             assert_eq!(
                 functions[idx].to_swift_param_names_and_types(false, &module.types),
-                "_ other: Foo"
+                format!("_ other: {}", expected)
             );
         }
     }

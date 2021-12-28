@@ -35,7 +35,7 @@ mod extern_rust_fn_return_option_string {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 func some_function() -> Optional<RustString> {
-    let val = __swift_bridge__$some_function(); if _get_option_return() { return RustString(ptr: val!, isOwned: true); } else { return nil; }
+    let val = __swift_bridge__$some_function(); if _get_option_return() { return RustString(ptr: val!); } else { return nil; }
 }
 "#,
         )

@@ -21,7 +21,7 @@ mod ffi {
         #[swift_bridge(init)]
         fn new() -> StackWrapper;
 
-        fn get_stack(&self) -> &ARustStack;
+        fn get_stack_mut(&mut self) -> &mut ARustStack;
     }
 }
 
@@ -32,8 +32,8 @@ impl StackWrapper {
         StackWrapper(ARustStack::new())
     }
 
-    fn get_stack(&self) -> &ARustStack {
-        &self.0
+    fn get_stack_mut(&mut self) -> &mut ARustStack {
+        &mut self.0
     }
 }
 

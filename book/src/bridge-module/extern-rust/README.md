@@ -44,6 +44,89 @@ impl Water {
 }
 ```
 
+## Owned, Ref and RefMut
+
+When you define a type in an `extern "Rust"` block, three corresponding Swift classes get generated.
+
+```swift
+// Equivalent to `MyType` in Rust
+class MyType: MyTypeRefMut {
+    // ...
+}
+
+// Equivalent to `&mut MyType` in Rust
+class MyTypeRefMut: MyTypeRef {
+    // ... 
+}
+
+// Equivalent to `&MyType` in Rust
+class MyTypeRef {
+    // ... 
+}
+```
+
+Here's an example of how `&Type` and `&mut Type` are enforced:
+
+```rust
+// Rust
+
+extern "Rust" {
+    type SomeType;
+    
+    #[swift_bridge(init)]
+    fn new() -> SomeType;
+    
+    // Callable by SomeType, SomeTypeRef and SomeTypeRefMut.
+    fn (&self) everyone();
+    
+    // Callable by SomeType, and SomeTypeRefMut.
+    fn (&mut self) only_owned_and_ref_mut();
+    
+    // Only callable by SomeType.
+    fn (self) only_owned();
+}
+
+extern "Rust" {    
+    fn make_ref() -> &'static SomeType;
+    
+    fn make_ref_mut() -> &'static mut SomeType;
+}
+```
+
+```swift
+// Swift
+
+func methods() {
+    let someType: SomeType = SomeType()
+    let someTypeRef: SomeTypeRef = make_ref()
+    let someTypeRefMut: SomeTypeRefMut = make_ref_mut()
+    
+    someType.everyone()
+    someType.only_owned_and_ref_mut()
+    someType.only_owned()
+    
+    someTypeRefMut.everyone()
+    someTypeRefMut.only_owned_and_ref_mut()
+    
+    someTypeRef.everyone()
+}
+
+func functions() {
+    let someType: SomeType = SomeType()
+    let someTypeRef: SomeTypeRef = make_ref()
+    let someTypeRefMut: SomeTypeRefMut = make_ref_mut()
+
+    takeReference(someType)
+    takeReference(someTypeRef)
+    takeReference(someTypeRefMut)
+}
+
+// Can be called with SomeType, SomeTypeRef and SomeTypeRefMut
+func useSomeType(someType: SomeTypeRef) {
+    // ...
+}
+```
+
 ## Function Attributes
 
 #### #[swift_bridge(rust_name = "function_name")]

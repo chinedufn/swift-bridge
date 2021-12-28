@@ -77,6 +77,8 @@ mod ffi {
 
 - Create a tutorial on setting up a project
 
+- Fix bug where we can define an extern "Rust" `fn foo () -> SomeType` even though the real definition is `fn foo () -> &SomeType {}`
+
 ## Built-In Types
 
 `swift_bridge` comes with support for a number of Rust and Swift standard library types.

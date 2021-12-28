@@ -47,8 +47,8 @@ class OpaqueRustStructTests: XCTestCase {
     func testReferenceToOpaqueRustStruct() throws {
         let stack_wrapper = StackWrapper()
         
-        let ref1 = stack_wrapper.get_stack()
-        let ref2 = stack_wrapper.get_stack()
+        let ref1 = stack_wrapper.get_stack_mut()
+        let ref2 = stack_wrapper.get_stack_mut()
         
         ref1.push(5)
         ref2.push(10)

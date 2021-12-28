@@ -3,11 +3,10 @@
 
 class RustVec<T: Vectorizable> {
     var ptr: UnsafeMutableRawPointer
-    var isOwned: Bool
+    var isOwned: Bool = true
 
-    init(ptr: UnsafeMutableRawPointer, isOwned: Bool) {
+    init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
-        self.isOwned = isOwned
     }
 
     init() {
@@ -28,7 +27,7 @@ class RustVec<T: Vectorizable> {
         }
     }
 
-    func get(index: UInt) -> Optional<T> {
+    func get(index: UInt) -> Optional<T.SelfRef> {
         let val = T.vecOfSelfGet(vecPtr: ptr, index: index)
         if _get_option_return() {
             return val;
@@ -62,7 +61,7 @@ struct RustVecIterator<T: Vectorizable>: IteratorProtocol {
         self.rustVec = rustVec
     }
 
-    mutating func next() -> T? {
+    mutating func next() -> T.SelfRef? {
         let val = rustVec.get(index: index)
         index += 1
         return val
@@ -76,7 +75,7 @@ extension RustVec: Collection {
         i + 1
     }
 
-    subscript(position: Int) -> T {
+    subscript(position: Int) -> T.SelfRef {
         self.get(index: UInt(position))!
     }
 
@@ -115,6 +114,9 @@ extension Array {
 }
 
 protocol Vectorizable {
+    associatedtype SelfRef
+    associatedtype SelfRefMut
+
     static func vecOfSelfNew() -> UnsafeMutableRawPointer;
 
     static func vecOfSelfFree(vecPtr: UnsafeMutableRawPointer)
@@ -123,7 +125,9 @@ protocol Vectorizable {
 
     static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Optional<Self>
 
-    static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self>
+    static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<SelfRef>
+
+    static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<SelfRefMut>
 
     static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt
 }

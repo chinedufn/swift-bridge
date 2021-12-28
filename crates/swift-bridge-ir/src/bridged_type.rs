@@ -50,6 +50,7 @@ pub(crate) enum StdLibType {
     Option(BridgedOption),
 }
 
+/// TODO: Add this to `OpaqueForeignType`
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum TypePosition {
     FnArg,
@@ -679,7 +680,17 @@ impl BridgedType {
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
                     if func_host_lang.is_rust() {
-                        opaque.ty.ident.to_string()
+                        let mut class_name = opaque.ty.ident.to_string();
+
+                        if opaque.reference {
+                            class_name += "Ref";
+                        }
+
+                        if opaque.mutable {
+                            class_name += "Mut";
+                        }
+
+                        class_name
                     } else {
                         format!("UnsafeMutableRawPointer")
                     }
@@ -707,7 +718,17 @@ impl BridgedType {
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
-                    opaque.ty.ident.to_string()
+                    let mut ty_name = opaque.ty.ident.to_string();
+
+                    if opaque.reference {
+                        ty_name += "Ref";
+                    }
+
+                    if opaque.mutable {
+                        ty_name += "Mut";
+                    }
+
+                    ty_name
                 } else {
                     if func_host_lang.is_rust() {
                         opaque.ty.ident.to_string()
@@ -1069,10 +1090,10 @@ impl BridgedType {
                 }
                 StdLibType::Str => value.to_string(),
                 StdLibType::String => {
-                    format!("RustString(ptr: {}, isOwned: true)", value)
+                    format!("RustString(ptr: {})", value)
                 }
                 StdLibType::Vec(_ty) => {
-                    format!("RustVec(ptr: {}, isOwned: true)", value)
+                    format!("RustVec(ptr: {})", value)
                 }
                 StdLibType::Option(opt) => {
                     let inner_val = opt.convert_ffi_value_to_swift_value(func_host_lang, type_pos);
@@ -1088,17 +1109,17 @@ impl BridgedType {
                 format!("{}", value)
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
-                let ty_name = &opaque.ty.ident;
+                let mut ty_name = opaque.ty.ident.to_string();
+
+                if opaque.reference {
+                    ty_name += "Ref";
+                }
+                if opaque.mutable {
+                    ty_name += "Mut";
+                }
 
                 if opaque.host_lang.is_rust() {
-                    let is_owned = if opaque.reference { "false" } else { "true" };
-
-                    format!(
-                        "{ty_name}(ptr: {value}, isOwned: {is_owned})",
-                        ty_name = ty_name,
-                        value = value,
-                        is_owned = is_owned
-                    )
+                    format!("{ty_name}(ptr: {value})", ty_name = ty_name, value = value,)
                 } else {
                     format!(
                         "Unmanaged<{ty_name}>.fromOpaque({value}.ptr).takeRetainedValue()",
@@ -1194,7 +1215,7 @@ impl BridgedType {
                             format!("{{{}.isOwned = false; return {}.ptr;}}()", value, value)
                         } else {
                             format!(
-                                "{type_name}(ptr: {value}, isOwned: true)",
+                                "{type_name}(ptr: {value})",
                                 type_name = ty_name,
                                 value = value
                             )

@@ -206,36 +206,15 @@ impl ToTokens for SwiftBridgeModule {
 
 #[cfg(test)]
 mod tests {
+    //! TODO: We're progressively moving most of these tests to `codegen_tests.rs`,
+    //!  along with their corresponding C header and Swift code generation tests.
+
     use quote::quote;
 
     use crate::parse::SwiftBridgeModuleAndErrors;
     use crate::test_utils::{assert_tokens_contain, assert_tokens_eq};
 
     use super::*;
-
-    /// Verify that we generate a function that frees the memory behind an opaque pointer to a Rust
-    /// type.
-    #[test]
-    fn free_opaque_rust_type() {
-        let start = quote! {
-            mod foo {
-                extern "Rust" {
-                    type SomeType;
-                }
-            }
-        };
-        let expected = quote! {
-            #[export_name = "__swift_bridge__$SomeType$_free"]
-            pub extern "C" fn __swift_bridge__SomeType__free (
-                this: *mut super::SomeType
-            ) {
-                let this = unsafe { Box::from_raw(this) };
-                drop(this);
-            }
-        };
-
-        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
-    }
 
     /// Verify that we generate tokens for a freestanding Rust function with no arguments.
     #[test]
@@ -341,30 +320,6 @@ mod tests {
     /// Verify that we generate tokens for a freestanding Rust function with an argument of a
     /// declared type.
     #[test]
-    fn freestanding_rust_func_with_declared_type_arg() {
-        let start = quote! {
-            mod foo {
-                extern "Rust" {
-                    type MyType;
-                    fn some_function (bar: &MyType);
-                }
-            }
-        };
-        let expected = quote! {
-            #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function (
-                bar: *const super::MyType
-            ) {
-                super::some_function(unsafe { & * bar } )
-            }
-        };
-
-        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
-    }
-
-    /// Verify that we generate tokens for a freestanding Rust function with an argument of a
-    /// declared type.
-    #[test]
     fn freestanding_rust_func_with_declared_swift_type_arg() {
         let start = quote! {
             mod foo {
@@ -437,28 +392,6 @@ mod tests {
         };
 
         assert_tokens_eq(&parse_ok(start).to_token_stream(), &expected);
-    }
-
-    /// Verify that we generate tokens for a freestanding function that returns a declared type.
-    #[test]
-    fn freestanding_rust_function_with_declared_return_type() {
-        let start = quote! {
-            #[swift_bridge::bridge]
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-                    fn some_function () -> Foo;
-                }
-            }
-        };
-        let expected_func = quote! {
-            #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function () -> *mut super::Foo {
-                Box::into_raw(Box::new(super::some_function())) as *mut super::Foo
-            }
-        };
-
-        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
     }
 
     /// Verify that the `rust_name` attribute works on extern "Rust" functions.
@@ -877,7 +810,7 @@ mod tests {
         assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected);
     }
 
-    /// Verify that we do not wrap the type in manually drop if the method uses owned self.
+    /// Verify that we can take an owned self in a method.
     #[test]
     fn associated_method_drops_owned_self() {
         let start = quote! {

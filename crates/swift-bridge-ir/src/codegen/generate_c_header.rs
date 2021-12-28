@@ -141,6 +141,7 @@ void __swift_bridge__$Vec_{ty_name}$drop(void* vec_ptr);
 void __swift_bridge__$Vec_{ty_name}$push(void* vec_ptr, void* item_ptr);
 void* __swift_bridge__$Vec_{ty_name}$pop(void* vec_ptr);
 void* __swift_bridge__$Vec_{ty_name}$get(void* vec_ptr, uintptr_t index);
+void* __swift_bridge__$Vec_{ty_name}$get_mut(void* vec_ptr, uintptr_t index);
 uintptr_t __swift_bridge__$Vec_{ty_name}$len(void* vec_ptr);
 void* __swift_bridge__$Vec_{ty_name}$as_ptr(void* vec_ptr);
 "#,
@@ -183,6 +184,9 @@ fn declare_func(
 
 #[cfg(test)]
 mod tests {
+    //! TODO: We're progressively moving most of these tests to `codegen_tests.rs`,
+    //!  along with their corresponding Rust token and Swift code generation tests.
+
     use proc_macro2::TokenStream;
     use quote::quote;
 
@@ -288,9 +292,9 @@ uint8_t __swift_bridge__$foo(void);
         assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
     }
 
-    /// Verify that we add a `typedef struct` for types in the extern "Rust" block.
+    /// Verify that we include the Vec<T> functions in the generated C header for a Rust type.
     #[test]
-    fn type_definition() {
+    fn type_definition_includes_vec_functions() {
         let tokens = quote! {
             #[swift_bridge::bridge]
             mod ffi {

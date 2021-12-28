@@ -140,7 +140,7 @@ mod extern_rust_fn_returns_string {
     const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
         r#"
 func some_function() -> RustString {
-    RustString(ptr: __swift_bridge__$some_function(), isOwned: true)
+    RustString(ptr: __swift_bridge__$some_function())
 }
 "#,
     );
