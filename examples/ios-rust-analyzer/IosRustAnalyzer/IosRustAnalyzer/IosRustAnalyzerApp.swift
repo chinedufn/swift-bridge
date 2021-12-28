@@ -1,10 +1,3 @@
-//
-//  IosRustAnalyzerApp.swift
-//  IosRustAnalyzer
-//
-//  Created by Frankie Nwafili on 12/28/21.
-//
-
 import SwiftUI
 
 @main
@@ -12,6 +5,16 @@ struct IosRustAnalyzerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(RustAppWrapper(rust: RustApp()))
         }
     }
 }
+
+class RustAppWrapper: ObservableObject {
+    var rust: RustApp
+    
+    init (rust: RustApp) {
+        self.rust = rust
+    }
+}
+

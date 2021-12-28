@@ -11,6 +11,9 @@
 		22F65ABA277B978F002E7996 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F65AB9277B978F002E7996 /* ContentView.swift */; };
 		22F65ABC277B9791002E7996 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 22F65ABB277B9791002E7996 /* Assets.xcassets */; };
 		22F65ABF277B9791002E7996 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 22F65ABE277B9791002E7996 /* Preview Assets.xcassets */; };
+		22F65ACA277BA6D7002E7996 /* libios_rust_analyzer.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 22F65AC8277BA683002E7996 /* libios_rust_analyzer.a */; };
+		22F65AD0277BADE8002E7996 /* ios-rust-analyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F65ACD277BAA17002E7996 /* ios-rust-analyzer.swift */; };
+		22F65AD1277BADEC002E7996 /* SwiftBridgeCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F65ACB277BAA17002E7996 /* SwiftBridgeCore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +22,12 @@
 		22F65AB9277B978F002E7996 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		22F65ABB277B9791002E7996 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		22F65ABE277B9791002E7996 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		22F65AC6277B9D93002E7996 /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
+		22F65AC8277BA683002E7996 /* libios_rust_analyzer.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libios_rust_analyzer.a; path = ../../../target/universal/debug/libios_rust_analyzer.a; sourceTree = "<group>"; };
+		22F65ACB277BAA17002E7996 /* SwiftBridgeCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SwiftBridgeCore.swift; path = Generated/SwiftBridgeCore.swift; sourceTree = "<group>"; };
+		22F65ACD277BAA17002E7996 /* ios-rust-analyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ios-rust-analyzer.swift"; sourceTree = "<group>"; };
+		22F65ACE277BAA17002E7996 /* ios-rust-analyzer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ios-rust-analyzer.h"; sourceTree = "<group>"; };
+		22F65ACF277BAA17002E7996 /* SwiftBridgeCore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SwiftBridgeCore.h; path = Generated/SwiftBridgeCore.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -26,6 +35,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				22F65ACA277BA6D7002E7996 /* libios_rust_analyzer.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -35,8 +45,13 @@
 		22F65AAB277B978F002E7996 = {
 			isa = PBXGroup;
 			children = (
+				22F65ACC277BAA17002E7996 /* ios-rust-analyzer */,
+				22F65ACF277BAA17002E7996 /* SwiftBridgeCore.h */,
+				22F65ACB277BAA17002E7996 /* SwiftBridgeCore.swift */,
+				22F65AC6277B9D93002E7996 /* BridgingHeader.h */,
 				22F65AB6277B978F002E7996 /* IosRustAnalyzer */,
 				22F65AB5277B978F002E7996 /* Products */,
+				22F65AC7277BA683002E7996 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -67,6 +82,24 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		22F65AC7277BA683002E7996 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				22F65AC8277BA683002E7996 /* libios_rust_analyzer.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		22F65ACC277BAA17002E7996 /* ios-rust-analyzer */ = {
+			isa = PBXGroup;
+			children = (
+				22F65ACD277BAA17002E7996 /* ios-rust-analyzer.swift */,
+				22F65ACE277BAA17002E7996 /* ios-rust-analyzer.h */,
+			);
+			name = "ios-rust-analyzer";
+			path = "Generated/ios-rust-analyzer";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -74,6 +107,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 22F65AC2277B9791002E7996 /* Build configuration list for PBXNativeTarget "IosRustAnalyzer" */;
 			buildPhases = (
+				22F65AC9277BA69C002E7996 /* ShellScript */,
 				22F65AB0277B978F002E7996 /* Sources */,
 				22F65AB1277B978F002E7996 /* Frameworks */,
 				22F65AB2277B978F002E7996 /* Resources */,
@@ -132,11 +166,33 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		22F65AC9277BA69C002E7996 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "./build-rust.sh\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		22F65AB0277B978F002E7996 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				22F65AD1277BADEC002E7996 /* SwiftBridgeCore.swift in Sources */,
+				22F65AD0277BADE8002E7996 /* ios-rust-analyzer.swift in Sources */,
 				22F65ABA277B978F002E7996 /* ContentView.swift in Sources */,
 				22F65AB8277B978F002E7996 /* IosRustAnalyzerApp.swift in Sources */,
 			);
@@ -280,10 +336,12 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../../target/universal/debug";
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.IosRustAnalyzer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -308,10 +366,12 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../../target/universal/release";
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.IosRustAnalyzer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
