@@ -10,11 +10,17 @@ _`swift-bridge` takes inspiration from the bridge module idea pioneered by [cxx]
 
 `swift-bridge` is not yet production ready.
 
-We need to use it more before we can be confident enough in the generated FFI glue to call `swift-bridge` production ready.
-
-Right now I'm looking for feedback in order to continue to improve the APIs and the generated code.
+Right now I'm looking for feedback from bleeding-edge users in order to continue to improve the APIs and the generated code.
 
 I can especially use feedback from people with Swift experience, since I don't have much.
+
+I'm using `swift-bridge` to ship an application that has extreme reliability requirements, so you can rest assured that the core maintaners have a vested interest in addressing your feedback.
+
+---
+
+The `0.1.x` versions will not follow semver.
+
+We'll maintain semver from `0.2` and onwards.
 
 ## Installation
 
@@ -73,9 +79,9 @@ mod ffi {
 }
 ```
 
-## TODO's before open sourcing
+## Known issues
 
-- Create a tutorial on setting up a project
+TODO... make GitHub issues for these..
 
 - Fix bug where we can define an extern "Rust" `fn foo () -> SomeType` even though the real definition is `fn foo () -> &SomeType {}`
 
