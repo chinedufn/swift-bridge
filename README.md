@@ -46,7 +46,7 @@ swift-bridge = "0.1"
 
 ## Quick Peek
 
-Here's a quick peek at how bindings look.
+Here's a quick peek at how defining FFI bindings looks.
 
 A more thorough walk through of `swift-bridge` can be found in the [book](https://chinedufn.github.io/swift-bridge/index.html). 
 
@@ -65,14 +65,21 @@ mod ffi {
     extern "Rust" {
         type ARustStack;
 
-        fn push (&mut self, val: u8);
+        fn push (&mut self, val: String);
 
-        fn pop (&mut self) -> Option<u8>;
+        fn pop (&mut self) -> Option<String>;
       
-        fn as_slice (&self) -> &[u8];
-
-        fn do_stuff(override: Option<u8>);
+        fn as_slice (&self) -> &[String];
     }
+
+	extern "Rust" {
+        fn do_stuff(a: &mut SomeType, b: AnotherType) -> Vec<ARustStack>;
+	}
+
+	extern "Rust" {
+	   type SomeType;
+	   type AnotherType;
+	}
 
     // Exposes a Swift class to Rust.
     extern "Swift" {
