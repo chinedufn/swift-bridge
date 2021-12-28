@@ -56,7 +56,8 @@ struct ContentView: View {
                         language: .rust
                     )
                         .onReceive(Just(rustSource), perform: {source in
-                            rustApp.generate_swift_bridge_code(source.toRustStr())
+                            print("RECEIVE")
+                            rustApp.generate_swift_bridge_code(source)
                         })
                     
                     GeneratedCodeView(
