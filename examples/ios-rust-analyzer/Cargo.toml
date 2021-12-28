@@ -6,12 +6,12 @@ edition = "2021"
 build = "build.rs"
 
 [build-dependencies]
-swift-bridge-build = "0.1"
+swift-bridge-build = {path = "../../crates/swift-bridge-build"}
 
 [lib]
 crate-type = ["staticlib"]
 
 [dependencies]
-swift-bridge = "0.1"
+swift-bridge = {path = "../../"}
 ide = {git = "https://github.com/rust-analyzer/rust-analyzer"}
 
