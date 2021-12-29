@@ -31,50 +31,14 @@ public class ASwiftStack {
     }
 }
 
-class FooRef {
-    var ptr: UInt8
-    
-    func aRefSelfFunc() {
-    }
-    
-    init(ptr: UInt8) {
-        self.ptr = ptr
-    }
+import SwiftUI
+struct SomeStruct {
+    @State private var reRender = 1
 }
-
-class FooRefMut: FooRef {
-    func aRefMutableSelfFunc() {
-        self.ptr += 1
-    }
-}
-
-class Foo: FooRefMut {
-    func anOwnedSelfFunc() {
+extension SomeStruct: View {
+    
+    var body: some View {
+        Text("Hi")
     }
     
-    deinit {
-        ptr += 1
-    }
-}
-
-func callWithFoo(foo: FooRef) {
-}
-
-func scratchPad () {
-    let foo = Foo(ptr: 5)
-    let fooRef = FooRef(ptr: 10)
-    let fooRefMut = FooRefMut(ptr: 15)
-    
-    callWithFoo(foo: foo)
-    callWithFoo(foo: fooRef)
-    callWithFoo(foo: fooRefMut)
-    
-    foo.anOwnedSelfFunc()
-    foo.aRefSelfFunc()
-    foo.aRefMutableSelfFunc()
-    
-    fooRef.aRefSelfFunc()
-    
-    fooRefMut.aRefMutableSelfFunc()
-    fooRefMut.aRefSelfFunc()
 }

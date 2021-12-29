@@ -57,9 +57,9 @@ A more thorough walk through of `swift-bridge` can be found in the [book](https:
 mod ffi {
     // Shared types 
     #[swift_bridge(swift_repr = "struct")]
-	struct ASharedStruct {
-	    field: u32
-	}
+    struct ASharedStruct {
+        field: u32
+    }
 
     // Exposes super::ARustStack to Swift.
     extern "Rust" {
@@ -72,23 +72,23 @@ mod ffi {
         fn as_slice (&self) -> &[String];
     }
 
-	extern "Rust" {
+    extern "Rust" {
         fn do_stuff(a: &mut SomeType, b: AnotherType) -> Vec<ARustStack>;
-	}
+    }
 
-	extern "Rust" {
-	   type SomeType;
-	   type AnotherType;
-	}
+    extern "Rust" {
+        type SomeType;
+        type AnotherType;
+    }
 
-    // Exposes a Swift class to Rust.
+    // Exposes a Swift `class SwiftApiClient` to Rust.
     extern "Swift" {
         type SwiftApiClient;
 
         #[swift_bridge(init)]
         fn new_with_timeout(timeout: u8) -> SwiftApiClient;
 
-        #[swift_bridge(associated_to = FileSystemClient)]
+        #[swift_bridge(associated_to = SwiftApiClient)]
         fn version () -> String;
 
         fn post_bytes(&self, bytes: &[u8]);
