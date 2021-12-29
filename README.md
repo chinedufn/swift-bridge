@@ -4,6 +4,12 @@
 
 `swift-bridge` generates code that helps you call Rust from Swift and vice versa.
 
+It allows you to pass complex types between Rust and Swift, without worrying about any of the FFI glue code in between.
+
+Both Rust and Swift are type safe, so we're able to generate an completely type safe bindings between the two languages.
+
+---
+
 _`swift-bridge` takes inspiration from the bridge module idea pioneered by [cxx](https://github.com/dtolnay/cxx)._
 
 ## Current Status
@@ -111,7 +117,7 @@ impl ARustStack {
 	}
 }
 
-fn do_stuff(_a: &SomeType, _b: &AnotherType) -> Vec<SwiftStack> {
+fn do_stuff(_a: &SomeType, _b: &mut AnotherType) -> Vec<SwiftStack> {
     let mut swift_stack = ffi::SwiftStack::new(max_size: 10)
     swift_stack.push("hello_world".to_string())
 
