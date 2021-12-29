@@ -6,6 +6,11 @@
 In this chapter we'll create a new iOS application that makes use of `swift-bridge` in order
 use `rust-analyzer` to perform syntax highlighting of Rust code.
 
+When we're done we'll have a simple application where we can type Rust code into a text area and see the syntax
+highlighted version below it.
+
+![Simulator rust analyzer app](./screenshots/simulator-rust-analyzer-app.png)
+
 ## Project Setup
 
 Create a new project.
@@ -270,7 +275,7 @@ Now that we've set up our project, it's time to write some code!
 
 Add the following to `src/lib.rs`.
 
-```
+```rust
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
