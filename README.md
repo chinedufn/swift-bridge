@@ -14,7 +14,9 @@ _`swift-bridge` takes inspiration from the bridge module idea pioneered by [cxx]
 
 ## Current Status
 
-`swift-bridge` works, but there are still some edge cases where it's easy to make a mistake if you don't know about that. All of them are addressable.
+`swift-bridge` works, but it's still early so it's possible to run into edge cases where the generated code is subtly memory unsafe.
+
+All of these cases are addressable, and once they're all tackled using `swift-bridge` should be entirely memory safe.
 
 So, `swift-bridge` is not yet production ready.
 
