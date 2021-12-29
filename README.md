@@ -55,10 +55,11 @@ A more thorough walk through of `swift-bridge` can be found in the [book](https:
 
 #[swift_bridge::bridge]
 mod ffi {
-    // Shared types 
+    // Shared struct definitions can have their fields directly
+    // accessed by both Swift and Rust.
     #[swift_bridge(swift_repr = "struct")]
-    struct ASharedStruct {
-        field: u32
+    struct SwiftStackConfig {
+        max_size: u8
     }
 
     // Exposes super::ARustStack to Swift.
@@ -68,31 +69,70 @@ mod ffi {
         fn push (&mut self, val: String);
 
         fn pop (&mut self) -> Option<String>;
-      
-        fn as_slice (&self) -> &[String];
     }
 
     extern "Rust" {
-        fn do_stuff(a: &mut SomeType, b: AnotherType) -> Vec<ARustStack>;
+        // Exposes super::do_stuff to Swift
+        fn do_stuff(a: &SomeType, b: &mut AnotherType) -> Vec<ARustStack>;
     }
 
     extern "Rust" {
+        // Exposes super::SomeType to Swift
         type SomeType;
+        // Exposes super::SomeType to Swift
         type AnotherType;
     }
 
-    // Exposes a Swift `class SwiftApiClient` to Rust.
+    // Exposes a Swift `class SwiftStack` to Rust.
     extern "Swift" {
-        type SwiftApiClient;
+        type SwiftStack;
 
         #[swift_bridge(init)]
-        fn new_with_timeout(timeout: u8) -> SwiftApiClient;
+        fn new(config: SwiftStackConfig) -> SwiftStack;
 
-        #[swift_bridge(associated_to = SwiftApiClient)]
-        fn version () -> String;
-
-        fn post_bytes(&self, bytes: &[u8]);
+        fn push(&mut self, val: String) -> Bool;
     }
+}
+
+pub struct ARustStack(Vec<String>);
+
+struct SomeType {
+    map: HashMap<u32, Vec<u64>>
+}
+struct AnotherType(Box<FnMut() -> ()>);
+
+impl ARustStack {
+	fn push(&mut self, val: String) {
+	    self.0.push(String);
+	}
+
+	fn pop(&mut self) -> Option<String> {
+        self.0.pop()
+	}
+}
+
+fn do_stuff(_a: &SomeType, _b: &AnotherType) -> Vec<SwiftStack> {
+    let mut swift_stack = ffi::SwiftStack::new(max_size: 10)
+    swift_stack.push("hello_world".to_string())
+
+    vec![swift_stack]
+}
+```
+
+```
+// Swift
+
+class SwiftStack {
+    var stack: [String] = []
+    var maxSize: UInt8
+
+	init(config: SwiftStackConfig) {
+        self.maxSize = config.max_size
+	}
+
+	func push(val: String)  {
+	    self.stack.push(val)
+	}
 }
 ```
 
