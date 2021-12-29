@@ -14,9 +14,10 @@ _`swift-bridge` takes inspiration from the bridge module idea pioneered by [cxx]
 
 ## Current Status
 
-`swift-bridge` works, but it's still early so it's possible to run into edge cases where the generated code is subtly memory unsafe.
+`swift-bridge` works, but it's still early so it's possible to run into edge cases where the generated code is subtly not-memory-safe.
 
-All of these cases are addressable, and once they're all tackled using `swift-bridge` should be entirely memory safe.
+All of these cases are addressable, and once they're all tackled using code generated from `swift-bridge` should be entirely memory safe
+on both the Swift and Rust side.
 
 So, `swift-bridge` is not yet production ready.
 
@@ -127,20 +128,20 @@ fn do_stuff(_a: &SomeType, _b: &mut AnotherType) -> Vec<SwiftStack> {
 }
 ```
 
-```
+```swift
 // Swift
 
 class SwiftStack {
     var stack: [String] = []
     var maxSize: UInt8
 
-	init(config: SwiftStackConfig) {
+    init(config: SwiftStackConfig) {
         self.maxSize = config.max_size
-	}
+    }
 
-	func push(val: String)  {
-	    self.stack.push(val)
-	}
+    func push(val: String)  {
+    self.stack.push(val)
+    }
 }
 ```
 
