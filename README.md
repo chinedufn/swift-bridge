@@ -2,11 +2,11 @@
 
 > Call Rust from Swift and vice versa. 
 
-`swift-bridge` generates code that helps you call Rust from Swift and vice versa.
+`swift-bridge` makes it possible to pass complex types between Rust and Swift without needing to write any FFI glue code yourself.
 
-It allows you to pass complex types between Rust and Swift, without worrying about any of the FFI glue code in between.
+You write the type signatures of your FFI boundary in Rust, and then `swift-bridge` uses that to auto-generate the FFI layer.
 
-Both Rust and Swift are type safe, so we're able to generate an completely type safe bindings between the two languages.
+The generated FFI layer is both type-safe and memory-safe, allowing you to confidently communicate between languages.
 
 ---
 
@@ -62,6 +62,14 @@ A more thorough walk through of `swift-bridge` can be found in the [book](https:
 ```rust
 // lib.rs
 
+pub struct ARustStack(Vec<String>);
+
+pub struct SomeType {
+    map: HashMap<u32, Vec<u64>>
+}
+
+pub struct AnotherType(u8, Box<dyn FnMut() -> bool>);
+
 #[swift_bridge::bridge]
 mod ffi {
     // Shared struct definitions can have their fields directly
@@ -71,25 +79,41 @@ mod ffi {
         max_size: u8
     }
 
-    // Exposes super::ARustStack to Swift.
     extern "Rust" {
+        // Exposes super::ARustStack to Swift.
         type ARustStack;
 
+        // Allows Swift to call the `push` method on `ARustStack`.
+        // Swift will only be able to call this when it has
+        // an owned `ARustStack` or a mutablly referenced
+        // `&mut ARustStack`.
         fn push (&mut self, val: String);
 
+        // Allows Swift to call the `pop` method on `ARustStack`.
         fn pop (&mut self) -> Option<String>;
     }
 
     extern "Rust" {
         // Exposes super::do_stuff to Swift
-        fn do_stuff(a: &SomeType, b: &mut AnotherType) -> Vec<ARustStack>;
+        fn do_stuff(a: &SomeType, b: &mut AnotherType) -> Option<SwiftStack>;
     }
 
     extern "Rust" {
         // Exposes super::SomeType to Swift
         type SomeType;
-        // Exposes super::SomeType to Swift
+        // Exposes super::AnotherType to Swift
         type AnotherType;
+
+        // The "init" annotation.
+        // Indicates that this should show up on the Swift side as
+        // a class initializer for SomeType.
+        #[swift_bridge(init)]
+        fn new() -> SomeType;
+
+        #[swift_bridge(init)]
+        fn new_with_u8(val: u8) -> AnotherType;
+
+        fn call(self: &AnotherType) -> bool;
     }
 
     // Exposes a Swift `class SwiftStack` to Rust.
@@ -103,28 +127,37 @@ mod ffi {
     }
 }
 
-pub struct ARustStack(Vec<String>);
-
-struct SomeType {
-    map: HashMap<u32, Vec<u64>>
-}
-struct AnotherType(Box<FnMut() -> ()>);
-
 impl ARustStack {
-	fn push(&mut self, val: String) {
-	    self.0.push(String);
-	}
+    fn push(&mut self, val: String) {
+        self.0.push(val);
+    }
 
-	fn pop(&mut self) -> Option<String> {
+    fn pop(&mut self) -> Option<String> {
         self.0.pop()
-	}
+    }
 }
 
-fn do_stuff(_a: &SomeType, _b: &mut AnotherType) -> Vec<SwiftStack> {
-    let mut swift_stack = ffi::SwiftStack::new(max_size: 10)
-    swift_stack.push("hello_world".to_string())
+impl SomeType {
+    fn new() -> Self {
+        SomeType::default()
+    }
+}
 
-    vec![swift_stack]
+impl AnotherType {
+    fn new_with_u8(val: u8) -> Self {
+        AnotherType(val, Box::new(|| true))
+    }
+
+    fn call(&self) -> bool {
+        (self.0)()
+    }
+}
+
+fn do_stuff(_a: &SomeType, _b: &mut AnotherType) -> Option<ffi::SwiftStack> {
+    let mut swift_stack = ffi::SwiftStack::new(max_size: 10);
+    swift_stack.push("hello_world".to_string());
+
+    Some(swift_stack)
 }
 ```
 
@@ -140,8 +173,18 @@ class SwiftStack {
     }
 
     func push(val: String)  {
-    self.stack.push(val)
+        self.stack.push(val)
     }
+
+}
+
+func doThings() {
+    // Calls SomeType::new()
+    let someType = SomeType()
+    // Calls AnotherType::new_with_u8
+    let anotherType = AnotherType(val: 50)
+    
+    let stack: SwiftStack? = do_stuff(someType, anotherType)
 }
 ```
 
