@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Option &lt;---&gt; Optional - The swift-bridge Book</title>
+        <title>String &lt;---&gt; String - The swift-bridge Book</title>
                 
 
         <!-- Custom HTML head -->
@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">Introduction</a></li><li class="spacer"></li><li class="chapter-item expanded "><a href="../../bridge-module/index.html"><strong aria-hidden="true">1.</strong> The Bridge Module</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../bridge-module/structs/index.html"><strong aria-hidden="true">1.1.</strong> Shared Structs</a></li><li class="chapter-item expanded "><a href="../../bridge-module/extern-rust/index.html"><strong aria-hidden="true">1.2.</strong> extern &quot;Rust&quot;</a></li></ol></li><li class="chapter-item expanded "><a href="../../built-in/index.html"><strong aria-hidden="true">2.</strong> Built In Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../built-in/option/index.html" class="active"><strong aria-hidden="true">2.1.</strong> Option &lt;---&gt; Optional</a></li><li class="chapter-item expanded "><a href="../../built-in/vec/index.html"><strong aria-hidden="true">2.2.</strong> Vec &lt;---&gt; RustVec</a></li><li class="chapter-item expanded "><a href="../../built-in/string/index.html"><strong aria-hidden="true">2.3.</strong> String &lt;---&gt; String</a></li></ol></li><li class="chapter-item expanded "><a href="../../tutorial/running-rust-analyzer-on-an-iphone/index.html"><strong aria-hidden="true">3.</strong> Tutorial: Running rust-analyzer on an iPhone</a></li><li class="chapter-item expanded "><a href="../../internal-design/index.html"><strong aria-hidden="true">4.</strong> Internal Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../internal-design/codegen/index.html"><strong aria-hidden="true">4.1.</strong> Code Generation</a></li></ol></li></ol>            </div>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">Introduction</a></li><li class="spacer"></li><li class="chapter-item expanded "><a href="../../bridge-module/index.html"><strong aria-hidden="true">1.</strong> The Bridge Module</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../bridge-module/structs/index.html"><strong aria-hidden="true">1.1.</strong> Shared Structs</a></li><li class="chapter-item expanded "><a href="../../bridge-module/extern-rust/index.html"><strong aria-hidden="true">1.2.</strong> extern &quot;Rust&quot;</a></li></ol></li><li class="chapter-item expanded "><a href="../../built-in/index.html"><strong aria-hidden="true">2.</strong> Built In Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../built-in/option/index.html"><strong aria-hidden="true">2.1.</strong> Option &lt;---&gt; Optional</a></li><li class="chapter-item expanded "><a href="../../built-in/vec/index.html"><strong aria-hidden="true">2.2.</strong> Vec &lt;---&gt; RustVec</a></li><li class="chapter-item expanded "><a href="../../built-in/string/index.html" class="active"><strong aria-hidden="true">2.3.</strong> String &lt;---&gt; String</a></li></ol></li><li class="chapter-item expanded "><a href="../../tutorial/running-rust-analyzer-on-an-iphone/index.html"><strong aria-hidden="true">3.</strong> Tutorial: Running rust-analyzer on an iPhone</a></li><li class="chapter-item expanded "><a href="../../internal-design/index.html"><strong aria-hidden="true">4.</strong> Internal Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../internal-design/codegen/index.html"><strong aria-hidden="true">4.1.</strong> Code Generation</a></li></ol></li></ol>            </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
@@ -146,58 +146,51 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="option-----optional"><a class="header" href="#option-----optional">Option &lt;---&gt; Optional</a></h1>
-<p>Rust's <code>Option</code> is seen on the Swift side as a Swift <code>Optional</code>.</p>
-<h2 id="example"><a class="header" href="#example">Example</a></h2>
-<pre><pre class="playground"><code class="language-rust no_run">
+                        <h1 id="string-----string"><a class="header" href="#string-----string">String &lt;---&gt; String</a></h1>
+<p>Rust's <code>std::string::String</code> can be passed to Swift as an owned <code>String</code>, a referenced <code>&amp;String</code> or 
+a mutably referenced <code>&amp;mut String</code>.</p>
+<pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Rust
-
-#[swift_bridge::bridge]
+</span>#[swift_bridge::bridge]
 mod ffi {
 	extern &quot;Rust&quot; {
-	    fn make_rust_option() -&gt; Option&lt;u8&gt;;
+	    type SomeRustType;
+
+	    // Becomes a `RustString` when passed to Swift.
+	    fn make_string() -&gt; String;
+
+	    // Becomes a `RustStringRef` when passed to Swift.
+	    fn make_ref_string(&amp;self) -&gt; &amp;String;
+
+	    // Becomes a `RustStringRefMut` when passed to Swift.
+	    fn make_ref_mut_string(&amp;mut self) -&gt; &amp;mut String;
+
+        // Swift calls this with a `RustString` and
+        // Rust receives a `std::string::String`.
+	    fn take_string(string: String);
 	}
 
 	extern &quot;Swift&quot; {
-	    fn make_swift_optional() -&gt; Option&lt;bool&gt;;
-	}
-}
+	    type SomeSwiftType;
 
-fn make_rust_option() -&gt; Option&lt;u8&gt; {
-	if ffi::make_swift_optional == Some(true) {
-	    Some(111)
-	} else {
-	    None
+        // Swift returns a `RustString` and
+        // Rust receives a `std::string::String`.
+	    fn make_string() -&gt; String;
 	}
 }
 <span class="boring">}
 </span></code></pre></pre>
-<pre><code class="language-swift">// Swift
-
-func call_rust_and_divide_by_2() -&gt; Optional&lt;UInt8&gt; {
-	if case let val? = make_rust_option() {
-	    return val / 2
-	} else {
-	    nil
-	}
-}
-
-func make_swift_optional() -&gt; Bool? {
-    true
-}
-</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                                                    <a rel="prev" href="../../built-in/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                                    <a rel="prev" href="../../built-in/vec/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
-                                                    <a rel="next" href="../../built-in/vec/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                                    <a rel="next" href="../../tutorial/running-rust-analyzer-on-an-iphone/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -207,11 +200,11 @@ func make_swift_optional() -&gt; Bool? {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                                    <a rel="prev" href="../../built-in/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                    <a rel="prev" href="../../built-in/vec/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
-                                    <a rel="next" href="../../built-in/vec/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                    <a rel="next" href="../../tutorial/running-rust-analyzer-on-an-iphone/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                             </nav>
