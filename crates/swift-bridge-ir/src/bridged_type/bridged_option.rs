@@ -34,9 +34,7 @@ impl BridgedOption {
                 StdLibType::RefSlice(_) => {
                     todo!()
                 }
-                StdLibType::Str => {
-                    todo!()
-                }
+                StdLibType::Str => "val",
                 StdLibType::String => "val!",
                 StdLibType::Vec(_) => {
                     todo!()

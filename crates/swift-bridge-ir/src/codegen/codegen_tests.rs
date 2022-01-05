@@ -347,6 +347,8 @@ enum ExpectedRustTokens {
     Exact(TokenStream),
     /// The generated Rust tokens stream contains the provided stream.
     Contains(TokenStream),
+    /// The generated Rust tokens stream contains the provided stream.
+    ContainsMany(Vec<TokenStream>),
     /// Skip testing Rust tokens
     // We use a variant instead of Option<ExpectRustTokens> as not to make it seem like no Rust
     // tokens got generated.
@@ -385,6 +387,11 @@ impl CodegenTest {
             }
             ExpectedRustTokens::Contains(expected_contained_tokens) => {
                 assert_tokens_contain(&generated_tokens, &expected_contained_tokens);
+            }
+            ExpectedRustTokens::ContainsMany(expected_contained_tokens) => {
+                for tokens in expected_contained_tokens {
+                    assert_tokens_contain(&generated_tokens, &tokens);
+                }
             }
             ExpectedRustTokens::SkipTest => {}
         };
