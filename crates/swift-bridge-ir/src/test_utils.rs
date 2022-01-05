@@ -75,6 +75,20 @@ Expected:
     );
 }
 
+/// Trims both generated and expected.
+pub fn assert_trimmed_generated_does_not_contain_trimmed_expected(generated: &str, expected: &str) {
+    assert!(
+        !generated.trim().contains(&expected.trim()),
+        r#"Expected was contained by generated.
+Generated:
+{}
+Expected:
+{}"#,
+        generated.trim(),
+        expected.trim()
+    );
+}
+
 pub(crate) fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
     let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
     module_and_errors.module

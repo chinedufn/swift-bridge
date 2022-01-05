@@ -48,7 +48,7 @@ void __swift_bridge__$some_function(void* arg);
     #[test]
     fn extern_rust_fn_with_owned_string_argument() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
             expected_c_header: expected_c_header(),
@@ -105,7 +105,7 @@ void __swift_bridge__$some_function(struct RustStr arg);
     #[test]
     fn extern_rust_fn_with_str_argument() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
             expected_c_header: expected_c_header(),
@@ -154,7 +154,7 @@ void* __swift_bridge__$some_function(void);
     #[test]
     fn extern_rust_fn_returns_string() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: EXPECTED_SWIFT_CODE,
             expected_c_header: EXPECTED_C_HEADER,
@@ -207,7 +207,7 @@ struct RustStr __swift_bridge__$some_function(void);
     #[test]
     fn extern_rust_fn_return_str() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
             expected_c_header: expected_c_header(),

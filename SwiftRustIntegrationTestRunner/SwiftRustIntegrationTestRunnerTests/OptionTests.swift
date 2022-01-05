@@ -42,6 +42,3 @@ class OptionTests: XCTestCase {
         run_option_tests()
     }
 }
-
-
-

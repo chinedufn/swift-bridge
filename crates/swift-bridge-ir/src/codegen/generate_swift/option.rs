@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::codegen::generate_swift::CodegenConfig;
     use crate::test_utils::{assert_trimmed_generated_contains_trimmed_expected, parse_ok};
     use quote::quote;
 
@@ -15,7 +16,7 @@ mod tests {
             }
         };
         let module = parse_ok(tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 @_cdecl("__swift_bridge__$foo")
@@ -39,7 +40,7 @@ func __swift_bridge__foo () -> UInt8 {
             }
         };
         let module = parse_ok(tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func foo() -> Optional<UInt8> {

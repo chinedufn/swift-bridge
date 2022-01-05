@@ -1,9 +1,10 @@
+use crate::bridge_module_attributes::CfgAttr;
 use crate::bridged_type::BridgedType;
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::parse::parse_struct::SharedStructDeclarationParser;
 use crate::SwiftBridgeModule;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::{Item, ItemMod};
 
@@ -57,6 +58,17 @@ impl Parse for SwiftBridgeModuleAndErrors {
             let mut functions = vec![];
             let mut type_declarations = TypeDeclarations::default();
             let mut unresolved_types = vec![];
+            let mut cfg_attrs = vec![];
+
+            for attr in item_mod.attrs {
+                match attr.path.to_token_stream().to_string().as_str() {
+                    "cfg" => {
+                        let cfg: CfgAttr = syn::parse2(attr.tokens)?;
+                        cfg_attrs.push(cfg);
+                    }
+                    _ => {}
+                };
+            }
 
             for outer_mod_item in item_mod.content.unwrap().1 {
                 match outer_mod_item {
@@ -106,6 +118,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
                 types: type_declarations,
                 functions,
                 swift_bridge_path: syn::parse2(quote! { swift_bridge }).unwrap(),
+                cfg_attrs,
             };
             Ok(SwiftBridgeModuleAndErrors { module, errors })
         } else {
@@ -114,5 +127,31 @@ impl Parse for SwiftBridgeModuleAndErrors {
                 "Only modules are supported.",
             ));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::parse_ok;
+
+    /// Verify that we can parse a cfg feature from a module.
+    #[test]
+    fn parse_module_cfg_feature() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            #[cfg(feature = "some-feature")]
+            mod foo {}
+        };
+
+        let module = parse_ok(tokens);
+
+        assert_eq!(module.cfg_attrs.len(), 1);
+
+        match &module.cfg_attrs[0] {
+            CfgAttr::Feature(feature) => {
+                assert_eq!(feature.value(), "some-feature")
+            }
+        };
     }
 }

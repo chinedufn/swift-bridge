@@ -50,7 +50,7 @@ void* __swift_bridge__$some_function(void);
     #[test]
     fn extern_rust_fn_return_option_string() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
             expected_c_header: EXPECTED_C_HEADER,
@@ -124,7 +124,7 @@ struct RustStr __swift_bridge__$another_function(void);
     #[test]
     fn extern_rust_fn_return_option_str() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
             expected_c_header: EXPECTED_C_HEADER,

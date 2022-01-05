@@ -30,15 +30,3 @@ public class ASwiftStack {
         UnsafeBufferPointer(start: self.as_ptr(), count: Int(self.len()))
     }
 }
-
-import SwiftUI
-struct SomeStruct {
-    @State private var reRender = 1
-}
-extension SomeStruct: View {
-    
-    var body: some View {
-        Text("Hi")
-    }
-    
-}

@@ -15,6 +15,7 @@
 		220432AF274E7BF800BAE645 /* SharedTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220432AE274E7BF800BAE645 /* SharedTypes.swift */; };
 		220432EA2753092C00BAE645 /* RustFnUsesOpaqueSwiftType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220432E92753092C00BAE645 /* RustFnUsesOpaqueSwiftType.swift */; };
 		220432EC27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220432EB27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift */; };
+		221E16B42786233600F94AC0 /* ConditionalCompilationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 221E16B32786233600F94AC0 /* ConditionalCompilationTests.swift */; };
 		228FE5D52740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */; };
 		228FE5D72740DB6A00805D9E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5D62740DB6A00805D9E /* ContentView.swift */; };
 		228FE5D92740DB6D00805D9E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 228FE5D82740DB6D00805D9E /* Assets.xcassets */; };
@@ -52,6 +53,7 @@
 		220432AE274E7BF800BAE645 /* SharedTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedTypes.swift; sourceTree = "<group>"; };
 		220432E92753092C00BAE645 /* RustFnUsesOpaqueSwiftType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RustFnUsesOpaqueSwiftType.swift; sourceTree = "<group>"; };
 		220432EB27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RustFnUsesOpaqueSwiftTypeTests.swift; sourceTree = "<group>"; };
+		221E16B32786233600F94AC0 /* ConditionalCompilationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalCompilationTests.swift; sourceTree = "<group>"; };
 		228FE5D12740DB6A00805D9E /* SwiftRustIntegrationTestRunner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftRustIntegrationTestRunner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftRustIntegrationTestRunnerApp.swift; sourceTree = "<group>"; };
 		228FE5D62740DB6A00805D9E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -156,6 +158,7 @@
 				220432AE274E7BF800BAE645 /* SharedTypes.swift */,
 				220432EB27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift */,
 				22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */,
+				221E16B32786233600F94AC0 /* ConditionalCompilationTests.swift */,
 			);
 			path = SwiftRustIntegrationTestRunnerTests;
 			sourceTree = "<group>";
@@ -332,6 +335,7 @@
 				220432AF274E7BF800BAE645 /* SharedTypes.swift in Sources */,
 				220432EC27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift in Sources */,
 				228FE6502749C43100805D9E /* BooleanTests.swift in Sources */,
+				221E16B42786233600F94AC0 /* ConditionalCompilationTests.swift in Sources */,
 				22043295274ADA7A00BAE645 /* OptionTests.swift in Sources */,
 				228FE5E72740DB6D00805D9E /* StringTests.swift in Sources */,
 				228FE61227428A8D00805D9E /* OpaqueSwiftStructTests.swift in Sources */,
@@ -486,8 +490,10 @@
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/debug";
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftRustIntegrationTestRunner;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG FOO";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/Headers/BridgingHeader.h";
 				SWIFT_VERSION = 5.0;

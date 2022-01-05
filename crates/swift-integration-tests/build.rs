@@ -16,6 +16,7 @@ fn main() {
         "src/vec.rs",
         "src/rust_function_uses_opaque_swift_type.rs",
         "src/swift_function_uses_opaque_rust_type.rs",
+        "src/conditional_compilation.rs",
     ];
     for path in &bridges {
         println!("cargo:rerun-if-changed={}", path);
