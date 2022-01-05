@@ -4,6 +4,7 @@ use quote::ToTokens;
 use quote::{quote, quote_spanned};
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
+use std::str::FromStr;
 use syn::{FnArg, ForeignItemType, LitStr, Pat, PatType, Path, ReturnType, Type};
 
 use self::bridged_option::BridgedOption;
@@ -387,7 +388,8 @@ impl BridgedType {
             let inner = if let Some(declared_ty) = types.get(inner) {
                 declared_ty.to_bridged_type(false, false)
             } else {
-                BridgedType::with_str(inner, types)?
+                let inner: Type = syn::parse2(TokenStream::from_str(inner).unwrap()).unwrap();
+                BridgedType::new_with_type(&inner, types)?
             };
 
             return Some(BridgedType::StdLib(StdLibType::Vec(BuiltInVec {
@@ -396,7 +398,9 @@ impl BridgedType {
         } else if string.starts_with("Option < ") {
             let inner = string.trim_start_matches("Option < ");
             let inner = inner.trim_end_matches(" >");
-            let inner = BridgedType::with_str(inner, types)?;
+
+            let inner: Type = syn::parse2(TokenStream::from_str(inner).unwrap()).unwrap();
+            let inner = BridgedType::new_with_type(&inner, types)?;
 
             return Some(BridgedType::StdLib(StdLibType::Option(BridgedOption {
                 ty: Box::new(inner),
@@ -893,13 +897,72 @@ impl BridgedType {
                         &quote! {val},
                     );
 
-                    quote! {
-                        if let Some(val) = #expression {
-                            #swift_bridge_path::option::_set_option_return(true);
-                            #val
-                        } else {
-                            #swift_bridge_path::option::_set_option_return(false);
-                            #unused_none_value
+                    match opt.ty.deref() {
+                        BridgedType::StdLib(stdlib_type) => match stdlib_type {
+                            StdLibType::Null
+                            | StdLibType::U8
+                            | StdLibType::I8
+                            | StdLibType::U16
+                            | StdLibType::I16
+                            | StdLibType::U32
+                            | StdLibType::I32
+                            | StdLibType::U64
+                            | StdLibType::I64
+                            | StdLibType::Usize
+                            | StdLibType::Isize
+                            | StdLibType::F32
+                            | StdLibType::F64
+                            | StdLibType::Bool => {
+                                quote! {
+                                    if let Some(val) = #expression {
+                                        #swift_bridge_path::option::_set_option_return(true);
+                                        #val
+                                    } else {
+                                        #swift_bridge_path::option::_set_option_return(false);
+                                        #unused_none_value
+                                    }
+                                }
+                            }
+                            StdLibType::Pointer(_) => {
+                                todo!("Support Option<*const T> and Option<*mut T>")
+                            }
+                            StdLibType::RefSlice(_) => {
+                                todo!("Support Option<&[T]> and Option<&mut [T]>")
+                            }
+                            StdLibType::Str => {
+                                quote! {
+                                    if let Some(val) = #expression {
+                                        #swift_bridge_path::string::RustStr::from_str(val)
+                                    } else {
+                                        #swift_bridge_path::string::RustStr { start: std::ptr::null::<u8>(), len: 0}
+                                    }
+                                }
+                            }
+                            // TODO: No need to use the _set_option_returns since we're passing
+                            //  pointers. We can just use a null pointer to indicate None.
+                            StdLibType::String => {
+                                quote! {
+                                    if let Some(val) = #expression {
+                                        #swift_bridge_path::option::_set_option_return(true);
+                                        #val
+                                    } else {
+                                        #swift_bridge_path::option::_set_option_return(false);
+                                        #unused_none_value
+                                    }
+                                }
+                            }
+                            StdLibType::Vec(_) => {
+                                todo!("Support Option<Vec<T>>")
+                            }
+                            StdLibType::Option(_) => {
+                                todo!("Support Option<Option<T>>")
+                            }
+                        },
+                        BridgedType::Foreign(CustomBridgedType::Shared(_shared_type)) => {
+                            todo!("Support Option<SharedType>")
+                        }
+                        BridgedType::Foreign(CustomBridgedType::Opaque(_opaque_type)) => {
+                            todo!("Support Option<OpaqueType>")
                         }
                     }
                 }
@@ -1098,11 +1161,66 @@ impl BridgedType {
                 StdLibType::Option(opt) => {
                     let inner_val = opt.convert_ffi_value_to_swift_value(func_host_lang, type_pos);
 
-                    format!(
-                        "let val = {val}; if _get_option_return() {{ return {inner_val}; }} else {{ return nil; }}",
-                        val = value,
-                        inner_val = inner_val
-                    )
+                    match opt.ty.deref() {
+                        BridgedType::StdLib(stdlib_type) => {
+                            match stdlib_type {
+                                StdLibType::Null
+                                | StdLibType::U8
+                                | StdLibType::I8
+                                | StdLibType::U16
+                                | StdLibType::I16
+                                | StdLibType::U32
+                                | StdLibType::I32
+                                | StdLibType::U64
+                                | StdLibType::I64
+                                | StdLibType::Usize
+                                | StdLibType::Isize
+                                | StdLibType::F32
+                                | StdLibType::F64
+                                | StdLibType::Bool => {
+                                    format!(
+                                        "let val = {val}; if _get_option_return() {{ return {inner_val}; }} else {{ return nil; }}",
+                                        val = value,
+                                        inner_val = inner_val
+                                    )
+                                }
+                                StdLibType::Pointer(_) => {
+                                    todo!("Support Option<*const T> and Option<*mut T>")
+                                }
+                                StdLibType::RefSlice(_) => {
+                                    todo!("Support Option<&[T]>")
+                                }
+                                StdLibType::Str => {
+                                    format!(
+                                        "let val = {val}; if val.start != nil {{ return {inner_val}; }} else {{ return nil; }}",
+                                        val = value,
+                                        inner_val = inner_val
+                                    )
+                                }
+                                StdLibType::String => {
+                                    // TODO: Just check if the pointer is null instead of using
+                                    //  _get_option_return()
+                                    format!(
+                                        "let val = {val}; if _get_option_return() {{ return {inner_val}; }} else {{ return nil; }}",
+                                        val = value,
+                                        inner_val = inner_val
+                                    )
+                                }
+                                StdLibType::Vec(_) => {
+                                    todo!("Support Option<Vec<T>>")
+                                }
+                                StdLibType::Option(_) => {
+                                    todo!("Support Option<Option<T>>")
+                                }
+                            }
+                        }
+                        BridgedType::Foreign(CustomBridgedType::Shared(_shared)) => {
+                            todo!("Support Option<SharedType>")
+                        }
+                        BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
+                            todo!("Support Option<OpaqueType>")
+                        }
+                    }
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
@@ -1307,7 +1425,15 @@ impl BridgedType {
                     todo!("Support Option<&[T]>")
                 }
                 StdLibType::Str => {
-                    todo!("Support Option<&str>")
+                    UnusedOptionNoneValue {
+                        rust: quote! {
+                            #swift_bridge_path::string::RustStr {start: std::ptr::null::<u8>(), len: 0}
+                        },
+                        // TODO: Add integration tests:
+                        //  Rust: crates/swift-integration-tests/src/option.rs
+                        //  Swift: OptionTests.swift
+                        swift: "TODO_SWIFT_OPTIONAL_STR_SUPPORT".to_string(),
+                    }
                 }
                 StdLibType::String => {
                     UnusedOptionNoneValue {

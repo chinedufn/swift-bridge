@@ -4,6 +4,8 @@ Rust's `std::string::String` can be passed to Swift as an owned `String`, a refe
 a mutably referenced `&mut String`.
 
 ```rust
+// Rust
+
 #[swift_bridge::bridge]
 mod ffi {
 	extern "Rust" {
