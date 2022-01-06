@@ -36,10 +36,6 @@ mod extern_rust_type {
 public class SomeType: SomeTypeRefMut {
     var isOwned: Bool = true
 
-    init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
-    }
-
     override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }

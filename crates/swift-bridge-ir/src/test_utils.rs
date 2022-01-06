@@ -46,6 +46,33 @@ Inner Tokens:
     )
 }
 
+/// Converts both token streams to strings, removes all of the whitespace then checks that the outer
+/// token stream does not contain the inner one.
+pub fn assert_tokens_do_not_contain(outer: &TokenStream, inner: &TokenStream) {
+    let outer_string = outer.to_string();
+    let outer_string = outer_string.replace(" ", "").replace("\n", "");
+
+    let inner_string = inner.to_string();
+    let inner_string = inner_string.replace(" ", "").replace("\n", "");
+
+    let is_contained = outer_string.contains(&inner_string);
+
+    assert!(
+        !is_contained,
+        r#"
+Outer tokens do not contain the inner tokens. 
+
+Outer Tokens:
+{}
+
+Inner Tokens:
+{}
+"#,
+        outer.to_string(),
+        inner.to_string()
+    )
+}
+
 /// Trims both generated and expected.
 pub fn assert_trimmed_generated_equals_trimmed_expected(generated: &str, expected: &str) {
     assert_eq!(

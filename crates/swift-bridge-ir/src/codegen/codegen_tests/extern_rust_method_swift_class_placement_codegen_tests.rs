@@ -39,10 +39,6 @@ mod extern_rust_method_swift_class_placement {
 public class SomeType: SomeTypeRefMut {
     var isOwned: Bool = true
 
-    init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
-    }
-
     override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }
@@ -52,7 +48,8 @@ public class SomeType: SomeTypeRefMut {
             __swift_bridge__$SomeType$_free(ptr)
         }
     }
-
+}
+extension SomeType {
     func a() {
         __swift_bridge__$SomeType$a({isOwned = false; return ptr;}())
     }
@@ -65,7 +62,8 @@ public class SomeTypeRefMut: SomeTypeRef {
     override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }
-
+}
+extension SomeTypeRefMut {
     func e() {
         __swift_bridge__$SomeType$e(ptr)
     }
@@ -80,7 +78,8 @@ public class SomeTypeRef {
     init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
-
+}
+extension SomeTypeRef {
     func c() {
         __swift_bridge__$SomeType$c(ptr)
     }

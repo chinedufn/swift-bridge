@@ -88,8 +88,10 @@ impl SwiftBridgeModule {
                         );
                         swift += "\n";
 
-                        swift += &generate_vectorizable_extension(&ty.ident);
-                        swift += "\n";
+                        if !ty.already_declared {
+                            swift += &generate_vectorizable_extension(&ty.ident);
+                            swift += "\n";
+                        }
                     }
                     HostLang::Swift => {
                         swift += &generate_drop_swift_instance_reference_count(ty);
@@ -117,10 +119,6 @@ fn generate_swift_class(
     let mut ref_self_methods = vec![];
     let mut ref_mut_self_methods = vec![];
 
-    let default_init = r#"    init() {
-        fatalError("No #[swift_bridge(constructor)] was defined in the extern Rust module.")
-    }"#;
-
     if let Some(methods) = associated_funcs_and_methods.get(&type_name) {
         for type_method in methods {
             // TODO: Normalize with freestanding func codegen above
@@ -147,35 +145,14 @@ fn generate_swift_class(
         }
     }
 
-    if initializers.len() == 0 {
-        initializers.push(default_init.to_string());
-    }
+    let class_decl = if ty.already_declared {
+        "".to_string()
+    } else {
+        let free_func_call = format!("{}${}$_free(ptr)", SWIFT_BRIDGE_PREFIX, type_name);
 
-    let initializers: String = initializers.join("\n\n");
-
-    let mut owned_instance_methods: String = owned_self_methods.join("\n\n");
-    if owned_instance_methods.len() > 0 {
-        owned_instance_methods = format!("\n\n{}", owned_instance_methods);
-    }
-
-    let mut ref_instance_methods: String = ref_self_methods.join("\n\n");
-    if ref_instance_methods.len() > 0 {
-        ref_instance_methods = format!("\n\n{}", ref_instance_methods);
-    }
-
-    let mut ref_mut_instance_methods: String = ref_mut_self_methods.join("\n\n");
-    if ref_mut_instance_methods.len() > 0 {
-        ref_mut_instance_methods = format!("\n\n{}", ref_mut_instance_methods);
-    }
-
-    let free_func_call = format!("{}${}$_free(ptr)", SWIFT_BRIDGE_PREFIX, type_name);
-
-    let class = format!(
-        r#"
-public class {type_name}: {type_name}RefMut {{
+        format!(
+            r#"public class {type_name}: {type_name}RefMut {{
     var isOwned: Bool = true
-
-{initializers}
 
     override init(ptr: UnsafeMutableRawPointer) {{
         super.init(ptr: ptr)
@@ -185,26 +162,107 @@ public class {type_name}: {type_name}RefMut {{
         if isOwned {{
             {free_func_call}
         }}
-    }}{owned_instance_methods}
-}}
+    }}
+}}"#,
+            type_name = type_name,
+            free_func_call = free_func_call
+        )
+    };
+    let class_ref_decl = if ty.already_declared {
+        "".to_string()
+    } else {
+        format!(
+            r#"
 public class {type_name}RefMut: {type_name}Ref {{
     override init(ptr: UnsafeMutableRawPointer) {{
         super.init(ptr: ptr)
-    }}{ref_mut_instance_methods}
-}}
+    }}
+}}"#,
+            type_name = type_name
+        )
+    };
+    let class_ref_mut_decl = if ty.already_declared {
+        "".to_string()
+    } else {
+        format!(
+            r#"
 public class {type_name}Ref {{
     var ptr: UnsafeMutableRawPointer
 
     init(ptr: UnsafeMutableRawPointer) {{
         self.ptr = ptr
-    }}{ref_instance_methods}
+    }}
 }}"#,
-        type_name = type_name,
+            type_name = type_name,
+        )
+    };
+
+    let initializers = if initializers.len() == 0 {
+        "".to_string()
+    } else {
+        let initializers: String = initializers.join("\n\n");
+        format!(
+            r#"
+extension {type_name} {{
+{initializers}
+}}"#,
+            type_name = type_name,
+            initializers = initializers
+        )
+    };
+
+    let owned_instance_methods = if owned_self_methods.len() == 0 {
+        "".to_string()
+    } else {
+        let owned_instance_methods: String = owned_self_methods.join("\n\n");
+        format!(
+            r#"
+extension {type_name} {{
+{owned_instance_methods}
+}}"#,
+            type_name = type_name,
+            owned_instance_methods = owned_instance_methods
+        )
+    };
+
+    let ref_instance_methods = if ref_self_methods.len() == 0 {
+        "".to_string()
+    } else {
+        let ref_instance_methods: String = ref_self_methods.join("\n\n");
+        format!(
+            r#"
+extension {type_name}Ref {{
+{ref_instance_methods}
+}}"#,
+            type_name = type_name,
+            ref_instance_methods = ref_instance_methods
+        )
+    };
+
+    let ref_mut_instance_methods = if ref_mut_self_methods.len() == 0 {
+        "".to_string()
+    } else {
+        let ref_mut_instance_methods: String = ref_mut_self_methods.join("\n\n");
+        format!(
+            r#"
+extension {type_name}RefMut {{
+{ref_mut_instance_methods}
+}}"#,
+            type_name = type_name,
+            ref_mut_instance_methods = ref_mut_instance_methods
+        )
+    };
+
+    let class = format!(
+        r#"
+{class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}"#,
+        class_decl = class_decl,
+        class_ref_decl = class_ref_decl,
+        class_ref_mut_decl = class_ref_mut_decl,
         initializers = initializers,
         owned_instance_methods = owned_instance_methods,
         ref_mut_instance_methods = ref_mut_instance_methods,
         ref_instance_methods = ref_instance_methods,
-        free_func_call = free_func_call
     );
 
     return class;
@@ -270,7 +328,7 @@ fn gen_func_swift_calls_rust(
     };
 
     let swift_class_func_name = if function.is_initializer {
-        "init".to_string()
+        "convenience init".to_string()
     } else {
         format!("func {}", fn_name.as_str())
     };
@@ -362,7 +420,7 @@ fn gen_func_swift_calls_rust(
     }
 
     if function.is_initializer {
-        call_rust = format!("super.init(ptr: {})", call_rust)
+        call_rust = format!("self.init(ptr: {})", call_rust)
     }
 
     let maybe_return = if function.is_initializer {
@@ -651,45 +709,6 @@ func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
         assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
-    /// Verify that we generated a Swift class with an init method.
-    #[test]
-    fn class_with_init() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-
-                    #[swift_bridge(init)]
-                    fn new() -> Foo;
-                }
-            }
-        };
-        let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
-
-        let expected = r#"
-public class Foo: FooRefMut {
-    var isOwned: Bool = true
-
-    init() {
-        super.init(ptr: __swift_bridge__$Foo$new())
-    }
-
-    override init(ptr: UnsafeMutableRawPointer) {
-        super.init(ptr: ptr)
-    }
-
-    deinit {
-        if isOwned {
-            __swift_bridge__$Foo$_free(ptr)
-        }
-    }
-}
-"#;
-
-        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
-    }
-
     /// Verify that we generated a function that Rust can use to reduce a Swift class instance's
     /// reference count.
     #[test]
@@ -717,6 +736,46 @@ func __swift_bridge__Foo_new (_ a: UInt8) -> __private__PointerToSwiftType {
         assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
+    /// Verify that we generated a Swift class with an init method.
+    #[test]
+    fn class_with_init() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(init)]
+                    fn new() -> Foo;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
+
+        let expected = r#"
+public class Foo: FooRefMut {
+    var isOwned: Bool = true
+
+    override init(ptr: UnsafeMutableRawPointer) {
+        super.init(ptr: ptr)
+    }
+
+    deinit {
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
+    }
+}
+extension Foo {
+    convenience init() {
+        self.init(ptr: __swift_bridge__$Foo$new())
+    }
+}
+"#;
+
+        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
+    }
+
     /// Verify that we generated a Swift class with an init method with params.
     #[test]
     fn class_with_init_and_param() {
@@ -737,10 +796,6 @@ func __swift_bridge__Foo_new (_ a: UInt8) -> __private__PointerToSwiftType {
 public class Foo: FooRefMut {
     var isOwned: Bool = true
 
-    init(_ val: UInt8) {
-        super.init(ptr: __swift_bridge__$Foo$new(val))
-    }
-
     override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }
@@ -749,6 +804,11 @@ public class Foo: FooRefMut {
         if isOwned {
             __swift_bridge__$Foo$_free(ptr)
         }
+    }
+}
+extension Foo {
+    convenience init(_ val: UInt8) {
+        self.init(ptr: __swift_bridge__$Foo$new(val))
     }
 }
 "#;
@@ -810,7 +870,8 @@ public class FooRef {
     init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
-
+}
+extension FooRef {
     func bar() -> UInt8 {
         __swift_bridge__$Foo$bar(ptr)
     }
@@ -842,7 +903,8 @@ public class FooRef {
     init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
-
+}
+extension FooRef {
     func bar(_ other: FooRef) {
         __swift_bridge__$Foo$bar(ptr, other.ptr)
     }
@@ -875,7 +937,8 @@ public class FooRef {
     init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
-
+}
+extension FooRef {
     class func bar() {
         __swift_bridge__$Foo$bar()
     }
