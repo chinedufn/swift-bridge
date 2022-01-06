@@ -4,6 +4,7 @@ version = "0.1.17"
 edition = "2021"
 keywords = ["swift", "ffi", "bindings", "ios", "mac"]
 description = "Generate FFI bindings for safe interop between Rust and Swift."
+repository = "https://github.com/chinedufn/swift-bridge"
 license = "Apache-2.0/MIT"
 
 build = "build.rs"
