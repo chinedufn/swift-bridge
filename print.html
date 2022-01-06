@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="spacer"></li><li class="chapter-item expanded "><a href="bridge-module/index.html"><strong aria-hidden="true">1.</strong> The Bridge Module</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="bridge-module/structs/index.html"><strong aria-hidden="true">1.1.</strong> Shared Structs</a></li><li class="chapter-item expanded "><a href="bridge-module/extern-rust/index.html"><strong aria-hidden="true">1.2.</strong> extern &quot;Rust&quot;</a></li></ol></li><li class="chapter-item expanded "><a href="built-in/index.html"><strong aria-hidden="true">2.</strong> Built In Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="built-in/option/index.html"><strong aria-hidden="true">2.1.</strong> Option &lt;---&gt; Optional</a></li><li class="chapter-item expanded "><a href="built-in/vec/index.html"><strong aria-hidden="true">2.2.</strong> Vec &lt;---&gt; RustVec</a></li><li class="chapter-item expanded "><a href="built-in/string/index.html"><strong aria-hidden="true">2.3.</strong> String &lt;---&gt; String</a></li><li class="chapter-item expanded "><a href="built-in/str/index.html"><strong aria-hidden="true">2.4.</strong> &amp;str &lt;---&gt; RustStr</a></li></ol></li><li class="chapter-item expanded "><a href="tutorial/running-rust-analyzer-on-an-iphone/index.html"><strong aria-hidden="true">3.</strong> Tutorial: Running rust-analyzer on an iPhone</a></li><li class="chapter-item expanded "><a href="internal-design/index.html"><strong aria-hidden="true">4.</strong> Internal Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="internal-design/codegen/index.html"><strong aria-hidden="true">4.1.</strong> Code Generation</a></li></ol></li></ol>            </div>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="spacer"></li><li class="chapter-item expanded "><a href="bridge-module/index.html"><strong aria-hidden="true">1.</strong> The Bridge Module</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="bridge-module/structs/index.html"><strong aria-hidden="true">1.1.</strong> Shared Structs</a></li><li class="chapter-item expanded "><a href="bridge-module/extern-rust/index.html"><strong aria-hidden="true">1.2.</strong> extern &quot;Rust&quot;</a></li><li class="chapter-item expanded "><a href="bridge-module/conditional-compilation/index.html"><strong aria-hidden="true">1.3.</strong> Conditional Compilation</a></li></ol></li><li class="chapter-item expanded "><a href="built-in/index.html"><strong aria-hidden="true">2.</strong> Built In Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="built-in/option/index.html"><strong aria-hidden="true">2.1.</strong> Option &lt;---&gt; Optional</a></li><li class="chapter-item expanded "><a href="built-in/vec/index.html"><strong aria-hidden="true">2.2.</strong> Vec &lt;---&gt; RustVec</a></li><li class="chapter-item expanded "><a href="built-in/string/index.html"><strong aria-hidden="true">2.3.</strong> String &lt;---&gt; String</a></li><li class="chapter-item expanded "><a href="built-in/str/index.html"><strong aria-hidden="true">2.4.</strong> &amp;str &lt;---&gt; RustStr</a></li></ol></li><li class="chapter-item expanded "><a href="tutorial/running-rust-analyzer-on-an-iphone/index.html"><strong aria-hidden="true">3.</strong> Tutorial: Running rust-analyzer on an iPhone</a></li><li class="chapter-item expanded "><a href="internal-design/index.html"><strong aria-hidden="true">4.</strong> Internal Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="internal-design/codegen/index.html"><strong aria-hidden="true">4.1.</strong> Code Generation</a></li></ol></li></ol>            </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
@@ -204,7 +204,7 @@ mod ffi {
 </li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="extern-rust"><a class="header" href="#extern-rust">extern &quot;Rust&quot;</a></h1>
-<p><code>extern &quot;Rust</code> sections are used to expose Rust types and functions over FFI so that they can used from Swift code.</p>
+<p><code>extern &quot;Rust</code> sections are used to expose Rust types and functions over FFI so that they can be used from Swift code.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -251,18 +251,18 @@ impl Water {
 </span></code></pre></pre>
 <h2 id="owned-ref-and-refmut"><a class="header" href="#owned-ref-and-refmut">Owned, Ref and RefMut</a></h2>
 <p>When you define a type in an <code>extern &quot;Rust&quot;</code> block, three corresponding Swift classes get generated.</p>
-<pre><code class="language-swift">// Equivalent to `MyType` in Rust
-class MyType: MyTypeRefMut {
+<pre><code class="language-swift">// Equivalent to `SomeType` in Rust
+class SomeType: SomeTypeRefMut {
     // ...
 }
 
-// Equivalent to `&amp;mut MyType` in Rust
-class MyTypeRefMut: MyTypeRef {
+// Equivalent to `&amp;mut SomeType` in Rust
+class SomeTypeRefMut: SomeTypeRef {
     // ... 
 }
 
-// Equivalent to `&amp;MyType` in Rust
-class MyTypeRef {
+// Equivalent to `&amp;SomeType` in Rust
+class SomeTypeRef {
     // ... 
 }
 </code></pre>
@@ -328,25 +328,49 @@ func useSomeType(someType: SomeTypeRef) {
 }
 </code></pre>
 <h2 id="function-attributes"><a class="header" href="#function-attributes">Function Attributes</a></h2>
-<h4 id="swift_bridgerust_name--function_name"><a class="header" href="#swift_bridgerust_name--function_name">#[swift_bridge(rust_name = &quot;function_name&quot;)]</a></h4>
-<p>Use the given <code>rust_name</code> to find the function's implementation.</p>
+<h4 id="swift_bridgeassociated_to--sometype"><a class="header" href="#swift_bridgeassociated_to--sometype">#[swift_bridge(associated_to = SomeType)]</a></h4>
+<p>Indicates that we are exposing an associated function for a type.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use some_other_crate::Uuid;
+</span>// Rust
 
 #[swift_bridge::bridge]
 mod ffi {
     extern &quot;Rust&quot; {
-        #[swift_bridge(rust_name = &quot;another_function&quot;)]
-        fn some_function();
+        type Message;
+
+        // Exposes Message::parse to Swift as Message.parse
+        #[swift_bridge(associated_to = Message)]
+        fn parse(text: &amp;str) -&gt; Option&lt;Message&gt;;
     }
 }
 
-fn another_function() {
+struct LongMessage(String);
+
+impl LongMessage {
+    fn parse(text: impl ToString) -&gt; Option&lt;Self&gt; {
+        let text = text.to_string();
+
+        if text.len() &gt; 10_000 {
+            Some(LongMessage(text))
+        } else {
+            None
+        }
+    }
 }
 <span class="boring">}
 </span></code></pre></pre>
+<pre><code class="language-swift">// Swift
+
+func maybeSendLongMessage(text: String) {
+    let maybeMessage = Message.parse(text)
+    
+    if let message = maybeMessage {
+        // ... send the message
+    }
+}
+</code></pre>
 <h4 id="swift_bridgeinto_return_type"><a class="header" href="#swift_bridgeinto_return_type">#[swift_bridge(into_return_type)]</a></h4>
 <p>Allows a swift-bridge definition of <code>fn foo() -&gt; T</code> to work for any <code>fn foo() -&gt; impl Into&lt;T&gt;</code>.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -380,6 +404,150 @@ mod some_other_crate {
     // Here we can return a Uuid, even though swift-bridge is expecting an FfiUuid.
     pub fn make_uuid() -&gt; Uuid {
         Uuid::new_v4()
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h4 id="swift_bridgerust_name--function_name"><a class="header" href="#swift_bridgerust_name--function_name">#[swift_bridge(rust_name = &quot;function_name&quot;)]</a></h4>
+<p>Use the given <code>rust_name</code> to find the function's implementation.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use some_other_crate::Uuid;
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        #[swift_bridge(rust_name = &quot;another_function&quot;)]
+        fn some_function();
+    }
+}
+
+fn another_function() {
+}
+<span class="boring">}
+</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="conditional-compilation"><a class="header" href="#conditional-compilation">Conditional Compilation</a></h1>
+<p>You can use <a href="https://doc.rust-lang.org/reference/conditional-compilation.html#the-cfg-attribute">the cfg attribute</a>
+in order to conditionally generate bindings.</p>
+<p>Here's an example of only generating some bindings when a &quot;dev-utils&quot; feature is enabled for the Rust crate.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct App {
+    users: HashMap&lt;u8, Userg&gt;
+}
+
+struct User {
+    is_logged_in: bool
+}
+
+impl App {
+	fn new() -&gt; Self {
+		App {
+		    users: HashMap::new()
+		}
+	}
+
+	#[cfg(feature = &quot;dev-utils&quot;)]
+	fn create_logged_in_user(&amp;mut self, user_id: u8);
+}
+
+mod ffi {
+	extern &quot;Rust&quot; {
+	    type App;
+
+        #[swift_bridge(init)]
+	    fn new() -&gt; App;
+
+		fn create_logged_in_user(&amp;mut self, user_id: u8)  {
+			let user = User {
+			    is_logged_in: true
+			};
+		    self.users.insert(user_id, user)
+		}
+	}
+}
+
+// This example module contains methods that are useful
+// during testing and in SwiftUI previews.
+// It is only available when the Rust crate is compiled with the &quot;dev-utils&quot; feature.
+#[swift_bridge::bridge]
+#[cfg(feature = &quot;dev-utils&quot;)]
+mod ffi_dev_utils {
+	extern &quot;Rust&quot; {
+	    #[swift_bridge(import)]
+        type App;
+
+        fn create_logged_in_user(&amp;mut self, user_id: u8);
+	}
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="supported-conditions"><a class="header" href="#supported-conditions">Supported Conditions</a></h2>
+<p>Here are the conditions that are currently supported.</p>
+<p>If you need a condition that isn't yet supported, please open an issue.</p>
+<h4 id="cfgfeature--some-feature"><a class="header" href="#cfgfeature--some-feature">#[cfg(feature = &quot;some-feature&quot;)]</a></h4>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge]
+mod ffi {
+    // The code generator will only generate the corresponding
+    // Swift and C code if the &quot;extra-utils&quot; feature is enabled.
+    #[cfg(feature = &quot;extra-utils&quot;)]
+	extern &quot;Rust&quot; {
+        // ....
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="locations"><a class="header" href="#locations">Locations</a></h2>
+<p>Here are the different things that you can conditionally compile.</p>
+<h4 id="bridge-module"><a class="header" href="#bridge-module">Bridge module</a></h4>
+<p>The bridge module can use the <code>cfg</code> attribute.</p>
+<p>At build time the <code>swift_bridge_build</code> library determines whether or not a module will be compiled.</p>
+<p>If not, we won't generate any of the corresponding C or Swift code for that module.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+// This module's bindings will only be available when the Rust crate is compiled with
+// the `ffi-extras` feature
+#[cfg(feature = &quot;ffi-extras&quot;)]
+mod ffi_extras {
+  // ...
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h4 id="extern-rust-blocks"><a class="header" href="#extern-rust-blocks">extern &quot;Rust&quot; blocks</a></h4>
+<p><em>...This hasn't been implemented yet but should be easy...</em></p>
+<p>Functions can methods can use the <code>#[cfg]</code> attribute.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    #[cfg(all(unix, target_pointer_width = &quot;32&quot;))]
+	extern &quot;Rust&quot; {
+        // ...
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h4 id="rust-functions-amd-methods"><a class="header" href="#rust-functions-amd-methods">Rust functions amd methods</a></h4>
+<p><em>...This hasn't been implemented yet but should be easy...</em></p>
+<p>Functions and methods can use the <code>#[cfg]</code> attribute.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+	extern &quot;Rust&quot; {
+	    // This function's will only be available when
+        // the Rust crate is compiled targetting Windows.
+        #[cfg(target_os = &quot;windows&quot;)]
+	    fn play_solitaire();
     }
 }
 <span class="boring">}
