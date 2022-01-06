@@ -1,6 +1,6 @@
 # extern "Rust"
 
-`extern "Rust` sections are used to expose Rust types and functions over FFI so that they can used from Swift code.
+`extern "Rust` sections are used to expose Rust types and functions over FFI so that they can be used from Swift code.
 
 ```rust
 mod science;
@@ -49,18 +49,18 @@ impl Water {
 When you define a type in an `extern "Rust"` block, three corresponding Swift classes get generated.
 
 ```swift
-// Equivalent to `MyType` in Rust
-class MyType: MyTypeRefMut {
+// Equivalent to `SomeType` in Rust
+class SomeType: SomeTypeRefMut {
     // ...
 }
 
-// Equivalent to `&mut MyType` in Rust
-class MyTypeRefMut: MyTypeRef {
+// Equivalent to `&mut SomeType` in Rust
+class SomeTypeRefMut: SomeTypeRef {
     // ... 
 }
 
-// Equivalent to `&MyType` in Rust
-class MyTypeRef {
+// Equivalent to `&SomeType` in Rust
+class SomeTypeRef {
     // ... 
 }
 ```
@@ -129,22 +129,48 @@ func useSomeType(someType: SomeTypeRef) {
 
 ## Function Attributes
 
-#### #[swift_bridge(rust_name = "function_name")]
+#### #[swift_bridge(associated_to = SomeType)]
 
-Use the given `rust_name` to find the function's implementation.
+Indicates that we are exposing an associated function for a type.
 
 ```rust
-use some_other_crate::Uuid;
+// Rust
 
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
-        #[swift_bridge(rust_name = "another_function")]
-        fn some_function();
+        type Message;
+
+        // Exposes Message::parse to Swift as Message.parse
+        #[swift_bridge(associated_to = Message)]
+        fn parse(text: &str) -> Option<Message>;
     }
 }
 
-fn another_function() {
+struct LongMessage(String);
+
+impl LongMessage {
+    fn parse(text: impl ToString) -> Option<Self> {
+        let text = text.to_string();
+
+        if text.len() > 10_000 {
+            Some(LongMessage(text))
+        } else {
+            None
+        }
+    }
+}
+```
+
+```swift
+// Swift
+
+func maybeSendLongMessage(text: String) {
+    let maybeMessage = Message.parse(text)
+    
+    if let message = maybeMessage {
+        // ... send the message
+    }
 }
 ```
 
@@ -182,5 +208,24 @@ mod some_other_crate {
     pub fn make_uuid() -> Uuid {
         Uuid::new_v4()
     }
+}
+```
+
+#### #[swift_bridge(rust_name = "function_name")]
+
+Use the given `rust_name` to find the function's implementation.
+
+```rust
+use some_other_crate::Uuid;
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        #[swift_bridge(rust_name = "another_function")]
+        fn some_function();
+    }
+}
+
+fn another_function() {
 }
 ```

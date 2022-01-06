@@ -100,7 +100,7 @@ public class SomeTypeRef {
     #[test]
     fn extern_rust_fn_return_option_string() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
             expected_c_header: expected_c_header(),

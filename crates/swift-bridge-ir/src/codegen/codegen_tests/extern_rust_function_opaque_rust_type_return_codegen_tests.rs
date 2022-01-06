@@ -2,9 +2,9 @@ use super::{CodegenTest, ExpectedCHeader, ExpectedRustTokens, ExpectedSwiftCode}
 use proc_macro2::TokenStream;
 use quote::quote;
 
-/// Verify that we generate the proper code for extern "Rust" methods that take owned
-/// opaque Rust arguments.
-mod test_extern_rust_function_owned_opaque_rust_type_argument {
+/// Verify that we generate the proper code for extern "Rust" methods that returns an
+/// opaque Rust type.
+mod test_extern_rust_function_owned_opaque_rust_type_return {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -13,7 +13,7 @@ mod test_extern_rust_function_owned_opaque_rust_type_argument {
                 extern "Rust" {
                     type SomeType;
 
-                    fn some_function(arg: SomeType);
+                    fn some_function() -> SomeType;
                 }
             }
         }
@@ -22,10 +22,8 @@ mod test_extern_rust_function_owned_opaque_rust_type_argument {
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function (
-                arg: *mut super::SomeType
-            ) {
-                super::some_function(unsafe { * Box::from_raw(arg) })
+            pub extern "C" fn __swift_bridge__some_function () -> *mut super::SomeType {
+                Box::into_raw(Box::new(super::some_function())) as *mut super::SomeType
             }
         })
     }
@@ -33,8 +31,8 @@ mod test_extern_rust_function_owned_opaque_rust_type_argument {
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
-func some_function(_ arg: SomeType) {
-    __swift_bridge__$some_function({arg.isOwned = false; return arg.ptr;}())
+func some_function() -> SomeType {
+    SomeType(ptr: __swift_bridge__$some_function())
 }
 "#,
         )
@@ -43,15 +41,15 @@ func some_function(_ arg: SomeType) {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsAfterTrim(
             r#"
-void __swift_bridge__$some_function(void* arg);
+void* __swift_bridge__$some_function(void);
             "#,
         )
     }
 
     #[test]
-    fn extern_rust_fn_opaque_type_argument() {
+    fn extern_rust_fn_opaque_type_return() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
             expected_c_header: expected_c_header(),
@@ -60,9 +58,9 @@ void __swift_bridge__$some_function(void* arg);
     }
 }
 
-/// Verify that we generate the proper code for extern "Rust" methods that take owned
-/// opaque Rust arguments.
-mod test_extern_rust_function_ref_opaque_rust_type_argument {
+/// Verify that we generate the proper code for extern "Rust" methods that returns a reference
+/// to an opaque Rust type.
+mod test_extern_rust_function_ref_opaque_rust_type_return {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -71,7 +69,7 @@ mod test_extern_rust_function_ref_opaque_rust_type_argument {
                 extern "Rust" {
                     type SomeType;
 
-                    fn some_function(arg: &SomeType);
+                    fn some_function() -> &SomeType;
                 }
             }
         }
@@ -80,10 +78,8 @@ mod test_extern_rust_function_ref_opaque_rust_type_argument {
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function (
-                arg: *const super::SomeType
-            ) {
-                super::some_function(unsafe { & * arg } )
+            pub extern "C" fn __swift_bridge__some_function () -> *const super::SomeType {
+                super::some_function() as *const super::SomeType
             }
         })
     }
@@ -91,8 +87,8 @@ mod test_extern_rust_function_ref_opaque_rust_type_argument {
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
-func some_function(_ arg: SomeTypeRef) {
-    __swift_bridge__$some_function(arg.ptr)
+func some_function() -> SomeTypeRef {
+    SomeTypeRef(ptr: __swift_bridge__$some_function())
 }
 "#,
         )
@@ -101,15 +97,15 @@ func some_function(_ arg: SomeTypeRef) {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsAfterTrim(
             r#"
-void __swift_bridge__$some_function(void* arg);
+void* __swift_bridge__$some_function(void);
             "#,
         )
     }
 
     #[test]
-    fn extern_rust_fn_ref_opaque_type_argument() {
+    fn extern_rust_fn_ref_opaque_type_return() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
             expected_c_header: expected_c_header(),
@@ -118,9 +114,9 @@ void __swift_bridge__$some_function(void* arg);
     }
 }
 
-/// Verify that we generate the proper code for extern "Rust" methods that take owned
-/// opaque Rust arguments.
-mod test_extern_rust_function_ref_mut_opaque_rust_type_argument {
+/// Verify that we generate the proper code for extern "Rust" methods that returns an mutable ref
+/// to an opaque Rust type.
+mod test_extern_rust_function_ref_mut_opaque_rust_type_return {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -129,7 +125,7 @@ mod test_extern_rust_function_ref_mut_opaque_rust_type_argument {
                 extern "Rust" {
                     type SomeType;
 
-                    fn some_function(arg: &mut SomeType);
+                    fn some_function() -> &mut SomeType;
                 }
             }
         }
@@ -138,10 +134,8 @@ mod test_extern_rust_function_ref_mut_opaque_rust_type_argument {
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function (
-                arg: *mut super::SomeType
-            ) {
-                super::some_function(unsafe { &mut * arg } )
+            pub extern "C" fn __swift_bridge__some_function () -> *mut super::SomeType {
+                super::some_function() as *mut super::SomeType
             }
         })
     }
@@ -149,8 +143,8 @@ mod test_extern_rust_function_ref_mut_opaque_rust_type_argument {
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
-func some_function(_ arg: SomeTypeRefMut) {
-    __swift_bridge__$some_function(arg.ptr)
+func some_function() -> SomeTypeRefMut {
+    SomeTypeRefMut(ptr: __swift_bridge__$some_function())
 }
 "#,
         )
@@ -159,15 +153,15 @@ func some_function(_ arg: SomeTypeRefMut) {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsAfterTrim(
             r#"
-void __swift_bridge__$some_function(void* arg);
+void* __swift_bridge__$some_function(void);
             "#,
         )
     }
 
     #[test]
-    fn extern_rust_fn_ref_mut_opaque_type_argument() {
+    fn extern_rust_fn_ref_mut_opaque_type_return() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
             expected_c_header: expected_c_header(),

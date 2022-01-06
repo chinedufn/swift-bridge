@@ -1,4 +1,5 @@
 use crate::bridged_type::{BridgedType, StdLibType};
+use crate::codegen::CodegenConfig;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::SwiftBridgeModule;
@@ -14,17 +15,21 @@ struct Bookkeeping {
 
 impl SwiftBridgeModule {
     /// Generate the contents of a C header file based on the contents of this module.
-    pub fn generate_c_header(&self) -> String {
+    pub(crate) fn generate_c_header(&self, config: &CodegenConfig) -> String {
         format!(
             r#"{notice}
 {header}"#,
             notice = NOTICE,
-            header = self.generate_c_header_inner()
+            header = self.generate_c_header_inner(config)
         )
     }
 
-    pub(crate) fn generate_c_header_inner(&self) -> String {
+    pub(crate) fn generate_c_header_inner(&self, config: &CodegenConfig) -> String {
         let mut header = "".to_string();
+
+        if !self.module_will_be_compiled(config) {
+            return header;
+        }
 
         let mut bookkeeping = Bookkeeping {
             includes: HashSet::new(),
@@ -210,7 +215,7 @@ mod tests {
         };
         let module = parse_ok(tokens);
 
-        let header = module.generate_c_header();
+        let header = module.generate_c_header(&CodegenConfig::no_features_enabled());
         assert_eq!(header.trim(), NOTICE)
     }
 
@@ -229,7 +234,7 @@ mod tests {
         };
         let module = parse_ok(tokens);
 
-        let header = module.generate_c_header();
+        let header = module.generate_c_header(&CodegenConfig::no_features_enabled());
         assert_eq!(header.trim(), NOTICE)
     }
 
@@ -249,7 +254,12 @@ void __swift_bridge__$foo(void);
         "#;
 
         let module = parse_ok(tokens);
-        assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
+        assert_eq!(
+            module
+                .generate_c_header_inner(&CodegenConfig::no_features_enabled())
+                .trim(),
+            expected.trim()
+        );
     }
 
     /// Verify that we generate a type definition for a freestanding function that has one arg.
@@ -269,7 +279,12 @@ void __swift_bridge__$foo(uint8_t arg1);
         "#;
 
         let module = parse_ok(tokens);
-        assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
+        assert_eq!(
+            module
+                .generate_c_header_inner(&CodegenConfig::no_features_enabled())
+                .trim(),
+            expected.trim()
+        );
     }
 
     /// Verify that we generate a type definition for a freestanding function that returns a value.
@@ -289,7 +304,12 @@ uint8_t __swift_bridge__$foo(void);
         "#;
 
         let module = parse_ok(tokens);
-        assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
+        assert_eq!(
+            module
+                .generate_c_header_inner(&CodegenConfig::no_features_enabled())
+                .trim(),
+            expected.trim()
+        );
     }
 
     /// Verify that we include the Vec<T> functions in the generated C header for a Rust type.
@@ -313,7 +333,12 @@ void __swift_bridge__$SomeType$_free(void* self);
         );
 
         let module = parse_ok(tokens);
-        assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
+        assert_eq!(
+            module
+                .generate_c_header_inner(&CodegenConfig::no_features_enabled())
+                .trim(),
+            expected.trim()
+        );
     }
 
     /// Verify that we generate a type definition for a method with no arguments.
@@ -346,7 +371,7 @@ void __swift_bridge__$SomeType$f(void* self);
 
         let module = parse_ok(tokens);
         assert_trimmed_generated_contains_trimmed_expected(
-            &module.generate_c_header_inner(),
+            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
             &expected,
         );
     }
@@ -375,7 +400,12 @@ void __swift_bridge__$SomeType$foo(void* self, uint8_t val);
         );
 
         let module = parse_ok(tokens);
-        assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
+        assert_eq!(
+            module
+                .generate_c_header_inner(&CodegenConfig::no_features_enabled())
+                .trim(),
+            expected.trim()
+        );
     }
 
     /// Verify that we generate a type definition for a method with an opaque argument.
@@ -401,7 +431,12 @@ void __swift_bridge__$SomeType$foo(void* self, void* val);
         );
 
         let module = parse_ok(tokens);
-        assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
+        assert_eq!(
+            module
+                .generate_c_header_inner(&CodegenConfig::no_features_enabled())
+                .trim(),
+            expected.trim()
+        );
     }
 
     /// Verify that we generate a type definition for a method that has a return type.
@@ -428,7 +463,12 @@ uint8_t __swift_bridge__$SomeType$foo(void* self);
         );
 
         let module = parse_ok(tokens);
-        assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
+        assert_eq!(
+            module
+                .generate_c_header_inner(&CodegenConfig::no_features_enabled())
+                .trim(),
+            expected.trim()
+        );
     }
 
     /// Verify that we define a FfiSlice_T struct if we return a slice of type T.
@@ -453,7 +493,12 @@ struct __private__FfiSlice __swift_bridge__$bar(void);
         "#;
 
         let module = parse_ok(tokens);
-        assert_eq!(module.generate_c_header_inner().trim(), expected.trim());
+        assert_eq!(
+            module
+                .generate_c_header_inner(&CodegenConfig::no_features_enabled())
+                .trim(),
+            expected.trim()
+        );
     }
 
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
@@ -480,7 +525,7 @@ typedef struct Bazz Bazz;
 
         let module = parse_ok(tokens);
         assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(),
+            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
             &expected,
         );
     }
@@ -506,7 +551,7 @@ typedef struct Bar { uint8_t _0; } Bar;
 
         let module = parse_ok(tokens);
         assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(),
+            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
             &expected,
         );
     }
@@ -531,7 +576,7 @@ typedef struct Foo { uint8_t field1; uint16_t field2; } Foo;
 
         let module = parse_ok(tokens);
         assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(),
+            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
             &expected,
         );
     }
@@ -552,7 +597,7 @@ typedef struct FfiFoo FfiFoo;
 
         let module = parse_ok(tokens);
         assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(),
+            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
             &expected,
         );
     }
@@ -578,7 +623,7 @@ struct FfiFoo __swift_bridge__$some_function(struct FfiFoo arg);
 
         let module = parse_ok(tokens);
         assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(),
+            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
             &expected,
         );
     }
@@ -605,7 +650,7 @@ struct __private__PointerToSwiftType __swift_bridge__$some_function(void);
 
         let module = parse_ok(tokens);
         assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(),
+            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
             &expected,
         );
     }

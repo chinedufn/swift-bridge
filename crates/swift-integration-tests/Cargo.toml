@@ -6,6 +6,12 @@ publish = []
 
 build = "build.rs"
 
+[features]
+# Feature flags are for our conditional compilation tests.
+default = ["this_is_enabled"]
+this_is_enabled = []
+this_is_not_enabled = []
+
 [lib]
 crate-type = ["staticlib"]
 

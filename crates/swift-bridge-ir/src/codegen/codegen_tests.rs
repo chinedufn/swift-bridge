@@ -15,17 +15,21 @@
 
 #![cfg(test)]
 
+use crate::codegen::CodegenConfig;
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
+use std::collections::HashSet;
 
 use crate::test_utils::{
     assert_tokens_contain, assert_tokens_eq, assert_trimmed_generated_contains_trimmed_expected,
+    assert_trimmed_generated_does_not_contain_trimmed_expected,
     assert_trimmed_generated_equals_trimmed_expected, parse_ok,
 };
 
-mod extern_rust_function_opaque_rust_type_argument;
-mod extern_rust_function_opaque_rust_type_return;
+mod conditional_compilation_codegen_tests;
+mod extern_rust_function_opaque_rust_type_argument_codegen_tests;
+mod extern_rust_function_opaque_rust_type_return_codegen_tests;
 mod extern_rust_method_swift_class_placement_codegen_tests;
 mod extern_rust_opaque_type_codegen_tests;
 mod option_codegen_tests;
@@ -80,7 +84,7 @@ typedef struct MyType MyType;
     #[test]
     fn extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: EXPECTED_SWIFT,
             expected_c_header: EXPECTED_C_HEADER,
@@ -143,7 +147,7 @@ func __swift_bridge__some_function (_ arg: __private__PointerToSwiftType) {
     #[test]
     fn extern_swift_freestanding_fn_with_owned_opaque_swift_type_arg() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: EXPECTED_SWIFT_CODE,
             expected_c_header: EXPECTED_C_HEADER,
@@ -322,7 +326,7 @@ void* __swift_bridge__$some_function(void);
     #[test]
     fn extern_rust_fn_return_vec_of_opaque_rust_type() {
         CodegenTest {
-            bridge_module_tokens: bridge_module_tokens(),
+            bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
             expected_c_header: EXPECTED_C_HEADER,
@@ -332,13 +336,30 @@ void* __swift_bridge__$some_function(void);
 }
 
 struct CodegenTest {
-    bridge_module_tokens: TokenStream,
+    bridge_module: BridgeModule,
     // Gets turned into a Vec<String> and compared to a Vec<String> of the generated Rust tokens.
     expected_rust_tokens: ExpectedRustTokens,
     // Gets trimmed and compared to the generated Swift code.
     expected_swift_code: ExpectedSwiftCode,
     // Gets trimmed and compared to the generated C header.
     expected_c_header: ExpectedCHeader,
+}
+
+struct BridgeModule {
+    /// The bridge module's tokens
+    pub tokens: TokenStream,
+    /// A mock representation of the features that are enabled for the crate that contains the
+    /// bridge module.
+    pub enabled_crate_features: Vec<&'static str>,
+}
+
+impl From<TokenStream> for BridgeModule {
+    fn from(tokens: TokenStream) -> Self {
+        BridgeModule {
+            tokens,
+            enabled_crate_features: vec![],
+        }
+    }
 }
 
 enum ExpectedRustTokens {
@@ -359,6 +380,7 @@ enum ExpectedSwiftCode {
     #[allow(unused)]
     ExactAfterTrim(&'static str),
     ContainsAfterTrim(&'static str),
+    DoesNotContainAfterTrim(&'static str),
     ContainsManyAfterTrim(Vec<&'static str>),
     /// Skip testing Swift code
     // We use a variant instead of Option<ExpectCHeader> as not to make it seem like no Swift code
@@ -370,6 +392,7 @@ enum ExpectedSwiftCode {
 enum ExpectedCHeader {
     ExactAfterTrim(&'static str),
     ContainsAfterTrim(&'static str),
+    DoesNotContainAfterTrim(&'static str),
     /// Skip testing C header
     // We use a variant instead of Option<ExpectCHeader> as not to make it seem like no C header
     // got generated.
@@ -378,7 +401,7 @@ enum ExpectedCHeader {
 
 impl CodegenTest {
     fn test(self) {
-        let module = parse_ok(self.bridge_module_tokens);
+        let module = parse_ok(self.bridge_module.tokens);
         let generated_tokens = module.to_token_stream();
 
         match self.expected_rust_tokens {
@@ -396,25 +419,40 @@ impl CodegenTest {
             ExpectedRustTokens::SkipTest => {}
         };
 
+        let enabled_crate_features: HashSet<&'static str> = self
+            .bridge_module
+            .enabled_crate_features
+            .into_iter()
+            .collect();
+        let lookup = move |feature: &str| enabled_crate_features.contains(feature);
+        let crate_feature_lookup = Box::new(lookup);
+        let codegen_config = CodegenConfig {
+            crate_feature_lookup,
+        };
+
+        let swift = module.generate_swift(&codegen_config);
+        let c_header = module.generate_c_header_inner(&codegen_config);
+
         match self.expected_swift_code {
             ExpectedSwiftCode::ExactAfterTrim(expected_swift) => {
-                assert_trimmed_generated_equals_trimmed_expected(
-                    &module.generate_swift(),
-                    expected_swift,
-                );
+                assert_trimmed_generated_equals_trimmed_expected(&swift, expected_swift);
             }
             ExpectedSwiftCode::ContainsAfterTrim(expected_contained_swift) => {
                 assert_trimmed_generated_contains_trimmed_expected(
-                    &module.generate_swift(),
+                    &swift,
                     expected_contained_swift,
                 );
             }
+            ExpectedSwiftCode::DoesNotContainAfterTrim(expected_not_contained_swift) => {
+                assert_trimmed_generated_does_not_contain_trimmed_expected(
+                    &swift,
+                    expected_not_contained_swift,
+                );
+            }
             ExpectedSwiftCode::ContainsManyAfterTrim(many) => {
-                let generated = module.generate_swift();
-
                 for expected_contained_swift in many {
                     assert_trimmed_generated_contains_trimmed_expected(
-                        &generated,
+                        &swift,
                         expected_contained_swift,
                     );
                 }
@@ -424,16 +462,13 @@ impl CodegenTest {
 
         match self.expected_c_header {
             ExpectedCHeader::ExactAfterTrim(expected) => {
-                assert_trimmed_generated_equals_trimmed_expected(
-                    &module.generate_c_header_inner(),
-                    expected,
-                );
+                assert_trimmed_generated_equals_trimmed_expected(&c_header, expected);
             }
             ExpectedCHeader::ContainsAfterTrim(expected) => {
-                assert_trimmed_generated_contains_trimmed_expected(
-                    &module.generate_c_header_inner(),
-                    expected,
-                );
+                assert_trimmed_generated_contains_trimmed_expected(&c_header, expected);
+            }
+            ExpectedCHeader::DoesNotContainAfterTrim(expected) => {
+                assert_trimmed_generated_does_not_contain_trimmed_expected(&c_header, expected);
             }
             ExpectedCHeader::SkipTest => {}
         };

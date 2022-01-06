@@ -4,6 +4,7 @@ use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use quote::ToTokens;
 
+use crate::bridge_module_attributes::CfgAttr;
 use crate::bridged_type::FieldsFormat;
 use crate::codegen::generate_rust_tokens::vec::generate_vec_of_opaque_rust_type_functions;
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
@@ -182,6 +183,19 @@ impl ToTokens for SwiftBridgeModule {
             quote! {}
         };
 
+        let mut module_attributes = vec![];
+
+        for cfg in &self.cfg_attrs {
+            match cfg {
+                CfgAttr::Feature(feature_name) => {
+                    //
+                    module_attributes.push(quote! {
+                        #[cfg(feature = #feature_name)]
+                    });
+                }
+            };
+        }
+
         let module_inner = quote! {
             #(#shared_struct_definitions)*
 
@@ -196,6 +210,7 @@ impl ToTokens for SwiftBridgeModule {
 
         let t = quote! {
             #[allow(non_snake_case)]
+            #(#module_attributes)*
             mod #mod_name {
                 #module_inner
             }

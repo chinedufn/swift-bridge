@@ -4,7 +4,7 @@
 #![deny(missing_docs)]
 
 use std::path::Path;
-use swift_bridge_ir::SwiftBridgeModule;
+use swift_bridge_ir::{CodegenConfig, SwiftBridgeModule};
 use syn::__private::ToTokens;
 use syn::{File, Item};
 
@@ -112,11 +112,21 @@ fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
                 }) {
                     let module: SwiftBridgeModule = syn::parse2(module.to_token_stream())?;
 
-                    let c_header = module.generate_c_header();
-                    generated.c_header += &c_header;
+                    let config = CodegenConfig {
+                        crate_feature_lookup: Box::new(|feature_name| {
+                            let normalized_feature_name = feature_name.replace("-", "_");
+                            let normalized_feature_name = normalized_feature_name.to_uppercase();
+
+                            let env_var_name = format!("CARGO_FEATURE_{}", normalized_feature_name);
+                            std::env::var(env_var_name).is_ok()
+                        }),
+                    };
+                    let swift_and_c = module.generate_swift_code_and_c_header(config);
+
+                    generated.c_header += &swift_and_c.c_header;
                     generated.c_header += "\n\n";
 
-                    let swift = module.generate_swift();
+                    let swift = &swift_and_c.swift;
                     generated.swift += &swift;
                     generated.swift += "\n\n";
                 }

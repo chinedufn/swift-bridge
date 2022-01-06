@@ -1,23 +1,30 @@
+use std::collections::HashMap;
+use std::ops::Deref;
+
+use quote::ToTokens;
+use syn::{Path, ReturnType, Type};
+
 use crate::bridged_type::{fn_arg_name, BridgedType, StdLibType, StructSwiftRepr, TypePosition};
 use crate::codegen::generate_swift::vec::generate_vectorizable_extension;
+use crate::codegen::CodegenConfig;
 use crate::parse::{
     HostLang, OpaqueForeignTypeDeclaration, SharedTypeDeclaration, TypeDeclaration,
     TypeDeclarations,
 };
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
-use quote::ToTokens;
-use std::collections::HashMap;
-use std::ops::Deref;
-use syn::{Path, ReturnType, Type};
 
 mod option;
 mod vec;
 
 impl SwiftBridgeModule {
     /// Generate the corresponding Swift code for the bridging module.
-    pub fn generate_swift(&self) -> String {
+    pub(crate) fn generate_swift(&self, config: &CodegenConfig) -> String {
         let mut swift = "".to_string();
+
+        if !self.module_will_be_compiled(config) {
+            return swift;
+        }
 
         let mut associated_funcs_and_methods: HashMap<String, Vec<&ParsedExternFn>> =
             HashMap::new();
@@ -454,10 +461,12 @@ mod tests {
     //! TODO: We're progressively moving most of these tests to `codegen_tests.rs`,
     //!  along with their corresponding Rust token and C header generation tests.
 
-    use crate::test_utils::assert_trimmed_generated_contains_trimmed_expected;
-    use crate::SwiftBridgeModule;
+    use crate::codegen::generate_swift::CodegenConfig;
     use quote::quote;
     use syn::parse_quote;
+
+    use crate::test_utils::assert_trimmed_generated_contains_trimmed_expected;
+    use crate::SwiftBridgeModule;
 
     /// Verify that we generated a Swift function to call our freestanding function.
     #[test]
@@ -470,7 +479,7 @@ mod tests {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func foo() {
@@ -492,7 +501,7 @@ func foo() {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 @_cdecl("__swift_bridge__$foo")
@@ -515,7 +524,7 @@ func __swift_bridge__foo () {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 @_cdecl("__swift_bridge__$foo")
@@ -539,7 +548,7 @@ func __swift_bridge__foo () -> __private__FfiSlice {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 @_cdecl("__swift_bridge__$MyType$foo")
@@ -562,7 +571,7 @@ func __swift_bridge__MyType_foo (_ this: UnsafeMutableRawPointer) -> __private__
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func foo(_ bar: UInt8) {
@@ -585,7 +594,7 @@ func foo(_ bar: UInt8) {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func foo() -> UInt32 {
@@ -607,7 +616,7 @@ func foo() -> UInt32 {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func foo() -> UnsafeBufferPointer<UInt8> {
@@ -630,7 +639,7 @@ func foo() -> UnsafeBufferPointer<UInt8> {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$_free")
@@ -656,7 +665,7 @@ func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 public class Foo: FooRefMut {
@@ -696,7 +705,7 @@ public class Foo: FooRefMut {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$new")
@@ -722,7 +731,7 @@ func __swift_bridge__Foo_new (_ a: UInt8) -> __private__PointerToSwiftType {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 public class Foo: FooRefMut {
@@ -762,7 +771,7 @@ public class Foo: FooRefMut {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$push")
@@ -792,7 +801,7 @@ func __swift_bridge__Foo_pop (_ this: UnsafeMutableRawPointer) {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 public class FooRef {
@@ -824,7 +833,7 @@ public class FooRef {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 public class FooRef {
@@ -857,7 +866,7 @@ public class FooRef {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 public class FooRef {
@@ -891,7 +900,7 @@ public class FooRef {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$bar")
@@ -914,7 +923,7 @@ func __swift_bridge__Foo_bar (_ arg: UInt8) {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func foo() -> RustString {
@@ -937,7 +946,7 @@ func foo() -> RustString {
             }
         };
         let module: SwiftBridgeModule = syn::parse2(start).unwrap();
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func void_pointer(_ arg1: UnsafeRawPointer) {
@@ -960,7 +969,7 @@ func void_pointer(_ arg1: UnsafeRawPointer) {
             }
         };
         let module: SwiftBridgeModule = syn::parse2(start).unwrap();
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func void_pointer() -> UnsafeRawPointer {
@@ -983,7 +992,7 @@ func void_pointer() -> UnsafeRawPointer {
             }
         };
         let module: SwiftBridgeModule = syn::parse2(start).unwrap();
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 @_cdecl("__swift_bridge__$void_pointer")
@@ -1008,7 +1017,7 @@ func __swift_bridge__void_pointer (_ arg: UnsafeRawPointer) {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func get_foo() -> Foo {
@@ -1032,7 +1041,7 @@ func get_foo() -> Foo {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func some_function(_ arg: Foo) {
@@ -1058,7 +1067,7 @@ func some_function(_ arg: Foo) {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func some_function(_ arg: Renamed) -> Renamed {
@@ -1085,7 +1094,7 @@ func some_function(_ arg: Renamed) -> Renamed {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func some_function(_ arg: Foo) {
@@ -1112,7 +1121,7 @@ func some_function(_ arg: Foo) {
             }
         };
         let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 func some_function() -> Foo {
@@ -1136,7 +1145,7 @@ func some_function() -> Foo {
             }
         };
         let module: SwiftBridgeModule = syn::parse2(start).unwrap();
-        let generated = module.generate_swift();
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
 @_cdecl("__swift_bridge__$some_function")

@@ -5,7 +5,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
-use swift_bridge_ir::SwiftBridgeModule;
+use swift_bridge_ir::{CodegenConfig, SwiftBridgeModule};
 
 #[swift_bridge::bridge]
 mod ffi {
@@ -149,13 +149,20 @@ struct GeneratedCode {
 fn generate_code(bridge_module_source: &str) -> Result<GeneratedCode, String> {
     let token_stream = TokenStream::from_str(bridge_module_source).map_err(|e| e.to_string())?;
 
-    let generated: SwiftBridgeModule = syn::parse2(token_stream).map_err(|e| e.to_string())?;
+    let module: SwiftBridgeModule = syn::parse2(token_stream).map_err(|e| e.to_string())?;
 
-    let rust = generated.to_token_stream().to_string();
+    let rust = module.to_token_stream().to_string();
+
+    let config = CodegenConfig {
+        // TODO: Add an way in the visualizer UI to set whether or not a feature is enabled and then
+        //  look up those features here.
+        crate_feature_lookup: Box::new(|_feature_name| false),
+    };
+    let generated = module.generate_swift_code_and_c_header(config);
 
     Ok(GeneratedCode {
         rust,
-        swift: generated.generate_swift(),
-        c_header: generated.generate_c_header(),
+        swift: generated.swift,
+        c_header: generated.c_header,
     })
 }
