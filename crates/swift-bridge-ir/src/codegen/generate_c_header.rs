@@ -88,6 +88,10 @@ impl SwiftBridgeModule {
                         continue;
                     }
 
+                    if ty.already_declared {
+                        continue;
+                    }
+
                     let ty_name = ty.ident.to_string();
 
                     let ty_decl = format!("typedef struct {ty_name} {ty_name};", ty_name = ty_name);

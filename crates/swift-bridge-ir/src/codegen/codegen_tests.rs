@@ -22,11 +22,13 @@ use quote::ToTokens;
 use std::collections::HashSet;
 
 use crate::test_utils::{
-    assert_tokens_contain, assert_tokens_eq, assert_trimmed_generated_contains_trimmed_expected,
+    assert_tokens_contain, assert_tokens_do_not_contain, assert_tokens_eq,
+    assert_trimmed_generated_contains_trimmed_expected,
     assert_trimmed_generated_does_not_contain_trimmed_expected,
     assert_trimmed_generated_equals_trimmed_expected, parse_ok,
 };
 
+mod already_declared_attribute_codegen_tests;
 mod conditional_compilation_codegen_tests;
 mod extern_rust_function_opaque_rust_type_argument_codegen_tests;
 mod extern_rust_function_opaque_rust_type_return_codegen_tests;
@@ -368,6 +370,8 @@ enum ExpectedRustTokens {
     Exact(TokenStream),
     /// The generated Rust tokens stream contains the provided stream.
     Contains(TokenStream),
+    /// The generated Rust tokens stream does not contain the provided stream.
+    DoesNotContain(TokenStream),
     /// The generated Rust tokens stream contains the provided stream.
     ContainsMany(Vec<TokenStream>),
     /// Skip testing Rust tokens
@@ -410,6 +414,9 @@ impl CodegenTest {
             }
             ExpectedRustTokens::Contains(expected_contained_tokens) => {
                 assert_tokens_contain(&generated_tokens, &expected_contained_tokens);
+            }
+            ExpectedRustTokens::DoesNotContain(expected_not_contained_tokens) => {
+                assert_tokens_do_not_contain(&generated_tokens, &expected_not_contained_tokens);
             }
             ExpectedRustTokens::ContainsMany(expected_contained_tokens) => {
                 for tokens in expected_contained_tokens {

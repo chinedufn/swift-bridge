@@ -12,3 +12,4 @@ mod swift_function_uses_opaque_rust_type;
 mod vec;
 
 mod function_attributes;
+mod type_attributes;

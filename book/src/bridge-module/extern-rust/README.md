@@ -127,6 +127,38 @@ func useSomeType(someType: SomeTypeRef) {
 }
 ```
 
+## Opaque Type Attributes
+
+#### #[swift_bridge(already_declared)]
+
+The `already_declared` attribute allows you to use the same type in multiple bridge modules.
+
+```rust
+use some_crate::App;
+
+mod ffi {
+	extern "Rust" {
+	    type App;
+
+        #[swift_bridge(init)]
+	    fn new() -> App;
+	}
+}
+
+#[swift_bridge::bridge]
+#[cfg(feature = "dev-utils")]
+mod ffi_dev_utils {
+	extern "Rust" {
+        // We won't emit Swift and C type definitions for this type
+        // since we've already declared it elsewhere.
+	    #[swift_bridge(already_declared)]
+        type App;
+
+        fn create_logged_in_user(&mut self, user_id: u8);
+	}
+}
+```
+
 ## Function Attributes
 
 #### #[swift_bridge(associated_to = SomeType)]

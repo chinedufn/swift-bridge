@@ -1,6 +1,9 @@
 use crate::bridged_type::BridgedType;
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::function_attributes::{FunctionAttr, FunctionAttributes};
+use crate::parse::parse_extern_mod::opaque_type_attributes::{
+    OpaqueTypeAttr, OpaqueTypeAttributes,
+};
 use crate::parse::type_declarations::{
     OpaqueForeignTypeDeclaration, TypeDeclaration, TypeDeclarations,
 };
@@ -13,6 +16,7 @@ use std::ops::Deref;
 use syn::{FnArg, ForeignItem, ForeignItemFn, ItemForeignMod, Pat, ReturnType, Type};
 
 mod function_attributes;
+mod opaque_type_attributes;
 
 pub(super) struct ForeignModParser<'a> {
     pub errors: &'a mut ParseErrors,
@@ -66,9 +70,17 @@ impl<'a> ForeignModParser<'a> {
                         });
                     }
 
+                    let mut attributes = OpaqueTypeAttributes::default();
+
+                    for attr in foreign_ty.attrs.iter() {
+                        let attr: OpaqueTypeAttr = attr.parse_args()?;
+                        attributes.store_attrib(attr);
+                    }
+
                     let foreign_type = OpaqueForeignTypeDeclaration {
                         ty: foreign_ty.clone(),
                         host_lang,
+                        already_declared: attributes.already_declared,
                     };
                     self.type_declarations.insert(
                         ty_name.clone(),
@@ -713,5 +725,29 @@ mod tests {
         };
 
         assert_eq!(parse_errors(tokens).len(), 0,);
+    }
+
+    /// Verify that we can parse the `already_declared` attribute.
+    #[test]
+    fn parse_already_declared_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(already_declared)]
+                    type AnotherType;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        assert!(
+            module
+                .types
+                .get("AnotherType")
+                .unwrap()
+                .unwrap_opaque()
+                .already_declared
+        );
     }
 }

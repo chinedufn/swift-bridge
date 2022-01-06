@@ -129,8 +129,10 @@ impl ToTokens for SwiftBridgeModule {
                                 &self.swift_bridge_path,
                             );
 
-                            extern_rust_fn_tokens.push(free);
-                            extern_rust_fn_tokens.push(vec_functions);
+                            if !ty.already_declared {
+                                extern_rust_fn_tokens.push(free);
+                                extern_rust_fn_tokens.push(vec_functions);
+                            }
                         }
                         HostLang::Swift => {
                             let ty_name = &ty.ident;

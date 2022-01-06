@@ -7,14 +7,15 @@
 
 #![deny(missing_docs)]
 
-use crate::bridge_module_attributes::CfgAttr;
-use crate::parse::TypeDeclarations;
 use proc_macro2::Ident;
 use syn::Path;
 
+use crate::bridge_module_attributes::CfgAttr;
+use crate::parse::TypeDeclarations;
+use crate::parsed_extern_fn::ParsedExternFn;
+
 pub use self::bridge_macro_attributes::{SwiftBridgeModuleAttr, SwiftBridgeModuleAttrs};
 pub use self::codegen::CodegenConfig;
-use crate::parsed_extern_fn::ParsedExternFn;
 
 mod errors;
 mod parse;

@@ -75,6 +75,10 @@ impl SharedStructDeclaration {
 pub(crate) struct OpaqueForeignTypeDeclaration {
     pub ty: ForeignItemType,
     pub host_lang: HostLang,
+    /// Whether or not the `#[swift_bridge(already_declared)]` attribute was present on the type.
+    /// If it was, we won't generate Swift and C type declarations for this type, since we
+    /// will elsewhere.
+    pub already_declared: bool,
 }
 
 impl Deref for OpaqueForeignTypeDeclaration {

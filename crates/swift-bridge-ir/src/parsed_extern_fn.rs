@@ -399,27 +399,6 @@ mod tests {
         );
     }
 
-    /// Verify that if a foreign type is marked as enabled we allow taking owned foreign type args.
-    #[test]
-    fn allow_foreign_type_arg_if_type_marked_enabled_or_enabled_unchecked() {
-        let tokens = quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                extern "Rust" {
-                    #[swift_bridge(owned_arg = "enabled")]
-                    type Foo;
-                    #[swift_bridge(owned_arg = "enabled_unchecked")]
-                    type Bar;
-
-                    fn a (arg: Foo);
-                    fn b (arg: Bar);
-                }
-            }
-        };
-        let module = parse_ok(tokens);
-        assert_eq!(module.functions.len(), 2);
-    }
-
     /// Verify that we properly take and return String arguments
     #[test]
     fn extern_rust_strings() {

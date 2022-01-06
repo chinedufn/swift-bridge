@@ -48,7 +48,7 @@ mod ffi {
 #[cfg(feature = "dev-utils")]
 mod ffi_dev_utils {
 	extern "Rust" {
-	    #[swift_bridge(import)]
+	    #[swift_bridge(already_declared)]
         type App;
 
         fn create_logged_in_user(&mut self, user_id: u8);
