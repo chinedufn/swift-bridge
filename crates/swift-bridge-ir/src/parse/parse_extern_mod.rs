@@ -131,6 +131,7 @@ impl<'a> ForeignModParser<'a> {
                         rust_name_override: attributes.rust_name,
                         swift_name_override: attributes.swift_name,
                         into_return_type: attributes.into_return_type,
+                        args_into: attributes.args_into,
                     });
                 }
                 _ => {}
@@ -749,5 +750,36 @@ mod tests {
                 .unwrap_opaque()
                 .already_declared
         );
+    }
+
+    /// Verify that we can parse a from attribute for a struct.
+    #[test]
+    fn parses_extern_rust_args_into_attribute() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(args_into = (some_arg, another_arg))]
+                    fn some_function(some_arg: u8, another_arg: u16);
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let func = &module.functions[0];
+
+        let args_into = func.args_into.as_ref().unwrap();
+        assert_eq!(args_into.len(), 2);
+
+        let assert_arg_into = |arg_name: &str| {
+            assert!(args_into
+                .iter()
+                .find(|arg| { &arg.to_string() == arg_name })
+                .is_some());
+        };
+
+        assert_arg_into("some_arg");
+        assert_arg_into("another_arg");
     }
 }

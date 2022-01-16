@@ -17,7 +17,8 @@ fn main() {
         "src/rust_function_uses_opaque_swift_type.rs",
         "src/swift_function_uses_opaque_rust_type.rs",
         "src/conditional_compilation.rs",
-        "src/type_attributes/already_declared.rs",
+        "src/opaque_type_attributes/already_declared.rs",
+        "src/struct_attributes/already_declared.rs",
     ];
     for path in &bridges {
         println!("cargo:rerun-if-changed={}", path);

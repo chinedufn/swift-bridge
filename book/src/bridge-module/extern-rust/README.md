@@ -161,6 +161,52 @@ mod ffi_dev_utils {
 
 ## Function Attributes
 
+#### #[swift_bridge(args_into = (arg_name, another_arg_name))]
+
+Used to name the arguments that should have `.into()` called on them when
+passing them to their handler function.
+
+One use case is for exposing a third-party type as a shared struct.
+
+```rust
+mod pretend_this_is_some_third_party_crate {
+    // We want to expose this third-party struct as a shared struct.
+    pub struct UniqueId {
+        id: u64
+    }
+}
+use pretend_this_is_some_third_party_crate::UniqueId;
+
+fn a_function (_some_arg: UniqueId, _an_arg: UniqueId, _cool_arg: u8) {
+    // ...
+}
+
+mod ffi {
+    struct FfiUniqueId(u64);
+
+    extern "Rust" {
+        // super::a_function does not take a `u64` or an `FfiUniqueId`,
+        // but this still works since they both `impl Into<UniqueId>`.
+        #[swift_bridge(args_into = (some_arg, an_arg))]
+        fn a_function(some_arg: u64, an_arg: FfiUniqueId, cool_arg: u8);
+    }
+}
+
+impl From<u64> for UniqueId {
+    fn from(id: u64) -> UniqueId {
+        UniqueId {
+            id
+        }
+    }
+}
+
+impl Into<UniqueId> for ffi::FfiUniqueId {
+    fn into(self) -> UniqueId {
+        UniqueId(self.0)
+    }
+}
+```
+
 #### #[swift_bridge(associated_to = SomeType)]
 
 Indicates that we are exposing an associated function for a type.

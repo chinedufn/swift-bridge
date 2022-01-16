@@ -30,15 +30,28 @@ pub(crate) struct ParsedExternFn {
     /// If true, we call `.into()` on the expression that the function returns before returning it.
     ///
     /// ```no_run,ignore
-    /// // Definition
+    /// // Declaration
     /// fn some_function() -> SomeType;
     ///
-    /// // Generated Code
-    /// fn some_function() -> SomeType {
+    /// // Approximate generated Code
+    /// extern "C" fn some_function() -> SomeType {
     ///     super::some_function().into()
     /// }
     /// ```
     pub into_return_type: bool,
+    /// Call `.into()` before passing this argument to the function that handles it.
+    ///
+    /// ```no_run,ignore
+    /// // Declaration
+    /// #[swift_bridge(args_into = (some_arg, another_arg)]
+    /// fn some_function(some_arg: u8, another_arg: MyStruct);
+    ///
+    /// // Approximate generated code
+    /// extern "C" fn some_function(some_arg: u8, another_arg: MyStruct) {
+    ///     super::some_function(some_arg, another_arg.into())
+    /// }
+    /// ```
+    pub args_into: Option<Vec<Ident>>,
 }
 
 impl ParsedExternFn {
@@ -107,6 +120,24 @@ impl ParsedExternFn {
             sig.ident.span(),
         )
     }
+
+    pub fn args_into_contains_arg(&self, arg: &FnArg) -> bool {
+        if self.args_into.is_none() {
+            return false;
+        }
+        let args_into = self.args_into.as_ref().unwrap();
+
+        match arg {
+            FnArg::Receiver(_) => false,
+            FnArg::Typed(arg) => {
+                let arg_string = arg.pat.to_token_stream().to_string();
+
+                args_into
+                    .iter()
+                    .any(|arg_name| &arg_name.to_string() == &arg_string)
+            }
+        }
+    }
 }
 
 impl ParsedExternFn {
@@ -126,8 +157,8 @@ impl ParsedExternFn {
     ) -> TokenStream {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
-        for arg in inputs {
-            match arg {
+        for fn_arg in inputs {
+            match fn_arg {
                 FnArg::Receiver(_receiver) => {
                     if self.host_lang.is_swift() {
                         args.push(quote! {#swift_bridge_path::PointerToSwiftType(self.0)});
@@ -153,6 +184,10 @@ impl ParsedExternFn {
                                 &arg,
                                 false,
                             );
+
+                            if self.args_into_contains_arg(fn_arg) {
+                                arg = quote! {#arg.into()};
+                            }
                         } else {
                             arg = built_in.convert_rust_value_to_ffi_compatible_value(
                                 swift_bridge_path,

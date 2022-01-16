@@ -14,6 +14,7 @@ enum StructAttr {
     SwiftRepr((StructSwiftRepr, LitStr)),
     SwiftName(LitStr),
     Error(StructAttrParseError),
+    AlreadyDeclared,
 }
 
 enum StructAttrParseError {
@@ -24,6 +25,7 @@ enum StructAttrParseError {
 struct StructAttribs {
     swift_repr: Option<(StructSwiftRepr, LitStr)>,
     swift_name: Option<LitStr>,
+    already_declared: bool,
 }
 
 struct ParsedAttribs(Vec<StructAttr>);
@@ -43,10 +45,11 @@ impl Parse for ParsedAttribs {
 impl Parse for StructAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let key: Ident = input.parse()?;
-        input.parse::<Token![=]>()?;
 
         let attr = match key.to_string().as_str() {
             "swift_repr" => {
+                input.parse::<Token![=]>()?;
+
                 let repr: LitStr = input.parse()?;
                 match repr.value().as_str() {
                     "class" => StructAttr::SwiftRepr((StructSwiftRepr::Class, repr)),
@@ -55,9 +58,12 @@ impl Parse for StructAttr {
                 }
             }
             "swift_name" => {
+                input.parse::<Token![=]>()?;
+
                 let name = input.parse()?;
                 StructAttr::SwiftName(name)
             }
+            "already_declared" => StructAttr::AlreadyDeclared,
             _ => todo!("Return spanned error"),
         };
 
@@ -91,6 +97,9 @@ impl<'a> SharedStructDeclarationParser<'a> {
                             attribs.swift_repr = Some((StructSwiftRepr::Structure, val));
                         }
                     },
+                    StructAttr::AlreadyDeclared => {
+                        attribs.already_declared = true;
+                    }
                 };
             }
         }
@@ -136,6 +145,7 @@ impl<'a> SharedStructDeclarationParser<'a> {
             fields,
             swift_name: attribs.swift_name,
             fields_format,
+            already_declared: attribs.already_declared,
         };
 
         Ok(shared_struct)
@@ -298,7 +308,7 @@ mod tests {
 
     /// Verify that we properly parse multiple comma separated struct attributes.
     #[test]
-    fn parses_multiple_attributes() {
+    fn parses_multiple_struct_attributes() {
         let tokens = quote! {
             #[swift_bridge::bridge]
             mod ffi {
@@ -314,5 +324,22 @@ mod tests {
         let ty = module.types.types()[0].unwrap_shared_struct();
         assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
         assert_eq!(ty.swift_repr, StructSwiftRepr::Class);
+    }
+
+    /// Verify that we can parse an `already_defined = "struct"` attribute.
+    #[test]
+    fn parses_struct_already_declared_attribute() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(already_declared, swift_repr = "struct")]
+                struct SomeType;
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let ty = module.types.types()[0].unwrap_shared_struct();
+        assert!(ty.already_declared);
     }
 }

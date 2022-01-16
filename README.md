@@ -14,18 +14,13 @@ _`swift-bridge` takes inspiration from the bridge module idea pioneered by [cxx]
 
 ## Current Status
 
-`swift-bridge` works, but it's still early so it's possible to run into edge cases where the generated code is subtly not-memory-safe.
+Bridging Rust and Swift is fairly unexplored territory, so it will take some experimentation in order to
+figure out the right API and code generation.
 
-All of these cases are addressable, and once they're all tackled using code generated from `swift-bridge` should be entirely memory safe
-on both the Swift and Rust side.
-
-So, `swift-bridge` is not yet production ready.
-
-Right now I'm looking for feedback from bleeding-edge users in order to continue to improve the APIs and the generated code.
+In these early days I'm looking for feedback from bleeding-edge users in order to continue to improve the
+API and the generated code.
 
 I can especially use feedback from people with Swift experience, since I don't have much.
-
-I'm using `swift-bridge` to ship an application that has extreme reliability requirements, so you can rest assured that the core maintaners have a vested interest in addressing your feedback.
 
 ---
 
@@ -60,7 +55,7 @@ Here's a quick peek at how defining FFI bindings looks.
 A more thorough walk through of `swift-bridge` can be found in the [book](https://chinedufn.github.io/swift-bridge/index.html). 
 
 ```rust
-// lib.rs
+// Rust
 
 pub struct ARustStack(Vec<String>);
 
@@ -196,13 +191,14 @@ TODO... make GitHub issues for these..
 
 ## Built-In Types
 
+In addition to allowing you to share your own custom types between Rust and Swift,
 `swift_bridge` comes with support for a number of Rust and Swift standard library types.
 
 | name in Rust                                                    | name in Swift                                                    | notes                                                                                                                                      |
 | ---                                                             | ---                                                              | ---                                                                                                                                        |
 | u8, i8, u16, i16... etc                                         | UInt8, Int8, UInt16, Int16 ... etc                               |                                                                                                                                            |
 | bool                                                            | Bool                                                             |                                                                                                                                            |
-| String, &String, &mut String                                    | RustString                                                       |                                                                                                                                            |
+| String, &String, &mut String                                    | RustString, RustStringRef, RustStringRefMut                      |                                                                                                                                            |
 | &str                                                            | RustStr                                                          |                                                                                                                                            |
 | Vec<T>                                                          | RustVec\<T>                                                      |                                                                                                                                            |
 | SwiftArray\<T>                                                  | Array\<T>                                                        | Not yet implemented                                                                                                                        |
