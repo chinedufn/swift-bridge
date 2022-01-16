@@ -38,6 +38,7 @@ impl TypeDeclaration {
                         fields: shared_struct.fields.clone(),
                         swift_name: shared_struct.swift_name.clone(),
                         fields_format: shared_struct.fields_format.clone(),
+                        already_declared: shared_struct.already_declared,
                     },
                 )))
             }
@@ -60,6 +61,7 @@ pub(crate) struct SharedStructDeclaration {
     pub fields: Vec<StructField>,
     pub swift_name: Option<LitStr>,
     pub fields_format: FieldsFormat,
+    pub already_declared: bool,
 }
 
 impl SharedStructDeclaration {

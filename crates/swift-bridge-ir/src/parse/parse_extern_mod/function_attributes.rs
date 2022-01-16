@@ -9,6 +9,7 @@ pub(super) struct FunctionAttributes {
     pub rust_name: Option<LitStr>,
     pub swift_name: Option<LitStr>,
     pub into_return_type: bool,
+    pub args_into: Option<Vec<Ident>>,
 }
 
 impl FunctionAttributes {
@@ -27,6 +28,7 @@ impl FunctionAttributes {
             FunctionAttr::IntoReturnType => {
                 self.into_return_type = true;
             }
+            FunctionAttr::ArgsInto(args) => self.args_into = Some(args),
         }
     }
 }
@@ -37,6 +39,7 @@ pub(super) enum FunctionAttr {
     RustName(LitStr),
     Init,
     IntoReturnType,
+    ArgsInto(Vec<Ident>),
 }
 
 impl Parse for FunctionAttr {
@@ -63,6 +66,15 @@ impl Parse for FunctionAttr {
                 let value: LitStr = input.parse()?;
 
                 FunctionAttr::RustName(value)
+            }
+            "args_into" => {
+                input.parse::<Token![=]>()?;
+
+                let content;
+                syn::parenthesized!(content in input);
+
+                let args = syn::punctuated::Punctuated::<_, Token![,]>::parse_terminated(&content)?;
+                FunctionAttr::ArgsInto(args.into_iter().collect())
             }
 
             _ => panic!("TODO: Return spanned error"),

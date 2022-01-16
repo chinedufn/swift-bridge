@@ -34,6 +34,7 @@ mod extern_rust_function_opaque_rust_type_argument_codegen_tests;
 mod extern_rust_function_opaque_rust_type_return_codegen_tests;
 mod extern_rust_method_swift_class_placement_codegen_tests;
 mod extern_rust_opaque_type_codegen_tests;
+mod function_attribute_codegen_tests;
 mod option_codegen_tests;
 mod string_codegen_tests;
 

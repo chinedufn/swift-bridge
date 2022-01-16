@@ -1,3 +1,5 @@
+//! Tests can be found in src/codegen/codegen_tests.rs and its submodules.
+
 use crate::bridged_type::{BridgedType, StdLibType};
 use crate::codegen::CodegenConfig;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
@@ -33,7 +35,8 @@ impl SwiftBridgeModule {
 
         let mut bookkeeping = Bookkeeping {
             includes: HashSet::new(),
-            // TODO: Delete this
+            // TODO: Delete this.
+            //  Don't think we're using it.
             slice_types: HashSet::new(),
         };
 
@@ -41,6 +44,10 @@ impl SwiftBridgeModule {
             match ty {
                 TypeDeclaration::Shared(ty) => match ty {
                     SharedTypeDeclaration::Struct(ty_struct) => {
+                        if ty_struct.already_declared {
+                            continue;
+                        }
+
                         let name = ty_struct.swift_name_string();
 
                         let mut fields = vec![];

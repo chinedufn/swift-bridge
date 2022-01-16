@@ -1,3 +1,5 @@
+//! Tests can be found in src/codegen/codegen_tests.rs and its submodules.
+
 use std::collections::HashMap;
 
 use proc_macro2::{Ident, TokenStream};
@@ -65,6 +67,10 @@ impl ToTokens for SwiftBridgeModule {
         for ty in &self.types.types() {
             match ty {
                 TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
+                    if shared_struct.already_declared {
+                        continue;
+                    }
+
                     let name = &shared_struct.name;
 
                     let fields: Vec<TokenStream> = shared_struct

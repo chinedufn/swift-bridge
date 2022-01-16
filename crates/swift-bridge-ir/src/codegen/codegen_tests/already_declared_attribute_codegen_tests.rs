@@ -94,3 +94,61 @@ mod extern_rust_already_declared_type_still_generates_methods {
         .test();
     }
 }
+
+/// Verify that we do not re-declare an already defined struct.
+mod already_declared_struct {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                #[swift_bridge(already_declared, swift_repr = "struct")]
+                struct FfiSomeType;
+
+                extern "Rust" {
+                    fn some_function() -> FfiSomeType;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            mod ffi {
+                #[export_name = "__swift_bridge__$some_function"]
+                pub extern "C" fn __swift_bridge__some_function() -> super::FfiSomeType {
+                    super::some_function()
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ExactAfterTrim(
+            r#"
+func some_function() -> FfiSomeType {
+    __swift_bridge__$some_function()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ExactAfterTrim(
+            r#"
+struct FfiSomeType __swift_bridge__$some_function(void);
+"#,
+        )
+    }
+
+    #[test]
+    fn already_declared_struct() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

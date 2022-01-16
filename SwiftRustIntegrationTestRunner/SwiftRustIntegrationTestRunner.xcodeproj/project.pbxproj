@@ -31,6 +31,7 @@
 		228FE64A274919C600805D9E /* swift-integration-tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE648274919C500805D9E /* swift-integration-tests.swift */; };
 		228FE64E2749C3D700805D9E /* Boolean.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64D2749C3D700805D9E /* Boolean.swift */; };
 		228FE6502749C43100805D9E /* BooleanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64F2749C43100805D9E /* BooleanTests.swift */; };
+		22C0AD51278ECA9E00A96469 /* SharedStructAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */; };
 		22FD1C542753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */; };
 		22FD1C562753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */; };
 /* End PBXBuildFile section */
@@ -76,6 +77,7 @@
 		228FE649274919C600805D9E /* swift-integration-tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "swift-integration-tests.h"; path = "swift-integration-tests/swift-integration-tests.h"; sourceTree = "<group>"; };
 		228FE64D2749C3D700805D9E /* Boolean.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Boolean.swift; sourceTree = "<group>"; };
 		228FE64F2749C43100805D9E /* BooleanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BooleanTests.swift; sourceTree = "<group>"; };
+		22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStructAttributeTests.swift; sourceTree = "<group>"; };
 		22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustType.swift; sourceTree = "<group>"; };
 		22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustTypeTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -162,6 +164,7 @@
 				22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */,
 				221E16B32786233600F94AC0 /* ConditionalCompilationTests.swift */,
 				221E16B52786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift */,
+				22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */,
 			);
 			path = SwiftRustIntegrationTestRunnerTests;
 			sourceTree = "<group>";
@@ -341,6 +344,7 @@
 				228FE6502749C43100805D9E /* BooleanTests.swift in Sources */,
 				221E16B42786233600F94AC0 /* ConditionalCompilationTests.swift in Sources */,
 				22043295274ADA7A00BAE645 /* OptionTests.swift in Sources */,
+				22C0AD51278ECA9E00A96469 /* SharedStructAttributeTests.swift in Sources */,
 				228FE5E72740DB6D00805D9E /* StringTests.swift in Sources */,
 				228FE61227428A8D00805D9E /* OpaqueSwiftStructTests.swift in Sources */,
 				22FD1C562753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift in Sources */,

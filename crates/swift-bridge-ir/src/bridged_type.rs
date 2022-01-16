@@ -165,8 +165,7 @@ pub(crate) struct SharedStruct {
     pub fields: Vec<StructField>,
     pub swift_name: Option<LitStr>,
     pub fields_format: FieldsFormat,
-    // pub reference: bool,
-    // pub mutable: bool,
+    pub already_declared: bool,
 }
 
 impl SharedStruct {
@@ -186,8 +185,6 @@ impl PartialEq for SharedStruct {
             && self.swift_name.as_ref().map(|l| l.value())
                 == other.swift_name.as_ref().map(|l| l.value())
             && self.fields_format == other.fields_format
-        // && self.reference == other.reference
-        // && self.mutable == other.mutable
     }
 }
 
@@ -568,8 +565,14 @@ impl BridgedType {
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let ty_name = &shared_struct.name;
+
+                let maybe_super = if shared_struct.already_declared {
+                    quote! { super:: }
+                } else {
+                    quote! {}
+                };
                 quote! {
-                    #ty_name
+                    #maybe_super #ty_name
                 }
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
