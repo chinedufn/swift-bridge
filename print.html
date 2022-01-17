@@ -359,6 +359,51 @@ mod ffi_dev_utils {
 <span class="boring">}
 </span></code></pre></pre>
 <h2 id="function-attributes"><a class="header" href="#function-attributes">Function Attributes</a></h2>
+<h4 id="swift_bridgeargs_into--arg_name-another_arg_name"><a class="header" href="#swift_bridgeargs_into--arg_name-another_arg_name">#[swift_bridge(args_into = (arg_name, another_arg_name))]</a></h4>
+<p>Used to name the arguments that should have <code>.into()</code> called on them when
+passing them to their handler function.</p>
+<p>One use case is for exposing a third-party type as a shared struct.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>mod pretend_this_is_some_third_party_crate {
+    // We want to expose this third-party struct as a shared struct.
+    pub struct UniqueId {
+        id: u64
+    }
+}
+use pretend_this_is_some_third_party_crate::UniqueId;
+
+fn a_function (_some_arg: UniqueId, _an_arg: UniqueId, _cool_arg: u8) {
+    // ...
+}
+
+mod ffi {
+    struct FfiUniqueId(u64);
+
+    extern &quot;Rust&quot; {
+        // super::a_function does not take a `u64` or an `FfiUniqueId`,
+        // but this still works since they both `impl Into&lt;UniqueId&gt;`.
+        #[swift_bridge(args_into = (some_arg, an_arg))]
+        fn a_function(some_arg: u64, an_arg: FfiUniqueId, cool_arg: u8);
+    }
+}
+
+impl From&lt;u64&gt; for UniqueId {
+    fn from(id: u64) -&gt; UniqueId {
+        UniqueId {
+            id
+        }
+    }
+}
+
+impl Into&lt;UniqueId&gt; for ffi::FfiUniqueId {
+    fn into(self) -&gt; UniqueId {
+        UniqueId(self.0)
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
 <h4 id="swift_bridgeassociated_to--sometype"><a class="header" href="#swift_bridgeassociated_to--sometype">#[swift_bridge(associated_to = SomeType)]</a></h4>
 <p>Indicates that we are exposing an associated function for a type.</p>
 <pre><pre class="playground"><code class="language-rust">
