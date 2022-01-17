@@ -1,6 +1,6 @@
 use crate::bridged_type::BridgedType;
 use crate::errors::{ParseError, ParseErrors};
-use crate::parse::parse_extern_mod::function_attributes::{FunctionAttr, FunctionAttributes};
+use crate::parse::parse_extern_mod::function_attributes::FunctionAttributes;
 use crate::parse::parse_extern_mod::opaque_type_attributes::{
     OpaqueTypeAttr, OpaqueTypeAttributes,
 };
@@ -92,8 +92,7 @@ impl<'a> ForeignModParser<'a> {
                     let mut attributes = FunctionAttributes::default();
 
                     for attr in func.attrs.iter() {
-                        let attr: FunctionAttr = attr.parse_args()?;
-                        attributes.store_attrib(attr);
+                        attributes = attr.parse_args()?;
                     }
 
                     for arg in func.sig.inputs.iter() {
@@ -344,132 +343,6 @@ mod tests {
                 "Failed not parse {} into an associated method.",
                 quote! {#fn_definition}.to_string()
             );
-        }
-    }
-
-    /// Verify that we can parse the into_return_type attribute from extern "Rust" blocks.
-    #[test]
-    fn parse_extern_rust_into_return_type_attribute() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-
-                    #[swift_bridge(into_return_type)]
-                    fn some_function () -> Foo;
-                }
-            }
-        };
-
-        let module = parse_ok(tokens);
-
-        assert!(module.functions[0].into_return_type);
-    }
-
-    /// Verify that we can parse an associated function.
-    #[test]
-    fn parse_associated_function() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-
-                    #[swift_bridge(associated_to = Foo)]
-                    fn bar ();
-                }
-            }
-        };
-
-        let module = parse_ok(tokens);
-
-        let ty = &module.types.types()[0].unwrap_opaque();
-        assert_eq!(ty.ident.to_string(), "Foo");
-
-        assert_eq!(module.functions.len(), 1,);
-    }
-
-    /// Verify that we can parse an associated function that has arguments.
-    #[test]
-    fn associated_function_with_args() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-
-                    #[swift_bridge(associated_to = Foo)]
-                    fn bar (arg: u8);
-                }
-            }
-        };
-
-        let module = parse_ok(tokens);
-
-        let ty = &module.types.types()[0].unwrap_opaque();
-        assert_eq!(ty.ident.to_string(), "Foo");
-
-        assert_eq!(module.functions.len(), 1,);
-    }
-
-    /// Verify that we can parse an init function.
-    #[test]
-    fn initializer() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-
-                    #[swift_bridge(init)]
-                    fn bar () -> Foo;
-                }
-            }
-        };
-
-        let module = parse_ok(tokens);
-
-        let func = &module.functions[0];
-        assert!(func.is_initializer);
-    }
-
-    /// Verify that we can parse an init function that takes inputs.
-    #[test]
-    fn initializer_with_inputs() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    type Foo;
-
-                    #[swift_bridge(init)]
-                    fn bar (bazz: u8) -> Foo;
-                }
-            }
-        };
-
-        let module = parse_ok(tokens);
-
-        let func = &module.functions[0];
-        assert!(func.is_initializer);
-    }
-
-    /// Verify that we push an error if the initialize type is not defined.
-    #[test]
-    fn error_if_initialized_type_not_defined() {
-        let tokens = quote! {
-            mod foo {
-                extern "Rust" {
-                    #[swift_bridge(init)]
-                    fn bar () -> Foo;
-                }
-            }
-        };
-
-        let errors = parse_errors(tokens);
-        assert_eq!(errors.len(), 1);
-
-        match &errors[0] {
-            ParseError::UndeclaredType { ty } => {
-                assert_eq!(ty.to_token_stream().to_string(), "Foo")
-            }
-            _ => panic!(),
         }
     }
 
@@ -750,36 +623,5 @@ mod tests {
                 .unwrap_opaque()
                 .already_declared
         );
-    }
-
-    /// Verify that we can parse a from attribute for a struct.
-    #[test]
-    fn parses_extern_rust_args_into_attribute() {
-        let tokens = quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                extern "Rust" {
-                    #[swift_bridge(args_into = (some_arg, another_arg))]
-                    fn some_function(some_arg: u8, another_arg: u16);
-                }
-            }
-        };
-
-        let module = parse_ok(tokens);
-
-        let func = &module.functions[0];
-
-        let args_into = func.args_into.as_ref().unwrap();
-        assert_eq!(args_into.len(), 2);
-
-        let assert_arg_into = |arg_name: &str| {
-            assert!(args_into
-                .iter()
-                .find(|arg| { &arg.to_string() == arg_name })
-                .is_some());
-        };
-
-        assert_arg_into("some_arg");
-        assert_arg_into("another_arg");
     }
 }

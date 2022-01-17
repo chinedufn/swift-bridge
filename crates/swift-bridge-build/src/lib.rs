@@ -19,7 +19,19 @@ pub fn parse_bridges(
         let rust_file: &Path = rust_file.as_ref();
 
         let file = std::fs::read_to_string(rust_file).unwrap();
-        let gen = parse_file(&file).unwrap();
+        let gen = match parse_file(&file) {
+            Ok(generated) => generated,
+            Err(e) => {
+                // TODO: Return an error...
+                panic!(
+                    r#"
+Error while parsing {:?}
+{}
+"#,
+                    rust_file, e
+                )
+            }
+        };
 
         generated_code.generated.push(gen);
     }
