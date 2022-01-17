@@ -81,6 +81,8 @@ pub(crate) struct OpaqueForeignTypeDeclaration {
     /// If it was, we won't generate Swift and C type declarations for this type, since we
     /// will elsewhere.
     pub already_declared: bool,
+    /// A doc comment.
+    pub doc_comment: Option<String>,
 }
 
 impl Deref for OpaqueForeignTypeDeclaration {

@@ -13,7 +13,7 @@ use quote::ToTokens;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::ops::Deref;
-use syn::{FnArg, ForeignItem, ForeignItemFn, ItemForeignMod, Pat, ReturnType, Type};
+use syn::{FnArg, ForeignItem, ForeignItemFn, ItemForeignMod, Meta, Pat, ReturnType, Type};
 
 mod function_attributes;
 mod opaque_type_attributes;
@@ -71,16 +71,41 @@ impl<'a> ForeignModParser<'a> {
                     }
 
                     let mut attributes = OpaqueTypeAttributes::default();
+                    let mut doc_comment = None;
 
                     for attr in foreign_ty.attrs.iter() {
-                        let attr: OpaqueTypeAttr = attr.parse_args()?;
-                        attributes.store_attrib(attr);
+                        let attribute_name = attr.path.to_token_stream().to_string();
+
+                        match attribute_name.as_str() {
+                            "doc" => {
+                                let meta = attr.parse_meta()?;
+                                let doc = match meta {
+                                    Meta::NameValue(name_val) => match name_val.lit {
+                                        syn::Lit::Str(comment) => comment.value(),
+                                        _ => {
+                                            todo!("Push parse error that doc attribute is in incorrect format")
+                                        }
+                                    },
+                                    _ => {
+                                        todo!("Push parse error that doc attribute is in incorrect format")
+                                    }
+                                };
+
+                                doc_comment = Some(doc);
+                            }
+                            "swift_bridge" => {
+                                let attr: OpaqueTypeAttr = attr.parse_args()?;
+                                attributes.store_attrib(attr);
+                            }
+                            _ => todo!("Push unsupported attribute error."),
+                        };
                     }
 
                     let foreign_type = OpaqueForeignTypeDeclaration {
                         ty: foreign_ty.clone(),
                         host_lang,
                         already_declared: attributes.already_declared,
+                        doc_comment,
                     };
                     self.type_declarations.insert(
                         ty_name.clone(),
@@ -622,6 +647,33 @@ mod tests {
                 .unwrap()
                 .unwrap_opaque()
                 .already_declared
+        );
+    }
+
+    /// Verify that we can parse a doc comment from an extern "Rust" opaque type.
+    #[test]
+    fn parse_opaque_rust_type_doc_comment() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    /// Some comment
+                    type AnotherType;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        assert_eq!(
+            module
+                .types
+                .get("AnotherType")
+                .unwrap()
+                .unwrap_opaque()
+                .doc_comment
+                .as_ref()
+                .unwrap(),
+            " Some comment"
         );
     }
 }
