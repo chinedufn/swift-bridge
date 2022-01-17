@@ -82,6 +82,8 @@ pub(crate) struct OpaqueForeignTypeDeclaration {
     /// will elsewhere.
     pub already_declared: bool,
     /// A doc comment.
+    // TODO: Use this to generate doc comment for the generated Swift type.
+    #[allow(unused)]
     pub doc_comment: Option<String>,
 }
 
