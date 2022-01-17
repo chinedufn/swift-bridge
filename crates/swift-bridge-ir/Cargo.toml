@@ -1,6 +1,6 @@
 [package]
 name = "swift-bridge-ir"
-version = "0.1.18"
+version = "0.1.19"
 edition = "2021"
 keywords = ["swift", "ffi", "bindings", "ios", "mac"]
 description = "Holds the data structures and logic for bridge module parsing and code generation."
