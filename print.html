@@ -187,22 +187,73 @@ mod ffi {
 <span class="boring">}
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="structs"><a class="header" href="#structs">Structs</a></h1>
-<p>TODO: Write this chapter</p>
-<ul>
-<li>Make a section about the available attributes
-<ul>
-<li>
-<p>Talk about the <code>swift_repr = &quot;...&quot;</code> attribute and when to use <code>struct</code> vs. <code>class</code>.</p>
-</li>
-<li>
-<p>Talk about <code>rust_into = ...</code> attribute. Gets used when going from Swift -&gt; FFI boundary -&gt; Rust function.</p>
-</li>
-<li>
-<p>Talk about <code>swift_name = ...</code> attribute</p>
-</li>
-</ul>
-</li>
-</ul>
+<p>You can define structs whos fields can be accessed by both Rust and Swift.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    #[swift_bridge::bridge(swift_repr = &quot;struct&quot;)]
+    struct SomeSharedStruct {
+        some_field: u8
+    }
+
+    extern &quot;Rust&quot; {
+        fn some_function(val: SomeSharedStruct);
+    }
+
+    extern &quot;Swift&quot; {
+        fn another_function() -&gt; SomeSharedStruct;
+    }
+}
+
+fn some_function (val: ffi::SomeSharedStruct) {
+    // ...
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// Swift 
+
+func another_function() -&gt; SomeSharedStruct {
+    return SomeSharedStruct(some_field: 123)
+}
+</code></pre>
+<h2 id="struct-attributes"><a class="header" href="#struct-attributes">Struct Attributes</a></h2>
+<h4 id="swift_bridgebridgealready_declared"><a class="header" href="#swift_bridgebridgealready_declared">#[swift_bridge::bridge(already_declared)]</a></h4>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi_1 {
+    #[swift_bridge(swift_repr = &quot;struct&quot;)]
+    struct SomeSharedStruct {
+        some_field: u8
+    }
+}
+
+use ffi_1::SomeSharedStruct;
+
+#[swift_bridge::bridge]
+mod ffi_2 {
+    // The `already_declared` indicates that instead of creating a new Struct
+    // we should use super::SomeSharedStruct;
+    #[swift_bridge(already_declared, swift_repr = &quot;struct&quot;)]
+    struct SomeSharedStruct;
+
+    extern &quot;Rust&quot; {
+        fn some_function() -&gt; SomeSharedStruct;
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h4 id="swift_bridgebridgeswift_repr--"><a class="header" href="#swift_bridgebridgeswift_repr--">#[swift_bridge::bridge(swift_repr = &quot;...&quot;)]</a></h4>
+<p>Valid values are &quot;struct&quot; or &quot;class&quot;.</p>
+<p>How the struct should appear on the Swift side.</p>
+<p>Swift structs get copied on write, so you can't mutate the fields of a <code>swift_repr = &quot;struct&quot;</code> on the Swift
+side and those changes reflected on the Rust side.</p>
+<p>The &quot;class&quot; representation, allows you to pass mutable references to shared structs between Rust and Swift.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="extern-rust"><a class="header" href="#extern-rust">extern &quot;Rust&quot;</a></h1>
 <p><code>extern &quot;Rust</code> sections are used to expose Rust types and functions over FFI so that they can be used from Swift code.</p>
 <pre><pre class="playground"><code class="language-rust">
