@@ -24,7 +24,10 @@ class SharedStructAttributeTests: XCTestCase {
     func testSharedStructAlreadyDeclaredCallInitializer() throws {
         let val = AlreadyDeclaredStructTest(field: 123)
         
-        XCTAssert(use_already_declared_struct(val))
+        XCTAssertEqual(
+            reflect_already_declared_struct(val).field,
+            123
+        )
     }
 }
 

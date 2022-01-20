@@ -106,37 +106,26 @@ mod already_declared_struct {
                 struct FfiSomeType;
 
                 extern "Rust" {
-                    fn some_function() -> FfiSomeType;
+                    fn some_function(arg: FfiSomeType) -> FfiSomeType;
                 }
             }
         }
     }
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
-        ExpectedRustTokens::Contains(quote! {
-            mod ffi {
-                #[export_name = "__swift_bridge__$some_function"]
-                pub extern "C" fn __swift_bridge__some_function() -> super::FfiSomeType {
-                    super::some_function()
-                }
-            }
+        ExpectedRustTokens::DoesNotContain(quote! {
+            struct FfiSomeType
         })
     }
 
     fn expected_swift_code() -> ExpectedSwiftCode {
-        ExpectedSwiftCode::ExactAfterTrim(
-            r#"
-func some_function() -> FfiSomeType {
-    __swift_bridge__$some_function()
-}
-"#,
-        )
+        ExpectedSwiftCode::DoesNotContainAfterTrim("struct FfiSomeType")
     }
 
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ExactAfterTrim(
             r#"
-struct FfiSomeType __swift_bridge__$some_function(void);
+struct __swift_bridge__$FfiSomeType __swift_bridge__$some_function(struct __swift_bridge__$FfiSomeType arg);
 "#,
         )
     }

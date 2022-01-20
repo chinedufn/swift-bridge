@@ -1,10 +1,10 @@
 //! Tests can be found in src/codegen/codegen_tests.rs and its submodules.
 
-use crate::bridged_type::{BridgedType, StdLibType};
+use crate::bridged_type::{BridgedType, StdLibType, StructFields};
 use crate::codegen::CodegenConfig;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::SwiftBridgeModule;
+use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use std::collections::HashSet;
 use syn::ReturnType;
 
@@ -51,37 +51,63 @@ impl SwiftBridgeModule {
                         let name = ty_struct.swift_name_string();
 
                         let mut fields = vec![];
-                        for (idx, field) in ty_struct.fields.iter().enumerate() {
-                            if let Some(ty) = BridgedType::new_with_type(&field.ty, &self.types) {
-                                if let Some(include) = ty.c_include() {
-                                    bookkeeping.includes.insert(include);
+
+                        // Empty structs get represented as
+                        //  `__swift_bridge__$MyStruct { uint8_t _private }`
+                        if ty_struct.fields.is_empty() {
+                            bookkeeping.includes.insert("stdint.h");
+
+                            fields.push("uint8_t _private".to_string())
+                        } else {
+                            match &ty_struct.fields {
+                                StructFields::Named(f) => {
+                                    for field in f.iter() {
+                                        let ty = BridgedType::new_with_type(&field.ty, &self.types)
+                                            .unwrap();
+                                        if let Some(include) = ty.c_include() {
+                                            bookkeeping.includes.insert(include);
+                                        }
+
+                                        let name = field.swift_name_string();
+
+                                        fields.push(format!("{} {}", ty.to_c(), name));
+                                    }
                                 }
+                                StructFields::Unnamed(types) => {
+                                    for (idx, field) in types.iter().enumerate() {
+                                        let ty = BridgedType::new_with_type(&field.ty, &self.types)
+                                            .unwrap();
+                                        if let Some(include) = ty.c_include() {
+                                            bookkeeping.includes.insert(include);
+                                        }
 
-                                let name = format!("_{}", idx);
+                                        let name = format!("_{}", idx);
 
-                                fields.push(format!(
-                                    "{} {}",
-                                    ty.to_c(),
-                                    field.name.as_ref().map(|f| f.to_string()).unwrap_or(name)
-                                ));
-                            } else {
-                                // TODO... Handle opaque types
+                                        fields.push(format!("{} {}", ty.to_c(), name));
+                                    }
+                                }
+                                StructFields::Unit => {
+                                    // SAFETY: This can't be reached since we check if the struct
+                                    //  has no fields above.
+                                    unreachable!()
+                                }
                             }
                         }
 
                         let maybe_fields = if fields.len() > 0 {
-                            let mut maybe_fields = " { ".to_string();
+                            let mut maybe_fields = " ".to_string();
 
                             maybe_fields += &fields.join("; ");
 
-                            maybe_fields += "; }";
+                            maybe_fields += "; ";
                             maybe_fields
                         } else {
                             "".to_string()
                         };
 
                         let ty_decl = format!(
-                            "typedef struct {name}{maybe_fields} {name};",
+                            "typedef struct {prefix}${name} {{{maybe_fields}}} {prefix}${name};",
+                            prefix = SWIFT_BRIDGE_PREFIX,
                             name = name,
                             maybe_fields = maybe_fields
                         );
@@ -200,8 +226,7 @@ fn declare_func(
 
 #[cfg(test)]
 mod tests {
-    //! TODO: We're progressively moving most of these tests to `codegen_tests.rs`,
-    //!  along with their corresponding Rust token and Swift code generation tests.
+    //! More tests can be found in src/codegen/codegen_tests.rs and its submodules.
 
     use proc_macro2::TokenStream;
     use quote::quote;
@@ -515,128 +540,6 @@ struct __private__FfiSlice __swift_bridge__$bar(void);
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {
         let module_and_errors: SwiftBridgeModuleAndErrors = syn::parse2(tokens).unwrap();
         module_and_errors.module
-    }
-
-    /// Verify that we emit a typedef for a struct with no fields.
-    #[test]
-    fn struct_with_no_fields() {
-        let tokens = quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                struct Foo;
-                struct Bar{}
-                struct Bazz();
-            }
-        };
-        let expected = r#"
-typedef struct Foo Foo;
-typedef struct Bar Bar;
-typedef struct Bazz Bazz;
-        "#;
-
-        let module = parse_ok(tokens);
-        assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
-            &expected,
-        );
-    }
-
-    /// Verify that we emit a typedef for a struct with one fields.
-    #[test]
-    fn struct_with_one_field() {
-        let tokens = quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                #[swift_bridge(swift_repr = "struct")]
-                struct Foo {
-                    field: u8
-                }
-                struct Bar(u8);
-            }
-        };
-        let expected = r#"
-#include <stdint.h>
-typedef struct Foo { uint8_t field; } Foo;
-typedef struct Bar { uint8_t _0; } Bar;
-        "#;
-
-        let module = parse_ok(tokens);
-        assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
-            &expected,
-        );
-    }
-
-    /// Verify that we emit a typedef for a struct with two field.
-    #[test]
-    fn struct_with_two_fields() {
-        let tokens = quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                #[swift_bridge(swift_repr = "struct")]
-                struct Foo {
-                    field1: u8,
-                    field2: u16
-                }
-            }
-        };
-        let expected = r#"
-#include <stdint.h>
-typedef struct Foo { uint8_t field1; uint16_t field2; } Foo;
-        "#;
-
-        let module = parse_ok(tokens);
-        assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
-            &expected,
-        );
-    }
-
-    /// Verify that we use the swift_name when generating the struct typedef.
-    #[test]
-    fn uses_swift_name_struct_attribute() {
-        let tokens = quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                #[swift_bridge(swift_name = "FfiFoo")]
-                struct Foo;
-            }
-        };
-        let expected = r#"
-typedef struct FfiFoo FfiFoo;
-        "#;
-
-        let module = parse_ok(tokens);
-        assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
-            &expected,
-        );
-    }
-
-    /// Verify that we use the struct's swift_name attribute when generating function signatures.
-    #[test]
-    fn uses_swift_name_for_function_args_and_returns() {
-        let tokens = quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                #[swift_bridge(swift_name = "FfiFoo")]
-                struct Foo;
-
-                extern "Rust" {
-                    fn some_function(arg: Foo) -> Foo;
-                }
-            }
-        };
-        let expected = r#"
-typedef struct FfiFoo FfiFoo;
-struct FfiFoo __swift_bridge__$some_function(struct FfiFoo arg);
-        "#;
-
-        let module = parse_ok(tokens);
-        assert_trimmed_generated_equals_trimmed_expected(
-            &module.generate_c_header_inner(&CodegenConfig::no_features_enabled()),
-            &expected,
-        );
     }
 
     /// Verify that we generate a proper header for a Rust function that returns an owned Swift

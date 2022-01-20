@@ -20,10 +20,12 @@ mod ffi2 {
     struct AlreadyDeclaredStructTest;
 
     extern "Rust" {
-        fn use_already_declared_struct(arg: AlreadyDeclaredStructTest) -> bool;
+        fn reflect_already_declared_struct(
+            arg: AlreadyDeclaredStructTest,
+        ) -> AlreadyDeclaredStructTest;
     }
 }
 
-fn use_already_declared_struct(_arg: AlreadyDeclaredStructTest) -> bool {
-    true
+fn reflect_already_declared_struct(arg: AlreadyDeclaredStructTest) -> AlreadyDeclaredStructTest {
+    arg
 }

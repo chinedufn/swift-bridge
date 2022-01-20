@@ -36,6 +36,7 @@ mod extern_rust_method_swift_class_placement_codegen_tests;
 mod extern_rust_opaque_type_codegen_tests;
 mod function_attribute_codegen_tests;
 mod option_codegen_tests;
+mod shared_struct_codegen_tests;
 mod string_codegen_tests;
 
 /// Test code generation for freestanding Swift function that takes an opaque Rust type argument.
@@ -386,6 +387,7 @@ enum ExpectedSwiftCode {
     ExactAfterTrim(&'static str),
     ContainsAfterTrim(&'static str),
     DoesNotContainAfterTrim(&'static str),
+    DoesNotContainManyAfterTrim(Vec<&'static str>),
     ContainsManyAfterTrim(Vec<&'static str>),
     /// Skip testing Swift code
     // We use a variant instead of Option<ExpectCHeader> as not to make it seem like no Swift code
@@ -398,6 +400,7 @@ enum ExpectedCHeader {
     ExactAfterTrim(&'static str),
     ContainsAfterTrim(&'static str),
     DoesNotContainAfterTrim(&'static str),
+    DoesNotContainManyAfterTrim(Vec<&'static str>),
     /// Skip testing C header
     // We use a variant instead of Option<ExpectCHeader> as not to make it seem like no C header
     // got generated.
@@ -451,17 +454,25 @@ impl CodegenTest {
                     expected_contained_swift,
                 );
             }
+            ExpectedSwiftCode::ContainsManyAfterTrim(many) => {
+                for expected_contained_swift in many {
+                    assert_trimmed_generated_contains_trimmed_expected(
+                        &swift,
+                        expected_contained_swift,
+                    );
+                }
+            }
             ExpectedSwiftCode::DoesNotContainAfterTrim(expected_not_contained_swift) => {
                 assert_trimmed_generated_does_not_contain_trimmed_expected(
                     &swift,
                     expected_not_contained_swift,
                 );
             }
-            ExpectedSwiftCode::ContainsManyAfterTrim(many) => {
-                for expected_contained_swift in many {
-                    assert_trimmed_generated_contains_trimmed_expected(
+            ExpectedSwiftCode::DoesNotContainManyAfterTrim(many) => {
+                for expected_not_contained in many {
+                    assert_trimmed_generated_does_not_contain_trimmed_expected(
                         &swift,
-                        expected_contained_swift,
+                        expected_not_contained,
                     );
                 }
             }
@@ -477,6 +488,11 @@ impl CodegenTest {
             }
             ExpectedCHeader::DoesNotContainAfterTrim(expected) => {
                 assert_trimmed_generated_does_not_contain_trimmed_expected(&c_header, expected);
+            }
+            ExpectedCHeader::DoesNotContainManyAfterTrim(many) => {
+                for expected in many {
+                    assert_trimmed_generated_does_not_contain_trimmed_expected(&c_header, expected);
+                }
             }
             ExpectedCHeader::SkipTest => {}
         };

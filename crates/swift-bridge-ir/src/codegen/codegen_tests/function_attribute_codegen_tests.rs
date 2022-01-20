@@ -12,9 +12,12 @@ mod function_args_into_attribute {
                 #[swift_bridge(swift_name = "SomeStruct")]
                 struct FfiSomeStruct;
 
+                #[swift_bridge(swift_name = "AnotherStruct")]
+                struct FfiAnotherStruct(u8);
+
                 extern "Rust" {
                     #[swift_bridge(args_into = (some_arg, another_arg))]
-                    fn some_function(some_arg: FfiSomeStruct, another_arg: FfiSomeStruct, arg3: u8);
+                    fn some_function(some_arg: FfiSomeStruct, another_arg: FfiAnotherStruct, arg3: u8);
                 }
             }
         }
@@ -23,20 +26,20 @@ mod function_args_into_attribute {
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             pub extern "C" fn __swift_bridge__some_function(
-                some_arg: FfiSomeStruct,
-                another_arg: FfiSomeStruct,
+                some_arg: __swift_bridge__FfiSomeStruct,
+                another_arg: __swift_bridge__FfiAnotherStruct,
                 arg3: u8
             ) {
-                super::some_function(some_arg.into(), another_arg.into(), arg3)
+                super::some_function(some_arg.into_rust_repr().into(), another_arg.into_rust_repr().into(), arg3)
             }
         })
     }
 
     fn expected_swift_code() -> ExpectedSwiftCode {
-        ExpectedSwiftCode::ExactAfterTrim(
+        ExpectedSwiftCode::ContainsAfterTrim(
             r#"
-func some_function(_ some_arg: SomeStruct, _ another_arg: SomeStruct, _ arg3: UInt8) {
-    __swift_bridge__$some_function(some_arg, another_arg, arg3)
+func some_function(_ some_arg: SomeStruct, _ another_arg: AnotherStruct, _ arg3: UInt8) {
+    __swift_bridge__$some_function(some_arg.intoFfiRepr(), another_arg.intoFfiRepr(), arg3)
 }
 "#,
         )
@@ -46,8 +49,9 @@ func some_function(_ some_arg: SomeStruct, _ another_arg: SomeStruct, _ arg3: UI
         ExpectedCHeader::ExactAfterTrim(
             r#"
 #include <stdint.h>
-typedef struct SomeStruct SomeStruct;
-void __swift_bridge__$some_function(struct SomeStruct some_arg, struct SomeStruct another_arg, uint8_t arg3);
+typedef struct __swift_bridge__$SomeStruct { uint8_t _private; } __swift_bridge__$SomeStruct;
+typedef struct __swift_bridge__$AnotherStruct { uint8_t _0; } __swift_bridge__$AnotherStruct;
+void __swift_bridge__$some_function(struct __swift_bridge__$SomeStruct some_arg, struct __swift_bridge__$AnotherStruct another_arg, uint8_t arg3);
 "#,
         )
     }

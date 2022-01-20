@@ -1,6 +1,5 @@
 use crate::bridged_type::{
-    BridgedType, CustomBridgedType, FieldsFormat, OpaqueForeignType, SharedStruct, SharedType,
-    StructField, StructSwiftRepr,
+    BridgedType, CustomBridgedType, OpaqueForeignType, SharedStruct, SharedType,
 };
 use crate::parse::HostLang;
 use crate::SWIFT_BRIDGE_PREFIX;
@@ -8,7 +7,7 @@ use proc_macro2::Ident;
 use quote::ToTokens;
 use std::collections::HashMap;
 use std::ops::Deref;
-use syn::{ForeignItemType, LitStr, PatType, Type, TypePath};
+use syn::{ForeignItemType, PatType, Type, TypePath};
 
 #[derive(Default)]
 pub(crate) struct TypeDeclarations {
@@ -24,7 +23,7 @@ pub(crate) enum TypeDeclaration {
 
 #[derive(Clone)]
 pub(crate) enum SharedTypeDeclaration {
-    Struct(SharedStructDeclaration),
+    Struct(SharedStruct),
 }
 
 impl TypeDeclaration {
@@ -37,7 +36,6 @@ impl TypeDeclaration {
                         swift_repr: shared_struct.swift_repr,
                         fields: shared_struct.fields.clone(),
                         swift_name: shared_struct.swift_name.clone(),
-                        fields_format: shared_struct.fields_format.clone(),
                         already_declared: shared_struct.already_declared,
                     },
                 )))
@@ -51,25 +49,6 @@ impl TypeDeclaration {
                 }))
             }
         }
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct SharedStructDeclaration {
-    pub name: Ident,
-    pub swift_repr: StructSwiftRepr,
-    pub fields: Vec<StructField>,
-    pub swift_name: Option<LitStr>,
-    pub fields_format: FieldsFormat,
-    pub already_declared: bool,
-}
-
-impl SharedStructDeclaration {
-    pub fn swift_name_string(&self) -> String {
-        self.swift_name
-            .as_ref()
-            .map(|s| s.value())
-            .unwrap_or(self.name.to_string())
     }
 }
 
@@ -157,7 +136,7 @@ impl TypeDeclarations {
 
 #[cfg(test)]
 impl TypeDeclaration {
-    pub fn unwrap_shared_struct(&self) -> &SharedStructDeclaration {
+    pub fn unwrap_shared_struct(&self) -> &SharedStruct {
         match self {
             TypeDeclaration::Shared(SharedTypeDeclaration::Struct(s)) => s,
             _ => panic!(),

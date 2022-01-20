@@ -223,21 +223,8 @@ impl ParsedExternFn {
                     if pat_type_pat_is_self(pat_ty) {
                         params.push("void* self".to_string());
                     } else {
-                        let ty =
-                            if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
-                                built_in.to_c()
-                            } else {
-                                let bridged_type = types.get_with_pat_type(&pat_ty).unwrap();
-
-                                match bridged_type {
-                                    TypeDeclaration::Shared(SharedTypeDeclaration::Struct(
-                                        shared_struct,
-                                    )) => {
-                                        format!("struct {}", shared_struct.swift_name_string())
-                                    }
-                                    TypeDeclaration::Opaque(_) => "void*".to_string(),
-                                }
-                            };
+                        let built_in = BridgedType::new_with_type(&pat_ty.ty, types).unwrap();
+                        let ty = built_in.to_c();
 
                         let arg_name = pat.to_token_stream().to_string();
                         params.push(format!("{} {}", ty, arg_name));

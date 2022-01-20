@@ -1,7 +1,8 @@
-use crate::bridged_type::{FieldsFormat, StructField, StructSwiftRepr};
+use crate::bridged_type::{
+    NamedStructField, SharedStruct, StructFields, StructSwiftRepr, UnnamedStructField,
+};
 use crate::errors::{ParseError, ParseErrors};
-use crate::parse::SharedStructDeclaration;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenTree};
 use syn::parse::{Parse, ParseStream};
 use syn::{Fields, ItemStruct, LitStr, Token};
 
@@ -19,6 +20,7 @@ enum StructAttr {
 
 enum StructAttrParseError {
     InvalidSwiftRepr(LitStr),
+    UnrecognizedAttribute(Ident),
 }
 
 #[derive(Default)]
@@ -64,7 +66,11 @@ impl Parse for StructAttr {
                 StructAttr::SwiftName(name)
             }
             "already_declared" => StructAttr::AlreadyDeclared,
-            _ => todo!("Return spanned error"),
+            _ => {
+                move_input_cursor_to_next_comma(input);
+
+                StructAttr::Error(StructAttrParseError::UnrecognizedAttribute(key))
+            }
         };
 
         Ok(attr)
@@ -72,11 +78,10 @@ impl Parse for StructAttr {
 }
 
 impl<'a> SharedStructDeclarationParser<'a> {
-    pub fn parse(self) -> Result<SharedStructDeclaration, syn::Error> {
+    pub fn parse(self) -> Result<SharedStruct, syn::Error> {
         let item_struct = self.item_struct;
 
         let mut attribs = StructAttribs::default();
-        let mut fields = vec![];
 
         for attr in item_struct.attrs {
             let sections: ParsedAttribs = attr.parse_args()?;
@@ -95,6 +100,10 @@ impl<'a> SharedStructDeclarationParser<'a> {
                                 swift_repr_attr_value: val.clone(),
                             });
                             attribs.swift_repr = Some((StructSwiftRepr::Structure, val));
+                        }
+                        StructAttrParseError::UnrecognizedAttribute(attribute) => {
+                            self.errors
+                                .push(ParseError::StructUnrecognizedAttribute { attribute });
                         }
                     },
                     StructAttr::AlreadyDeclared => {
@@ -125,30 +134,64 @@ impl<'a> SharedStructDeclarationParser<'a> {
             StructSwiftRepr::Structure
         };
 
-        let fields_format = match &item_struct.fields {
-            Fields::Named(_) => FieldsFormat::Named,
-            Fields::Unnamed(_) => FieldsFormat::Unnamed,
-            Fields::Unit => FieldsFormat::Unit,
+        let fields = match item_struct.fields {
+            Fields::Named(f) => {
+                let mut fields = vec![];
+                for field in f.named.iter() {
+                    let field = NamedStructField {
+                        name: field.ident.clone().unwrap(),
+                        ty: field.ty.clone(),
+                    };
+                    fields.push(field);
+                }
+
+                StructFields::Named(fields)
+            }
+            Fields::Unnamed(f) => {
+                let mut fields = vec![];
+                for (idx, field) in f.unnamed.iter().enumerate() {
+                    let field = UnnamedStructField {
+                        ty: field.ty.clone(),
+                        idx,
+                    };
+                    fields.push(field);
+                }
+
+                StructFields::Unnamed(fields)
+            }
+            Fields::Unit => StructFields::Unit,
         };
 
-        for field in item_struct.fields.iter() {
-            let field = StructField {
-                name: field.ident.clone(),
-                ty: field.ty.clone(),
-            };
-            fields.push(field);
-        }
-
-        let shared_struct = SharedStructDeclaration {
+        let shared_struct = SharedStruct {
             name: item_struct.ident,
             swift_repr,
             fields,
             swift_name: attribs.swift_name,
-            fields_format,
             already_declared: attribs.already_declared,
         };
 
         Ok(shared_struct)
+    }
+}
+
+// Used to fast-forward our attribute parsing to the next attribute when we've run into an
+// issue parsing the current attribute.
+fn move_input_cursor_to_next_comma(input: ParseStream) {
+    if !input.peek(Token![,]) {
+        let _ = input.step(|cursor| {
+            let mut current_cursor = *cursor;
+
+            while let Some((tt, next)) = current_cursor.token_tree() {
+                match &tt {
+                    TokenTree::Punct(punct) if punct.as_char() == ',' => {
+                        return Ok(((), current_cursor));
+                    }
+                    _ => current_cursor = next,
+                }
+            }
+
+            Ok(((), current_cursor))
+        });
     }
 }
 
@@ -283,10 +326,15 @@ mod tests {
         let module = parse_ok(tokens);
 
         let ty = module.types.types()[0].unwrap_shared_struct();
-        let field = &ty.fields[0];
+        match &ty.fields {
+            StructFields::Named(fields) => {
+                let field = &fields[0];
 
-        assert_eq!(field.name.as_ref().unwrap(), "bar");
-        assert_eq!(field.ty.to_token_stream().to_string(), "u8");
+                assert_eq!(field.name, "bar");
+                assert_eq!(field.ty.to_token_stream().to_string(), "u8");
+            }
+            _ => panic!(),
+        };
     }
 
     /// Verify that we parse the swift_name = "..."
@@ -341,5 +389,34 @@ mod tests {
 
         let ty = module.types.types()[0].unwrap_shared_struct();
         assert!(ty.already_declared);
+    }
+
+    /// Verify that we return an error if an attribute isn't recognized.
+    #[test]
+    fn error_if_attribute_unrecognized() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(unrecognized, invalid_attribute = "hi", swift_repr = "struct")]
+                struct SomeType;
+            }
+        };
+
+        let errors = parse_errors(tokens);
+
+        assert_eq!(errors.len(), 2);
+
+        match &errors[0] {
+            ParseError::StructUnrecognizedAttribute { attribute } => {
+                assert_eq!(&attribute.to_string(), "unrecognized");
+            }
+            _ => panic!(),
+        };
+        match &errors[1] {
+            ParseError::StructUnrecognizedAttribute { attribute } => {
+                assert_eq!(&attribute.to_string(), "invalid_attribute");
+            }
+            _ => panic!(),
+        };
     }
 }
