@@ -1,32 +1,55 @@
 # swift-bridge [![Actions Status](https://github.com/chinedufn/swift-bridge/workflows/test/badge.svg)](https://github.com/chinedufn/swift-bridge/actions) [![docs](https://docs.rs/swift-bridge/badge.svg)](https://docs.rs/swift-bridge)
 
-> Call Rust from Swift and vice versa. 
+> `swift-bridge` helps facilitate Rust and Swift.
 
-`swift-bridge` makes it possible to pass complex types between Rust and Swift without needing to write any FFI glue code yourself.
+## Book
 
-You write the type signatures of your FFI boundary in Rust, and then `swift-bridge` uses that to auto-generate the FFI layer.
+You can find information about using Rust and Swift together in The [`swift-bridge` book](https://chinedufn.github.io/swift-bridge).
 
-The generated FFI layer is both type-safe and memory-safe, allowing you to confidently communicate between languages.
+## Quick Peek
 
----
+Share types and functions between Swift and Rust.
 
-_`swift-bridge` takes inspiration from the bridge module idea pioneered by [cxx](https://github.com/dtolnay/cxx)._
+```rust
+// Rust
 
-## Current Status
+// You write the type signatures of your FFI boundary in Rust,
+// which `swift-bridge` then uses to generate the FFI layer.
+#[swift_bridge::bridge]
+mod ffi {
+    // Create structs that both Swift and Rust can use.
+    #[swift_bridge(swift_repr = "struct")]
+    struct Comparison {
+        summary: Option<String>,
+    }
 
-Bridging Rust and Swift is fairly unexplored territory, so it will take some experimentation in order to
-figure out the right API and code generation.
+    // Export Rust types and functions for Swift to use.
+    extern "Rust" {
+        type ARustStack;
 
-In these early days I'm looking for feedback from bleeding-edge users in order to continue to improve the
-API and the generated code.
+        #[swift_bridge(init)]
+        fn new() -> ARustStack;
 
-I can especially use feedback from people with Swift experience, since I don't have much.
+        fn push(&mut self, val: String);
+        fn pop(&mut self) -> Option<String>;
+    }
 
----
+    // Import Swift types and functions for Rust to use.
+    extern "Swift" {
+        type ASwiftGraph;
 
-The `0.1.x` versions will not follow semver.
+        fn compare_graphs(g1: &ASwiftGraph, g2: &ASwiftGraph) -> Comparison;
+    }
+}
+```
 
-We'll maintain semver from `0.2` and onwards.
+```swift
+// Swift
+
+let stack = ARustStack()
+stack.push("Hello, hello.")
+let hello = stack.pop()!
+```
 
 ## Installation
 
@@ -39,155 +62,6 @@ swift-bridge-build = "0.1"
 [dependencies]
 swift-bridge = "0.1"
 ```
-
-## Resources
-
-- [Book](https://chinedufn.github.io/swift-bridge)
-
-- [Tutorial](https://chinedufn.github.io/swift-bridge/tutorial/running-rust-analyzer-on-an-iphone/index.html)
-
-- [Examples](./examples)
-
-## Quick Peek
-
-Here's a quick peek at how defining FFI bindings looks.
-
-A more thorough walk through of `swift-bridge` can be found in the [book](https://chinedufn.github.io/swift-bridge/index.html). 
-
-```rust
-// Rust
-
-pub struct ARustStack(Vec<String>);
-
-pub struct SomeType {
-    map: HashMap<u32, Vec<u64>>
-}
-
-pub struct AnotherType(u8, Box<dyn FnMut() -> bool>);
-
-#[swift_bridge::bridge]
-mod ffi {
-    // Shared struct definitions can have their fields directly
-    // accessed by both Swift and Rust.
-    #[swift_bridge(swift_repr = "struct")]
-    struct SwiftStackConfig {
-        max_size: u8
-    }
-
-    extern "Rust" {
-        // Exposes super::ARustStack to Swift.
-        type ARustStack;
-
-        // Allows Swift to call the `push` method on `ARustStack`.
-        // Swift will only be able to call this when it has
-        // an owned `ARustStack` or a mutablly referenced
-        // `&mut ARustStack`.
-        fn push (&mut self, val: String);
-
-        // Allows Swift to call the `pop` method on `ARustStack`.
-        fn pop (&mut self) -> Option<String>;
-    }
-
-    extern "Rust" {
-        // Exposes super::do_stuff to Swift
-        fn do_stuff(a: &SomeType, b: &mut AnotherType) -> Option<SwiftStack>;
-    }
-
-    extern "Rust" {
-        // Exposes super::SomeType to Swift
-        type SomeType;
-        // Exposes super::AnotherType to Swift
-        type AnotherType;
-
-        // The "init" annotation.
-        // Indicates that this should show up on the Swift side as
-        // a class initializer for SomeType.
-        #[swift_bridge(init)]
-        fn new() -> SomeType;
-
-        #[swift_bridge(init)]
-        fn new_with_u8(val: u8) -> AnotherType;
-
-        fn call(self: &AnotherType) -> bool;
-    }
-
-    // Exposes a Swift `class SwiftStack` to Rust.
-    extern "Swift" {
-        type SwiftStack;
-
-        #[swift_bridge(init)]
-        fn new(config: SwiftStackConfig) -> SwiftStack;
-
-        fn push(&mut self, val: String) -> Bool;
-    }
-}
-
-impl ARustStack {
-    fn push(&mut self, val: String) {
-        self.0.push(val);
-    }
-
-    fn pop(&mut self) -> Option<String> {
-        self.0.pop()
-    }
-}
-
-impl SomeType {
-    fn new() -> Self {
-        SomeType::default()
-    }
-}
-
-impl AnotherType {
-    fn new_with_u8(val: u8) -> Self {
-        AnotherType(val, Box::new(|| true))
-    }
-
-    fn call(&self) -> bool {
-        (self.0)()
-    }
-}
-
-fn do_stuff(_a: &SomeType, _b: &mut AnotherType) -> Option<ffi::SwiftStack> {
-    let mut swift_stack = ffi::SwiftStack::new(max_size: 10);
-    swift_stack.push("hello_world".to_string());
-
-    Some(swift_stack)
-}
-```
-
-```swift
-// Swift
-
-class SwiftStack {
-    var stack: [String] = []
-    var maxSize: UInt8
-
-    init(config: SwiftStackConfig) {
-        self.maxSize = config.max_size
-    }
-
-    func push(val: String)  {
-        self.stack.push(val)
-    }
-
-}
-
-func doThings() {
-    // Calls SomeType::new()
-    let someType = SomeType()
-    // Calls AnotherType::new_with_u8
-    let anotherType = AnotherType(val: 50)
-    
-    let stack: SwiftStack? = do_stuff(someType, anotherType)
-}
-```
-
-## Known issues
-
-TODO... make GitHub issues for these..
-
-- Fix bug where we can define an extern "Rust" `fn foo () -> SomeType` even though the real definition is `fn foo () -> &SomeType {}`
 
 ## Built-In Types
 
@@ -227,7 +101,26 @@ cd swift-bridge
 cargo test --all && ./test-integration.sh
 ```
 
+## Early Stages
+
+Bridging Rust and Swift is fairly unexplored territory, so it will take some experimentation in order to
+figure out the right API and code generation.
+
+In these early days I'm looking for feedback from bleeding-edge users in order to continue to improve the
+API and the generated code.
+
+I can especially use feedback from people with Swift experience, since I don't have much.
+
+---
+
+The `0.1.x` versions will not follow semver.
+
+We'll maintain semver from `0.2` and onwards.
+
 ## See Also
 
 - [Rust on iOS](https://mozilla.github.io/firefox-browser-architecture/experiments/2017-09-06-rust-on-ios.html)
   - A blog post by Mozilla that explains how to run Rust on iOS.
+
+- [cxx](https://github.com/dtolnay/cxx)
+  - `swift-bridge` takes inspiration from the bridge module idea pioneered by cxx.
