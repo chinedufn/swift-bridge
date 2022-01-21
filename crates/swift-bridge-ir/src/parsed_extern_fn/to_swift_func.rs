@@ -34,7 +34,7 @@ impl ParsedExternFn {
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
                     let ty = if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
-                        built_in.to_swift_type(self.host_lang, TypePosition::FnArg)
+                        built_in.to_swift_type(TypePosition::FnArg(self.host_lang))
                     } else {
                         todo!("Push to ParsedErrors")
                     };
@@ -103,11 +103,18 @@ impl ParsedExternFn {
 
                     let arg =
                         if let Some(bridged_ty) = BridgedType::new_with_type(&pat_ty.ty, types) {
-                            bridged_ty.convert_swift_expression_to_ffi_compatible(
-                                &arg,
-                                self.host_lang,
-                                swift_bridge_path,
-                            )
+                            if self.host_lang.is_rust() {
+                                bridged_ty.convert_swift_expression_to_ffi_compatible(
+                                    &arg,
+                                    self.host_lang,
+                                    swift_bridge_path,
+                                )
+                            } else {
+                                bridged_ty.convert_ffi_value_to_swift_value(
+                                    TypePosition::FnArg(self.host_lang),
+                                    &arg,
+                                )
+                            }
                         } else {
                             todo!("Push to ParsedErrors")
                         };
@@ -133,7 +140,7 @@ impl ParsedExternFn {
                 if let Some(built_in) = BridgedType::new_with_type(&ty, types) {
                     format!(
                         " -> {}",
-                        built_in.to_ffi_compatible_swift_return_type(self.host_lang,)
+                        built_in.to_swift_type(TypePosition::FnReturn(self.host_lang,))
                     )
                 } else {
                     todo!("Push ParsedErrors")

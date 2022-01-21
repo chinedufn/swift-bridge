@@ -1,1 +1,1 @@
-// TODO: Write tests for shared structs/enums
+mod shared_struct;

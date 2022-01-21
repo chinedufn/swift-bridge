@@ -1,4 +1,4 @@
-//! Tests can be found in src/codegen/codegen_tests.rs and its submodules.
+//! More tests can be found in src/codegen/codegen_tests.rs and its submodules.
 
 use std::collections::HashMap;
 
@@ -7,12 +7,12 @@ use quote::quote;
 use quote::ToTokens;
 
 use crate::bridge_module_attributes::CfgAttr;
-use crate::bridged_type::FieldsFormat;
 use crate::codegen::generate_rust_tokens::vec::generate_vec_of_opaque_rust_type_functions;
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
 mod option;
+mod shared_struct;
 mod vec;
 
 impl ToTokens for SwiftBridgeModule {
@@ -67,48 +67,9 @@ impl ToTokens for SwiftBridgeModule {
         for ty in &self.types.types() {
             match ty {
                 TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
-                    if shared_struct.already_declared {
-                        continue;
+                    if let Some(definition) = self.generate_shared_struct_tokens(shared_struct) {
+                        shared_struct_definitions.push(definition);
                     }
-
-                    let name = &shared_struct.name;
-
-                    let fields: Vec<TokenStream> = shared_struct
-                        .fields
-                        .iter()
-                        .map(|f| {
-                            let ty = &f.ty;
-
-                            match f.name.as_ref() {
-                                Some(name) => {
-                                    quote! {
-                                        pub #name: #ty
-                                    }
-                                }
-                                None => {
-                                    quote! { pub #ty }
-                                }
-                            }
-                        })
-                        .collect();
-
-                    let fields = match shared_struct.fields_format {
-                        FieldsFormat::Named => {
-                            quote! { { #(#fields),* } }
-                        }
-                        FieldsFormat::Unnamed => {
-                            quote! { ( #(#fields),*  ); }
-                        }
-                        FieldsFormat::Unit => {
-                            quote! { ; }
-                        }
-                    };
-
-                    let definition = quote! {
-                        #[repr(C)]
-                        pub struct #name #fields
-                    };
-                    shared_struct_definitions.push(definition);
                 }
                 TypeDeclaration::Opaque(ty) => {
                     let link_name =
@@ -229,8 +190,7 @@ impl ToTokens for SwiftBridgeModule {
 
 #[cfg(test)]
 mod tests {
-    //! TODO: We're progressively moving most of these tests to `codegen_tests.rs`,
-    //!  along with their corresponding C header and Swift code generation tests.
+    //! More tests can be found in src/codegen/codegen_tests.rs and its submodules.
 
     use quote::quote;
 
@@ -854,103 +814,6 @@ mod tests {
         };
 
         assert_to_extern_c_function_tokens(start, &expected);
-    }
-
-    /// Verify that we generate tokens for a freestanding function that has a shared struct as
-    /// as argument type.
-    #[test]
-    fn freestanding_rust_function_shared_struct_arg() {
-        let start = quote! {
-            #[swift_bridge::bridge]
-            mod foo {
-                #[swift_bridge(swift_repr = "struct")]
-                struct Foo;
-
-                extern "Rust" {
-                    fn some_function (arg: Foo);
-                }
-            }
-        };
-        let expected_func = quote! {
-            #[repr(C)]
-            pub struct Foo;
-
-            #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function (arg: Foo) {
-                super::some_function(arg)
-            }
-        };
-
-        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
-    }
-
-    /// Verify that we generate tokens for a freestanding function that returns a shared struct.
-    #[test]
-    fn freestanding_rust_function_returns_shared_struct() {
-        let start = quote! {
-            #[swift_bridge::bridge]
-            mod foo {
-                #[swift_bridge(swift_repr = "struct")]
-                struct Foo;
-
-                extern "Rust" {
-                    fn some_function () -> Foo;
-                }
-            }
-        };
-        let expected_func = quote! {
-            #[repr(C)]
-            pub struct Foo;
-
-            #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function () -> Foo {
-                super::some_function()
-            }
-        };
-
-        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
-    }
-
-    /// Verify that we create a shared struct that has named fields.
-    #[test]
-    fn creates_shared_struct_with_named_fields() {
-        let start = quote! {
-            #[swift_bridge::bridge]
-            mod foo {
-                #[swift_bridge(swift_repr = "struct")]
-                struct Foo {
-                    a: u8,
-                    b: u32
-                }
-            }
-        };
-        let expected_func = quote! {
-            #[repr(C)]
-            pub struct Foo {
-                pub a: u8,
-                pub b: u32
-            }
-        };
-
-        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
-    }
-
-    /// Verify that we create a shared tuple struct.
-    #[test]
-    fn creates_shared_tuple_struct() {
-        let start = quote! {
-            #[swift_bridge::bridge]
-            mod foo {
-                #[swift_bridge(swift_repr = "struct")]
-                pub struct Foo (u8, u32);
-            }
-        };
-        let expected_func = quote! {
-            #[repr(C)]
-            pub struct Foo (pub u8, pub u32);
-        };
-
-        assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
     }
 
     fn parse_ok(tokens: TokenStream) -> SwiftBridgeModule {

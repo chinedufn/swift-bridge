@@ -4,7 +4,7 @@ use std::ops::Deref;
 use quote::ToTokens;
 use syn::{Path, ReturnType, Type};
 
-use crate::bridged_type::{fn_arg_name, BridgedType, StdLibType, StructSwiftRepr, TypePosition};
+use crate::bridged_type::{fn_arg_name, BridgedType, StdLibType, TypePosition};
 use crate::codegen::generate_swift::vec::generate_vectorizable_extension;
 use crate::codegen::CodegenConfig;
 use crate::parse::{
@@ -16,6 +16,8 @@ use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
 mod option;
 mod vec;
+
+mod shared_struct;
 
 impl SwiftBridgeModule {
     /// Generate the corresponding Swift code for the bridging module.
@@ -66,16 +68,9 @@ impl SwiftBridgeModule {
         for ty in self.types.types() {
             match ty {
                 TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
-                    match shared_struct.swift_repr {
-                        StructSwiftRepr::Class => {
-                            todo!()
-                        }
-                        StructSwiftRepr::Structure => {
-                            // No need to generate any code. Swift will automatically generate a
-                            //  struct from our C header typedef that we generate for this struct.
-
-                            continue;
-                        }
+                    if let Some(swift_struct) = self.generate_shared_struct_string(shared_struct) {
+                        swift += &swift_struct;
+                        swift += "\n";
                     }
                 }
                 TypeDeclaration::Opaque(ty) => match ty.host_lang {
@@ -349,8 +344,7 @@ fn gen_func_swift_calls_rust(
         call_rust
     } else if let Some(built_in) = function.return_ty_built_in(types) {
         built_in.convert_ffi_value_to_swift_value(
-            function.host_lang,
-            TypePosition::FnReturn,
+            TypePosition::FnReturn(function.host_lang),
             &call_rust,
         )
     } else {
@@ -516,8 +510,7 @@ func {prefixed_fn_name} ({params}){ret} {{
 
 #[cfg(test)]
 mod tests {
-    //! TODO: We're progressively moving most of these tests to `codegen_tests.rs`,
-    //!  along with their corresponding Rust token and C header generation tests.
+    //! More tests can be found in src/codegen/codegen_tests.rs and its submodules.
 
     use crate::codegen::generate_swift::CodegenConfig;
     use quote::quote;
@@ -1061,80 +1054,6 @@ func void_pointer() -> UnsafeRawPointer {
 @_cdecl("__swift_bridge__$void_pointer")
 func __swift_bridge__void_pointer (_ arg: UnsafeRawPointer) {
     void_pointer(arg: arg)
-}
-"#;
-
-        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
-    }
-
-    /// Verify that we can return a shared struct type.
-    #[test]
-    fn extern_rust_return_shared_struct() {
-        let tokens = quote! {
-            mod ffi {
-                struct Foo;
-
-                extern "Rust" {
-                    fn get_foo () -> Foo;
-                }
-            }
-        };
-        let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
-
-        let expected = r#"
-func get_foo() -> Foo {
-    __swift_bridge__$get_foo()
-}
-"#;
-
-        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
-    }
-
-    /// Verify that we can take a shared struct as an argument.
-    #[test]
-    fn extern_rust_shared_struct_arg() {
-        let tokens = quote! {
-            mod ffi {
-                struct Foo;
-
-                extern "Rust" {
-                    fn some_function (arg: Foo);
-                }
-            }
-        };
-        let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
-
-        let expected = r#"
-func some_function(_ arg: Foo) {
-    __swift_bridge__$some_function(arg)
-}
-"#;
-
-        assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
-    }
-
-    /// Verify that we rename shared struct arguments and return values if there is a swift_name
-    /// attribute.
-    #[test]
-    fn extern_rust_fn_uses_swift_name_for_shared_struct_attrib() {
-        let tokens = quote! {
-            mod ffi {
-                #[swift_bridge(swift_name = "Renamed")]
-                struct Foo;
-
-                extern "Rust" {
-                    fn some_function (arg: Foo) -> Foo;
-                }
-            }
-        };
-        let module: SwiftBridgeModule = parse_quote!(#tokens);
-        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
-
-        let expected = r#"
-func some_function(_ arg: Renamed) -> Renamed {
-    __swift_bridge__$some_function(arg)
 }
 "#;
 

@@ -10,15 +10,15 @@ fn main() {
         "src/bool.rs",
         "src/option.rs",
         "src/pointer.rs",
-        // TODO: Write the test
-        // "src/shared_types.rs",
         "src/string.rs",
         "src/vec.rs",
+        "src/shared_types/shared_struct.rs",
         "src/rust_function_uses_opaque_swift_type.rs",
         "src/swift_function_uses_opaque_rust_type.rs",
         "src/conditional_compilation.rs",
         "src/opaque_type_attributes/already_declared.rs",
         "src/struct_attributes/already_declared.rs",
+        "src/struct_attributes/swift_name.rs",
     ];
     for path in &bridges {
         println!("cargo:rerun-if-changed={}", path);

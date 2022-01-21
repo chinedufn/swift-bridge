@@ -38,3 +38,22 @@ impl<T> FfiSlice<T> {
         unsafe { std::slice::from_raw_parts(self.start, self.len) }
     }
 }
+
+// The code generation automatically implements this for all shared structs.
+// This trait is private and should not be used outside of swift-bridge.
+#[doc(hidden)]
+pub trait SharedStruct {
+    /// The FFI friendly representation of this struct.
+    ///
+    /// ```
+    /// struct MyStruct {
+    ///     field: &'static str
+    /// }
+    /// // This is the auto generated ffi representation.
+    /// #[repr(C)]
+    /// struct __swift_bridge__MyStruct {
+    ///     field: swift_bridge::string::RustStr
+    /// }
+    /// ```
+    type FfiRepr;
+}

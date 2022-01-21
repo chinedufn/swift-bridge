@@ -4,6 +4,8 @@
 
 set -e
 
+export RUSTFLAGS="-D warnings"
+
 # Change to the root directory of the Xcode project
 THIS_DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 ROOT_DIR="$THIS_DIR"

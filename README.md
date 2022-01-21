@@ -1,10 +1,10 @@
 # swift-bridge [![Actions Status](https://github.com/chinedufn/swift-bridge/workflows/test/badge.svg)](https://github.com/chinedufn/swift-bridge/actions) [![docs](https://docs.rs/swift-bridge/badge.svg)](https://docs.rs/swift-bridge)
 
-> `swift-bridge` helps facilitate Rust and Swift.
+> `swift-bridge` facilitates Rust and Swift interop.
 
 ## Book
 
-You can find information about using Rust and Swift together in The [`swift-bridge` book](https://chinedufn.github.io/swift-bridge).
+You can find information about using Rust and Swift together in [The `swift-bridge` book](https://chinedufn.github.io/swift-bridge).
 
 ## Quick Peek
 
@@ -41,6 +41,13 @@ mod ffi {
         fn compare_graphs(g1: &ASwiftGraph, g2: &ASwiftGraph) -> Comparison;
     }
 }
+
+struct ARustStack {
+    stack: Vec<String>
+}
+impl ARustStack {
+    // ...
+}
 ```
 
 ```swift
@@ -49,6 +56,15 @@ mod ffi {
 let stack = ARustStack()
 stack.push("Hello, hello.")
 let hello = stack.pop()!
+
+class ASwiftGraph {
+    // ...
+}
+
+func compare_graphs(g1: &ASwiftGraph, g2: &ASwiftGraph) -> Comparison {
+    // ...
+    return Comparison(summary: "Things went well.")
+}
 ```
 
 ## Installation
@@ -119,8 +135,6 @@ We'll maintain semver from `0.2` and onwards.
 
 ## See Also
 
-- [Rust on iOS](https://mozilla.github.io/firefox-browser-architecture/experiments/2017-09-06-rust-on-ios.html)
-  - A blog post by Mozilla that explains how to run Rust on iOS.
+- [Rust on iOS](https://mozilla.github.io/firefox-browser-architecture/experiments/2017-09-06-rust-on-ios.html) - A blog post by Mozilla that explains how to run Rust on iOS.
 
-- [cxx](https://github.com/dtolnay/cxx)
-  - `swift-bridge` takes inspiration from the bridge module idea pioneered by cxx.
+- [cxx](https://github.com/dtolnay/cxx) - `swift-bridge` takes inspiration from the bridge module idea pioneered by cxx.

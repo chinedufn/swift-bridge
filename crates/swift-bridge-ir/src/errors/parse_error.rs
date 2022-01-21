@@ -32,6 +32,8 @@ pub(crate) enum ParseError {
     StructMissingSwiftRepr { struct_ident: Ident },
     /// Only "class" and "struct" can be used as swift_repr.
     StructInvalidSwiftRepr { swift_repr_attr_value: LitStr },
+    /// A struct was declared with an unrecognized attribute.
+    StructUnrecognizedAttribute { attribute: Ident },
     /// There is no reason to use `swift_repr = "class"` on an empty struct.
     /// It's extra overhead with no advantages.
     EmptyStructHasSwiftReprClass {
@@ -128,6 +130,10 @@ struct {struct_name};
                     struct_name = struct_ident.to_string()
                 );
                 Error::new_spanned(swift_repr_attr_value, message)
+            }
+            ParseError::StructUnrecognizedAttribute { attribute } => {
+                let message = format!(r#"Did not recognize struct attribute "{}"."#, attribute);
+                Error::new_spanned(attribute, message)
             }
         }
     }

@@ -64,11 +64,83 @@ mod ffi_2 {
 
 #### #[swift_bridge::bridge(swift_repr = "...")]
 
-Valid values are "struct" or "class".
+_Valid values are "struct" or "class"._
 
 How the struct should appear on the Swift side.
 
-Swift structs get copied on write, so you can't mutate the fields of a `swift_repr = "struct"` on the Swift
-side and those changes reflected on the Rust side.
+Swift structs are copy-on-write, so we do not allow you to mutate the fields of a `swift_repr = "struct"`
+since you wouldn't be changing the original struct.
 
-The "class" representation, allows you to pass mutable references to shared structs between Rust and Swift.
+The `swift_repr ="class"` representation allows you to pass mutable references to shared structs between Rust and Swift.
+
+```rust
+// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    #[swift_bridge(struct_repr = "struct")]
+    struct SomeStructReprStruct {
+        field: UInt8,
+    }
+
+    #[swift_bridge(struct_repr = "class")]
+    struct SomeStructReprClass {
+        field: UInt8,
+    }
+
+    // NOTE: This is aspirational. Exposing methods on shared structs
+    //  doesn't actually work yet.
+    extern "Rust" {
+        // All structs can expose `&self` methods.
+        fn repr_struct_ref(self: &SomeStructReprStruct);
+        fn repr_class_ref(self: &SomeStructReprStruct);
+
+        // Only structs with `swift_repr = "class"` can expose `&self` methods.
+        fn repr_class_ref_mut(self: &mut SomeStructReprStruct);
+    }
+}
+
+impl ffi::SomeStructReprStruct {
+    fn repr_struct_ref(&self) {
+        // ...
+    }
+
+    // swift-bridge cannot expose this method since mutable methods
+    // on `swift_repr = "struct"` structs are not supported.
+    fn repr_struct_ref_mut(&mut self) {
+        // ...
+    }
+}
+
+impl ffi::SomeStructReprClass {
+    fn repr_class_ref(&self) {
+        // ...
+    }
+
+    fn repr_class_ref_mut(&mut self) {
+        // ...
+    }
+}
+```
+
+```swift
+// Generated Swift
+
+struct SomeStructReprStruct {
+    var field: UInt8
+    
+    func repr_struct_ref() {
+      // ... call Rust's SomeStructReprStruct.repr_struct_ref() ...
+    }
+}
+
+class SomeStructReprClass: SomeStructReprClassRefMut {
+    // ...
+}
+class SomeStructReprClassRefMut: SomeStructReprClassRef {
+    // ...
+}
+class SomeStructReprClassRef {
+    // ...
+}
+```

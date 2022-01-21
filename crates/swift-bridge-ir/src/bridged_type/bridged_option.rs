@@ -1,5 +1,4 @@
 use crate::bridged_type::{BridgedType, StdLibType, TypePosition};
-use crate::parse::HostLang;
 use std::ops::Deref;
 
 /// Option<T>
@@ -9,11 +8,7 @@ pub(crate) struct BridgedOption {
 }
 
 impl BridgedOption {
-    pub(super) fn convert_ffi_value_to_swift_value(
-        &self,
-        func_host_lang: HostLang,
-        type_pos: TypePosition,
-    ) -> String {
+    pub(super) fn convert_ffi_value_to_swift_value(&self, type_pos: TypePosition) -> String {
         let inner_val_var_name = match self.ty.deref() {
             BridgedType::StdLib(std_lib_type) => match std_lib_type {
                 StdLibType::Null
@@ -49,6 +44,6 @@ impl BridgedOption {
         };
 
         self.ty
-            .convert_ffi_value_to_swift_value(func_host_lang, type_pos, inner_val_var_name)
+            .convert_ffi_value_to_swift_value(type_pos, inner_val_var_name)
     }
 }

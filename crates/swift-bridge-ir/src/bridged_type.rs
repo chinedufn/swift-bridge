@@ -1,15 +1,22 @@
-use crate::parse::{HostLang, TypeDeclarations};
-use proc_macro2::{Ident, TokenStream};
-use quote::ToTokens;
-use quote::{quote, quote_spanned};
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
-use syn::{FnArg, ForeignItemType, LitStr, Pat, PatType, Path, ReturnType, Type};
+
+use proc_macro2::{Ident, TokenStream};
+use quote::ToTokens;
+use quote::{quote, quote_spanned};
+use syn::{FnArg, ForeignItemType, Pat, PatType, Path, ReturnType, Type};
+
+use crate::parse::{HostLang, TypeDeclarations};
+use crate::SWIFT_BRIDGE_PREFIX;
 
 use self::bridged_option::BridgedOption;
+pub(crate) use self::shared_struct::{
+    NamedStructField, SharedStruct, StructFields, StructSwiftRepr, UnnamedStructField,
+};
 
 mod bridged_option;
+mod shared_struct;
 
 // FIXME: Rename to BridgedType
 #[derive(Debug, PartialEq, Clone)]
@@ -54,8 +61,9 @@ pub(crate) enum StdLibType {
 /// TODO: Add this to `OpaqueForeignType`
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum TypePosition {
-    FnArg,
-    FnReturn,
+    FnArg(HostLang),
+    FnReturn(HostLang),
+    SharedStructField,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -156,98 +164,6 @@ impl BridgedType {
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum SharedType {
     Struct(SharedStruct),
-}
-
-#[derive(Clone)]
-pub(crate) struct SharedStruct {
-    pub name: Ident,
-    pub swift_repr: StructSwiftRepr,
-    pub fields: Vec<StructField>,
-    pub swift_name: Option<LitStr>,
-    pub fields_format: FieldsFormat,
-    pub already_declared: bool,
-}
-
-impl SharedStruct {
-    fn swift_type_name(&self) -> String {
-        match self.swift_name.as_ref() {
-            Some(ty) => ty.value(),
-            None => self.name.to_string(),
-        }
-    }
-}
-
-impl PartialEq for SharedStruct {
-    fn eq(&self, other: &Self) -> bool {
-        self.name.to_string() == other.name.to_string()
-            && self.swift_repr == other.swift_repr
-            && self.fields == other.fields
-            && self.swift_name.as_ref().map(|l| l.value())
-                == other.swift_name.as_ref().map(|l| l.value())
-            && self.fields_format == other.fields_format
-    }
-}
-
-impl Debug for SharedStruct {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SharedStruct")
-            .field("name", &self.name.to_string())
-            .field("swift_repr", &self.swift_repr)
-            .field("fields", &self.fields)
-            .field("swift_name", &self.swift_name.as_ref().map(|l| l.value()))
-            .field("fields_format", &self.fields_format)
-            // .field("reference", &self.reference)
-            // .field("mutable", &self.mutable)
-            .finish()
-    }
-}
-
-/// Whether to create a class or a structure when creating the Swift representation of a shared
-/// struct.
-///
-/// https://docs.swift.org/swift-book/LanguageGuide/ClassesAndStructures.html
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum StructSwiftRepr {
-    Class,
-    /// # Invariants
-    ///
-    /// (These invariants aren't implemented yet)
-    ///
-    /// - Cannot be owned by Swift it it contains one or more fields that need to run destructors.
-    ///   - Since Swift struct cannot run de-initializers on structs. Only on classes.
-    /// - Can always be passed to Swift by immutable reference
-    ///   - Since this means Swift does not need to run any de-initializers, which it cannot do
-    ///     for structs.
-    Structure,
-}
-
-#[derive(Clone)]
-pub(crate) struct StructField {
-    pub name: Option<Ident>,
-    pub ty: Type,
-}
-
-impl PartialEq for StructField {
-    fn eq(&self, other: &Self) -> bool {
-        self.name.as_ref().map(|n| n.to_string()) == other.name.as_ref().map(|n| n.to_string())
-            && self.ty.to_token_stream().to_string() == other.ty.to_token_stream().to_string()
-    }
-}
-
-impl Debug for StructField {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StructField")
-            .field("name", &self.name.as_ref().map(|n| n.to_string()))
-            .field("ty", &self.ty.to_token_stream())
-            .finish()
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum FieldsFormat {
-    Named,
-    Unnamed,
-    Unit,
 }
 
 #[derive(Clone)]
@@ -565,15 +481,18 @@ impl BridgedType {
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let ty_name = &shared_struct.name;
+                let prefixed_ty_name = Ident::new(
+                    &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
+                    ty_name.span(),
+                );
 
-                let maybe_super = if shared_struct.already_declared {
-                    quote! { super:: }
+                let prefixed_ty_name = if shared_struct.already_declared {
+                    quote! { <super:: #ty_name as #swift_bridge_path::SharedStruct>::FfiRepr }
                 } else {
-                    quote! {}
+                    quote! { #prefixed_ty_name }
                 };
-                quote! {
-                    #maybe_super #ty_name
-                }
+
+                prefixed_ty_name
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let ty_name = &opaque.ty.ident;
@@ -607,7 +526,7 @@ impl BridgedType {
     // U8 -> UInt8
     // *const u32 -> UnsafePointer<UInt32>
     // ... etc
-    pub fn to_swift_type(&self, func_host_lang: HostLang, type_pos: TypePosition) -> String {
+    pub fn to_swift_type(&self, type_pos: TypePosition) -> String {
         match self {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::U8 => "UInt8".to_string(),
@@ -634,7 +553,7 @@ impl BridgedType {
                             format!(
                                 "Unsafe{}Pointer<{}>",
                                 maybe_mutable,
-                                ty.to_swift_type(func_host_lang, type_pos)
+                                ty.to_swift_type(type_pos)
                             )
                         }
                         Pointee::Void(_) => {
@@ -643,104 +562,118 @@ impl BridgedType {
                     }
                 }
                 StdLibType::RefSlice(slice) => {
-                    if func_host_lang.is_swift() {
-                        "__private__FfiSlice".to_string()
-                    } else {
-                        format!(
-                            "UnsafeBufferPointer<{}>",
-                            slice.ty.to_swift_type(func_host_lang, type_pos)
-                        )
+                    match type_pos {
+                        TypePosition::FnArg(func_host_lang)
+                        | TypePosition::FnReturn(func_host_lang) => {
+                            if func_host_lang.is_swift() {
+                                "__private__FfiSlice".to_string()
+                            } else {
+                                format!("UnsafeBufferPointer<{}>", slice.ty.to_swift_type(type_pos))
+                            }
+                        }
+                        TypePosition::SharedStructField => {
+                            //
+                            unimplemented!()
+                        }
                     }
                 }
                 StdLibType::Null => "()".to_string(),
                 StdLibType::Str => {
-                    use HostLang::{Rust, Swift};
-                    use TypePosition::{FnArg, FnReturn};
-
-                    match (func_host_lang, type_pos) {
-                        (Swift, FnArg) => "RustStr".to_string(),
-                        (Swift, FnReturn) => "RustStr".to_string(),
-                        (Rust, FnArg) => "String".to_string(),
-                        (Rust, FnReturn) => "RustStr".to_string(),
+                    match type_pos {
+                        TypePosition::FnArg(func_host_lang) => {
+                            if func_host_lang.is_rust() {
+                                "String".to_string()
+                            } else {
+                                "RustStr".to_string()
+                            }
+                        }
+                        TypePosition::FnReturn(func_host_lang) => {
+                            if func_host_lang.is_rust() {
+                                "RustStr".to_string()
+                            } else {
+                                "RustStr".to_string()
+                            }
+                        }
+                        TypePosition::SharedStructField => {
+                            //
+                            unimplemented!()
+                        }
                     }
                 }
                 StdLibType::String => "RustString".to_string(),
                 StdLibType::Vec(ty) => {
-                    format!("RustVec<{}>", ty.ty.to_swift_type(func_host_lang, type_pos))
+                    format!("RustVec<{}>", ty.ty.to_swift_type(type_pos))
                 }
                 StdLibType::Option(opt) => {
-                    // TODO: This logic is wrong.. but as we add more Option integration tests
-                    // we'll be forced to take care of this logic..
-                    if func_host_lang.is_swift() {
-                        opt.ty.to_swift_type(func_host_lang, type_pos)
-                    } else {
-                        format!(
-                            "Optional<{}>",
-                            opt.ty.to_swift_type(func_host_lang, type_pos)
-                        )
+                    match type_pos {
+                        TypePosition::FnArg(func_host_lang)
+                        | TypePosition::FnReturn(func_host_lang) => {
+                            if func_host_lang.is_swift() {
+                                opt.ty.to_swift_type(type_pos)
+                            } else {
+                                format!("Optional<{}>", opt.ty.to_swift_type(type_pos))
+                            }
+                        }
+                        TypePosition::SharedStructField => {
+                            //
+                            unimplemented!()
+                        }
                     }
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.swift_type_name()
-            }
-            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
-                if opaque.host_lang.is_rust() {
-                    if func_host_lang.is_rust() {
-                        let mut class_name = opaque.ty.ident.to_string();
-
-                        if opaque.reference {
-                            class_name += "Ref";
+                match type_pos {
+                    TypePosition::FnArg(func_host_lang)
+                    | TypePosition::FnReturn(func_host_lang) => {
+                        if func_host_lang.is_rust() {
+                            shared_struct.swift_name_string()
+                        } else {
+                            shared_struct.ffi_name_string()
                         }
-
-                        if opaque.mutable {
-                            class_name += "Mut";
-                        }
-
-                        class_name
-                    } else {
-                        format!("UnsafeMutableRawPointer")
                     }
-                } else {
-                    if func_host_lang.is_rust() {
-                        opaque.ty.ident.to_string()
-                    } else {
-                        "__private__PointerToSwiftType".to_string()
-                    }
+                    TypePosition::SharedStructField => shared_struct.swift_name_string(),
                 }
             }
-        }
-    }
-
-    // U8 -> UInt8
-    // *const u32 -> UnsafePointer<UInt32>
-    // SomeOpaqueSwiftType -> UnsafeMutablePointer
-    pub fn to_ffi_compatible_swift_return_type(&self, func_host_lang: HostLang) -> String {
-        match self {
-            BridgedType::StdLib(_stdlib_type) => {
-                self.to_swift_type(func_host_lang, TypePosition::FnReturn)
-            }
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.swift_type_name()
-            }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
-                    let mut ty_name = opaque.ty.ident.to_string();
+                    match type_pos {
+                        TypePosition::FnArg(func_host_lang)
+                        | TypePosition::FnReturn(func_host_lang) => {
+                            if func_host_lang.is_rust() {
+                                let mut class_name = opaque.ty.ident.to_string();
 
-                    if opaque.reference {
-                        ty_name += "Ref";
+                                if opaque.reference {
+                                    class_name += "Ref";
+                                }
+
+                                if opaque.mutable {
+                                    class_name += "Mut";
+                                }
+
+                                class_name
+                            } else {
+                                format!("UnsafeMutableRawPointer")
+                            }
+                        }
+                        TypePosition::SharedStructField => {
+                            //
+                            unimplemented!()
+                        }
                     }
-
-                    if opaque.mutable {
-                        ty_name += "Mut";
-                    }
-
-                    ty_name
                 } else {
-                    if func_host_lang.is_rust() {
-                        opaque.ty.ident.to_string()
-                    } else {
-                        "__private__PointerToSwiftType".to_string()
+                    match type_pos {
+                        TypePosition::FnArg(func_host_lang)
+                        | TypePosition::FnReturn(func_host_lang) => {
+                            if func_host_lang.is_rust() {
+                                opaque.ty.ident.to_string()
+                            } else {
+                                "__private__PointerToSwiftType".to_string()
+                            }
+                        }
+                        TypePosition::SharedStructField => {
+                            //
+                            unimplemented!()
+                        }
                     }
                 }
             }
@@ -784,7 +717,7 @@ impl BridgedType {
                 StdLibType::Option(opt) => opt.ty.to_c(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                format!("struct {}", shared_struct.swift_type_name())
+                format!("struct {}", shared_struct.ffi_name_string())
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
@@ -972,7 +905,7 @@ impl BridgedType {
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 quote! {
-                    #expression
+                    #expression.into_ffi_repr()
                 }
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
@@ -1069,7 +1002,7 @@ impl BridgedType {
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 quote! {
-                    #value
+                    #value.into_rust_repr()
                 }
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
@@ -1116,12 +1049,7 @@ impl BridgedType {
     //
     // Where this function converts
     //  `__swift_bridge__$create_string(str)` to `RustString(ptr: __swift_bridge__$create_string(str))`
-    pub fn convert_ffi_value_to_swift_value(
-        &self,
-        func_host_lang: HostLang,
-        type_pos: TypePosition,
-        value: &str,
-    ) -> String {
+    pub fn convert_ffi_value_to_swift_value(&self, type_pos: TypePosition, value: &str) -> String {
         match self {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::Null
@@ -1141,9 +1069,21 @@ impl BridgedType {
                 StdLibType::Pointer(ptr) => match &ptr.pointee {
                     Pointee::BuiltIn(_) => value.to_string(),
                     Pointee::Void(_ty) => match ptr.kind {
-                        PointerKind::Const => {
-                            format!("UnsafeRawPointer({}!)", value)
-                        }
+                        PointerKind::Const => match type_pos {
+                            TypePosition::FnArg(func_host_lang) => {
+                                if func_host_lang.is_rust() {
+                                    format!("UnsafeRawPointer({}!)", value)
+                                } else {
+                                    value.to_string()
+                                }
+                            }
+                            TypePosition::FnReturn(_) => {
+                                format!("UnsafeRawPointer({}!)", value)
+                            }
+                            TypePosition::SharedStructField => {
+                                format!("UnsafeRawPointer({}!)", value)
+                            }
+                        },
                         PointerKind::Mut => value.to_string(),
                     },
                 },
@@ -1151,7 +1091,7 @@ impl BridgedType {
                     format!(
                            "let slice = {value}; return UnsafeBufferPointer(start: slice.start.assumingMemoryBound(to: {ty}.self), count: Int(slice.len));",
                            value = value,
-                           ty = ty.ty.to_swift_type(func_host_lang, type_pos)
+                           ty = ty.ty.to_swift_type(type_pos)
                        )
                 }
                 StdLibType::Str => value.to_string(),
@@ -1162,7 +1102,7 @@ impl BridgedType {
                     format!("RustVec(ptr: {})", value)
                 }
                 StdLibType::Option(opt) => {
-                    let inner_val = opt.convert_ffi_value_to_swift_value(func_host_lang, type_pos);
+                    let inner_val = opt.convert_ffi_value_to_swift_value(type_pos);
 
                     match opt.ty.deref() {
                         BridgedType::StdLib(stdlib_type) => {
@@ -1227,7 +1167,7 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
-                format!("{}", value)
+                format!("{}.intoSwiftRepr()", value)
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let mut ty_name = opaque.ty.ident.to_string();
@@ -1323,7 +1263,7 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
-                format!("{}", value)
+                format!("{}.intoFfiRepr()", value)
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let ty_name = &opaque.ty.ident;
@@ -1482,9 +1422,10 @@ struct UnusedOptionNoneValue {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use quote::quote;
     use syn::parse_quote;
+
+    use super::*;
 
     /// Verify that we can parse std lib types.
     #[test]
