@@ -1,4 +1,4 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType, TypePosition};
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
@@ -180,9 +180,8 @@ impl ParsedExternFn {
                     if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                         if self.host_lang.is_rust() {
                             arg = built_in.convert_ffi_value_to_rust_value(
-                                swift_bridge_path,
                                 &arg,
-                                false,
+                                TypePosition::FnArg(self.host_lang),
                             );
 
                             if self.args_into_contains_arg(fn_arg) {

@@ -57,3 +57,9 @@ pub trait SharedStruct {
     /// ```
     type FfiRepr;
 }
+
+#[no_mangle]
+#[doc(hidden)]
+pub extern "C" fn __swift_bridge__null_pointer() -> *const std::ffi::c_void {
+    std::ptr::null()
+}

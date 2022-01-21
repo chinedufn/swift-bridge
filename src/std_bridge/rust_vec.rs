@@ -1,25 +1,25 @@
 use macro_::vec_externs;
 
-vec_externs!(u8, 123);
-vec_externs!(u16, 123);
-vec_externs!(u32, 123);
-vec_externs!(u64, 123);
-vec_externs!(usize, 123);
+vec_externs!(u8, OptionU8, 123);
+vec_externs!(u16, OptionU16, 123);
+vec_externs!(u32, OptionU32, 123);
+vec_externs!(u64, OptionU64, 123);
+vec_externs!(usize, OptionUsize, 123);
 
-vec_externs!(i8, 123);
-vec_externs!(i16, 123);
-vec_externs!(i32, 123);
-vec_externs!(i64, 123);
-vec_externs!(isize, 123);
+vec_externs!(i8, OptionI8, 123);
+vec_externs!(i16, OptionI16, 123);
+vec_externs!(i32, OptionI32, 123);
+vec_externs!(i64, OptionI64, 123);
+vec_externs!(isize, OptionIsize, 123);
 
-vec_externs!(f32, 0.123);
-vec_externs!(f64, 0.123);
+vec_externs!(f32, OptionF32, 0.123);
+vec_externs!(f64, OptionF64, 0.123);
 
-vec_externs!(bool, false);
+vec_externs!(bool, OptionBool, false);
 
 mod macro_ {
     macro_rules! vec_externs {
-        ($ty:ty, $unused_none:expr) => {
+        ($ty:ty, $option_ty:ident, $unused_none:expr) => {
             const _: () = {
                 #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$new")]
                 #[doc(hidden)]
@@ -50,14 +50,15 @@ mod macro_ {
 
                 #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$pop")]
                 #[doc(hidden)]
-                pub extern "C" fn _pop(vec: *mut Vec<$ty>) -> $ty {
+                pub extern "C" fn _pop(vec: *mut Vec<$ty>) -> crate::option::$option_ty {
                     let vec = unsafe { &mut *vec };
                     if let Some(val) = vec.pop() {
-                        crate::option::_set_option_return(true);
-                        val
+                        crate::option::$option_ty { val, is_some: true }
                     } else {
-                        crate::option::_set_option_return(false);
-                        $unused_none
+                        crate::option::$option_ty {
+                            val: $unused_none,
+                            is_some: false,
+                        }
                     }
                 }
 
@@ -65,14 +66,21 @@ mod macro_ {
                 //  side.
                 #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$get")]
                 #[doc(hidden)]
-                pub extern "C" fn _get(vec: *mut Vec<$ty>, index: usize) -> $ty {
+                pub extern "C" fn _get(
+                    vec: *mut Vec<$ty>,
+                    index: usize,
+                ) -> crate::option::$option_ty {
                     let vec = unsafe { &*vec };
                     if let Some(val) = vec.get(index) {
-                        crate::option::_set_option_return(true);
-                        *val
+                        crate::option::$option_ty {
+                            val: *val,
+                            is_some: true,
+                        }
                     } else {
-                        crate::option::_set_option_return(false);
-                        $unused_none
+                        crate::option::$option_ty {
+                            val: $unused_none,
+                            is_some: false,
+                        }
                     }
                 }
 
@@ -80,14 +88,21 @@ mod macro_ {
                 //  side.
                 #[export_name = concat!("__swift_bridge__$Vec_", stringify!($ty), "$get_mut")]
                 #[doc(hidden)]
-                pub extern "C" fn _get_mut(vec: *mut Vec<$ty>, index: usize) -> $ty {
+                pub extern "C" fn _get_mut(
+                    vec: *mut Vec<$ty>,
+                    index: usize,
+                ) -> crate::option::$option_ty {
                     let vec = unsafe { &mut *vec };
                     if let Some(val) = vec.get(index) {
-                        crate::option::_set_option_return(true);
-                        *val
+                        crate::option::$option_ty {
+                            val: *val,
+                            is_some: true,
+                        }
                     } else {
-                        crate::option::_set_option_return(false);
-                        $unused_none
+                        crate::option::$option_ty {
+                            val: $unused_none,
+                            is_some: false,
+                        }
                     }
                 }
 

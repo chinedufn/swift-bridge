@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 
 use quote::ToTokens;
@@ -14,7 +14,6 @@ use crate::parse::{
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
-mod option;
 mod vec;
 
 mod shared_struct;
@@ -290,6 +289,21 @@ func {fn_name} (ptr: UnsafeMutableRawPointer) {{
     )
 }
 
+#[derive(Hash, Eq, PartialEq, Ord, PartialOrd)]
+enum SwiftFuncGenerics {
+    String,
+    Str,
+}
+
+impl SwiftFuncGenerics {
+    fn as_bound(&self) -> &'static str {
+        match self {
+            SwiftFuncGenerics::String => "GenericIntoRustString: IntoRustString",
+            SwiftFuncGenerics::Str => "GenericToRustStr: ToRustStr",
+        }
+    }
+}
+
 fn gen_func_swift_calls_rust(
     function: &ParsedExternFn,
     types: &TypeDeclarations,
@@ -396,20 +410,51 @@ fn gen_func_swift_calls_rust(
     } else {
         "return "
     };
-    for arg in function.func.sig.inputs.iter() {
-        if let Some(BridgedType::StdLib(StdLibType::Str)) = BridgedType::new_with_fn_arg(arg, types)
-        {
-            let arg_name = fn_arg_name(arg).unwrap().to_string();
 
-            call_rust = format!(
-                r#"{maybe_return}{arg}.utf8CString.withUnsafeBufferPointer({{{arg}Ptr in
+    let mut maybe_generics = HashSet::new();
+
+    for arg in function.func.sig.inputs.iter() {
+        let bridged_arg = BridgedType::new_with_fn_arg(arg, types);
+        if bridged_arg.is_none() {
+            continue;
+        }
+        let bridged_arg = bridged_arg.unwrap();
+
+        let arg_name = fn_arg_name(arg).unwrap().to_string();
+
+        if bridged_arg.contains_owned_string_recursive() {
+            maybe_generics.insert(SwiftFuncGenerics::String);
+        } else if bridged_arg.contains_ref_string_recursive() {
+            maybe_generics.insert(SwiftFuncGenerics::Str);
+        }
+
+        // TODO: Refactor to make less duplicative
+        match bridged_arg {
+            BridgedType::StdLib(StdLibType::Str) => {
+                call_rust = format!(
+                    r#"{maybe_return}{arg}.toRustStr({{ {arg}AsRustStr in
 {indentation}        {call_rust}
 {indentation}    }})"#,
-                maybe_return = maybe_return,
-                indentation = indentation,
-                arg = arg_name,
-                call_rust = call_rust
-            );
+                    maybe_return = maybe_return,
+                    indentation = indentation,
+                    arg = arg_name,
+                    call_rust = call_rust
+                );
+            }
+            BridgedType::StdLib(StdLibType::Option(briged_opt))
+                if briged_opt.ty.deref() == &BridgedType::StdLib(StdLibType::Str) =>
+            {
+                call_rust = format!(
+                    r#"{maybe_return}optionalRustStrToRustStr({arg}, {{ {arg}AsRustStr in
+{indentation}        {call_rust}
+{indentation}    }})"#,
+                    maybe_return = maybe_return,
+                    indentation = indentation,
+                    arg = arg_name,
+                    call_rust = call_rust
+                );
+            }
+            _ => {}
         }
     }
 
@@ -423,13 +468,28 @@ fn gen_func_swift_calls_rust(
         function.to_swift_return_type(types)
     };
 
+    let maybe_generics = if maybe_generics.is_empty() {
+        "".to_string()
+    } else {
+        let mut m = vec![];
+
+        let generics: Vec<SwiftFuncGenerics> = maybe_generics.into_iter().collect();
+
+        for generic in generics {
+            m.push(generic.as_bound())
+        }
+
+        format!("<{}>", m.join(", "))
+    };
+
     let func_definition = format!(
-        r#"{indentation}{maybe_static_class_func}{swift_class_func_name}({params}){maybe_ret} {{
+        r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}){maybe_ret} {{
 {indentation}    {call_rust}
 {indentation}}}"#,
         indentation = indentation,
         maybe_static_class_func = maybe_static_class_func,
         swift_class_func_name = swift_class_func_name,
+        maybe_generics = maybe_generics,
         params = params,
         maybe_ret = maybe_return,
         call_rust = call_rust
@@ -460,8 +520,7 @@ fn gen_function_exposes_swift_to_rust(
     if let Some(built_in) = BridgedType::new_with_return_type(&func.sig.output, types) {
         call_fn = built_in.convert_swift_expression_to_ffi_compatible(
             &call_fn,
-            func.host_lang,
-            swift_bridge_path,
+            TypePosition::FnReturn(func.host_lang),
         );
 
         if let Some(associated_type) = func.associated_type.as_ref() {

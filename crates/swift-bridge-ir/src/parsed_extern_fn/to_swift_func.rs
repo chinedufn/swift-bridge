@@ -60,7 +60,7 @@ impl ParsedExternFn {
         include_receiver_if_present: bool,
         include_var_name: bool,
         types: &TypeDeclarations,
-        swift_bridge_path: &Path,
+        _swift_bridge_path: &Path,
     ) -> String {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
@@ -106,8 +106,7 @@ impl ParsedExternFn {
                             if self.host_lang.is_rust() {
                                 bridged_ty.convert_swift_expression_to_ffi_compatible(
                                     &arg,
-                                    self.host_lang,
-                                    swift_bridge_path,
+                                    TypePosition::FnArg(self.host_lang),
                                 )
                             } else {
                                 bridged_ty.convert_ffi_value_to_swift_value(

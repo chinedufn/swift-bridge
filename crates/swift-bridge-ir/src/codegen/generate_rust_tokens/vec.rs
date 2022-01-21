@@ -1,15 +1,11 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::Path;
 
 /// Generate the functions that Swift calls uses inside of the corresponding class for an opaque
 /// Rust type's Vectorizable implementation.
 ///
 /// So inside of `extension MyRustType: Vectorizable {}` on the Swift side.
-pub(super) fn generate_vec_of_opaque_rust_type_functions(
-    ty: &Ident,
-    swift_bridge_path: &Path,
-) -> TokenStream {
+pub(super) fn generate_vec_of_opaque_rust_type_functions(ty: &Ident) -> TokenStream {
     // examples:
     // "__swift_bridge__$Vec_MyRustType$new"
     // "__swift_bridge__$Vec_MyRustType$drop"
@@ -49,10 +45,8 @@ pub(super) fn generate_vec_of_opaque_rust_type_functions(
             pub extern "C" fn _get(vec: *const Vec<super::#ty>, index: usize) -> *const super::#ty {
                 let vec = unsafe { & *vec };
                 if let Some(val) = vec.get(index) {
-                    #swift_bridge_path::option::_set_option_return(true);
                     val as *const super::#ty
                 } else {
-                    #swift_bridge_path::option::_set_option_return(false);
                     std::ptr::null()
                 }
             }
@@ -62,10 +56,8 @@ pub(super) fn generate_vec_of_opaque_rust_type_functions(
             pub extern "C" fn _get_mut(vec: *mut Vec<super::#ty>, index: usize) -> *mut super::#ty {
                 let vec = unsafe { &mut *vec };
                 if let Some(val) = vec.get_mut(index) {
-                    #swift_bridge_path::option::_set_option_return(true);
                     val as *mut super::#ty
                 } else {
-                    #swift_bridge_path::option::_set_option_return(false);
                     std::ptr::null::<super::#ty>() as *mut super::#ty
                 }
             }
@@ -81,10 +73,8 @@ pub(super) fn generate_vec_of_opaque_rust_type_functions(
             pub extern "C" fn _pop(vec: *mut Vec<super::#ty>) -> *mut super::#ty {
                 let vec = unsafe { &mut *vec };
                 if let Some(val) = vec.pop() {
-                    #swift_bridge_path::option::_set_option_return(true);
                     Box::into_raw(Box::new(val))
                 } else {
-                    #swift_bridge_path::option::_set_option_return(false);
                     std::ptr::null::<super::#ty>() as *mut super::#ty
                 }
             }
@@ -134,13 +124,9 @@ mod tests {
                 #[export_name = "__swift_bridge__$Vec_ARustType$get"]
                 pub extern "C" fn _get(vec: *const Vec<super::ARustType>, index: usize) -> *const super::ARustType {
                     let vec = unsafe { & *vec };
-                    // TODO: No need to use _set_option_return since on the Swift side we're just
-                    //  checking whether or not the pointer is null
                     if let Some(val) = vec.get(index) {
-                        swift_bridge::option::_set_option_return(true);
                         val as *const super::ARustType
                     } else {
-                        swift_bridge::option::_set_option_return(false);
                         std::ptr::null()
                     }
                 }
@@ -149,13 +135,9 @@ mod tests {
                 #[export_name = "__swift_bridge__$Vec_ARustType$get_mut"]
                 pub extern "C" fn _get_mut(vec: *mut Vec<super::ARustType>, index: usize) -> *mut super::ARustType {
                     let vec = unsafe { &mut *vec };
-                    // TODO: No need to use _set_option_return since on the Swift side we're just
-                    //  checking whether or not the pointer is null
                     if let Some(val) = vec.get_mut(index) {
-                        swift_bridge::option::_set_option_return(true);
                         val as *mut super::ARustType
                     } else {
-                        swift_bridge::option::_set_option_return(false);
                         std::ptr::null::<super::ARustType>() as *mut super::ARustType
                     }
                 }
@@ -170,13 +152,9 @@ mod tests {
                 #[export_name = "__swift_bridge__$Vec_ARustType$pop"]
                 pub extern "C" fn _pop(vec: *mut Vec<super::ARustType>) -> *mut super::ARustType {
                     let vec = unsafe { &mut *vec };
-                    // TODO: No need to use _set_option_return since on the Swift side we're just
-                    //  checking whether or not the pointer is null
                     if let Some(val) = vec.pop() {
-                        swift_bridge::option::_set_option_return(true);
                         Box::into_raw(Box::new(val))
                     } else {
-                        swift_bridge::option::_set_option_return(false);
                         std::ptr::null::<super::ARustType>() as *mut super::ARustType
                     }
                 }
@@ -190,10 +168,10 @@ mod tests {
         };
 
         assert_tokens_eq(
-            &generate_vec_of_opaque_rust_type_functions(
-                &Ident::new("ARustType", Span::call_site()),
-                &syn::parse2(quote! { swift_bridge }).unwrap(),
-            ),
+            &generate_vec_of_opaque_rust_type_functions(&Ident::new(
+                "ARustType",
+                Span::call_site(),
+            )),
             &expected,
         );
     }
