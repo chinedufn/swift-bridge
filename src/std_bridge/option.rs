@@ -1,32 +1,90 @@
-use std::cell::Cell;
-
-const CELL: Cell<bool> = Cell::new(false);
-
-thread_local! {
-    pub static OPTION_ARGS: [Cell<bool>; 256] = [CELL; 256];
-    pub static OPTION_RETURN: Cell<bool> = CELL;
+#[repr(C)]
+#[doc(hidden)]
+pub struct OptionU8 {
+    pub val: u8,
+    pub is_some: bool,
 }
 
+#[repr(C)]
 #[doc(hidden)]
-#[no_mangle]
-pub extern "C" fn _get_option_arg(idx: u8) -> bool {
-    OPTION_ARGS.with(|o| o[idx as usize].get())
+pub struct OptionI8 {
+    pub val: i8,
+    pub is_some: bool,
 }
 
+#[repr(C)]
 #[doc(hidden)]
-#[no_mangle]
-pub extern "C" fn _set_option_arg(idx: u8, bool: bool) {
-    OPTION_ARGS.with(|o| o[idx as usize].set(bool));
+pub struct OptionU16 {
+    pub val: u16,
+    pub is_some: bool,
 }
 
+#[repr(C)]
 #[doc(hidden)]
-#[no_mangle]
-pub extern "C" fn _get_option_return() -> bool {
-    OPTION_RETURN.with(|o| o.get())
+pub struct OptionI16 {
+    pub val: i16,
+    pub is_some: bool,
 }
 
-#[no_mangle]
+#[repr(C)]
 #[doc(hidden)]
-pub extern "C" fn _set_option_return(bool: bool) {
-    OPTION_RETURN.with(|o| o.set(bool));
+pub struct OptionU32 {
+    pub val: u32,
+    pub is_some: bool,
+}
+
+#[repr(C)]
+#[doc(hidden)]
+pub struct OptionI32 {
+    pub val: i32,
+    pub is_some: bool,
+}
+
+#[repr(C)]
+#[doc(hidden)]
+pub struct OptionU64 {
+    pub val: u64,
+    pub is_some: bool,
+}
+
+#[repr(C)]
+#[doc(hidden)]
+pub struct OptionI64 {
+    pub val: i64,
+    pub is_some: bool,
+}
+
+#[repr(C)]
+#[doc(hidden)]
+pub struct OptionUsize {
+    pub val: usize,
+    pub is_some: bool,
+}
+
+#[repr(C)]
+#[doc(hidden)]
+pub struct OptionIsize {
+    pub val: isize,
+    pub is_some: bool,
+}
+
+#[repr(C)]
+#[doc(hidden)]
+pub struct OptionF32 {
+    pub val: f32,
+    pub is_some: bool,
+}
+
+#[repr(C)]
+#[doc(hidden)]
+pub struct OptionF64 {
+    pub val: f64,
+    pub is_some: bool,
+}
+
+#[repr(C)]
+#[doc(hidden)]
+pub struct OptionBool {
+    pub val: bool,
+    pub is_some: bool,
 }

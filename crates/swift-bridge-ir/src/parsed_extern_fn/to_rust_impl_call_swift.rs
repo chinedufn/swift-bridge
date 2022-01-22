@@ -1,4 +1,4 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType, TypePosition};
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::TokenStream;
@@ -64,7 +64,8 @@ impl ParsedExternFn {
         };
 
         if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
-            inner = built_in.convert_ffi_value_to_rust_value(swift_bridge_path, &inner, true);
+            inner = built_in
+                .convert_ffi_value_to_rust_value(&inner, TypePosition::FnReturn(self.host_lang));
         } else {
             todo!("Push to ParsedErrors")
         }

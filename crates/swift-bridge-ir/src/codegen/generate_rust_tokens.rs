@@ -11,7 +11,6 @@ use crate::codegen::generate_rust_tokens::vec::generate_vec_of_opaque_rust_type_
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
-mod option;
 mod shared_struct;
 mod vec;
 
@@ -91,10 +90,7 @@ impl ToTokens for SwiftBridgeModule {
                                 }
                             };
 
-                            let vec_functions = generate_vec_of_opaque_rust_type_functions(
-                                ty_name,
-                                &self.swift_bridge_path,
-                            );
+                            let vec_functions = generate_vec_of_opaque_rust_type_functions(ty_name);
 
                             if !ty.already_declared {
                                 extern_rust_fn_tokens.push(free);

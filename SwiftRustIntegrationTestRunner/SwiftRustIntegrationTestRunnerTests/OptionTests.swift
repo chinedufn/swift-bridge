@@ -17,24 +17,81 @@ class OptionTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
     
-    func testSwiftCallRustReturnOptionU8() throws {
-        XCTAssertEqual(create_rust_option_u8_some(), 70)
-        XCTAssertEqual(create_rust_option_u8_none(), nil)
+    func testSwiftCallRustOptionU8() throws {
+        XCTAssertEqual(rust_reflect_option_u8(70), 70)
+        XCTAssertEqual(rust_reflect_option_u8(nil), nil)
+    }
+     
+    func testSwiftCallRustOptionI8() throws {
+        XCTAssertEqual(rust_reflect_option_i8(70), 70)
+        XCTAssertEqual(rust_reflect_option_i8(nil), nil)
+    }
+     
+    func testSwiftCallRustOptionU16() throws {
+        XCTAssertEqual(rust_reflect_option_u16(70), 70)
+        XCTAssertEqual(rust_reflect_option_u16(nil), nil)
+    }
+     
+    func testSwiftCallRustOptionI16() throws {
+        XCTAssertEqual(rust_reflect_option_i16(70), 70)
+        XCTAssertEqual(rust_reflect_option_i16(nil), nil)
+    }
+
+    func testSwiftCallRustOptionU32() throws {
+        XCTAssertEqual(rust_reflect_option_u32(70), 70)
+        XCTAssertEqual(rust_reflect_option_u32(nil), nil)
+    }
+     
+    func testSwiftCallRustOptionI32() throws {
+        XCTAssertEqual(rust_reflect_option_i32(70), 70)
+        XCTAssertEqual(rust_reflect_option_i32(nil), nil)
+    }
+
+    func testSwiftCallRustOptionU64() throws {
+        XCTAssertEqual(rust_reflect_option_u64(70), 70)
+        XCTAssertEqual(rust_reflect_option_u64(nil), nil)
+    }
+     
+    func testSwiftCallRustOptionI64() throws {
+        XCTAssertEqual(rust_reflect_option_i64(70), 70)
+        XCTAssertEqual(rust_reflect_option_i64(nil), nil)
+    }
+
+    func testSwiftCallRustOptionF32() throws {
+        XCTAssertEqual(rust_reflect_option_f32(70.0), 70.0)
+        XCTAssertEqual(rust_reflect_option_f32(nil), nil)
+    }
+     
+    func testSwiftCallRustOptionF64() throws {
+        XCTAssertEqual(rust_reflect_option_f64(70.0), 70.0)
+        XCTAssertEqual(rust_reflect_option_f64(nil), nil)
+    }
+
+    func testSwiftCallRustOptionBool() throws {
+        XCTAssertEqual(rust_reflect_option_bool(true), true)
+        XCTAssertEqual(rust_reflect_option_bool(false), false)
+        XCTAssertEqual(rust_reflect_option_bool(nil), nil)
     }
     
     func testSwiftCallRustReturnOptionString() throws {
-        let string = create_rust_option_string_some()!
-        XCTAssertEqual(string.toString(), "hello world")
+        let string = rust_reflect_option_string("hello world")
+        XCTAssertEqual(string!.toString(), "hello world")
         
-        XCTAssertNil(create_rust_option_string_none())
+        let none: String? = nil
+        XCTAssertNil(rust_reflect_option_string(none))
     }
     
-    
+    /// We use an `Option<&'static str>` that we create on the Rust side so that
+    ///  we don't run into any lifetime issues.
     func testSwiftCallRustReturnOptionStr() throws {
-        let str = create_rust_option_str_some()!
-        XCTAssertEqual(str.toString(), "hello")
+        let str = rust_create_option_static_str()
+        XCTAssertEqual(str!.toString(), "hello")
         
-        XCTAssertNil(create_rust_option_str_none())
+        let reflected = rust_reflect_option_str(str)
+        XCTAssertEqual(reflected!.toString(), "hello")
+        
+        let none: RustStr? = nil
+        XCTAssertNil(rust_reflect_option_str(none))
     }
     
     
@@ -42,3 +99,4 @@ class OptionTests: XCTestCase {
         run_option_tests()
     }
 }
+

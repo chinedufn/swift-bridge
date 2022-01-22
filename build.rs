@@ -72,10 +72,21 @@ fn core_c_header() -> String {
 typedef struct RustStr { uint8_t* const start; uintptr_t len; } RustStr;
 typedef struct __private__FfiSlice { void* const start; uintptr_t len; } __private__FfiSlice;
 typedef struct __private__PointerToSwiftType { void* ptr; } __private__RustHandleToSwiftType;
-bool _get_option_arg(uint8_t is_some);
-void _set_option_arg(uint8_t idx, bool is_some);
-bool _get_option_return();
-void _set_option_return(bool is_some);
+void* __swift_bridge__null_pointer(void);
+
+typedef struct __private__OptionU8 { uint8_t val; bool is_some; } __private__OptionU8;
+typedef struct __private__OptionI8 { int8_t val; bool is_some; } __private__OptionI8;
+typedef struct __private__OptionU16 { uint16_t val; bool is_some; } __private__OptionU16;
+typedef struct __private__OptionI16 { int16_t val; bool is_some; } __private__OptionI16;
+typedef struct __private__OptionU32 { uint32_t val; bool is_some; } __private__OptionU32;
+typedef struct __private__OptionI32 { int32_t val; bool is_some; } __private__OptionI32;
+typedef struct __private__OptionU64 { uint64_t val; bool is_some; } __private__OptionU64;
+typedef struct __private__OptionI64 { int64_t val; bool is_some; } __private__OptionI64;
+typedef struct __private__OptionUsize { uintptr_t val; bool is_some; } __private__OptionUsize;
+typedef struct __private__OptionIsize { intptr_t val; bool is_some; } __private__OptionIsize;
+typedef struct __private__OptionF32 { float val; bool is_some; } __private__OptionF32;
+typedef struct __private__OptionF64 { double val; bool is_some; } __private__OptionDouble;
+typedef struct __private__OptionBool { bool val; bool is_some; } __private__OptionBool;
 "#
     .to_string();
 
@@ -102,19 +113,29 @@ void _set_option_return(bool is_some);
 
 /// Headers for Vec<T> where T is a primitive such as u8, i32, bool
 fn vec_of_primitive_headers(rust_ty: &str, c_ty: &str) -> String {
+    let mut chars = rust_ty.chars();
+
+    // u8 -> U8, bool -> Bool, etc...
+    let capatilized_first_letter =
+        chars.next().unwrap().to_string().to_uppercase() + chars.as_str();
+
+    // __private__OptionU8 ... etc
+    let option_ty = format!("{}{}", "__private__Option", capatilized_first_letter);
+
     format!(
         r#"
 void* __swift_bridge__$Vec_{rust_ty}$new();
 void __swift_bridge__$Vec_{rust_ty}$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_{rust_ty}$len(void* const vec);
 void __swift_bridge__$Vec_{rust_ty}$push(void* const vec, {c_ty} val);
-{c_ty} __swift_bridge__$Vec_{rust_ty}$pop(void* const vec);
-{c_ty} __swift_bridge__$Vec_{rust_ty}$get(void* const vec, uintptr_t index);
-{c_ty} __swift_bridge__$Vec_{rust_ty}$get_mut(void* const vec, uintptr_t index);
+{option_ty} __swift_bridge__$Vec_{rust_ty}$pop(void* const vec);
+{option_ty} __swift_bridge__$Vec_{rust_ty}$get(void* const vec, uintptr_t index);
+{option_ty} __swift_bridge__$Vec_{rust_ty}$get_mut(void* const vec, uintptr_t index);
 {c_ty} const * __swift_bridge__$Vec_{rust_ty}$as_ptr(void* const vec);
 "#,
         rust_ty = rust_ty,
-        c_ty = c_ty
+        c_ty = c_ty,
+        option_ty = option_ty
     )
 }
 
@@ -135,15 +156,30 @@ extension {swift_ty}: Vectorizable {{
     }}
 
     static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Optional<Self> {{
-        __swift_bridge__$Vec_{rust_ty}$pop(vecPtr)
+        let val = __swift_bridge__$Vec_{rust_ty}$pop(vecPtr)
+        if val.is_some {{
+            return val.val
+        }} else {{
+            return nil
+        }}
     }}
 
     static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {{
-        __swift_bridge__$Vec_{rust_ty}$get(vecPtr, index)
+        let val = __swift_bridge__$Vec_{rust_ty}$get(vecPtr, index)
+        if val.is_some {{
+            return val.val
+        }} else {{
+            return nil
+        }}
     }}
 
     static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {{
-        __swift_bridge__$Vec_{rust_ty}$get_mut(vecPtr, index)
+        let val = __swift_bridge__$Vec_{rust_ty}$get_mut(vecPtr, index)
+        if val.is_some {{
+            return val.val
+        }} else {{
+            return nil
+        }}
     }}
 
     static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {{

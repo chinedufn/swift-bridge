@@ -19,21 +19,11 @@ class RustVec<T: Vectorizable> {
     }
 
     func pop () -> Optional<T> {
-        let val = T.vecOfSelfPop(vecPtr: ptr)
-        if _get_option_return() {
-            return val;
-        } else {
-            return nil
-        }
+        T.vecOfSelfPop(vecPtr: ptr)
     }
 
     func get(index: UInt) -> Optional<T.SelfRef> {
-        let val = T.vecOfSelfGet(vecPtr: ptr, index: index)
-        if _get_option_return() {
-            return val;
-        } else {
-            return nil
-        }
+         T.vecOfSelfGet(vecPtr: ptr, index: index)
     }
 
     /// Rust returns a UInt, but we cast to an Int because many Swift APIs such as

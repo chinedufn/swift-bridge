@@ -30,8 +30,8 @@ mod extern_rust_fn_with_owned_string_argument {
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
-func some_function(_ arg: RustString) {
-    __swift_bridge__$some_function({arg.isOwned = false; return arg.ptr}())
+func some_function<GenericIntoRustString: IntoRustString>(_ arg: GenericIntoRustString) {
+    __swift_bridge__$some_function({ let rustString = arg.intoRustString(); rustString.isOwned = false; return rustString.ptr }())
 }
 "#,
         )
@@ -82,12 +82,19 @@ mod extern_rust_fn_with_str_argument {
         })
     }
 
+    // TODO: Think through whether or not we should generate two functions here..
+    //  One that takes a RustStr and one that takes a String.
+    //  One consideration is that this would mean that if we took 5 string args there would
+    //  be 2^5 = 32 different function signatures to generate.
+    //  How would that impact the Swift's code's compile times? Needs research.
+    //  Actually... we can just use generics here.. So have a trait AsRustStr that String and
+    //  RustStr both implement.
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
-func some_function(_ arg: String) {
-    arg.utf8CString.withUnsafeBufferPointer({argPtr in
-        __swift_bridge__$some_function(RustStr(start: UnsafeMutableRawPointer(mutating: argPtr.baseAddress!).assumingMemoryBound(to: UInt8.self), len: UInt(arg.count)))
+func some_function<GenericToRustStr: ToRustStr>(_ arg: GenericToRustStr) {
+    arg.toRustStr({ argAsRustStr in
+        __swift_bridge__$some_function(argAsRustStr)
     })
 }
 "#,

@@ -203,10 +203,8 @@ mod extern_rust_fn_return_vec_of_opaque_rust_type {
                 pub extern "C" fn _get(vec: *const Vec<super::MyRustType>, index: usize) -> *const super::MyRustType {
                     let vec = unsafe { & *vec };
                     if let Some(val) = vec.get(index) {
-                        swift_bridge::option::_set_option_return(true);
                         val as *const super::MyRustType
                     } else {
-                        swift_bridge::option::_set_option_return(false);
                         std::ptr::null()
                     }
                 }
@@ -216,10 +214,8 @@ mod extern_rust_fn_return_vec_of_opaque_rust_type {
                 pub extern "C" fn _get_mut(vec: *mut Vec<super::MyRustType>, index: usize) -> *mut super::MyRustType {
                     let vec = unsafe { &mut *vec };
                     if let Some(val) = vec.get_mut(index) {
-                        swift_bridge::option::_set_option_return(true);
                         val as *mut super::MyRustType
                     } else {
-                        swift_bridge::option::_set_option_return(false);
                         std::ptr::null::<super::MyRustType>() as *mut super::MyRustType
                     }
                 }
@@ -235,10 +231,8 @@ mod extern_rust_fn_return_vec_of_opaque_rust_type {
                 pub extern "C" fn _pop(vec: *mut Vec<super::MyRustType>) -> *mut super::MyRustType {
                     let vec = unsafe { &mut *vec };
                     if let Some(val) = vec.pop() {
-                        swift_bridge::option::_set_option_return(true);
                         Box::into_raw(Box::new(val))
                     } else {
-                        swift_bridge::option::_set_option_return(false);
                         std::ptr::null::<super::MyRustType>() as *mut super::MyRustType
                     }
                 }
