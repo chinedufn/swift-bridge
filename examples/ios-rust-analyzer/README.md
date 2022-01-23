@@ -5,6 +5,9 @@ A simple demo of running [rust-analyzer](https://github.com/rust-analyzer/rust-a
 ## To Run
 
 ```
+git clone https://github.com/chinedufn/swift-bridge
+cd swift-bridge/examples/ios-rust-analyzer
+
 open IosRustAnalyzer/IosRustAnalyzer.xcodeproj
 # Click to "Run" button at the top left of Xcode
 ```

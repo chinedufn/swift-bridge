@@ -9,6 +9,9 @@ three panes.
 ## To Run
 
 ```
+git clone https://github.com/chinedufn/swift-bridge
+cd swift-bridge/examples/codegen-visualizer
+
 open CodegenVisualizer/CodegenVisualizer.xcodeproj
 # Click to "Run" button at the top left of Xcode
 ```

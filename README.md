@@ -6,6 +6,21 @@
 
 You can find information about using Rust and Swift together in [The `swift-bridge` book](https://chinedufn.github.io/swift-bridge).
 
+## Quick Setup
+
+The `swift-bridge` repository contains [example applications](examples) that you use to quickly try out the library,
+or as a starting point for your own `Swift` + `Rust` based application.
+
+For example, here's how to run the [`ios-rust-analyzer`](examples/ios-rust-analyzer) example project locally.
+
+```
+git clone https://github.com/chinedufn/swift-bridge
+cd swift-bridge/examples/ios-rust-analyzer
+
+open IosRustAnalyzer/IosRustAnalyzer.xcodeproj
+# Click to "Run" button at the top left of Xcode
+```
+
 ## Quick Peek
 
 Share types and functions between Swift and Rust.
@@ -46,7 +61,9 @@ struct ARustStack {
     stack: Vec<String>
 }
 impl ARustStack {
-    // ...
+    fn new() -> ARustStack { /* ... */ }
+    fn push(&mut self, val: String) { /* ... */ }
+    fn pop(&mut self) -> Option<String> { /* ... */ }
 }
 ```
 
@@ -90,7 +107,7 @@ In addition to allowing you to share your own custom types between Rust and Swif
 | bool                                                            | Bool                                                             |                     |
 | String, &String, &mut String                                    | RustString, RustStringRef, RustStringRefMut                      |                     |
 | &str                                                            | RustStr                                                          |                     |
-| Vec<T>                                                          | RustVec\<T>                                                      |                     |
+| Vec\<T>                                                         | RustVec\<T>                                                      |                     |
 | SwiftArray\<T>                                                  | Array\<T>                                                        | Not yet implemented |
 | &[T]                                                            | UnsafeBufferPointer\<T>                                          |                     |
 | &mut [T]                                                        | UnsafeMutableBufferPointer\<T>                                   | Not yet implemented |
