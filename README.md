@@ -6,7 +6,7 @@
 
 You can find information about using Rust and Swift together in [The `swift-bridge` book](https://chinedufn.github.io/swift-bridge).
 
-## Quick Setup
+## Quick Start
 
 The `swift-bridge` repository contains [example applications](examples) that you use to quickly try out the library,
 or as a starting point for your own `Swift` + `Rust` based application.
@@ -20,6 +20,10 @@ cd swift-bridge/examples/ios-rust-analyzer
 open IosRustAnalyzer/IosRustAnalyzer.xcodeproj
 # Click to "Run" button at the top left of Xcode
 ```
+
+---
+
+Alternatively, you can use the [tutorial](https://chinedufn.github.io/swift-bridge/tutorial/running-rust-analyzer-on-an-iphone/index.html) to learn how to create a `Swift` + `Rust` Xcode project from scratch.
 
 ## Quick Peek
 
