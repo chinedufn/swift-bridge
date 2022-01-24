@@ -1400,6 +1400,30 @@ impl BridgedType {
             BridgedType::Foreign(CustomBridgedType::Opaque(_)) => false,
         }
     }
+
+    /// Convert a rust expression into this type using
+    pub fn rust_expression_into(&self, expression: &TokenStream) -> TokenStream {
+        match self {
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                let struct_name = &shared_struct.name;
+
+                let maybe_super = if shared_struct.already_declared {
+                    quote! { super:: }
+                } else {
+                    quote! {}
+                };
+
+                quote! {
+                    { let val: #maybe_super #struct_name = #expression.into(); val }
+                }
+            }
+            // TODO: Instead of this catchall.. explicitly match on all variants and use
+            //  a similar approach to how we handle shared structs
+            _ => {
+                quote! { #expression.into() }
+            }
+        }
+    }
 }
 
 struct UnusedOptionNoneValue {
