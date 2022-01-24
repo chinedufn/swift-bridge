@@ -23,3 +23,12 @@ pub fn bridge(
     };
     tokens.into()
 }
+
+#[cfg(test)]
+mod ui_tests {
+    #[test]
+    fn ui() {
+        let t = trybuild::TestCases::new();
+        t.compile_fail("tests/ui/*.rs");
+    }
+}

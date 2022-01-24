@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
 
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
 use syn::{FnArg, ForeignItemType, Pat, PatType, Path, ReturnType, Type};
@@ -950,6 +950,7 @@ impl BridgedType {
         &self,
         value: &TokenStream,
         type_pos: TypePosition,
+        span: Span,
     ) -> TokenStream {
         match self {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
@@ -967,24 +968,24 @@ impl BridgedType {
                 | StdLibType::F32
                 | StdLibType::F64
                 | StdLibType::Bool => {
-                    quote! { #value }
+                    quote_spanned! {span=> #value }
                 }
                 StdLibType::Pointer(_) => {
-                    quote! { #value }
+                    quote_spanned! {span=> #value }
                 }
                 StdLibType::RefSlice(_reference) => {
-                    quote! { #value.as_slice() }
+                    quote_spanned! {span=> #value.as_slice() }
                 }
                 StdLibType::Str => {
-                    quote! { #value.to_str() }
+                    quote_spanned! {span=> #value.to_str() }
                 }
                 StdLibType::String => {
-                    quote! {
+                    quote_spanned! {span=>
                         unsafe { Box::from_raw(#value).0 }
                     }
                 }
                 StdLibType::Vec(_) => {
-                    quote! {
+                    quote_spanned! {span=>
                         unsafe { Box::from_raw(#value) }
                     }
                 }
@@ -993,7 +994,7 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
-                quote! {
+                quote_spanned! {span=>
                     #value.into_rust_repr()
                 }
             }

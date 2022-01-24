@@ -2,8 +2,9 @@ use crate::bridged_type::{pat_type_pat_is_self, BridgedType, TypePosition};
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote, ToTokens};
+use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
+use syn::spanned::Spanned;
 use syn::{FnArg, ForeignItemFn, Lifetime, Path, ReturnType, Token, Type};
 
 mod to_extern_c_fn;
@@ -142,14 +143,14 @@ impl ParsedExternFn {
 
 impl ParsedExternFn {
     // extern Rust:
-    // fn foo (&self, arg1: u8, arg2: u32, &SomeType)
+    // fn foo (&self, arg1: u8, arg2: u32, bar: &SomeType)
     //  becomes..
-    // arg1, arg2, & unsafe { Box::from_raw(bar }
+    // arg1, arg2, & unsafe { Box::from_raw(bar) }
     //
     // extern Swift:
     // fn foo (&self, arg1: u8, arg2: u32, &SomeType)
     //  becomes..
-    // self.0, arg1, arg2, & unsafe { Box::from_raw(bar }
+    // self.0, arg1, arg2, & unsafe { Box::from_raw(bar) }
     pub fn to_call_rust_args(
         &self,
         swift_bridge_path: &Path,
@@ -182,10 +183,13 @@ impl ParsedExternFn {
                             arg = built_in.convert_ffi_value_to_rust_value(
                                 &arg,
                                 TypePosition::FnArg(self.host_lang),
+                                pat_ty.ty.span(),
                             );
 
                             if self.args_into_contains_arg(fn_arg) {
-                                arg = quote! {#arg.into()};
+                                arg = quote_spanned! {pat_ty.span()=>
+                                    #arg.into()
+                                };
                             }
                         } else {
                             arg = built_in.convert_rust_value_to_ffi_compatible_value(
