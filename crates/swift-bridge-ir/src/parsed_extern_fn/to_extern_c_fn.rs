@@ -1,10 +1,9 @@
 use crate::bridged_type::BridgedType;
-use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
+use crate::parse::{HostLang, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote, ToTokens};
-use std::ops::Deref;
-use syn::{Path, ReturnType, Type};
+use quote::quote;
+use syn::Path;
 
 impl ParsedExternFn {
     /// Generates:
@@ -82,41 +81,13 @@ impl ParsedExternFn {
             self.call_function_tokens(&call_fn)
         };
 
+        let return_ty = self.return_ty_built_in(types).unwrap();
+
         if self.into_return_type {
-            call_fn = quote! { #call_fn.into() };
+            call_fn = return_ty.rust_expression_into(&call_fn);
         }
 
-        if let Some(ty) = self.return_ty_built_in(types) {
-            call_fn = ty.convert_rust_value_to_ffi_compatible_value(swift_bridge_path, &call_fn);
-        } else {
-            if let ReturnType::Type(_, return_ty) = &sig.output {
-                match return_ty.deref() {
-                    Type::Reference(reference) => {
-                        let is_const_ptr = reference.mutability.is_none();
-                        let ty = &reference.elem;
-
-                        let ptr = if is_const_ptr {
-                            quote! { *const }
-                        } else {
-                            quote! { *mut }
-                        };
-
-                        call_fn = quote! { #call_fn as #ptr super:: #ty };
-                    }
-                    _ => {
-                        let ty_string = return_ty.deref().to_token_stream().to_string();
-                        match types.get(&ty_string).unwrap() {
-                            TypeDeclaration::Shared(SharedTypeDeclaration::Struct(_)) => {}
-                            TypeDeclaration::Opaque(opaque) => {
-                                if opaque.host_lang.is_rust() {
-                                    call_fn = quote! { Box::into_raw(Box::new(#call_fn)) as *mut super::#return_ty };
-                                }
-                            }
-                        };
-                    }
-                }
-            }
-        }
+        call_fn = return_ty.convert_rust_value_to_ffi_compatible_value(swift_bridge_path, &call_fn);
 
         call_fn
     }

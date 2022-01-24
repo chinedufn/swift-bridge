@@ -67,3 +67,53 @@ void __swift_bridge__$some_function(struct __swift_bridge__$SomeStruct some_arg,
         .test();
     }
 }
+
+/// Verify that we explicitly case to the struct  when generating `into_return_type` code for a
+/// Rust function that returns a shared struct.
+/// This explicit conversion into the struct avoids a type inference issues when converting the
+/// shared struct to its FFI representation so that we can return it.
+mod into_return_type_attribute_for_shared_struct {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(swift_name = "StructRename1")]
+                struct StructName1;
+
+                extern "Rust" {
+                    #[swift_bridge(into_return_type)]
+                    fn some_function() -> StructName1;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            fn __swift_bridge__some_function() -> __swift_bridge__StructName1 {
+                 { let val: StructName1 = super::some_function().into(); val }.into_ffi_repr()
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::SkipTest
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn shared_struct_swift_name_attribute() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
