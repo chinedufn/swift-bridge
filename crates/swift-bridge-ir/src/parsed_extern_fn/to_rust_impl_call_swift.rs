@@ -64,8 +64,11 @@ impl ParsedExternFn {
         };
 
         if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
-            inner = built_in
-                .convert_ffi_value_to_rust_value(&inner, TypePosition::FnReturn(self.host_lang));
+            inner = built_in.convert_ffi_value_to_rust_value(
+                &inner,
+                TypePosition::FnReturn(self.host_lang),
+                sig.output.span(),
+            );
         } else {
             todo!("Push to ParsedErrors")
         }

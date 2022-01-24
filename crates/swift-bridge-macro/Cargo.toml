@@ -15,3 +15,7 @@ proc-macro2 = "1"
 quote = "1"
 syn = { version = "1", features = ["full"] }
 swift-bridge-ir = {version = "0.1.20", path = "../swift-bridge-ir"}
+
+[dev-dependencies]
+swift-bridge = {path = "../../"}
+trybuild = "1.0"

@@ -1,0 +1,5 @@
+error[E0308]: mismatched types
+  --> tests/ui/incorrect-argument-type.rs:12:16
+   |
+12 |         fn fn1(arg: &str);
+   |                ^^^^^^ expected `u16`, found `&str`
