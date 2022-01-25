@@ -1,4 +1,4 @@
-mod expose_opaque_rust_struct;
+mod expose_opaque_rust_type;
 mod import_opaque_swift_class;
 
 mod bool;

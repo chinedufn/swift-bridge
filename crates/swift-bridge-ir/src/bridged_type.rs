@@ -178,6 +178,12 @@ pub(crate) struct OpaqueForeignType {
     pub mutable: bool,
 }
 
+impl OpaqueForeignType {
+    fn swift_name(&self) -> String {
+        format!("{}", self.ty.ident)
+    }
+}
+
 impl Debug for OpaqueForeignType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OpaqueForeignType")
@@ -547,8 +553,10 @@ impl BridgedType {
                     ))) => {
                         todo!("Option<SharedStruct> is not yet supported")
                     }
-                    BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
-                        todo!("Option<OpaqueType> is not yet supported")
+                    BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                        let type_name = &opaque.ident;
+
+                        quote! { *mut super::#type_name }
                     }
                 },
             },
