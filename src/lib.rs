@@ -9,6 +9,9 @@ mod std_bridge;
 pub use self::std_bridge::{option, string};
 
 #[doc(hidden)]
+pub mod async_runtime;
+
+#[doc(hidden)]
 #[repr(C)]
 pub struct FfiSlice<T> {
     pub start: *const T,
@@ -57,6 +60,7 @@ pub trait SharedStruct {
     /// ```
     type FfiRepr;
 }
+
 
 #[no_mangle]
 #[doc(hidden)]

@@ -19,5 +19,7 @@ crate-type = ["staticlib"]
 swift-bridge-build = {path = "../swift-bridge-build"}
 
 [dependencies]
-lazy_static = "1.4.0"
+# FIXME: Remove this .. just quickly experimenting with async await support..
+# but we'll add our own executor.
+futures = "0.3"
 swift-bridge = {path = "../../"}
