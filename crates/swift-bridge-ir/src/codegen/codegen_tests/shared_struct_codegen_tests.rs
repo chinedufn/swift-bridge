@@ -54,7 +54,7 @@ mod generates_struct_to_and_from_ffi_conversions_no_fields {
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
-struct SomeStruct {
+public struct SomeStruct {
     @inline(__always)
     func intoFfiRepr() -> __swift_bridge__$SomeStruct {
         __swift_bridge__$SomeStruct(_private: 123)
