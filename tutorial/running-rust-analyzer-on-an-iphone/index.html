@@ -305,13 +305,16 @@ search path to <code>$(PROJECT_DIR)/../target/universal/release</code></p>
 <p><img src="./screenshots/xcode-link-binary-build-phase.png" alt="Link binary build phase" /></p>
 <hr />
 <p>Add the following to the <code>build.rs</code> file that we created earlier.</p>
-<pre><pre class="playground"><code class="language-rust">fn main() {
+<pre><pre class="playground"><code class="language-rust">const XCODE_CONFIGURATION_ENV: &amp;'static str = &quot;CONFIGURATION&quot;;
+
+fn main() {
     let out_dir = &quot;IosRustAnalyzer/Generated&quot;;
 
     let bridges = vec![&quot;src/lib.rs&quot;];
     for path in &amp;bridges {
         println!(&quot;cargo:rerun-if-changed={}&quot;, path);
     }
+    println!(&quot;cargo:rerun-if-env-changed={}&quot;, XCODE_CONFIGURATION_ENV);
 
     swift_bridge_build::parse_bridges(bridges)
         .write_all_concatenated(out_dir, env!(&quot;CARGO_PKG_NAME&quot;));
