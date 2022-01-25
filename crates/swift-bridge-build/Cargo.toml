@@ -1,6 +1,6 @@
 [package]
 name = "swift-bridge-build"
-version = "0.1.22"
+version = "0.1.23"
 edition = "2021"
 keywords = ["swift", "ffi", "bindings", "ios", "mac"]
 description = "Parse Rust files for swift-bridge modules and generate the corresponding Swift and C code for them."
@@ -9,5 +9,5 @@ license = "Apache-2.0/MIT"
 
 [dependencies]
 proc-macro2 = "1"
-swift-bridge-ir = {version = "0.1.22", path = "../swift-bridge-ir"}
+swift-bridge-ir = {version = "0.1.23", path = "../swift-bridge-ir"}
 syn = {version = "1"}
