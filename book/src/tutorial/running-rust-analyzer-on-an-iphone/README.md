@@ -233,6 +233,8 @@ Select the same `target/universal/debug/libios_rust_analyzer.a` in the link bina
 Add the following to the `build.rs` file that we created earlier.
 
 ```rust
+const XCODE_CONFIGURATION_ENV: &'static str = "CONFIGURATION";
+
 fn main() {
     let out_dir = "IosRustAnalyzer/Generated";
 
@@ -240,6 +242,7 @@ fn main() {
     for path in &bridges {
         println!("cargo:rerun-if-changed={}", path);
     }
+    println!("cargo:rerun-if-env-changed={}", XCODE_CONFIGURATION_ENV);
 
     swift_bridge_build::parse_bridges(bridges)
         .write_all_concatenated(out_dir, env!("CARGO_PKG_NAME"));
