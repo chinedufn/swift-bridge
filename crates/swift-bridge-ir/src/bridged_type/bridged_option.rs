@@ -108,7 +108,13 @@ impl BridgedOption {
                 todo!("Support Option<SharedType>")
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(_opaque_type)) => {
-                todo!("Support Option<OpaqueType>")
+                quote! {
+                    if let Some(val) = #expression {
+                        Box::into_raw(Box::new(val))
+                    } else {
+                        std::ptr::null_mut()
+                    }
+                }
             }
         }
     }
@@ -172,7 +178,13 @@ impl BridgedOption {
                             todo!("Option<SharedStruct> is not yet supported")
                         }
                         BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
-                            todo!("Option<OpaqueRustType> is not yet supported")
+                            quote! {
+                                if #value.is_null() {
+                                    None
+                                } else {
+                                    Some(unsafe { * Box::from_raw(#value) } )
+                                }
+                            }
                         }
                     }
                 } else {
@@ -231,8 +243,13 @@ impl BridgedOption {
             BridgedType::Foreign(CustomBridgedType::Shared(_shared)) => {
                 todo!("Support Option<SharedType>")
             }
-            BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
-                todo!("Support Option<OpaqueType>")
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                let type_name = opaque.swift_name();
+                format!(
+                    "{{ let val = {expression}; if val != nil {{ return {type_name}(ptr: val!) }} else {{ return nil }} }}()",
+                        expression = expression,
+                        type_name = type_name
+                )
             }
         }
     }
@@ -303,7 +320,7 @@ impl BridgedOption {
                 todo!("Shared structs within options are not yet supported")
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
-                todo!("Opaque types within options are not yet supported")
+                format!("{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()", expression = expression,)
             }
         }
     }
@@ -336,9 +353,7 @@ impl BridgedOption {
                     todo!("Option<&[T]> is not yet supported")
                 }
                 StdLibType::Str => "struct RustStr".to_string(),
-                StdLibType::String => {
-                    format!("void*")
-                }
+                StdLibType::String => "void*".to_string(),
                 StdLibType::Vec(_) => {
                     todo!("Option<Vec<T>> is not yet supported")
                 }
@@ -349,9 +364,7 @@ impl BridgedOption {
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 todo!("Option<SharedStruct> is not yet supported")
             }
-            BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
-                todo!("Option<OpaqueType> is not yet supported")
-            }
+            BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => "void*".to_string(),
         }
     }
 }

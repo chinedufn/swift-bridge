@@ -22,7 +22,19 @@ mod ffi {
         fn rust_create_option_static_str() -> Option<&'static str>;
         fn rust_reflect_option_str(arg: Option<&str>) -> Option<&str>;
 
+        fn rust_reflect_option_opaque_rust_type(
+            arg: Option<OptTestOpaqueRustType>,
+        ) -> Option<OptTestOpaqueRustType>;
+
         fn run_option_tests();
+    }
+
+    extern "Rust" {
+        type OptTestOpaqueRustType;
+
+        #[swift_bridge(init)]
+        fn new(field: u8) -> OptTestOpaqueRustType;
+        fn field(&self) -> u8;
     }
 
     extern "Swift" {
@@ -36,6 +48,19 @@ mod ffi {
 fn run_option_tests() {
     // assert_eq!(ffi::create_swift_option_u8_some(), Some(55));
     // assert_eq!(ffi::create_swift_option_u8_none(), None);
+}
+
+pub struct OptTestOpaqueRustType {
+    field: u8,
+}
+impl OptTestOpaqueRustType {
+    fn new(field: u8) -> Self {
+        Self { field }
+    }
+
+    fn field(&self) -> u8 {
+        self.field
+    }
 }
 
 use self::reflect_primitives::*;
@@ -64,5 +89,11 @@ fn rust_create_option_static_str() -> Option<&'static str> {
     Some("hello")
 }
 fn rust_reflect_option_str(arg: Option<&str>) -> Option<&str> {
+    arg
+}
+
+fn rust_reflect_option_opaque_rust_type(
+    arg: Option<OptTestOpaqueRustType>,
+) -> Option<OptTestOpaqueRustType> {
     arg
 }

@@ -94,6 +94,13 @@ class OptionTests: XCTestCase {
         XCTAssertNil(rust_reflect_option_str(none))
     }
     
+    func testSwiftCallRustWithOptionOpaqueRustType() throws {
+        let val = OptTestOpaqueRustType(123)
+        let reflect = rust_reflect_option_opaque_rust_type(val)
+        XCTAssertEqual(reflect!.field(), 123)
+        
+        XCTAssertNil(rust_reflect_option_opaque_rust_type(nil))
+    }
     
     func testRustCallSwiftReturnOption() {
         run_option_tests()

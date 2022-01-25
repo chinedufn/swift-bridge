@@ -5,7 +5,7 @@ fn main() {
     let out_dir = PathBuf::from(out_dir);
 
     let bridges = vec![
-        "src/expose_opaque_rust_struct.rs",
+        "src/expose_opaque_rust_type.rs",
         "src/import_opaque_swift_class.rs",
         "src/bool.rs",
         "src/option.rs",
