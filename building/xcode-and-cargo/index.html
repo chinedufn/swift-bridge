@@ -1,0 +1,516 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Xcode + Cargo - The swift-bridge Book</title>
+                
+
+        <!-- Custom HTML head -->
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+                <link rel="icon" href="../../favicon.svg">
+                        <link rel="shortcut icon" href="../../favicon.png">
+                <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+                <link rel="stylesheet" href="../../css/print.css" media="print">
+        
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+                <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+            </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">Introduction</a></li><li class="spacer"></li><li class="chapter-item expanded "><a href="../../building/index.html"><strong aria-hidden="true">1.</strong> Building</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../building/xcode-and-cargo/index.html" class="active"><strong aria-hidden="true">1.1.</strong> Xcode + Cargo</a></li><li class="chapter-item expanded "><a href="../../building/swiftc-and-cargo/index.html"><strong aria-hidden="true">1.2.</strong> swiftc + Cargo</a></li></ol></li><li class="chapter-item expanded "><a href="../../bridge-module/index.html"><strong aria-hidden="true">2.</strong> The Bridge Module</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../bridge-module/extern-rust/index.html"><strong aria-hidden="true">2.1.</strong> extern &quot;Rust&quot;</a></li><li class="chapter-item expanded "><a href="../../bridge-module/extern-swift/index.html"><strong aria-hidden="true">2.2.</strong> extern &quot;Swift&quot;</a></li><li class="chapter-item expanded "><a href="../../bridge-module/structs/index.html"><strong aria-hidden="true">2.3.</strong> Shared Structs</a></li><li class="chapter-item expanded "><a href="../../bridge-module/conditional-compilation/index.html"><strong aria-hidden="true">2.4.</strong> Conditional Compilation</a></li></ol></li><li class="chapter-item expanded "><a href="../../built-in/index.html"><strong aria-hidden="true">3.</strong> Built In Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../built-in/option/index.html"><strong aria-hidden="true">3.1.</strong> Option &lt;---&gt; Optional</a></li><li class="chapter-item expanded "><a href="../../built-in/vec/index.html"><strong aria-hidden="true">3.2.</strong> Vec &lt;---&gt; RustVec</a></li><li class="chapter-item expanded "><a href="../../built-in/string/index.html"><strong aria-hidden="true">3.3.</strong> String &lt;---&gt; String</a></li><li class="chapter-item expanded "><a href="../../built-in/str/index.html"><strong aria-hidden="true">3.4.</strong> &amp;str &lt;---&gt; RustStr</a></li></ol></li><li class="chapter-item expanded "><a href="../../internal-design/index.html"><strong aria-hidden="true">4.</strong> Internal Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../internal-design/codegen/index.html"><strong aria-hidden="true">4.1.</strong> Code Generation</a></li></ol></li></ol>            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                                                <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                                            </div>
+
+                    <h1 class="menu-title">The swift-bridge Book</h1>
+
+                    <div class="right-buttons">
+                                                <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                                                                        <a href="https://github.com/chinedufn/swift-bridge" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                                                
+                    </div>
+                </div>
+
+                                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="xcode--cargo"><a class="header" href="#xcode--cargo">Xcode + Cargo</a></h1>
+<p>To demonstrate how to set up an Xcode + Cargo project, we'll create a new iOS application that makes use of <code>swift-bridge</code> in order
+use <code>rust-analyzer</code> to perform syntax highlighting of Rust code.</p>
+<p>When we're done we'll have a simple application where we can type Rust code into a text area and see the syntax
+highlighted version below it.</p>
+<p><img src="./screenshots/simulator-rust-analyzer-app.png" alt="Simulator rust analyzer app" /></p>
+<h2 id="project-setup"><a class="header" href="#project-setup">Project Setup</a></h2>
+<p>Create a new project.</p>
+<pre><code class="language-sh">cargo new --lib ios-rust-analyzer
+cd ios-rust-analyzer
+</code></pre>
+<hr />
+<p>Install <a href="https://github.com/TimNN/cargo-lipo"><code>cargo-lipo</code></a>.</p>
+<pre><code>cargo install -f cargo-lipo
+</code></pre>
+<hr />
+<p>Create a new Xcode project within the <code>ios-rust-analyzer</code> directory.</p>
+<p><code>Xxode &gt; File &gt; New Project &gt; iOS &gt; App</code></p>
+<p>We'll name it <code>IosRustAnalyzer</code>.</p>
+<p><img src="./screenshots/xcode-new-project-ios-app.png" alt="New iOS App" /></p>
+<p><img src="./screenshots/xcode-name-ios-project.png" alt="Naming the iOS App" /></p>
+<p>Your directory should now look something like:</p>
+<pre><code>$ tree -L 2
+.
+├── Cargo.toml
+├── IosRustAnalyzer
+│   ├── IosRustAnalyzer
+│   └── IosRustAnalyzer.xcodeproj
+└── src
+    └── lib.rs
+</code></pre>
+<hr />
+<p>Create a bash script that we can use to build the application</p>
+<pre><code>touch IosRustAnalyzer/build-rust.sh
+chmod +x IosRustAnalyzer/build-rust.sh
+</code></pre>
+<pre><code class="language-sh">#!/bin/bash
+
+##################################################
+# We call this from an Xcode run script.
+##################################################
+
+set -e
+
+if [[ -z &quot;$PROJECT_DIR&quot; ]]; then
+    echo &quot;Must provide PROJECT_DIR environment variable set to the Xcode project directory.&quot; 1&gt;&amp;2
+    exit 1
+fi
+
+cd $PROJECT_DIR
+
+export PATH=&quot;$HOME/.cargo/bin:$PATH&quot;
+
+export SWIFT_BRIDGE_OUT_DIR=&quot;${PROJECT_DIR}/Generated&quot;
+
+# Without this we can't compile on MacOS Big Sur
+# https://github.com/TimNN/cargo-lipo/issues/41#issuecomment-774793892
+if [[ -n &quot;${DEVELOPER_SDK_DIR:-}&quot; ]]; then
+  export LIBRARY_PATH=&quot;${DEVELOPER_SDK_DIR}/MacOSX.sdk/usr/lib:${LIBRARY_PATH:-}&quot;
+fi
+
+# if [ $ENABLE_PREVIEWS == &quot;NO&quot; ]; then
+
+  if [[ $CONFIGURATION == &quot;Release&quot; ]]; then
+      echo &quot;BUIlDING FOR RELEASE&quot;
+      
+      cargo lipo --release --manifest-path ../Cargo.toml
+  else
+      echo &quot;BUIlDING FOR DEBUG&quot;
+
+      cargo lipo --manifest-path ../Cargo.toml
+  fi
+  
+# else
+#   echo &quot;Skipping the script because of preview mode&quot;
+# fi
+</code></pre>
+<hr />
+<p>Create a new build phase that calls <code>./build-rust.sh</code> — the bash script that we created.</p>
+<p>Be sure to drag it before the <code>Compile Sources</code> step.</p>
+<p><img src="./screenshots/xcode-create-run-script.png" alt="Xcode build phase - create run script" /></p>
+<p><img src="./screenshots/xcode-build-phase-collapsed.png" alt="Xcode build phase - collapsed" /></p>
+<p><img src="./screenshots/xcode-build-phase-expanded.png" alt="Xcode build phase - expanded" /></p>
+<hr />
+<p>Create a directory <code>Generated</code> where our generated Swift and C code will go.</p>
+<pre><code>mkdir IosRustAnalyzer/Generated
+touch IosRustAnalyzer/Generated/.gitignore
+</code></pre>
+<p>Give <code>IosRustAnalyzer/Generated/.gitignore</code> the following contents:</p>
+<pre><code># IosRustAnalyzer/Generated/.gitignore
+*
+!.gitignore
+</code></pre>
+<hr />
+<p>Create a new bridging header and name it <code>BridgingHeader.h</code>.</p>
+<p><img src="./screenshots/xcode-new-header-file.png" alt="Create bridging header" /></p>
+<p>Give it these contents:</p>
+<pre><code class="language-c">#ifndef BridgingHeader_h
+#define BridgingHeader_h
+
+#include &quot;Generated/SwiftBridgeCore.h&quot;
+#include &quot;Generated/ios-rust-analyzer/ios-rust-analyzer.h&quot;
+
+#endif
+</code></pre>
+<hr />
+<p>Set the bridging header to <code>$(PROJECT_DIR)/BridgingHeader.h</code></p>
+<p><img src="./screenshots/xcode-set-bridging-header.png" alt="Bridging Header" /></p>
+<hr />
+<p>In the <code>Cargo.toml</code>, set the crate-type and build script.</p>
+<pre><code class="language-toml">[package]
+name = &quot;ios-rust-analyzer&quot;
+version = &quot;0.1.0&quot;
+edition = &quot;2021&quot;
+
+build = &quot;build.rs&quot;
+
+[build-dependencies]
+swift-bridge-build = &quot;0.1&quot;
+
+[lib]
+crate-type = [&quot;staticlib&quot;]
+
+[dependencies]
+swift-bridge = &quot;0.1&quot;
+ide = {git = &quot;https://github.com/rust-analyzer/rust-analyzer&quot;}
+</code></pre>
+<hr />
+<p>Create our build script.</p>
+<pre><code>touch build.rs
+</code></pre>
+<pre><pre class="playground"><code class="language-rust">// In build.rs
+
+fn main() {
+  // TODO...
+}
+</code></pre></pre>
+<hr />
+<p>Build the <code>Cargo</code> project once so that we can generate the files that we'll be linking to.</p>
+<pre><code>PROJECT_DIR=&quot;${PWD}/IosRustAnalyzer&quot; ./IosRustAnalyzer/build-rust.sh
+</code></pre>
+<hr />
+<p>Set the <code>Debug</code> library search path to <code>$(PROJECT_DIR)/../target/universal/debug</code>, and the <code>Release</code> library
+search path to <code>$(PROJECT_DIR)/../target/universal/release</code></p>
+<p><img src="./screenshots/xcode-set-library-search-paths.png" alt="Xcode set library search paths" /></p>
+<hr />
+<p>Go to <code>IosRustAnalyzer &gt; General &gt; Frameworks, Libraries, and Embedded Content &gt; +</code> to add and click <code>Add Other &gt; Add Files</code>.</p>
+<p>Select the <code>target/universal/debug/libios_rust_analyzer.a</code> file.</p>
+<p><img src="./screenshots/xcode-frameworks-libraries-section.png" alt="Frameworks and libraries" /></p>
+<p><img src="./screenshots/libraries-add-other.png" alt="Libraries add other" /></p>
+<hr />
+<p>Select the same <code>target/universal/debug/libios_rust_analyzer.a</code> in the link binaries with libraries build phase.</p>
+<p><img src="./screenshots/xcode-link-binary-build-phase.png" alt="Link binary build phase" /></p>
+<hr />
+<p>Add the following to the <code>build.rs</code> file that we created earlier.</p>
+<pre><pre class="playground"><code class="language-rust">const XCODE_CONFIGURATION_ENV: &amp;'static str = &quot;CONFIGURATION&quot;;
+
+fn main() {
+    let out_dir = &quot;IosRustAnalyzer/Generated&quot;;
+
+    let bridges = vec![&quot;src/lib.rs&quot;];
+    for path in &amp;bridges {
+        println!(&quot;cargo:rerun-if-changed={}&quot;, path);
+    }
+    println!(&quot;cargo:rerun-if-env-changed={}&quot;, XCODE_CONFIGURATION_ENV);
+
+    swift_bridge_build::parse_bridges(bridges)
+        .write_all_concatenated(out_dir, env!(&quot;CARGO_PKG_NAME&quot;));
+}
+</code></pre></pre>
+<hr />
+<p>Build again so that we can genrate the files that we're including from <code>BridgingHeader.h</code>.</p>
+<pre><code>PROJECT_DIR=&quot;${PWD}/IosRustAnalyzer&quot; ./IosRustAnalyzer/build-rust.sh
+</code></pre>
+<hr />
+<p>Right click on <code>IosRustAnalyzer</code> and click <code>Add Files To IosRustAnalyzer</code>. Add the entire <code>Generated</code> directory.</p>
+<p><img src="./screenshots/xcode-add-files-to-ios-rust-analyzer.png" alt="Add files to IosRustAnalyzer" /></p>
+<p><img src="./screenshots/xcode-select-generated-files.png" alt="Add generated files" /></p>
+<hr />
+<p>Pressing the <code>Run</code> button should now open up the iOS simulator with Xcode's default &quot;Hello World&quot; iOS app.</p>
+<p><img src="./screenshots/simulator-hello-world.png" alt="iOS simulator hello world" /></p>
+<h2 id="rust"><a class="header" href="#rust">Rust</a></h2>
+<p>Now that we've set up our project, it's time to write some code!</p>
+<p>Add the following to <code>src/lib.rs</code>.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        type RustApp;
+
+        #[swift_bridge(init)]
+        fn new() -&gt; RustApp;
+
+        fn generate_html(&amp;self, rust_code: &amp;str) -&gt; String;
+    }
+}
+
+pub struct RustApp {}
+
+impl RustApp {
+    fn new() -&gt; Self {
+        RustApp {}
+    }
+
+    fn generate_html(&amp;self, rust_code: &amp;str) -&gt; String {
+        let (analysis, file_id) = ide::Analysis::from_single_file(rust_code.to_string());
+
+        analysis
+            .highlight_as_html(file_id, true)
+            .unwrap_or(&quot;Error&quot;.to_string())
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="swift"><a class="header" href="#swift">Swift</a></h2>
+<p>Add the following to <code>IosRustAnalyzerApp.swift</code></p>
+<pre><code class="language-swift">import SwiftUI
+
+@main
+struct IosRustAnalyzerApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .environmentObject(RustAppWrapper(rust: RustApp()))
+        }
+    }
+}
+
+class RustAppWrapper: ObservableObject {
+    var rust: RustApp
+    
+    init (rust: RustApp) {
+        self.rust = rust
+    }
+}
+</code></pre>
+<hr />
+<p>Add the following to <code>ContentView.swift</code></p>
+<pre><code class="language-swift">import SwiftUI
+import WebKit
+import Combine
+
+struct ContentView: View {
+    @EnvironmentObject var rustApp: RustAppWrapper
+    
+    @State private var rustSource = initialSource
+    @State private var rustHtml = &quot;&quot;
+    
+    var body: some View {
+        VStack {
+            TextEditor(text: $rustSource)
+                .font(.caption)
+                .onReceive(Just(rustSource), perform: {sourceCode in
+                    let html = rustApp.rust.generate_html(sourceCode).toString()
+                    rustHtml = html
+                })
+            
+            WebView(text: $rustHtml)
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+            
+        }
+    }
+}
+
+struct WebView: UIViewRepresentable {
+    @Binding var text: String
+    
+    func makeUIView(context: Context) -&gt; WKWebView {
+        return WKWebView()
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        uiView.loadHTMLString(text, baseURL: nil)
+    }
+}
+
+let initialSource = &quot;&quot;&quot;
+
+fn main () {
+    let stack: Stack&lt;u8&gt; = Stack::default();
+    
+    for val in 0..100 {
+        stack.push(val);
+    }
+}
+
+#[derive(Default)]
+struct Stack&lt;T&gt;(Vec&lt;T&gt;);
+
+impl&lt;T&gt; Stack&lt;T&gt; {
+    fn push(&amp;mut self, val: T) {
+        self.0.push(val);
+    }
+
+    fn pop(&amp;mut self) -&gt; Option&lt;T&gt; {
+        self.0.pop()
+    }
+}
+
+&quot;&quot;&quot;
+ 
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+            .environmentObject(RustAppWrapper(rust: RustApp()))
+    }
+}
+</code></pre>
+<hr />
+<p>Make sure that you see 4 files in your <code>Compile Sources</code> build phase.</p>
+<p><img src="./screenshots/xcode-compile-sources.png" alt="Xcode compile sources build phase" /></p>
+<hr />
+<p>Runing the application in the iPhone simulator using <code>Cmd</code> + <code>R</code> should show a working demo!</p>
+<p><img src="./screenshots/simulator-rust-analyzer-app.png" alt="Simulator rust analyzer app" /></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                                                    <a rel="prev" href="../../building/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+                                                    <a rel="next" href="../../building/swiftc-and-cargo/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                                    <a rel="prev" href="../../building/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+                                    <a rel="next" href="../../building/swiftc-and-cargo/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                            </nav>
+
+        </div>
+
+        
+        
+        
+                <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+        
+                <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+        
+    </body>
+</html>
