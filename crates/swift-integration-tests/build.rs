@@ -12,6 +12,7 @@ fn main() {
         "src/pointer.rs",
         "src/string.rs",
         "src/vec.rs",
+        "src/slice.rs",
         "src/shared_types/shared_struct.rs",
         "src/rust_function_uses_opaque_swift_type.rs",
         "src/swift_function_uses_opaque_rust_type.rs",

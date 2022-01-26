@@ -33,7 +33,9 @@ class RustVec<T: Vectorizable> {
     }
 
     deinit {
-         T.vecOfSelfFree(vecPtr: ptr)
+        if isOwned {
+            T.vecOfSelfFree(vecPtr: ptr)
+        }
     }
 }
 
