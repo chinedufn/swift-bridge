@@ -994,7 +994,7 @@ impl BridgedType {
                 }
                 StdLibType::Vec(_) => {
                     quote_spanned! {span=>
-                        unsafe { Box::from_raw(#value) }
+                        unsafe { * Box::from_raw(#value) }
                     }
                 }
                 StdLibType::Option(bridged_option) => {
@@ -1197,7 +1197,10 @@ impl BridgedType {
                     )
                 }
                 StdLibType::Vec(_) => {
-                    format!("{}.ptr", value)
+                    format!(
+                        "{{ let val = {value}; val.isOwned = false; return val.ptr }}()",
+                        value = value
+                    )
                 }
                 StdLibType::Option(option) => {
                     option.convert_swift_expression_to_ffi_compatible(value, type_pos)

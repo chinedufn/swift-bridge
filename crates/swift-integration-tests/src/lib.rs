@@ -7,6 +7,7 @@ mod option;
 mod pointer;
 mod rust_function_uses_opaque_swift_type;
 mod shared_types;
+mod slice;
 mod string;
 mod swift_function_uses_opaque_rust_type;
 mod vec;
