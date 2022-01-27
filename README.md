@@ -18,13 +18,12 @@ git clone https://github.com/chinedufn/swift-bridge
 cd swift-bridge/examples/ios-rust-analyzer
 
 open IosRustAnalyzer/IosRustAnalyzer.xcodeproj
-# Click to "Run" button at the top left of Xcode
+# Click the "Run" button at the top left of Xcode
 ```
-Alternatively, you can use the [tutorial](https://chinedufn.github.io/swift-bridge/tutorial/running-rust-analyzer-on-an-iphone/index.html) to learn how to create a `Swift` + `Rust` Xcode project from scratch.
 
 ## Quick Peek
 
-Share types and functions between Swift and Rust.
+Share Swift and Rust types and functions between the two languages.
 
 ```rust
 // Rust
