@@ -23,9 +23,28 @@ mod to_swift_func;
 /// ... etc
 pub(crate) struct ParsedExternFn {
     pub func: ForeignItemFn,
+    /// The type that this function is associated to.
+    ///
+    /// ```
+    /// # const  _: &str = stringify!(
+    /// #[swift_bridge::bridge]
+    /// mod ffi {
+    ///     extern "Rust" {
+    ///         type SomeType;
+    ///
+    ///         // This function is associated to `SomeType` since it has a receiver `&self`.
+    ///         fn some_function(&self);
+    ///     }
+    /// }
+    /// # );
+    /// ```
     pub associated_type: Option<TypeDeclaration>,
-    pub is_initializer: bool,
     pub host_lang: HostLang,
+    /// Whether or not this function is a Swift initializer.
+    pub is_swift_initializer: bool,
+    /// Whether or not this function should be used for the associated type's Swift
+    /// `Identifiable` protocol implementation.
+    pub is_swift_identifiable: bool,
     pub rust_name_override: Option<syn::LitStr>,
     pub swift_name_override: Option<syn::LitStr>,
     /// If true, we call `.into()` on the expression that the function returns before returning it.

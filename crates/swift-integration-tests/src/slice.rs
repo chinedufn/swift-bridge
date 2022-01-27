@@ -1,12 +1,5 @@
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[test]
-//     fn todo() {
-//         unimplemented!(
-//             r#"
-// - Define SliceTestOpaqueRustType
+// TODO:
+// - Define struct SliceTestOpaqueRustType
 // - Add a method to create Vec<SliceTestOpaqueRustType>
 // - Add method to reflect &[OpaqueRustType]
 //   - Add test to verify that we can iterate over the slice
@@ -15,7 +8,3 @@
 // - Create SliceTests.swift
 //   - Add Swift test verifying that we can use an Array<SliceTestOpaqueRustType> as a slice
 //   - Add Swift test verifying that we can use a RustVec<SliceTestOpaqueRustType> as a slice
-//         "#
-//         )
-//     }
-// }

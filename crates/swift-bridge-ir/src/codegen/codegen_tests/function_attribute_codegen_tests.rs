@@ -117,3 +117,76 @@ mod into_return_type_attribute_for_shared_struct {
         .test();
     }
 }
+
+/// Verify that we can annotate that a function should serve as the Identifiable protocol extension.
+mod protocol_identifiable {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+                    type AnotherType;
+
+                    #[swift_bridge(Identifiable)]
+                    fn some_function(self: &SomeType) -> i16;
+
+                    #[swift_bridge(Identifiable)]
+                    fn id(self: &AnotherType) -> u32;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::SkipTest
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        // We add the class declarations to our assertions to ensure that our extensions come
+        // directory after our class declarations.
+        // This helps when an end-user that is looking at the generated code more easily see
+        // which protocols a class implements.
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+public class SomeTypeRef {
+    var ptr: UnsafeMutableRawPointer
+
+    init(ptr: UnsafeMutableRawPointer) {
+        self.ptr = ptr
+    }
+}
+extension SomeTypeRef: Identifiable {
+    public var id: Int16 {
+        return self.some_function()
+    }
+}"#,
+            r#"
+public class AnotherTypeRef {
+    var ptr: UnsafeMutableRawPointer
+
+    init(ptr: UnsafeMutableRawPointer) {
+        self.ptr = ptr
+    }
+}
+extension AnotherTypeRef: Identifiable {}"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn protocol_identifiable() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

@@ -18,6 +18,7 @@ fn main() {
         "src/swift_function_uses_opaque_rust_type.rs",
         "src/conditional_compilation.rs",
         "src/opaque_type_attributes/already_declared.rs",
+        "src/function_attributes/identifiable.rs",
         "src/struct_attributes/already_declared.rs",
         "src/struct_attributes/swift_name.rs",
     ];

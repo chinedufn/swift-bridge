@@ -1,5 +1,5 @@
 mod parse_error;
-pub(crate) use self::parse_error::ParseError;
+pub(crate) use self::parse_error::*;
 
 pub(crate) struct ParseErrors {
     errors: Vec<ParseError>,

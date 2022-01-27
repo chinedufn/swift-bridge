@@ -207,6 +207,8 @@ impl PartialEq for OpaqueForeignType {
 /// Whether or not a PatType's pattern is `self`.
 ///
 /// `self: &Foo` would be true
+/// `self: &mut Foo` would be true
+/// `self: Foo` would be true
 /// `arg: &Foo` would be false.
 pub(crate) fn pat_type_pat_is_self(pat_type: &PatType) -> bool {
     match pat_type.pat.deref() {

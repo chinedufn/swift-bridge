@@ -44,6 +44,19 @@ extension RustStr {
         return String(bytes: bytes, encoding: .utf8)!
     }
 }
+extension RustStr: Identifiable {
+    public var id: String {
+        self.toString()
+    }
+}
+extension RustStr: Equatable {
+    public static func == (lhs: RustStr, rhs: RustStr) -> Bool {
+        // TODO: Rather than compare Strings, we can avoid allocating by calling a function
+        // on the Rust side that compares the underlying byte slices.
+        return
+            lhs.toString() == rhs.toString()
+    }
+}
 
 protocol IntoRustString {
     func intoRustString() -> RustString;
