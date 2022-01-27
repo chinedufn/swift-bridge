@@ -5,7 +5,8 @@ use syn::{LitStr, Token};
 #[derive(Default)]
 pub(super) struct FunctionAttributes {
     pub associated_to: Option<Ident>,
-    pub is_initializer: bool,
+    pub is_swift_initializer: bool,
+    pub is_swift_identifiable: bool,
     pub rust_name: Option<LitStr>,
     pub swift_name: Option<LitStr>,
     pub into_return_type: bool,
@@ -18,7 +19,7 @@ impl FunctionAttributes {
             FunctionAttr::AssociatedTo(ident) => {
                 self.associated_to = Some(ident);
             }
-            FunctionAttr::Init => self.is_initializer = true,
+            FunctionAttr::Init => self.is_swift_initializer = true,
             FunctionAttr::RustName(name) => {
                 self.rust_name = Some(name);
             }
@@ -29,6 +30,9 @@ impl FunctionAttributes {
                 self.into_return_type = true;
             }
             FunctionAttr::ArgsInto(args) => self.args_into = Some(args),
+            FunctionAttr::Identifiable => {
+                self.is_swift_identifiable = true;
+            }
         }
     }
 }
@@ -38,6 +42,7 @@ pub(super) enum FunctionAttr {
     SwiftName(LitStr),
     RustName(LitStr),
     Init,
+    Identifiable,
     IntoReturnType,
     ArgsInto(Vec<Ident>),
 }
@@ -75,6 +80,7 @@ impl Parse for FunctionAttr {
                 FunctionAttr::SwiftName(value)
             }
             "init" => FunctionAttr::Init,
+            "Identifiable" => FunctionAttr::Identifiable,
             "into_return_type" => FunctionAttr::IntoReturnType,
             "rust_name" => {
                 input.parse::<Token![=]>()?;
@@ -101,7 +107,7 @@ impl Parse for FunctionAttr {
 
 #[cfg(test)]
 mod tests {
-    use crate::errors::ParseError;
+    use crate::errors::{FunctionAttributeParseError, IdentifiableParseError, ParseError};
     use crate::test_utils::{parse_errors, parse_ok};
     use quote::{quote, ToTokens};
 
@@ -185,7 +191,7 @@ mod tests {
         let module = parse_ok(tokens);
 
         let func = &module.functions[0];
-        assert!(func.is_initializer);
+        assert!(func.is_swift_initializer);
     }
 
     /// Verify that we can parse an init function that takes inputs.
@@ -205,7 +211,7 @@ mod tests {
         let module = parse_ok(tokens);
 
         let func = &module.functions[0];
-        assert!(func.is_initializer);
+        assert!(func.is_swift_initializer);
     }
 
     /// Verify that we push an error if the initialize type is not defined.
@@ -260,6 +266,103 @@ mod tests {
 
         assert_arg_into("some_arg");
         assert_arg_into("another_arg");
+    }
+
+    /// Verify that we push a parse error if we put an Identifiable attribute on a function
+    /// that isn't `(&self)`.
+    #[test]
+    fn error_if_identifiable_attribute_on_non_ref_self() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+
+                    #[swift_bridge(Identifiable)]
+                    fn a(self) -> u16;
+
+                    #[swift_bridge(Identifiable)]
+                    fn b(&mut self) -> u16;
+
+                    #[swift_bridge(Identifiable)]
+                    fn c() -> u16;
+
+                    #[swift_bridge(Identifiable)]
+                    fn d(arg: i32) -> u16;
+                }
+            }
+        };
+
+        let errors = parse_errors(tokens);
+
+        assert_eq!(errors.len(), 4);
+
+        for (idx, expected) in vec!["a", "b", "c", "d"].into_iter().enumerate() {
+            match &errors[idx] {
+                ParseError::FunctionAttribute(FunctionAttributeParseError::Identifiable(
+                    IdentifiableParseError::MustBeRefSelf { fn_ident },
+                )) => {
+                    assert_eq!(fn_ident, expected);
+                }
+                _ => panic!(),
+            };
+        }
+    }
+
+    /// Verify that we push a parse error if we put an Identifiable attribute on a method
+    /// that does not have an explicit return value.
+    #[test]
+    fn error_if_identifiable_attribute_on_non_returning_method() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+
+                    #[swift_bridge(Identifiable)]
+                    fn a(&self);
+
+                    #[swift_bridge(Identifiable)]
+                    fn b(self: &SomeType);
+                }
+            }
+        };
+
+        let errors = parse_errors(tokens);
+        assert_eq!(errors.len(), 2);
+
+        for (idx, expected) in vec!["a", "b"].into_iter().enumerate() {
+            match &errors[idx] {
+                ParseError::FunctionAttribute(FunctionAttributeParseError::Identifiable(
+                    IdentifiableParseError::MissingReturnType { fn_ident },
+                )) => {
+                    assert_eq!(fn_ident, expected);
+                }
+                _ => panic!(),
+            };
+        }
+    }
+
+    /// Verify that we can parse the `Identifiable` attribute
+    #[test]
+    fn parses_identifiable_attribute() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+
+                    #[swift_bridge(Identifiable)]
+                    fn some_function(&self) -> u16;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let func = &module.functions[0];
+
+        assert!(func.is_swift_identifiable);
     }
 
     /// Verify that we can parse a function that has multiple swift_bridge attributes.

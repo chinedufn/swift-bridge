@@ -1,5 +1,5 @@
-use crate::bridged_type::BridgedType;
-use crate::errors::{ParseError, ParseErrors};
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
+use crate::errors::{FunctionAttributeParseError, IdentifiableParseError, ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::function_attributes::FunctionAttributes;
 use crate::parse::parse_extern_mod::opaque_type_attributes::{
     OpaqueTypeAttr, OpaqueTypeAttributes,
@@ -147,10 +147,49 @@ impl<'a> ForeignModParser<'a> {
                         &mut local_type_declarations,
                     )?;
 
+                    if attributes.is_swift_identifiable {
+                        let args = &func.sig.inputs;
+
+                        let mut is_ref_self_no_args = args.len() == 1;
+                        if is_ref_self_no_args {
+                            is_ref_self_no_args = match args.iter().next().unwrap() {
+                                FnArg::Receiver(receiver) => {
+                                    receiver.reference.is_some() && receiver.mutability.is_none()
+                                }
+                                FnArg::Typed(pat_ty) => {
+                                    pat_type_pat_is_self(pat_ty)
+                                        && pat_ty.ty.to_token_stream().to_string().starts_with("&")
+                                }
+                            };
+                        }
+
+                        let has_return_type = matches!(&func.sig.output, ReturnType::Type(_, _));
+
+                        if !is_ref_self_no_args {
+                            self.errors.push(ParseError::FunctionAttribute(
+                                FunctionAttributeParseError::Identifiable(
+                                    IdentifiableParseError::MustBeRefSelf {
+                                        fn_ident: func.sig.ident.clone(),
+                                    },
+                                ),
+                            ));
+                        }
+                        if !has_return_type {
+                            self.errors.push(ParseError::FunctionAttribute(
+                                FunctionAttributeParseError::Identifiable(
+                                    IdentifiableParseError::MissingReturnType {
+                                        fn_ident: func.sig.ident.clone(),
+                                    },
+                                ),
+                            ));
+                        }
+                    }
+
                     self.functions.push(ParsedExternFn {
                         func,
                         associated_type,
-                        is_initializer: attributes.is_initializer,
+                        is_swift_initializer: attributes.is_swift_initializer,
+                        is_swift_identifiable: attributes.is_swift_identifiable,
                         host_lang,
                         rust_name_override: attributes.rust_name,
                         swift_name_override: attributes.swift_name,
@@ -211,7 +250,16 @@ impl<'a> ForeignModParser<'a> {
                     }
                 }
                 _ => {
-                    todo!("Add test that hits this block")
+                    todo!(r#"
+One way to hit this block is with a `fn foo (&self: SomeType)`.
+Note that this is an invalid signature since the `&` should be in front of `SomeType`, not `self`.
+i.e., this would be correct: `fn foo (self: &SomeType)`
+We should add a test case like this that hits this block, and verify that we push a parse error
+indicating that the function signature is invalid.
+For common mistakes such as the `&self: SomeType` example, we can have dedicated errors telling you
+exactly how to fix it.
+Otherwise we use a more general error that says that your argument is invalid.
+"#)
                 }
             },
             None => {
@@ -221,7 +269,7 @@ impl<'a> ForeignModParser<'a> {
                         .get(&associated_to.to_string())
                         .unwrap();
                     Some(ty.clone())
-                } else if attributes.is_initializer {
+                } else if attributes.is_swift_initializer {
                     let ty_string = match &func.sig.output {
                         ReturnType::Default => {
                             todo!("Push error if initializer does not return a type")
