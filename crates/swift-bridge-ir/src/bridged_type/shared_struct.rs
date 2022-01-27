@@ -1,8 +1,11 @@
+use crate::bridged_type::{BridgedType, TypePosition};
+use crate::parse::TypeDeclarations;
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use std::fmt::{Debug, Formatter};
-use syn::LitStr;
+use syn::spanned::Spanned;
+use syn::{LitStr, Path};
 
 pub(crate) use self::struct_field::{NamedStructField, StructFields, UnnamedStructField};
 
@@ -45,38 +48,32 @@ impl SharedStruct {
 
 impl SharedStruct {
     /// Convert the FFI representation of this struct into its Rust struct format.
-    pub(crate) fn convert_ffi_repr_to_rust(&self, rust_val: &TokenStream) -> TokenStream {
+    pub(crate) fn convert_ffi_repr_to_rust(
+        &self,
+        rust_val: &TokenStream,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         let struct_name = &self.name;
 
-        let converted_fields = match &self.fields {
-            StructFields::Named(named) => {
-                let converted_fields = self.convert_named_fields_tokens(named, |field| {
-                    let field_name = &field.name;
+        let converted_fields: Vec<TokenStream> = self
+            .fields
+            .normalized_fields()
+            .iter()
+            .map(|norm_field| {
+                let maybe_name_and_colon = norm_field.maybe_name_and_colon();
+                let access_field = norm_field.append_field_accessor(&quote! {val});
 
-                    quote! {
-                        #field_name: val.#field_name
-                    }
-                });
-
-                quote! {
-                    { #converted_fields }
-                }
-            }
-            StructFields::Unnamed(unnamed) => {
-                let converted_fields = self.convert_unnamed_fields_tokens(unnamed, |field| {
-                    let field_accessor = field.rust_field_accessor();
-
-                    quote! { val.#field_accessor }
-                });
+                let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
+                let converted_field =
+                    ty.convert_ffi_value_to_rust_value(&access_field, norm_field.ty.span());
 
                 quote! {
-                    ( #converted_fields )
+                    #maybe_name_and_colon #converted_field
                 }
-            }
-            StructFields::Unit => {
-                quote! {}
-            }
-        };
+            })
+            .collect();
+
+        let converted_fields = self.wrap_fields(&converted_fields);
 
         if self.fields.is_empty() {
             quote! {
@@ -92,36 +89,28 @@ impl SharedStruct {
     pub(crate) fn convert_rust_expression_to_ffi_repr(
         &self,
         expression: &TokenStream,
+        types: &TypeDeclarations,
+        swift_bridge_path: &Path,
     ) -> TokenStream {
-        let converted_fields = match &self.fields {
-            StructFields::Named(named) => {
-                let converted_fields = self.convert_named_fields_tokens(named, |field| {
-                    let field_name = &field.name;
+        let converted_fields: Vec<TokenStream> = self
+            .fields
+            .normalized_fields()
+            .iter()
+            .map(|norm_field| {
+                let maybe_name_and_colon = norm_field.maybe_name_and_colon();
+                let access_field = norm_field.append_field_accessor(&quote! {val});
 
-                    quote! {
-                        #field_name: val.#field_name
-                    }
-                });
-
-                quote! {
-                    { #converted_fields }
-                }
-            }
-            StructFields::Unnamed(unnamed) => {
-                let converted_fields = self.convert_unnamed_fields_tokens(unnamed, |field| {
-                    let rust_accessor = field.rust_field_accessor();
-
-                    quote! { val.#rust_accessor }
-                });
+                let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
+                let converted_field =
+                    ty.convert_rust_value_to_ffi_compatible_value(&access_field, swift_bridge_path);
 
                 quote! {
-                    ( #converted_fields )
+                    #maybe_name_and_colon #converted_field
                 }
-            }
-            StructFields::Unit => {
-                quote! {}
-            }
-        };
+            })
+            .collect();
+
+        let converted_fields = self.wrap_fields(&converted_fields);
 
         let ffi_name = self.ffi_name_tokens();
 
@@ -136,28 +125,33 @@ impl SharedStruct {
         }
     }
 
-    pub(crate) fn convert_swift_to_ffi_repr(&self, expression: &str) -> String {
+    pub(crate) fn convert_swift_to_ffi_repr(
+        &self,
+        expression: &str,
+        types: &TypeDeclarations,
+    ) -> String {
         let struct_name = &self.ffi_name_string();
 
-        let converted_fields = match &self.fields {
-            StructFields::Named(named) => {
-                let converted_fields = self.convert_named_fields_string(named, move |field| {
-                    let field_name = &field.name;
+        let converted_fields: Vec<String> = self
+            .fields
+            .normalized_fields()
+            .iter()
+            .map(|norm_field| {
+                let field_name = norm_field.ffi_field_name();
+                let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
+                let access_field = ty.convert_swift_expression_to_ffi_compatible(
+                    &format!("val.{field_name}", field_name = field_name),
+                    TypePosition::SharedStructField,
+                );
 
-                    format!("{field_name}: val.{field_name}", field_name = field_name)
-                });
-                converted_fields
-            }
-            StructFields::Unnamed(unnamed) => {
-                let converted_fields = self.convert_unnamed_fields_string(unnamed, move |field| {
-                    let field_name = &field.ffi_field_name();
-
-                    format!("{field_name}: val.{field_name}", field_name = field_name)
-                });
-                converted_fields
-            }
-            StructFields::Unit => "".to_string(),
-        };
+                format!(
+                    "{field_name}: {access_field}",
+                    field_name = field_name,
+                    access_field = access_field
+                )
+            })
+            .collect();
+        let converted_fields = converted_fields.join(", ");
 
         if self.fields.is_empty() {
             format!("{struct_name}(_private: 123)", struct_name = &struct_name,)
@@ -171,29 +165,34 @@ impl SharedStruct {
         }
     }
 
-    pub(crate) fn convert_ffi_expression_to_swift(&self, expression: &str) -> String {
+    pub(crate) fn convert_ffi_expression_to_swift(
+        &self,
+        expression: &str,
+        types: &TypeDeclarations,
+    ) -> String {
         let struct_name = &self.swift_name_string();
 
-        let converted_fields = match &self.fields {
-            StructFields::Named(named) => {
-                let converted_fields = self.convert_named_fields_string(named, move |field| {
-                    let field_name = &field.name;
-                    format!("{field_name}: val.{field_name}", field_name = field_name)
-                });
+        let converted_fields: Vec<String> = self
+            .fields
+            .normalized_fields()
+            .iter()
+            .map(|norm_field| {
+                let field_name = norm_field.ffi_field_name();
 
-                converted_fields
-            }
-            StructFields::Unnamed(unnamed) => {
-                let converted_fields = self.convert_unnamed_fields_string(unnamed, move |field| {
-                    let field_name = &field.ffi_field_name();
+                let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
+                let access_field = ty.convert_ffi_value_to_swift_value(
+                    &format!("val.{field_name}", field_name = field_name),
+                    TypePosition::SharedStructField,
+                );
 
-                    format!("{field_name}: val.{field_name}", field_name = field_name)
-                });
-
-                converted_fields
-            }
-            StructFields::Unit => "".to_string(),
-        };
+                format!(
+                    "{field_name}: {access_field}",
+                    field_name = field_name,
+                    access_field = access_field
+                )
+            })
+            .collect();
+        let converted_fields = converted_fields.join(", ");
 
         if self.fields.is_empty() {
             format!("{struct_name}()", struct_name = &struct_name,)
@@ -207,76 +206,23 @@ impl SharedStruct {
         }
     }
 
-    fn convert_named_fields_tokens<F: Fn(&NamedStructField) -> TokenStream>(
-        &self,
-        named: &[NamedStructField],
-        field_converter: F,
-    ) -> TokenStream {
-        let mut converted_fields = vec![];
-
-        for field in named {
-            let field = field_converter(field);
-
-            converted_fields.push(field)
+    fn wrap_fields(&self, fields: &[TokenStream]) -> TokenStream {
+        match &self.fields {
+            StructFields::Named(_) => {
+                quote! {
+                    { #(#fields),* }
+                }
+            }
+            StructFields::Unnamed(_) => {
+                quote! {
+                    ( #(#fields),* )
+                }
+            }
+            StructFields::Unit => {
+                debug_assert_eq!(fields.len(), 0);
+                quote! {}
+            }
         }
-
-        let converted_fields = quote! {
-            #(#converted_fields),*
-        };
-
-        converted_fields
-    }
-
-    fn convert_named_fields_string<F: Fn(&NamedStructField) -> String>(
-        &self,
-        named: &[NamedStructField],
-        field_converter: F,
-    ) -> String {
-        let mut converted_fields = vec![];
-
-        for field in named {
-            let field = field_converter(field);
-
-            converted_fields.push(field)
-        }
-
-        converted_fields.join(", ")
-    }
-
-    fn convert_unnamed_fields_tokens<F: Fn(&UnnamedStructField) -> TokenStream>(
-        &self,
-        unnamed: &[UnnamedStructField],
-        field_converter: F,
-    ) -> TokenStream {
-        let mut converted_fields = vec![];
-
-        for field in unnamed {
-            let field = field_converter(field);
-
-            converted_fields.push(field)
-        }
-
-        let converted_fields = quote! {
-            #(#converted_fields),*
-        };
-
-        converted_fields
-    }
-
-    fn convert_unnamed_fields_string<F: Fn(&UnnamedStructField) -> String>(
-        &self,
-        unnamed: &[UnnamedStructField],
-        field_converter: F,
-    ) -> String {
-        let mut converted_fields = vec![];
-
-        for field in unnamed {
-            let field = field_converter(field);
-
-            converted_fields.push(field)
-        }
-
-        converted_fields.join(", ")
     }
 }
 

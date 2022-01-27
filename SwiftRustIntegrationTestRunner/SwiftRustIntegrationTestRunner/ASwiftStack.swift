@@ -30,3 +30,4 @@ public class ASwiftStack {
         UnsafeBufferPointer(start: self.as_ptr(), count: Int(self.len()))
     }
 }
+

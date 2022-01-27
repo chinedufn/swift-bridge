@@ -1,7 +1,7 @@
 //! More tests can be found in
 //! crates/swift-bridge-ir/src/codegen/codegen_tests/shared_struct_codegen_tests.rs
 
-use crate::bridged_type::{SharedStruct, StructFields};
+use crate::bridged_type::{BridgedType, SharedStruct};
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -23,79 +23,48 @@ impl SwiftBridgeModule {
         let repr_c_struct_name = format!("{}{}", SWIFT_BRIDGE_PREFIX, struct_name);
         let repr_c_struct_name = Ident::new(&repr_c_struct_name, struct_name.span());
 
-        let struct_fields = match &shared_struct.fields {
-            StructFields::Named(named) => {
-                let mut fields = vec![];
-                for f in named {
-                    let ty = &f.ty;
+        let struct_fields: Vec<TokenStream> = shared_struct
+            .fields
+            .normalized_fields()
+            .iter()
+            .map(|norm_field| {
+                let maybe_name_and_colon = norm_field.maybe_name_and_colon();
+                let ty = &norm_field.ty;
 
-                    let name = &f.name;
-                    let field = quote! {
-                        pub #name: #ty
-                    };
-
-                    fields.push(field);
+                quote! {
+                    pub #maybe_name_and_colon #ty
                 }
+            })
+            .collect();
+        let struct_fields = shared_struct.fields.wrap_declaration_fields(&struct_fields);
 
-                quote! { { #(#fields),* } }
-            }
-            StructFields::Unnamed(unnamed) => {
-                let mut fields = vec![];
-                for f in unnamed {
-                    let ty = &f.ty;
+        let repr_c_struct_fields: Vec<TokenStream> = shared_struct
+            .fields
+            .normalized_fields()
+            .iter()
+            .map(|norm_field| {
+                let maybe_name_and_colon = norm_field.maybe_name_and_colon();
+                let ty = &norm_field.ty;
 
-                    let field = quote! {
-                        pub #ty
-                    };
+                let ty = BridgedType::new_with_type(ty, &self.types).unwrap();
+                let ty = ty.to_ffi_compatible_rust_type(&self.swift_bridge_path);
 
-                    fields.push(field);
+                quote! {
+                    #maybe_name_and_colon #ty
                 }
+            })
+            .collect();
+        let repr_c_struct_fields = shared_struct
+            .fields
+            .wrap_declaration_fields(&repr_c_struct_fields);
 
-                quote! { ( #(#fields),*  ); }
-            }
-            StructFields::Unit => {
-                quote! {;}
-            }
-        };
-
-        let repr_c_struct_fields = match &shared_struct.fields {
-            StructFields::Named(named) => {
-                let mut fields = vec![];
-                for f in named {
-                    let ty = &f.ty;
-
-                    let name = &f.name;
-                    let field = quote! {
-                        #name: #ty
-                    };
-
-                    fields.push(field);
-                }
-
-                quote! { { #(#fields),* } }
-            }
-            StructFields::Unnamed(unnamed) => {
-                let mut fields = vec![];
-                for f in unnamed {
-                    let ty = &f.ty;
-
-                    let field = quote! {
-                        #ty
-                    };
-
-                    fields.push(field);
-                }
-
-                quote! { ( #(#fields),*  ); }
-            }
-            StructFields::Unit => {
-                quote! {;}
-            }
-        };
-
-        let convert_rust_to_ffi =
-            shared_struct.convert_rust_expression_to_ffi_repr(&quote! { self });
-        let convert_ffi_to_rust = shared_struct.convert_ffi_repr_to_rust(&quote! { self });
+        let convert_rust_to_ffi = shared_struct.convert_rust_expression_to_ffi_repr(
+            &quote! { self },
+            &self.types,
+            &self.swift_bridge_path,
+        );
+        let convert_ffi_to_rust =
+            shared_struct.convert_ffi_repr_to_rust(&quote! { self }, &self.types);
 
         let struct_ffi_repr = if shared_struct.fields.is_empty() {
             // Using a u8 is arbitrary... We just need a field since empty structs aren't FFI safe.

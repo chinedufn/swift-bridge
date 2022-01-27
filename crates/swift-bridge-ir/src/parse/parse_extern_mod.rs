@@ -61,7 +61,7 @@ impl<'a> ForeignModParser<'a> {
                 ForeignItem::Type(foreign_ty) => {
                     let ty_name = foreign_ty.ident.to_string();
 
-                    if let Some(_builtin) = BridgedType::with_str(
+                    if let Some(_builtin) = BridgedType::new_with_str(
                         &foreign_ty.ident.to_string(),
                         &self.type_declarations,
                     ) {
@@ -250,7 +250,8 @@ impl<'a> ForeignModParser<'a> {
                     }
                 }
                 _ => {
-                    todo!(r#"
+                    todo!(
+                        r#"
 One way to hit this block is with a `fn foo (&self: SomeType)`.
 Note that this is an invalid signature since the `&` should be in front of `SomeType`, not `self`.
 i.e., this would be correct: `fn foo (self: &SomeType)`
@@ -259,7 +260,8 @@ indicating that the function signature is invalid.
 For common mistakes such as the `&self: SomeType` example, we can have dedicated errors telling you
 exactly how to fix it.
 Otherwise we use a more general error that says that your argument is invalid.
-"#)
+"#
+                    )
                 }
             },
             None => {

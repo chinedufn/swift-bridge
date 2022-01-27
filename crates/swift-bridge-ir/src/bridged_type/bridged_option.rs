@@ -119,80 +119,65 @@ impl BridgedOption {
         }
     }
 
-    pub(super) fn convert_ffi_value_to_rust_value(
-        &self,
-        value: &TokenStream,
-        type_pos: TypePosition,
-    ) -> TokenStream {
-        match type_pos {
-            TypePosition::FnArg(func_host_lang) | TypePosition::FnReturn(func_host_lang) => {
-                if func_host_lang.is_rust() {
-                    match self.ty.deref() {
-                        BridgedType::StdLib(stdlib_ty) => match stdlib_ty {
-                            StdLibType::Null => {
-                                todo!("Option<()> is not yet supported")
-                            }
-                            StdLibType::U8
-                            | StdLibType::I8
-                            | StdLibType::U16
-                            | StdLibType::I16
-                            | StdLibType::U32
-                            | StdLibType::I32
-                            | StdLibType::U64
-                            | StdLibType::I64
-                            | StdLibType::Usize
-                            | StdLibType::Isize
-                            | StdLibType::F32
-                            | StdLibType::F64
-                            | StdLibType::Bool => {
-                                quote! { if #value.is_some { Some(#value.val) } else { None } }
-                            }
-                            StdLibType::Pointer(_) => {
-                                todo!("Option<*const T> and Option<*mut T> are not yet supported.")
-                            }
-                            StdLibType::RefSlice(_) => {
-                                todo!("Option<*const T> and Option<*mut T> are not yet supported.")
-                            }
-                            StdLibType::Str => {
-                                quote! {
-                                    if #value.start.is_null() { None } else { Some(#value.to_str()) }
-                                }
-                            }
-                            StdLibType::String => {
-                                quote! {
-                                    if #value.is_null() {
-                                        None
-                                    } else {
-                                        Some(unsafe { Box::from_raw(#value).0 } )
-                                    }
-                                }
-                            }
-                            StdLibType::Vec(_) => {
-                                todo!("Option<Vec<T>> is not yet supported")
-                            }
-                            StdLibType::Option(_) => {
-                                todo!("Option<Option<T>> is not yet supported")
-                            }
-                        },
-                        BridgedType::Foreign(CustomBridgedType::Shared(_shared_struct)) => {
-                            todo!("Option<SharedStruct> is not yet supported")
-                        }
-                        BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
-                            quote! {
-                                if #value.is_null() {
-                                    None
-                                } else {
-                                    Some(unsafe { * Box::from_raw(#value) } )
-                                }
-                            }
+    pub(super) fn convert_ffi_value_to_rust_value(&self, value: &TokenStream) -> TokenStream {
+        match self.ty.deref() {
+            BridgedType::StdLib(stdlib_ty) => match stdlib_ty {
+                StdLibType::Null => {
+                    todo!("Option<()> is not yet supported")
+                }
+                StdLibType::U8
+                | StdLibType::I8
+                | StdLibType::U16
+                | StdLibType::I16
+                | StdLibType::U32
+                | StdLibType::I32
+                | StdLibType::U64
+                | StdLibType::I64
+                | StdLibType::Usize
+                | StdLibType::Isize
+                | StdLibType::F32
+                | StdLibType::F64
+                | StdLibType::Bool => {
+                    quote! { if #value.is_some { Some(#value.val) } else { None } }
+                }
+                StdLibType::Pointer(_) => {
+                    todo!("Option<*const T> and Option<*mut T> are not yet supported.")
+                }
+                StdLibType::RefSlice(_) => {
+                    todo!("Option<*const T> and Option<*mut T> are not yet supported.")
+                }
+                StdLibType::Str => {
+                    quote! {
+                        if #value.start.is_null() { None } else { Some(#value.to_str()) }
+                    }
+                }
+                StdLibType::String => {
+                    quote! {
+                        if #value.is_null() {
+                            None
+                        } else {
+                            Some(unsafe { Box::from_raw(#value).0 } )
                         }
                     }
-                } else {
-                    todo!("Option<T> Swift function arguments are not yet supported.")
                 }
+                StdLibType::Vec(_) => {
+                    todo!("Option<Vec<T>> is not yet supported")
+                }
+                StdLibType::Option(_) => {
+                    todo!("Option<Option<T>> is not yet supported")
+                }
+            },
+            BridgedType::Foreign(CustomBridgedType::Shared(_shared_struct)) => {
+                todo!("Option<SharedStruct> is not yet supported")
             }
-            TypePosition::SharedStructField => {
-                todo!("Option<T> struct fields are not yet supported.")
+            BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
+                quote! {
+                    if #value.is_null() {
+                        None
+                    } else {
+                        Some(unsafe { * Box::from_raw(#value) } )
+                    }
+                }
             }
         }
     }
