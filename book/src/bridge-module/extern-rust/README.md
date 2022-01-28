@@ -252,6 +252,38 @@ func maybeSendLongMessage(text: String) {
 }
 ```
 
+#### #[swift_bridge(Identifiable)]
+
+Used to generate a Swift `Idenfiable` protocol implementation.
+
+```rust
+// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        type SomeType;
+
+        #[swift_bridge(Identifiable, swift_name = "someFunction")]
+        fn some_function(&self) -> i16;
+    }
+}
+```
+
+```swift
+// Generated Swift
+// (rough example, the real generated code looks a little different)
+
+class SomeType {
+    // ...
+}
+extension SomeType: Identifiable {
+    var id: UInt16 {
+        return self.someFunction()
+    }
+}
+```
+
 #### #[swift_bridge(into_return_type)]
 
 Allows a swift-bridge definition of `fn foo() -> T` to work for any `fn foo() -> impl Into<T>`.
