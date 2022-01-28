@@ -390,6 +390,36 @@ func maybeSendLongMessage(text: String) {
     }
 }
 </code></pre>
+<h4 id="swift_bridgeidentifiable"><a class="header" href="#swift_bridgeidentifiable">#[swift_bridge(Identifiable)]</a></h4>
+<p>Used to generate a Swift <code>Idenfiable</code> protocol implementation.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        type SomeType;
+
+        #[swift_bridge(Identifiable, swift_name = &quot;someFunction&quot;)]
+        fn some_function(&amp;self) -&gt; i16;
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// Generated Swift
+// (rough example, the real generated code looks a little different)
+
+class SomeType {
+    // ...
+}
+extension SomeType: Identifiable {
+    var id: UInt16 {
+        return self.someFunction()
+    }
+}
+</code></pre>
 <h4 id="swift_bridgeinto_return_type"><a class="header" href="#swift_bridgeinto_return_type">#[swift_bridge(into_return_type)]</a></h4>
 <p>Allows a swift-bridge definition of <code>fn foo() -&gt; T</code> to work for any <code>fn foo() -&gt; impl Into&lt;T&gt;</code>.</p>
 <pre><pre class="playground"><code class="language-rust">
