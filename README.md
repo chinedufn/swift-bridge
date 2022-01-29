@@ -7,7 +7,7 @@
 You use a "bridge module" to declare which types and functions you want to import and export, and then `swift-bridge` generates the necessary `Rust`, `Swift` and `C`
 FFI glue code to make it possible.
 
-The genearted FFI glue has zero or negligible overhead, depending on the function's signature.
+The generated FFI glue has zero or negligible overhead, depending on the function's signature.
 
 ## Installation
 
@@ -36,11 +36,11 @@ Here's how you might declare a bridge module on the Rust side in order to export
 
 ```rust
 // Use the `swift_bridge::bridge` macro to declare a bridge module that
-// `swift-bridge` will parse during a Cargo build script or from the CLI tool
+// `swift-bridge-build` will parse during your Cargo build script
 // in order to generate the necessary Swift and C FFI glue code.
 #[swift_bridge::bridge]
 mod ffi {
-    // Create shared structs where both Rust and Swift can see the fields.
+    // Create shared structs where both Rust and Swift can directly access the fields.
     struct AppConfig {
         file_manager: CustomFileManager,
     }
@@ -86,9 +86,13 @@ open IosRustAnalyzer/IosRustAnalyzer.xcodeproj
 # *** Click the "Run" button at the top left of Xcode ***
 ```
 
+---
+
+You can find information about using Rust and Swift together in [The `swift-bridge` book](https://chinedufn.github.io/swift-bridge).
+
 ## Built-In Types
 
-In addition to allowing you to share your own custom types between Rust and Swift,
+In addition to allowing you to share your own custom structs, enums and classes between Rust and Swift,
 `swift_bridge` comes with support for a number of Rust and Swift standard library types.
 
 <!-- NOTE: Whenever we modify this list we need to copy it over to the book's built in types chapter README  -->
@@ -136,7 +140,8 @@ figure out the right APIs and code generation.
 During this phase we'll focus on adding support for more types, patterns and and common use cases
 that we discover.
 
-We won't be overly focused on what the best names or arguments or structure during this phase.
+While we must always be thoughtful, we won't be obsessively focused on what the best names,
+arguments or approaches are during this phase.
 
 #### Phase 2: Make it Ergonomic
 
