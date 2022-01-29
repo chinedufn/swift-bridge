@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 mod expose_opaque_rust_type;
 mod import_opaque_swift_class;
 

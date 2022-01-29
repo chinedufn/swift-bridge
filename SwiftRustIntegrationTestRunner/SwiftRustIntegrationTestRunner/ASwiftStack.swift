@@ -31,3 +31,6 @@ public class ASwiftStack {
     }
 }
 
+class CustomFileManager {
+    
+}

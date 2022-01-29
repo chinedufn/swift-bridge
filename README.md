@@ -2,87 +2,12 @@
 
 > `swift-bridge` facilitates Rust and Swift interop.
 
-## Book
+`swift-bridge` is a library that lets you pass and share high-level types such as `Option<T>`, `String`, `Struct` and `Class` between Rust and Swift.
 
-You can find information about using Rust and Swift together in [The `swift-bridge` book](https://chinedufn.github.io/swift-bridge).
+You use a "bridge module" to declare which types and functions you want to import and export, and then `swift-bridge` generates the necessary `Rust`, `Swift` and `C`
+FFI glue code to make it possible.
 
-## Quick Start
-
-The `swift-bridge` repository contains [example applications](examples) that you use to quickly try out the library,
-or as a starting point for your own `Swift` + `Rust` based application.
-
-For example, here's how to run the [`ios-rust-analyzer`](examples/ios-rust-analyzer) example project locally.
-
-```
-git clone https://github.com/chinedufn/swift-bridge
-cd swift-bridge/examples/ios-rust-analyzer
-
-open IosRustAnalyzer/IosRustAnalyzer.xcodeproj
-# Click the "Run" button at the top left of Xcode
-```
-
-## Quick Peek
-
-Share Swift and Rust types and functions between the two languages.
-
-```rust
-// Rust
-
-// You write the type signatures of your FFI boundary in Rust,
-// which `swift-bridge` then uses to generate the FFI layer.
-#[swift_bridge::bridge]
-mod ffi {
-    // Create structs that both Swift and Rust can use.
-    #[swift_bridge(swift_repr = "struct")]
-    struct Comparison {
-        summary: Option<String>,
-    }
-
-    // Export Rust types and functions for Swift to use.
-    extern "Rust" {
-        type ARustStack;
-
-        #[swift_bridge(init)]
-        fn new() -> ARustStack;
-
-        fn push(&mut self, val: String);
-        fn pop(&mut self) -> Option<String>;
-    }
-
-    // Import Swift types and functions for Rust to use.
-    extern "Swift" {
-        type ASwiftGraph;
-
-        fn compare_graphs(g1: &ASwiftGraph, g2: &ASwiftGraph) -> Comparison;
-    }
-}
-
-struct ARustStack {
-    stack: Vec<String>
-}
-impl ARustStack {
-    fn new() -> ARustStack { /* ... */ }
-    fn push(&mut self, val: String) { /* ... */ }
-    fn pop(&mut self) -> Option<String> { /* ... */ }
-}
-```
-
-```swift
-// Swift
-
-let stack = ARustStack()
-stack.push("Hello, hello.")
-let hello = stack.pop()!
-
-class ASwiftGraph {
-    // ...
-}
-
-func compare_graphs(g1: &ASwiftGraph, g2: &ASwiftGraph) -> Comparison {
-    // ...
-    return Comparison(summary: "Things went well.")
-}
-```
+The genearted FFI glue has zero or negligible overhead, depending on the function's signature.
 
 ## Installation
 
@@ -96,10 +21,77 @@ swift-bridge-build = "0.1"
 swift-bridge = "0.1"
 ```
 
+## Book
+
+You can find information about using Rust and Swift together in [The `swift-bridge` book](https://chinedufn.github.io/swift-bridge).
+
+## Quick Peek
+
+You declare your FFI boundary using one or more bridge modules annotated with the `swift_bridge::bridge` attribute macro.
+
+Later, during your Cargo build script, you use `swift-bridge-build` in order to parse your bridge modules and generate the
+corresponding Swift and C code to make it all work.
+
+Here's how you might declare a bridge module on the Rust side in order to export types to and import types from Swift.
+
+```rust
+// Use the `swift_bridge::bridge` macro to declare a bridge module that
+// `swift-bridge` will parse during a Cargo build script or from the CLI tool
+// in order to generate the necessary Swift and C FFI glue code.
+#[swift_bridge::bridge]
+mod ffi {
+    // Create shared structs where both Rust and Swift can see the fields.
+    struct AppConfig {
+        file_manager: CustomFileManager,
+    }
+
+    // Export Rust types, functions and methods for Swift to use.
+    extern "Rust" {
+        type RustApp;
+
+        #[swift_bridge(init)]
+        fn new(config: AppConfig);
+        
+        fn insert_user(&mut self, user_id: u32, user: User);
+        fn get_user(&self, user_id: u32) -> Option<&User>;
+    }
+
+    extern "Rust" {
+        type User;
+
+        #[swift_bridge(init)]
+        fn new(user_id: u32, name: String, email: Option<String>) -> User;
+    }
+
+    // Import Swift classes and functions for Rust to use.
+    extern "Swift" {
+        type CustomFileManager;
+        fn save_file(&self, name: &str, contents: &[u8]);
+    }
+}
+```
+
+## Quick Start
+
+The `swift-bridge` repository contains [example applications](examples) that you use to quickly try out the library,
+or as a starting point for your own `Swift` + `Rust` based application.
+
+For example, here's how to run the [`ios-rust-analyzer`](examples/ios-rust-analyzer) example project locally.
+
+```sh
+git clone https://github.com/chinedufn/swift-bridge
+cd swift-bridge/examples/ios-rust-analyzer
+
+open IosRustAnalyzer/IosRustAnalyzer.xcodeproj
+# *** Click the "Run" button at the top left of Xcode ***
+```
+
 ## Built-In Types
 
 In addition to allowing you to share your own custom types between Rust and Swift,
 `swift_bridge` comes with support for a number of Rust and Swift standard library types.
+
+<!-- NOTE: Whenever we modify this list we need to copy it over to the book's built in types chapter README  -->
 
 | name in Rust                                                    | name in Swift                                                    | notes               |
 | ---                                                             | ---                                                              | ---                 |
