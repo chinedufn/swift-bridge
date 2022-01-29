@@ -147,8 +147,28 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="built-in-types"><a class="header" href="#built-in-types">Built In Types</a></h1>
-<p>On top of allowing you to define custom types to share across Rust and Swift,
-<code>swift-bridge</code> comes with built in bindings for many Rust and Swift standard library types.</p>
+<p>In addition to allowing you to share your own custom types between Rust and Swift,
+<code>swift_bridge</code> comes with support for a number of Rust and Swift standard library types.</p>
+<!-- NOTE: Whenever we modify this list we need to copy it over to the repository's README -->
+<table><thead><tr><th>name in Rust</th><th>name in Swift</th><th>notes</th></tr></thead><tbody>
+<tr><td>u8, i8, u16, i16... etc</td><td>UInt8, Int8, UInt16, Int16 ... etc</td><td></td></tr>
+<tr><td>bool</td><td>Bool</td><td></td></tr>
+<tr><td>String, &amp;String, &amp;mut String</td><td>RustString, RustStringRef, RustStringRefMut</td><td></td></tr>
+<tr><td>&amp;str</td><td>RustStr</td><td></td></tr>
+<tr><td>Vec&lt;T&gt;</td><td>RustVec&lt;T&gt;</td><td></td></tr>
+<tr><td>SwiftArray&lt;T&gt;</td><td>Array&lt;T&gt;</td><td>Not yet implemented</td></tr>
+<tr><td>&amp;[T]</td><td>UnsafeBufferPointer&lt;T&gt;</td><td></td></tr>
+<tr><td>&amp;mut [T]</td><td>UnsafeMutableBufferPointer&lt;T&gt;</td><td>Not yet implemented</td></tr>
+<tr><td>SwiftString</td><td>String</td><td></td></tr>
+<tr><td>Box<T></td><td></td><td>Not yet implemented</td></tr>
+<tr><td>[T; N]</td><td></td><td>Not yet implemented</td></tr>
+<tr><td>*const T</td><td>UnsafePointer&lt;T&gt;</td><td></td></tr>
+<tr><td>*mut T</td><td>UnsafeMutablePointer&lt;T&gt;</td><td></td></tr>
+<tr><td>Option&lt;T&gt;</td><td>Optional&lt;T&gt;</td><td></td></tr>
+<tr><td>Result&lt;T&gt;</td><td></td><td>Not yet implemented</td></tr>
+<tr><td>Have a Rust standard library type in mind?<br /> Open an issue!</td><td></td><td></td></tr>
+<tr><td></td><td>Have a Swift standard library type in mind?<br /> Open an issue!</td><td></td></tr>
+</tbody></table>
 
                     </main>
 
