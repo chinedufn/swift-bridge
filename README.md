@@ -4,10 +4,9 @@
 
 `swift-bridge` is a library that lets you pass and share high-level types such as `Option<T>`, `String`, `Struct` and `Class` between Rust and Swift.
 
-You use a "bridge module" to declare which types and functions you want to import and export, and then `swift-bridge` generates the necessary `Rust`, `Swift` and `C`
-FFI glue code to make it possible.
-
-The generated FFI glue has zero or negligible overhead, depending on the function's signature.
+You declare the types and functions that you want to import and export using "bridge modules", and
+then run `swift-bridge-build` at build time to parse your bridge modules and automatically generate the
+`Swift` and `C` FFI layer to them work.
 
 ## Installation
 
