@@ -471,23 +471,147 @@ struct ContentView_Previews: PreviewProvider {
 <p>Runing the application in the iPhone simulator using <code>Cmd</code> + <code>R</code> should show a working demo!</p>
 <p><img src="building/xcode-and-cargo/./screenshots/simulator-rust-analyzer-app.png" alt="Simulator rust analyzer app" /></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="swiftc--cargo"><a class="header" href="#swiftc--cargo">swiftc + Cargo</a></h1>
+<p>One approach to building Rust and Swift is to use <code>Cargo</code> to compile your Rust code and <code>swiftc</code> to compile your Swift code.</p>
+<p>Im this case, either <code>Cargo</code> needs to link to a compiled Swift native library, or <code>swiftc</code> needs to link to a compiled Rust
+native library.</p>
+<p>We'll use an example project to explore both of these approaches.</p>
+<h2 id="project-setup-1"><a class="header" href="#project-setup-1">Project Setup</a></h2>
+<pre><code>cargo new --lib swift-and-rust
+cd swift-and-rust
+</code></pre>
+<pre><code class="language-toml"># Cargo.toml
+
+[build-dependencies]
+swift-bridge-build = &quot;0.1&quot;
+
+[dependencies]
+swift-bridge = &quot;0.1&quot;
+</code></pre>
+<pre><pre class="playground"><code class="language-rust">// src/main.rs
+fn main() {
+    swift_and_rust::print_hello_swift();
+}
+</code></pre></pre>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// src/lib.rs
+
+pub use ffi::print_hello_swift;
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        fn print_hello_rust();
+    }
+
+    extern &quot;Swift&quot; {
+        fn print_hello_swift();
+    }
+}
+
+fn print_hello_rust() {
+    println!(&quot;Hello from Rust&quot;)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// main.swift
+run()
+</code></pre>
+<pre><code class="language-swift">// lib.swift
+func run() {
+    print_hello_rust()
+}
+</code></pre>
+<pre><code class="language-sh"># briding-header.h
+
+#ifndef BridgingHeader_h
+#define BridgingHeader_h
+
+#include &quot;./generated/SwiftBridgeCore.h&quot;
+#include &quot;./generated/swift-and-rust/swift-and-rust.h&quot;
+
+#endif /* BridgingHeader_h */
+</code></pre>
+<pre><code class="language-sh">mkdir generated
+</code></pre>
 <h2 id="swift-links-to-a-rust-native-library"><a class="header" href="#swift-links-to-a-rust-native-library">Swift links to a Rust native library</a></h2>
-<p>... TODO ... demonstrate compiling a Rust native library using Cargo
-and then using swiftc to link the native library into the final Swift binary.</p>
-<pre><code># TODO: Flesh out an example around something like this...
+<p>Add the following to your Cargo.toml</p>
+<pre><code class="language-toml"># Cargo.toml
 
-SWIFT_BRIDGE_OUT_DIR=$OUTDIR cargo build --target x86_64-apple-darwin
+[lib]
+crate-type = [&quot;staticlib&quot;]
+</code></pre>
+<pre><pre class="playground"><code class="language-rust">// build.rs
 
+use std::path::PathBuf;
+
+fn main() {
+    let out_dir = PathBuf::from(&quot;./generated&quot;);
+
+    let bridges = vec![&quot;src/lib.rs&quot;];
+    for path in &amp;bridges {
+        println!(&quot;cargo:rerun-if-changed={}&quot;, path);
+    }
+
+    swift_bridge_build::parse_bridges(bridges)
+        .write_all_concatenated(out_dir, env!(&quot;CARGO_PKG_NAME&quot;));
+}
+</code></pre></pre>
+<pre><code class="language-sh"># build-swiftc-links-rust.sh
+
+#!/bin/bash
+set -e
+
+export SWIFT_BRIDGE_OUT_DIR=&quot;$(pwd)/generated&quot;
+
+cargo build --target x86_64-apple-darwin
 swiftc -L target/x86_64-apple-darwin/debug/ -lswiftc_link_rust -import-objc-header bridging-header.h \
-  main.swift lib.swift ./generated/swiftc-and-cargo/swiftc-and-cargo.swift
+  main.swift lib.swift ./generated/swiftc-link-rust/swiftc-link-rust.swift
+</code></pre>
+<pre><code class="language-sh">./build-swiftc-links-rust.sh
+./main
+# The output should be &quot;Hello from Rust&quot;
 </code></pre>
 <h2 id="rust-links-to-a-swift-native-library"><a class="header" href="#rust-links-to-a-swift-native-library">Rust links to a Swift native library</a></h2>
-<p>... TODO ... demonstrate compiling a Swift native library using swiftc
-and then using Cargo to link the native library into the final Rust binary.</p>
-<pre><code># TODO: Flesh out an example around something like this...
+<p>Unlike the when we had <code>swiftc</code> in the Rust code, you do not need to set the <code>crate-type</code>
+when you have <code>Cargo</code> linking in the Swift code.</p>
+<pre><pre class="playground"><code class="language-rust">// build.rs
+use std::path::PathBuf;
+
+fn main() {
+    let out_dir = PathBuf::from(&quot;./generated&quot;);
+
+    let bridges = vec![&quot;src/lib.rs&quot;];
+    for path in &amp;bridges {
+        println!(&quot;cargo:rerun-if-changed={}&quot;, path);
+    }
+
+    swift_bridge_build::parse_bridges(bridges)
+        .write_all_concatenated(out_dir, env!(&quot;CARGO_PKG_NAME&quot;));
+
+    println!(&quot;rustc-link-lib=static=swiftc_link_rust&quot;);
+    println!(&quot;rustc-link-search=./&quot;);
+}
+</code></pre></pre>
+<pre><code class="language-sh"># build-swift-static-lib.sh
+
+#!/bin/bash
+set -e
+
+# The swift-bridge CLI does not exist yet. Open an issue if you need to use
+# this approach and I'll happily whip up the CLI.
+swift-bridge -f src/lib.rs &gt; generated
 
 swiftc -emit-library -static -module-name my_swift -import-objc-header bridging-header.h \
-  lib.swift ./generated/swiftc-and-cargo/swiftc-and-cargo.swift
+  lib.swift ./generated/swiftc-link-rust/swiftc-link-rust.swift
+</code></pre>
+<pre><code class="language-sh">chmod +x build-swift-static-lib.sh
+./build-swift-static-lib.sh
+
+cargo build
+./target/debug/swift_and_rust
+# The output should be &quot;Hello from Swift&quot;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-bridge-module"><a class="header" href="#the-bridge-module">The Bridge Module</a></h1>
 <p>TODO: Introduce the bridge module chapter. Give an overview of bride modules.</p>
