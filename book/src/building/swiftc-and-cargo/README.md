@@ -119,8 +119,8 @@ set -e
 export SWIFT_BRIDGE_OUT_DIR="$(pwd)/generated"
 
 cargo build --target x86_64-apple-darwin
-swiftc -L target/x86_64-apple-darwin/debug/ -lswiftc_link_rust -import-objc-header bridging-header.h \
-  main.swift lib.swift ./generated/swiftc-link-rust/swiftc-link-rust.swift
+swiftc -L target/x86_64-apple-darwin/debug/ -lswift_and_rust -import-objc-header bridging-header.h \
+  main.swift lib.swift ./generated/swift-and-rust/swift-and-rust.swift
 ```
 
 ```sh
@@ -165,7 +165,7 @@ set -e
 swift-bridge -f src/lib.rs > generated
 
 swiftc -emit-library -static -module-name my_swift -import-objc-header bridging-header.h \
-  lib.swift ./generated/swiftc-link-rust/swiftc-link-rust.swift
+  lib.swift ./generated/swift-and-rust/swift-and-rust.swift
 ```
 
 ```sh
