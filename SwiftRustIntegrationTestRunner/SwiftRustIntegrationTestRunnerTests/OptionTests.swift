@@ -102,6 +102,51 @@ class OptionTests: XCTestCase {
         XCTAssertNil(rust_reflect_option_opaque_rust_type(nil))
     }
     
+    func testStructWithOptionFieldsSome() throws {
+        let val = StructWithOptionFields(
+            u8: 123, i8: 123, u16: 123, i16: 123,
+            u32: 123, i32: 123, u64: 123, i64: 123,
+            usize: 123, isize: 123, f32: 123.4, f64: 123.4,
+            boolean: true
+        )
+        let reflected = rust_reflect_struct_with_option_fields(val)
+        XCTAssertEqual(reflected.u8, 123)
+        XCTAssertEqual(reflected.i8, 123)
+        XCTAssertEqual(reflected.u16, 123)
+        XCTAssertEqual(reflected.i16, 123)
+        XCTAssertEqual(reflected.u32, 123)
+        XCTAssertEqual(reflected.i32, 123)
+        XCTAssertEqual(reflected.u64, 123)
+        XCTAssertEqual(reflected.i64, 123)
+        XCTAssertEqual(reflected.usize, 123)
+        XCTAssertEqual(reflected.isize, 123)
+        XCTAssertEqual(reflected.f32, 123.4)
+        XCTAssertEqual(reflected.f64, 123.4)
+        XCTAssertEqual(reflected.boolean, true)
+    }
+    
+    func testStructWithOptionFieldsNone() {
+        let val = StructWithOptionFields(
+            u8: nil, i8: nil, u16: nil, i16: nil,
+            u32: nil, i32: nil, u64: nil, i64: nil,
+            usize: nil, isize: nil, f32: nil, f64: nil,
+            boolean: nil
+        )
+        let reflected = rust_reflect_struct_with_option_fields(val)
+        XCTAssertEqual(reflected.i8, nil)
+        XCTAssertEqual(reflected.u16, nil)
+        XCTAssertEqual(reflected.i16, nil)
+        XCTAssertEqual(reflected.u32, nil)
+        XCTAssertEqual(reflected.i32, nil)
+        XCTAssertEqual(reflected.u64, nil)
+        XCTAssertEqual(reflected.i64, nil)
+        XCTAssertEqual(reflected.usize, nil)
+        XCTAssertEqual(reflected.isize, nil)
+        XCTAssertEqual(reflected.f32, nil)
+        XCTAssertEqual(reflected.f64, nil)
+        XCTAssertEqual(reflected.boolean, nil)
+    }
+    
     func testRustCallSwiftReturnOption() {
         run_option_tests()
     }

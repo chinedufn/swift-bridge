@@ -1,4 +1,4 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType, TypePosition};
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
@@ -101,14 +101,13 @@ impl ParsedExternFn {
 
     pub(crate) fn rust_return_type(
         &self,
-        func_host_lang: HostLang,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
         let sig = &self.func.sig;
 
         if let Some(ret) = BridgedType::new_with_return_type(&sig.output, types) {
-            let ty = ret.to_ffi_compatible_rust_type(func_host_lang, swift_bridge_path);
+            let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path);
             if ty.to_string() == "()" {
                 quote! {}
             } else {
@@ -199,11 +198,7 @@ impl ParsedExternFn {
 
                     if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                         if self.host_lang.is_rust() {
-                            arg = built_in.convert_ffi_value_to_rust_value(
-                                &arg,
-                                TypePosition::FnArg(self.host_lang),
-                                pat_ty.ty.span(),
-                            );
+                            arg = built_in.convert_ffi_value_to_rust_value(&arg, pat_ty.ty.span());
 
                             if self.args_into_contains_arg(fn_arg) {
                                 arg = quote_spanned! {pat_ty.span()=>
@@ -212,8 +207,8 @@ impl ParsedExternFn {
                             }
                         } else {
                             arg = built_in.convert_rust_value_to_ffi_compatible_value(
-                                swift_bridge_path,
                                 &arg,
+                                swift_bridge_path,
                             );
                         };
                     } else {

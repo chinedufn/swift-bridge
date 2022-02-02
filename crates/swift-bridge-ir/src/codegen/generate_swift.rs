@@ -413,8 +413,8 @@ fn gen_func_swift_calls_rust(
         call_rust
     } else if let Some(built_in) = function.return_ty_built_in(types) {
         built_in.convert_ffi_value_to_swift_value(
-            TypePosition::FnReturn(function.host_lang),
             &call_rust,
+            TypePosition::FnReturn(function.host_lang),
         )
     } else {
         if function.host_lang.is_swift() {

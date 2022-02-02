@@ -124,13 +124,14 @@ representation.
 ```
 // Valid values are "struct" and "class"
 #[swift_bridge(swift_repr = "struct")]
-struct MyStruct {{
-    count: u8
+struct {struct_name} {{
+    // ... fields ...
 }}
 ```
 
 TODO: Link to documntation on how to decide on the swift representation.
-"#
+"#,
+                    struct_name = struct_ident
                 );
                 Error::new_spanned(struct_ident, message)
             }
