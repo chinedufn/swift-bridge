@@ -17,9 +17,10 @@ swift-bridge-macro = {version = "0.1.26", path = "crates/swift-bridge-macro"}
 
 [workspace]
 members = [
-  "crates/swift-bridge-macro",
   "crates/swift-bridge-build",
+  "crates/swift-bridge-cli",
   "crates/swift-bridge-ir",
+  "crates/swift-bridge-macro",
   "crates/swift-integration-tests",
 
   "examples/codegen-visualizer",
