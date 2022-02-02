@@ -194,6 +194,7 @@ impl<'a> ForeignModParser<'a> {
                         rust_name_override: attributes.rust_name,
                         swift_name_override: attributes.swift_name,
                         into_return_type: attributes.into_return_type,
+                        return_with: attributes.return_with,
                         args_into: attributes.args_into,
                     });
                 }

@@ -87,6 +87,12 @@ impl ParsedExternFn {
             call_fn = return_ty.rust_expression_into(&call_fn);
         }
 
+        if let Some(return_with) = self.return_with.as_ref() {
+            call_fn = quote! {
+                super:: #return_with ( #call_fn )
+            }
+        }
+
         call_fn = return_ty.convert_rust_value_to_ffi_compatible_value(&call_fn, swift_bridge_path);
 
         call_fn

@@ -59,6 +59,7 @@ pub(crate) struct ParsedExternFn {
     /// }
     /// ```
     pub into_return_type: bool,
+    pub return_with: Option<Path>,
     /// Call `.into()` before passing this argument to the function that handles it.
     ///
     /// ```no_run,ignore

@@ -1,6 +1,6 @@
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseStream};
-use syn::{LitStr, Token};
+use syn::{LitStr, Path, Token};
 
 #[derive(Default)]
 pub(super) struct FunctionAttributes {
@@ -10,6 +10,7 @@ pub(super) struct FunctionAttributes {
     pub rust_name: Option<LitStr>,
     pub swift_name: Option<LitStr>,
     pub into_return_type: bool,
+    pub return_with: Option<Path>,
     pub args_into: Option<Vec<Ident>>,
 }
 
@@ -29,6 +30,9 @@ impl FunctionAttributes {
             FunctionAttr::IntoReturnType => {
                 self.into_return_type = true;
             }
+            FunctionAttr::ReturnWith(path) => {
+                self.return_with = Some(path);
+            }
             FunctionAttr::ArgsInto(args) => self.args_into = Some(args),
             FunctionAttr::Identifiable => {
                 self.is_swift_identifiable = true;
@@ -44,6 +48,7 @@ pub(super) enum FunctionAttr {
     Init,
     Identifiable,
     IntoReturnType,
+    ReturnWith(Path),
     ArgsInto(Vec<Ident>),
 }
 
@@ -82,6 +87,10 @@ impl Parse for FunctionAttr {
             "init" => FunctionAttr::Init,
             "Identifiable" => FunctionAttr::Identifiable,
             "into_return_type" => FunctionAttr::IntoReturnType,
+            "return_with" => {
+                input.parse::<Token![=]>()?;
+                FunctionAttr::ReturnWith(input.parse()?)
+            }
             "rust_name" => {
                 input.parse::<Token![=]>()?;
                 let value: LitStr = input.parse()?;
@@ -98,7 +107,9 @@ impl Parse for FunctionAttr {
                 FunctionAttr::ArgsInto(args.into_iter().collect())
             }
 
-            _ => panic!("TODO: Return spanned error"),
+            _ => panic!(
+                "TODO: Return spanned error for unrecognized attribute... Like we do for StructAttr"
+            ),
         };
 
         Ok(attrib)
@@ -128,6 +139,32 @@ mod tests {
         let module = parse_ok(tokens);
 
         assert!(module.functions[0].into_return_type);
+    }
+
+    /// Verify that we can parse the return_with attribute from extern "Rust" blocks.
+    #[test]
+    fn parse_extern_rust_return_with_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(return_with = path::to::convert_fn)]
+                    fn some_function () -> u32;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        assert_eq!(
+            module.functions[0]
+                .return_with
+                .to_token_stream()
+                .to_string(),
+            quote! {
+                path::to::convert_fn
+            }
+            .to_string()
+        );
     }
 
     /// Verify that we can parse an associated function.
