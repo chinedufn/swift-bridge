@@ -157,7 +157,8 @@
 mod ffi {
     #[swift_bridge::bridge(swift_repr = &quot;struct&quot;)]
     struct SomeSharedStruct {
-        some_field: u8
+        some_field: u8,
+        another_field: Option&lt;u64&gt;
     }
 
     extern &quot;Rust&quot; {
@@ -177,7 +178,7 @@ fn some_function (val: ffi::SomeSharedStruct) {
 <pre><code class="language-swift">// Swift 
 
 func another_function() -&gt; SomeSharedStruct {
-    return SomeSharedStruct(some_field: 123)
+    return SomeSharedStruct(some_field: 123, another_field: nil)
 }
 </code></pre>
 <h2 id="struct-attributes"><a class="header" href="#struct-attributes">Struct Attributes</a></h2>

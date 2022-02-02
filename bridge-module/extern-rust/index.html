@@ -445,6 +445,7 @@ impl From&lt;Uuid&gt; for ffi::FFiUuid {
 	}
 }
 
+use self::some_other_crate::make_uuid;
 mod some_other_crate {
 	pub struct Uuid {
 	    uuid: [u8; 16]
@@ -453,6 +454,31 @@ mod some_other_crate {
     // Here we can return a Uuid, even though swift-bridge is expecting an FfiUuid.
     pub fn make_uuid() -&gt; Uuid {
         Uuid::new_v4()
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h4 id="swift_bridgereturn_with--pathtosome_function"><a class="header" href="#swift_bridgereturn_with--pathtosome_function">#[swift_bridge(return_with = path::to::some_function)]</a></h4>
+<p>Allows a swift-bridge definition of <code>fn foo() -&gt; T</code> to work for a <code>fn foo() -&gt; U</code> by
+passing <code>T</code> to a <code>fn(T) -&gt; U</code>.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        #[swift_bridge(return_with = some_module::convert_str_to_u32)]
+        fn get_str_value_return_with() -&gt; u32;
+    }
+}
+
+fn get_str_value_return_with() -&gt; &amp;'static str {
+    &quot;123&quot;
+}
+
+mod some_module {
+    pub fn convert_str_to_u32(val: &amp;str) -&gt; u32 {
+        val.parse().unwrap()
     }
 }
 <span class="boring">}
