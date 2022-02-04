@@ -25,17 +25,15 @@ You can find information about using Rust and Swift together in [The `swift-brid
 
 ## Quick Peek
 
-You declare your FFI boundary using one or more bridge modules annotated with the `swift_bridge::bridge` attribute macro.
+Here's a quick peek at how you might describe an FFI boundary between Swift and Rust using a bridge module.
 
-Later, during your Cargo build script, you use `swift-bridge-build` in order to parse your bridge modules and generate the
-corresponding Swift and C code to make it all work.
-
-Here's how you might declare a bridge module on the Rust side in order to export types to and import types from Swift.
+You would then use the `swift-bridge-build` API or `swift-bridge-cli` CLI to generate the corresponding Swift
+and C FFI glue code at build time.
 
 ```rust
 // Use the `swift_bridge::bridge` macro to declare a bridge module that
-// `swift-bridge-build` will parse during your Cargo build script
-// in order to generate the necessary Swift and C FFI glue code.
+// `swift-bridge-build` will parse at build time in order to generate
+// the necessary Swift and C FFI glue code.
 #[swift_bridge::bridge]
 mod ffi {
     // Create shared structs where both Rust and Swift can directly access the fields.
