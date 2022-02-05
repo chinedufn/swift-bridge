@@ -2,7 +2,7 @@
 
 One approach to building Rust and Swift is to use `Cargo` to compile your Rust code and `swiftc` to compile your Swift code.
 
-Im this case, either `Cargo` needs to link to a compiled Swift native library, or `swiftc` needs to link to a compiled Rust
+In this case, either `Cargo` needs to link to a compiled Swift native library, or `swiftc` needs to link to a compiled Rust
 native library.
 
 We'll use an example project to explore both of these approaches.

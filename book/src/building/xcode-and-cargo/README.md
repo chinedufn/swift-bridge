@@ -217,7 +217,7 @@ Select the `target/universal/debug/libios_rust_analyzer.a` file.
 
 ![Frameworks and libraries](./screenshots/xcode-frameworks-libraries-section.png)
 
-![Libraries add other](./screenshots/libraries-add-other.png)
+![Libraries add other](./screenshots/xcode-libraries-add-other.png)
 
 ---
 
