@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="spacer"></li><li class="chapter-item expanded "><a href="building/index.html"><strong aria-hidden="true">1.</strong> Building</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="building/xcode-and-cargo/index.html"><strong aria-hidden="true">1.1.</strong> Xcode + Cargo</a></li><li class="chapter-item expanded "><a href="building/swiftc-and-cargo/index.html"><strong aria-hidden="true">1.2.</strong> swiftc + Cargo</a></li></ol></li><li class="chapter-item expanded "><a href="bridge-module/index.html"><strong aria-hidden="true">2.</strong> The Bridge Module</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="bridge-module/extern-rust/index.html"><strong aria-hidden="true">2.1.</strong> extern &quot;Rust&quot;</a></li><li class="chapter-item expanded "><a href="bridge-module/extern-swift/index.html"><strong aria-hidden="true">2.2.</strong> extern &quot;Swift&quot;</a></li><li class="chapter-item expanded "><a href="bridge-module/structs/index.html"><strong aria-hidden="true">2.3.</strong> Shared Structs</a></li><li class="chapter-item expanded "><a href="bridge-module/conditional-compilation/index.html"><strong aria-hidden="true">2.4.</strong> Conditional Compilation</a></li></ol></li><li class="chapter-item expanded "><a href="built-in/index.html"><strong aria-hidden="true">3.</strong> Built In Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="built-in/option/index.html"><strong aria-hidden="true">3.1.</strong> Option &lt;---&gt; Optional</a></li><li class="chapter-item expanded "><a href="built-in/vec/index.html"><strong aria-hidden="true">3.2.</strong> Vec &lt;---&gt; RustVec</a></li><li class="chapter-item expanded "><a href="built-in/string/index.html"><strong aria-hidden="true">3.3.</strong> String &lt;---&gt; String</a></li><li class="chapter-item expanded "><a href="built-in/str/index.html"><strong aria-hidden="true">3.4.</strong> &amp;str &lt;---&gt; RustStr</a></li></ol></li><li class="chapter-item expanded "><a href="internal-design/index.html"><strong aria-hidden="true">4.</strong> Internal Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="internal-design/codegen/index.html"><strong aria-hidden="true">4.1.</strong> Code Generation</a></li></ol></li></ol>            </div>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="spacer"></li><li class="chapter-item expanded "><a href="building/index.html"><strong aria-hidden="true">1.</strong> Building</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="building/xcode-and-cargo/index.html"><strong aria-hidden="true">1.1.</strong> Xcode + Cargo</a></li><li class="chapter-item expanded "><a href="building/swiftc-and-cargo/index.html"><strong aria-hidden="true">1.2.</strong> swiftc + Cargo</a></li></ol></li><li class="chapter-item expanded "><a href="bridge-module/index.html"><strong aria-hidden="true">2.</strong> The Bridge Module</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="bridge-module/extern-rust/index.html"><strong aria-hidden="true">2.1.</strong> extern &quot;Rust&quot;</a></li><li class="chapter-item expanded "><a href="bridge-module/extern-swift/index.html"><strong aria-hidden="true">2.2.</strong> extern &quot;Swift&quot;</a></li><li class="chapter-item expanded "><a href="bridge-module/shared-structs/index.html"><strong aria-hidden="true">2.3.</strong> Shared Structs</a></li><li class="chapter-item expanded "><a href="bridge-module/shared-enums/index.html"><strong aria-hidden="true">2.4.</strong> Shared Enums</a></li><li class="chapter-item expanded "><a href="bridge-module/conditional-compilation/index.html"><strong aria-hidden="true">2.5.</strong> Conditional Compilation</a></li></ol></li><li class="chapter-item expanded "><a href="built-in/index.html"><strong aria-hidden="true">3.</strong> Built In Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="built-in/option/index.html"><strong aria-hidden="true">3.1.</strong> Option &lt;---&gt; Optional</a></li><li class="chapter-item expanded "><a href="built-in/vec/index.html"><strong aria-hidden="true">3.2.</strong> Vec &lt;---&gt; RustVec</a></li><li class="chapter-item expanded "><a href="built-in/string/index.html"><strong aria-hidden="true">3.3.</strong> String &lt;---&gt; String</a></li><li class="chapter-item expanded "><a href="built-in/str/index.html"><strong aria-hidden="true">3.4.</strong> &amp;str &lt;---&gt; RustStr</a></li></ol></li><li class="chapter-item expanded "><a href="internal-design/index.html"><strong aria-hidden="true">4.</strong> Internal Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="internal-design/codegen/index.html"><strong aria-hidden="true">4.1.</strong> Code Generation</a></li></ol></li></ol>            </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
@@ -152,7 +152,47 @@
 <p>The <code>swift-bridge</code> book is a work-in-progress with many chapter either sparse or empty.</p>
 <p>If you have a question that isn't answered by the book yet, <a href="https://github.com/chinedufn/swift-bridge/issues">please open an issue</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="building"><a class="header" href="#building">Building</a></h1>
-<p>This chapter explores common approaches to building Swift+Rust projects.</p>
+<p>Writing an application that uses Swift and Rust essentially boils
+down to taking some Swift source code and some Rust source code and
+compiling it all into a final binary.</p>
+<p>If there was a super-compiler that knew about both Swift and Rust code you
+could tell that compiler to compile source files from both languages into
+a final binary.</p>
+<p>This doesn't exist, so instead you need to use both a Swift compiler and
+a Rust compiler in a two-stepped approach.</p>
+<p>First you compile one of the languages into a native library.</p>
+<p>Then you compile the other language into your final binary, but
+while doing so you tell the second compiler to link in the native library
+that you created.</p>
+<p>Here's how this process would look if you were linking a Rust native
+library into a Swift executable.</p>
+<pre><code class="language-text">┌──────────────────────────────────┐           ┌───────────────────┐       
+│// Rust code                      │           │// Swift Code      │       
+│                                  │           │                   │       
+│pub extern &quot;C&quot; fn rust_hello() {  │           │rust_hello()       │       
+│    println!(&quot;Hi, I'm Rust!&quot;)     │           │                   │       
+│}                                 │           │                   │       
+└──────────────────────────────────┘           └───────────────────┘       
+                 │                                       │                 
+    Compile Rust │                                       │ Compile Swift to
+   to native lib │                                       │ executable      
+                 │                                       │                 
+                 ▼                      Link in Rust     │                 
+┌────────────────────────────────┐      native lib       │                 
+│       libmy_rust_crate.a       │───────────────────────┤                 
+└────────────────────────────────┘                       │                 
+                                                         │                 
+                                                         ▼                 
+                                       ┌──────────────────────────────────┐
+                                       │     Final Executable Binary      │
+                                       │                                  │
+                                       └──────────────────────────────────┘
+</code></pre>
+<p>In a similar fashion, you could also compile Swift code into a native library and then
+link it in when compiling your Rust code.</p>
+<p>Which direction you choose largely comes down to whichever is easier based on the
+build tools that you already use or plan to use.</p>
+<p>This chapter walks you through a few different ways to build Swift and Rust code.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="xcode--cargo"><a class="header" href="#xcode--cargo">Xcode + Cargo</a></h1>
 <p>To demonstrate how to set up an Xcode + Cargo project, we'll create a new iOS application that makes use of <code>swift-bridge</code> in order
 use <code>rust-analyzer</code> to perform syntax highlighting of Rust code.</p>
@@ -302,7 +342,7 @@ search path to <code>$(PROJECT_DIR)/../target/universal/release</code></p>
 <p>Go to <code>IosRustAnalyzer &gt; General &gt; Frameworks, Libraries, and Embedded Content &gt; +</code> to add and click <code>Add Other &gt; Add Files</code>.</p>
 <p>Select the <code>target/universal/debug/libios_rust_analyzer.a</code> file.</p>
 <p><img src="building/xcode-and-cargo/./screenshots/xcode-frameworks-libraries-section.png" alt="Frameworks and libraries" /></p>
-<p><img src="building/xcode-and-cargo/./screenshots/libraries-add-other.png" alt="Libraries add other" /></p>
+<p><img src="building/xcode-and-cargo/./screenshots/xcode-libraries-add-other.png" alt="Libraries add other" /></p>
 <hr />
 <p>Select the same <code>target/universal/debug/libios_rust_analyzer.a</code> in the link binaries with libraries build phase.</p>
 <p><img src="building/xcode-and-cargo/./screenshots/xcode-link-binary-build-phase.png" alt="Link binary build phase" /></p>
@@ -472,7 +512,7 @@ struct ContentView_Previews: PreviewProvider {
 <p><img src="building/xcode-and-cargo/./screenshots/simulator-rust-analyzer-app.png" alt="Simulator rust analyzer app" /></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="swiftc--cargo"><a class="header" href="#swiftc--cargo">swiftc + Cargo</a></h1>
 <p>One approach to building Rust and Swift is to use <code>Cargo</code> to compile your Rust code and <code>swiftc</code> to compile your Swift code.</p>
-<p>Im this case, either <code>Cargo</code> needs to link to a compiled Swift native library, or <code>swiftc</code> needs to link to a compiled Rust
+<p>In this case, either <code>Cargo</code> needs to link to a compiled Swift native library, or <code>swiftc</code> needs to link to a compiled Rust
 native library.</p>
 <p>We'll use an example project to explore both of these approaches.</p>
 <h2 id="project-setup-1"><a class="header" href="#project-setup-1">Project Setup</a></h2>
@@ -1125,6 +1165,48 @@ class SomeStructReprClassRef {
     // ...
 }
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="shared-enums"><a class="header" href="#shared-enums">Shared Enums</a></h1>
+<p>You can define enums that can be created by both Rust and Swift.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    enum BarCode {
+        Upc(i32, i32, i32, i32),
+        QrCode {
+            code: String
+        }
+    }
+
+    extern &quot;Rust&quot; {
+        fn get_link(code: BarCode) -&gt; String;
+    }
+
+    extern &quot;Swift&quot; {
+        fn create_bar_code(upc: bool) -&gt; BarCode;
+    }
+}
+
+fn get_link (code: BarCode) -&gt; String {
+    // ...
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// Swift 
+
+func create_bar_code(upc: Bool) -&gt; BarCode {
+    if upc {
+        return BarCode.Upc(8, 85909, 51226, 3)
+    } else {
+        return BarCode.QrCode(code: &quot;ABCDEFG&quot;)
+    }
+}
+</code></pre>
+<h2 id="enum-attributes"><a class="header" href="#enum-attributes">Enum Attributes</a></h2>
+<p>...</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="conditional-compilation"><a class="header" href="#conditional-compilation">Conditional Compilation</a></h1>
 <p>You can use <a href="https://doc.rust-lang.org/reference/conditional-compilation.html#the-cfg-attribute">the cfg attribute</a>
 in order to conditionally generate bindings.</p>
