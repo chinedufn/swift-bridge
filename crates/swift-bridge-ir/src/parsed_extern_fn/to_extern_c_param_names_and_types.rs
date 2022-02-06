@@ -79,6 +79,10 @@ impl ParsedExternFn {
                                     #ty
                                 }
                             }
+                            TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_shared_enum)) => {
+                                //
+                                todo!("Shared enum to type name")
+                            }
                             TypeDeclaration::Opaque(opaque) => {
                                 if opaque.host_lang.is_rust() {
                                     quote! {

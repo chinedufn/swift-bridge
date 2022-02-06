@@ -1,5 +1,5 @@
 use crate::bridged_type::{
-    BridgedType, CustomBridgedType, OpaqueForeignType, SharedStruct, SharedType,
+    BridgedType, CustomBridgedType, OpaqueForeignType, SharedEnum, SharedStruct, SharedType,
 };
 use crate::parse::HostLang;
 use crate::SWIFT_BRIDGE_PREFIX;
@@ -24,6 +24,7 @@ pub(crate) enum TypeDeclaration {
 #[derive(Clone)]
 pub(crate) enum SharedTypeDeclaration {
     Struct(SharedStruct),
+    Enum(SharedEnum),
 }
 
 impl TypeDeclaration {
@@ -39,6 +40,12 @@ impl TypeDeclaration {
                         already_declared: shared_struct.already_declared,
                     },
                 )))
+            }
+            TypeDeclaration::Shared(SharedTypeDeclaration::Enum(shared_enum)) => {
+                BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(SharedEnum {
+                    name: shared_enum.name.clone(),
+                    variants: shared_enum.variants.clone(),
+                })))
             }
             TypeDeclaration::Opaque(opaque) => {
                 BridgedType::Foreign(CustomBridgedType::Opaque(OpaqueForeignType {
@@ -139,6 +146,13 @@ impl TypeDeclaration {
     pub fn unwrap_shared_struct(&self) -> &SharedStruct {
         match self {
             TypeDeclaration::Shared(SharedTypeDeclaration::Struct(s)) => s,
+            _ => panic!(),
+        }
+    }
+
+    pub fn unwrap_shared_enum(&self) -> &SharedEnum {
+        match self {
+            TypeDeclaration::Shared(SharedTypeDeclaration::Enum(e)) => e,
             _ => panic!(),
         }
     }

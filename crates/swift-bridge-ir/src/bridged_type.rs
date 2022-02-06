@@ -11,11 +11,11 @@ use crate::parse::{HostLang, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 
 use self::bridged_option::BridgedOption;
-pub(crate) use self::shared_struct::{
-    NamedStructField, SharedStruct, StructFields, StructSwiftRepr, UnnamedStructField,
-};
+pub(crate) use self::shared_enum::{EnumVariant, SharedEnum};
+pub(crate) use self::shared_struct::{SharedStruct, StructFields, StructSwiftRepr};
 
 mod bridged_option;
+mod shared_enum;
 mod shared_struct;
 
 // FIXME: Rename to BridgedType
@@ -168,6 +168,7 @@ impl BridgedType {
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum SharedType {
     Struct(SharedStruct),
+    Enum(SharedEnum),
 }
 
 #[derive(Clone)]
@@ -413,6 +414,10 @@ impl BridgedType {
                     #ty_name
                 }
             }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                //
+                todo!("Shared enum to Rust type name")
+            }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let ty_name = &opaque.ty.ident;
 
@@ -545,6 +550,11 @@ impl BridgedType {
                     ))) => {
                         todo!("Option<SharedStruct> is not yet supported")
                     }
+                    BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(
+                        _shared_enum,
+                    ))) => {
+                        todo!("Option<SharedEnum> is not yet supported")
+                    }
                     BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                         let type_name = &opaque.ident;
 
@@ -566,6 +576,10 @@ impl BridgedType {
                 };
 
                 prefixed_ty_name
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                //
+                todo!("Shared enum into ffi compatible rust")
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let ty_name = &opaque.ty.ident;
@@ -692,6 +706,10 @@ impl BridgedType {
                     TypePosition::SharedStructField => shared_struct.swift_name_string(),
                 }
             }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                //
+                todo!("Shared enum into swift type")
+            }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
                     match type_pos {
@@ -776,6 +794,10 @@ impl BridgedType {
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 format!("struct {}", shared_struct.ffi_name_string())
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                //
+                todo!("Shared enum into c")
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
@@ -891,6 +913,10 @@ impl BridgedType {
                     #expression.into_ffi_repr()
                 }
             }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                //
+                todo!("Shared enum into ffi repr")
+            }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let ty_name = &opaque.ty.ident;
 
@@ -971,6 +997,10 @@ impl BridgedType {
                 quote_spanned! {span=>
                     #value.into_rust_repr()
                 }
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                //
+                todo!("Shared enum into rust repr")
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
@@ -1072,6 +1102,10 @@ impl BridgedType {
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 format!("{}.intoSwiftRepr()", value)
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                //
+                todo!("Shared enum into swift repr")
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let mut ty_name = opaque.ty.ident.to_string();
@@ -1175,6 +1209,10 @@ impl BridgedType {
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 format!("{}.intoFfiRepr()", value)
             }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                //
+                todo!("Shared enum into ffi repr")
+            }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let ty_name = &opaque.ty.ident;
 
@@ -1251,8 +1289,12 @@ impl BridgedType {
                 StdLibType::Vec(_vec) => Some("stdint.h"),
                 _ => None,
             },
-            // TODO: Iterate over the fields and see if any of them need imports..
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                // TODO: Iterate over the fields and see if any of them need imports..
+                None
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                // TODO: Iterate over the fields and see if any of them need imports..
                 None
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => None,
@@ -1327,6 +1369,9 @@ impl BridgedType {
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 todo!("Support Option<SharedStruct>")
             }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                todo!("Support Option<SharedEnum>")
+            }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let ty_name = &opaque.ty.ident;
 
@@ -1356,6 +1401,10 @@ impl BridgedType {
                 // TODO: Check fields for String
                 false
             }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                // TODO: Check fields for &str
+                false
+            }
             BridgedType::Foreign(CustomBridgedType::Opaque(_)) => false,
         }
     }
@@ -1371,6 +1420,10 @@ impl BridgedType {
                 _ => false,
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                // TODO: Check fields for &str
+                false
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 // TODO: Check fields for &str
                 false
             }

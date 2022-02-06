@@ -11,7 +11,8 @@
 - [The Bridge Module](./bridge-module/README.md)
   - [extern "Rust"](./bridge-module/extern-rust/README.md)
   - [extern "Swift"](./bridge-module/extern-swift/README.md)
-  - [Shared Structs](./bridge-module/structs/README.md)
+  - [Shared Structs](./bridge-module/shared-structs/README.md)
+  - [Shared Enums](./bridge-module/shared-enums/README.md)
   - [Conditional Compilation](./bridge-module/conditional-compilation/README.md)
 
 - [Built In Types](./built-in/README.md)

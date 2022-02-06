@@ -89,6 +89,10 @@ impl SwiftBridgeModule {
                         swift += "\n";
                     }
                 }
+                TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_shared_enum)) => {
+                    //
+                    todo!("Generate shared enum")
+                }
                 TypeDeclaration::Opaque(ty) => match ty.host_lang {
                     HostLang::Rust => {
                         let class_protocols = class_protocols.get(&ty.ty.ident.to_string());

@@ -1,6 +1,7 @@
 use crate::bridge_module_attributes::CfgAttr;
 use crate::bridged_type::BridgedType;
 use crate::errors::{ParseError, ParseErrors};
+use crate::parse::parse_enum::SharedEnumDeclarationParser;
 use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::parse::parse_struct::SharedStructDeclarationParser;
 use crate::SwiftBridgeModule;
@@ -8,6 +9,7 @@ use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::{Item, ItemMod};
 
+mod parse_enum;
 mod parse_extern_mod;
 mod parse_struct;
 
@@ -90,6 +92,17 @@ impl Parse for SwiftBridgeModuleAndErrors {
                         type_declarations.insert(
                             shared_struct.name.to_string(),
                             TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)),
+                        );
+                    }
+                    Item::Enum(item_enum) => {
+                        let shared_enum = SharedEnumDeclarationParser {
+                            item_enum,
+                            errors: &mut errors,
+                        }
+                        .parse()?;
+                        type_declarations.insert(
+                            shared_enum.name.to_string(),
+                            TypeDeclaration::Shared(SharedTypeDeclaration::Enum(shared_enum)),
                         );
                     }
                     _ => {

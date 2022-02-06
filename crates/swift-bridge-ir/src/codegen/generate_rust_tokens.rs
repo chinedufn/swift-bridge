@@ -70,6 +70,10 @@ impl ToTokens for SwiftBridgeModule {
                         shared_struct_definitions.push(definition);
                     }
                 }
+                TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_shared_enum)) => {
+                    //
+                    todo!("Generate enum Rust tokens")
+                }
                 TypeDeclaration::Opaque(ty) => {
                     let link_name =
                         format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);

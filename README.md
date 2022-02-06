@@ -41,6 +41,12 @@ mod ffi {
         file_manager: CustomFileManager,
     }
 
+    // Shared enums are also supported
+    enum UserLookup {
+        ById(u32),
+        ByName(String),
+    }
+
     // Export Rust types, functions and methods for Swift to use.
     extern "Rust" {
         type RustApp;
@@ -49,7 +55,7 @@ mod ffi {
         fn new(config: AppConfig);
         
         fn insert_user(&mut self, user_id: u32, user: User);
-        fn get_user(&self, user_id: u32) -> Option<&User>;
+        fn get_user(&self, lookup: UserLookup) -> Option<&User>;
     }
 
     extern "Rust" {

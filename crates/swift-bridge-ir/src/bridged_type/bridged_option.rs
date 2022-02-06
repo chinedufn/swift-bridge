@@ -304,6 +304,9 @@ impl BridgedOption {
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 todo!("Shared structs within options are not yet supported")
             }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                todo!("Shared enums within options are not yet supported")
+            }
             BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
                 format!("{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()", expression = expression,)
             }
@@ -348,6 +351,9 @@ impl BridgedOption {
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 todo!("Option<SharedStruct> is not yet supported")
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                todo!("Option<SharedEnum> is not yet supported")
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => "void*".to_string(),
         }
