@@ -1,10 +1,8 @@
-use crate::bridged_type::{
-    NamedStructField, SharedStruct, StructFields, StructSwiftRepr, UnnamedStructField,
-};
+use crate::bridged_type::{SharedStruct, StructFields, StructSwiftRepr};
 use crate::errors::{ParseError, ParseErrors};
 use proc_macro2::{Ident, TokenTree};
 use syn::parse::{Parse, ParseStream};
-use syn::{Fields, ItemStruct, LitStr, Token};
+use syn::{ItemStruct, LitStr, Token};
 
 pub(crate) struct SharedStructDeclarationParser<'a> {
     pub item_struct: ItemStruct,
@@ -134,38 +132,10 @@ impl<'a> SharedStructDeclarationParser<'a> {
             StructSwiftRepr::Structure
         };
 
-        let fields = match item_struct.fields {
-            Fields::Named(f) => {
-                let mut fields = vec![];
-                for field in f.named.iter() {
-                    let field = NamedStructField {
-                        name: field.ident.clone().unwrap(),
-                        ty: field.ty.clone(),
-                    };
-                    fields.push(field);
-                }
-
-                StructFields::Named(fields)
-            }
-            Fields::Unnamed(f) => {
-                let mut fields = vec![];
-                for (idx, field) in f.unnamed.iter().enumerate() {
-                    let field = UnnamedStructField {
-                        ty: field.ty.clone(),
-                        idx,
-                    };
-                    fields.push(field);
-                }
-
-                StructFields::Unnamed(fields)
-            }
-            Fields::Unit => StructFields::Unit,
-        };
-
         let shared_struct = SharedStruct {
             name: item_struct.ident,
             swift_repr,
-            fields,
+            fields: StructFields::from_syn_fields(item_struct.fields),
             swift_name: attribs.swift_name,
             already_declared: attribs.already_declared,
         };
@@ -209,8 +179,8 @@ mod tests {
             #[swift_bridge::bridge]
             mod ffi {
                 struct Foo;
-                struct Bar;
-                struct Bazz;
+                struct Bar();
+                struct Bazz {}
             }
         };
 

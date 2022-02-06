@@ -112,6 +112,9 @@ impl ParsedExternFn {
                                         // quote! { #pat: #fn_arg}
                                         todo!("Add a test that hits this code path")
                                     }
+                                    TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_)) => {
+                                        todo!("Add a test that hits this code path")
+                                    }
                                     TypeDeclaration::Opaque(opaque) => {
                                         let ty = &opaque.ty.ident;
                                         if opaque.host_lang.is_rust() {

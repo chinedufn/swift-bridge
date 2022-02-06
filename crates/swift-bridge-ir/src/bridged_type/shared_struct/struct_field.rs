@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
-use syn::Type;
+use syn::{Fields, Type};
 
 pub(crate) use self::normalized_field::*;
 
@@ -60,6 +60,36 @@ impl StructFields {
             StructFields::Unit => {
                 quote! { ; }
             }
+        }
+    }
+
+    pub fn from_syn_fields(fields: Fields) -> Self {
+        match fields {
+            Fields::Named(f) => {
+                let mut fields = vec![];
+                for field in f.named.iter() {
+                    let field = NamedStructField {
+                        name: field.ident.clone().unwrap(),
+                        ty: field.ty.clone(),
+                    };
+                    fields.push(field);
+                }
+
+                StructFields::Named(fields)
+            }
+            Fields::Unnamed(f) => {
+                let mut fields = vec![];
+                for (idx, field) in f.unnamed.iter().enumerate() {
+                    let field = UnnamedStructField {
+                        ty: field.ty.clone(),
+                        idx,
+                    };
+                    fields.push(field);
+                }
+
+                StructFields::Unnamed(fields)
+            }
+            Fields::Unit => StructFields::Unit,
         }
     }
 }

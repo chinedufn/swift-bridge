@@ -115,6 +115,10 @@ impl SwiftBridgeModule {
                         header += &ty_decl;
                         header += "\n";
                     }
+                    SharedTypeDeclaration::Enum(_ty_enum) => {
+                        //
+                        todo!("Generate enum C header")
+                    }
                 },
                 TypeDeclaration::Opaque(ty) => {
                     if ty.host_lang.is_swift() {

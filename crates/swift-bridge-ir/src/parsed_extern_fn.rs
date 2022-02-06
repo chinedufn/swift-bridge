@@ -275,6 +275,10 @@ impl ParsedExternFn {
                         TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
                             format!("struct {}", shared_struct.swift_name_string())
                         }
+                        TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_shared_enum)) => {
+                            //
+                            todo!("Enum C header")
+                        }
                         TypeDeclaration::Opaque(opaque) => {
                             if opaque.host_lang.is_rust() {
                                 "void*".to_string()
