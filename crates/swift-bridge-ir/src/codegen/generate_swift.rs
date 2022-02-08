@@ -16,6 +16,7 @@ use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
 mod vec;
 
+mod shared_enum;
 mod shared_struct;
 
 impl SwiftBridgeModule {
@@ -89,9 +90,11 @@ impl SwiftBridgeModule {
                         swift += "\n";
                     }
                 }
-                TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_shared_enum)) => {
-                    //
-                    todo!("Generate shared enum")
+                TypeDeclaration::Shared(SharedTypeDeclaration::Enum(shared_enum)) => {
+                    if let Some(swift_enum) = self.generate_shared_enum_string(shared_enum) {
+                        swift += &swift_enum;
+                        swift += "\n";
+                    }
                 }
                 TypeDeclaration::Opaque(ty) => match ty.host_lang {
                     HostLang::Rust => {
