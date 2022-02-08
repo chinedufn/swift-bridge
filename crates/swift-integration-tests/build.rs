@@ -14,6 +14,7 @@ fn main() {
         "src/vec.rs",
         "src/slice.rs",
         "src/shared_types/shared_struct.rs",
+        "src/shared_types/shared_enum.rs",
         "src/rust_function_uses_opaque_swift_type.rs",
         "src/swift_function_uses_opaque_rust_type.rs",
         "src/conditional_compilation.rs",

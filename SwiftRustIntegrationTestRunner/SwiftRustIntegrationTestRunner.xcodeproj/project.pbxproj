@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2202BC0827B2DD1700D43CC4 /* SharedEnumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */; };
 		22043293274A8FDF00BAE645 /* VecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22043292274A8FDF00BAE645 /* VecTests.swift */; };
 		22043295274ADA7A00BAE645 /* OptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22043294274ADA7A00BAE645 /* OptionTests.swift */; };
 		22043297274B0AB000BAE645 /* Option.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22043296274B0AB000BAE645 /* Option.swift */; };
@@ -50,6 +51,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedEnumTests.swift; sourceTree = "<group>"; };
 		22043292274A8FDF00BAE645 /* VecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VecTests.swift; sourceTree = "<group>"; };
 		22043294274ADA7A00BAE645 /* OptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionTests.swift; sourceTree = "<group>"; };
 		22043296274B0AB000BAE645 /* Option.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Option.swift; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 				22043292274A8FDF00BAE645 /* VecTests.swift */,
 				22043294274ADA7A00BAE645 /* OptionTests.swift */,
 				220432A6274C953E00BAE645 /* PointerTests.swift */,
+				2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */,
 				220432AE274E7BF800BAE645 /* SharedStructTests.swift */,
 				220432EB27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift */,
 				22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */,
@@ -353,6 +356,7 @@
 				220432AF274E7BF800BAE645 /* SharedStructTests.swift in Sources */,
 				220432EC27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift in Sources */,
 				228FE6502749C43100805D9E /* BooleanTests.swift in Sources */,
+				2202BC0827B2DD1700D43CC4 /* SharedEnumTests.swift in Sources */,
 				22BCAAB927A2607700686A21 /* FunctionAttributeIdentifiableTests.swift in Sources */,
 				221E16B42786233600F94AC0 /* ConditionalCompilationTests.swift in Sources */,
 				22043295274ADA7A00BAE645 /* OptionTests.swift in Sources */,

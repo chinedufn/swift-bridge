@@ -58,6 +58,27 @@ pub trait SharedStruct {
     type FfiRepr;
 }
 
+// The code generation automatically implements this for all shared enum.
+// This trait is private and should not be used outside of swift-bridge.
+#[doc(hidden)]
+pub trait SharedEnum {
+    /// The FFI friendly representation of this struct.
+    ///
+    /// ```
+    /// enum MyEnum {
+    ///     Variant1,
+    ///     Variant2,
+    /// }
+    /// // This is the auto generated ffi representation.
+    /// #[repr(C)]
+    /// enum __swift_bridge__MyEnum {
+    ///     Variant1,
+    ///     Variant2,
+    /// }
+    /// ```
+    type FfiRepr;
+}
+
 #[no_mangle]
 #[doc(hidden)]
 pub extern "C" fn __swift_bridge__null_pointer() -> *const std::ffi::c_void {

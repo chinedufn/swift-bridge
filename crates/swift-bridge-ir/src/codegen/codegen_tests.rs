@@ -36,6 +36,7 @@ mod extern_rust_method_swift_class_placement_codegen_tests;
 mod extern_rust_opaque_type_codegen_tests;
 mod function_attribute_codegen_tests;
 mod option_codegen_tests;
+mod shared_enum_codegen_tests;
 mod shared_struct_codegen_tests;
 mod string_codegen_tests;
 mod vec_codegen_tests;
@@ -264,8 +265,6 @@ impl CodegenTest {
         };
 
         let swift = module.generate_swift(&codegen_config);
-        let c_header = module.generate_c_header_inner(&codegen_config);
-
         match self.expected_swift_code {
             ExpectedSwiftCode::ExactAfterTrim(expected_swift) => {
                 assert_trimmed_generated_equals_trimmed_expected(&swift, expected_swift);
@@ -301,6 +300,7 @@ impl CodegenTest {
             ExpectedSwiftCode::SkipTest => {}
         };
 
+        let c_header = module.generate_c_header_inner(&codegen_config);
         match self.expected_c_header {
             ExpectedCHeader::ExactAfterTrim(expected) => {
                 assert_trimmed_generated_equals_trimmed_expected(&c_header, expected);

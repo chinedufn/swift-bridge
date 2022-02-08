@@ -115,9 +115,27 @@ impl SwiftBridgeModule {
                         header += &ty_decl;
                         header += "\n";
                     }
-                    SharedTypeDeclaration::Enum(_ty_enum) => {
-                        //
-                        todo!("Generate enum C header")
+                    SharedTypeDeclaration::Enum(ty_enum) => {
+                        let ffi_name = ty_enum.ffi_name_string();
+                        let ffi_tag_name = ty_enum.ffi_tag_name_string();
+
+                        let mut variants = "".to_string();
+
+                        for variant in ty_enum.variants.iter() {
+                            let v = format!("{}${}, ", ffi_name, variant.name);
+                            variants += &v;
+                        }
+
+                        let enum_decl = format!(
+                            r#"typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
+typedef struct {ffi_name} {{ {ffi_tag_name} tag; }} {ffi_name};"#,
+                            ffi_name = ffi_name,
+                            ffi_tag_name = ffi_tag_name,
+                            variants = variants
+                        );
+
+                        header += &enum_decl;
+                        header += "\n";
                     }
                 },
                 TypeDeclaration::Opaque(ty) => {
