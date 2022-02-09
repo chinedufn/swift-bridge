@@ -19,6 +19,8 @@ impl SwiftBridgeModule {
         let enum_ffi_name = format!("{}{}", SWIFT_BRIDGE_PREFIX, enum_name);
         let enum_ffi_name = Ident::new(&enum_ffi_name, enum_name.span());
 
+        let option_enum = shared_enum.ffi_option_name_tokens();
+
         let mut enum_variants = vec![];
         let mut enum_ffi_variants = vec![];
 
@@ -88,6 +90,41 @@ impl SwiftBridgeModule {
                 pub fn into_rust_repr(self) -> #enum_name {
                     match self {
                         #(#convert_ffi_variants_to_rust),*
+                    }
+                }
+            }
+
+            #[repr(C)]
+            #[doc(hidden)]
+            pub struct #option_enum {
+                is_some: bool,
+                val: std::mem::MaybeUninit<#enum_ffi_name>,
+            }
+
+            impl #option_enum {
+                #[doc(hidden)]
+                #[inline(always)]
+                pub fn into_rust_repr(self) -> Option<#enum_name> {
+                    if self.is_some {
+                        Some(unsafe { self.val.assume_init().into_rust_repr() })
+                    } else {
+                        None
+                    }
+                }
+
+                #[doc(hidden)]
+                #[inline(always)]
+                pub fn from_rust_repr(val: Option<#enum_name>) -> #option_enum {
+                    if let Some(val) = val {
+                        #option_enum {
+                            is_some: true,
+                            val: std::mem::MaybeUninit::new(val.into_ffi_repr())
+                        }
+                    } else {
+                        #option_enum {
+                            is_some: false,
+                            val: std::mem::MaybeUninit::uninit()
+                        }
                     }
                 }
             }
