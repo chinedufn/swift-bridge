@@ -6,6 +6,7 @@ impl SwiftBridgeModule {
     pub(super) fn generate_shared_enum_string(&self, shared_enum: &SharedEnum) -> Option<String> {
         let enum_name = shared_enum.swift_name_string();
         let enum_ffi_name = shared_enum.ffi_name_string();
+        let option_ffi_name = shared_enum.ffi_option_name_string();
 
         let mut variants = "".to_string();
         let mut convert_swift_to_ffi_repr = "".to_string();
@@ -69,9 +70,29 @@ extension {enum_ffi_name} {{
     func intoSwiftRepr() -> {enum_name} {{
         switch self.tag {{{convert_ffi_repr_to_swift}}}
     }}
+}}
+extension {option_ffi_name} {{
+    @inline(__always)
+    func intoSwiftRepr() -> Optional<{enum_name}> {{
+        if self.is_some {{
+            return self.val.intoSwiftRepr()
+        }} else {{
+            return nil
+        }}
+    }}
+
+    @inline(__always)
+    static func fromSwiftRepr(_ val: Optional<{enum_name}>) -> {option_ffi_name} {{
+        if let v = val {{
+            return {option_ffi_name}(is_some: true, val: v.intoFfiRepr())
+        }} else {{
+            return {option_ffi_name}(is_some: false, val: {ffi_repr_name}())
+        }}
+    }}
 }}"#,
             enum_name = enum_name,
             enum_ffi_name = enum_ffi_name,
+            option_ffi_name = option_ffi_name,
             ffi_repr_name = shared_enum.ffi_name_string(),
             variants = variants,
             convert_swift_to_ffi_repr = convert_swift_to_ffi_repr,

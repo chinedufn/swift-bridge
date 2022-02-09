@@ -104,8 +104,14 @@ impl BridgedOption {
                     todo!("Support Option<Option<T>>")
                 }
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(_shared_type)) => {
-                todo!("Support Option<SharedType>")
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                todo!("Support Option<SharedStruct>")
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
+                let option_name = shared_enum.ffi_option_name_tokens();
+                quote! {
+                    #option_name::from_rust_repr(#expression)
+                }
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(_opaque_type)) => {
                 quote! {
@@ -167,8 +173,13 @@ impl BridgedOption {
                     todo!("Option<Option<T>> is not yet supported")
                 }
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(_shared_struct)) => {
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 todo!("Option<SharedStruct> is not yet supported")
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                quote! {
+                    #value.into_rust_repr()
+                }
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
                 quote! {
@@ -225,8 +236,11 @@ impl BridgedOption {
                     todo!("Support Option<Option<T>>")
                 }
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(_shared)) => {
-                todo!("Support Option<SharedType>")
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                todo!("Support Option<SharedStruct>")
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
+                format!("{expression}.intoSwiftRepr()", expression = expression)
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let type_name = opaque.swift_name();
@@ -304,8 +318,13 @@ impl BridgedOption {
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 todo!("Shared structs within options are not yet supported")
             }
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
-                todo!("Shared enums within options are not yet supported")
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
+                let ffi_name = shared_enum.ffi_option_name_string();
+                format!(
+                    "{ffi_name}.fromSwiftRepr({expression})",
+                    ffi_name = ffi_name,
+                    expression = expression
+                )
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
                 format!("{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()", expression = expression,)
@@ -352,8 +371,8 @@ impl BridgedOption {
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 todo!("Option<SharedStruct> is not yet supported")
             }
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
-                todo!("Option<SharedEnum> is not yet supported")
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
+                format!("struct {}", shared_enum.ffi_option_name_string())
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => "void*".to_string(),
         }

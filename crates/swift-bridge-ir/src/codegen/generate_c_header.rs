@@ -118,6 +118,11 @@ impl SwiftBridgeModule {
                     SharedTypeDeclaration::Enum(ty_enum) => {
                         let ffi_name = ty_enum.ffi_name_string();
                         let ffi_tag_name = ty_enum.ffi_tag_name_string();
+                        let option_ffi_name = ty_enum.ffi_option_name_string();
+
+                        // Used for `Option<T>` ...
+                        // typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; ...
+                        bookkeeping.includes.insert("stdbool.h");
 
                         let mut variants = "".to_string();
 
@@ -128,9 +133,11 @@ impl SwiftBridgeModule {
 
                         let enum_decl = format!(
                             r#"typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
-typedef struct {ffi_name} {{ {ffi_tag_name} tag; }} {ffi_name};"#,
+typedef struct {ffi_name} {{ {ffi_tag_name} tag; }} {ffi_name};
+typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};"#,
                             ffi_name = ffi_name,
                             ffi_tag_name = ffi_tag_name,
+                            option_ffi_name = option_ffi_name,
                             variants = variants
                         );
 

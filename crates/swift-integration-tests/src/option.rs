@@ -22,9 +22,11 @@ mod ffi {
         // str: Option<&'static str>,
     }
 
-    // enum OptionEnumWithNoData {
-    //     Variant,
-    // }
+    // An enum where none of the variants have data.
+    enum OptionEnumWithNoData {
+        Variant1,
+        Variant2,
+    }
 
     extern "Rust" {
         fn rust_reflect_option_u8(arg: Option<u8>) -> Option<u8>;
@@ -54,7 +56,9 @@ mod ffi {
             arg: StructWithOptionFields,
         ) -> StructWithOptionFields;
 
-        // fn rust_reflect_option_enum_wit_no_data(arg: OptionEnumWithNoData) -> OptionEnumWithNoData;
+        fn rust_reflect_option_enum_wit_no_data(
+            arg: Option<OptionEnumWithNoData>,
+        ) -> Option<OptionEnumWithNoData>;
 
         fn run_option_tests();
     }
@@ -133,8 +137,8 @@ fn rust_reflect_struct_with_option_fields(
 ) -> ffi::StructWithOptionFields {
     arg
 }
-// fn rust_reflect_option_enum_wit_no_data(
-//     arg: ffi::OptionEnumWithNoData,
-// ) -> ffi::OptionEnumWithNoData {
-//     arg
-// }
+fn rust_reflect_option_enum_wit_no_data(
+    arg: Option<ffi::OptionEnumWithNoData>,
+) -> Option<ffi::OptionEnumWithNoData> {
+    arg
+}

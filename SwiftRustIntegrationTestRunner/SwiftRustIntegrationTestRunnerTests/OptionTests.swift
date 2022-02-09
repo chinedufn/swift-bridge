@@ -147,6 +147,21 @@ class OptionTests: XCTestCase {
         XCTAssertEqual(reflected.boolean, nil)
     }
     
+    func testEnumWhereVariantsHaveNoData() {
+        let val = OptionEnumWithNoData.Variant2
+        let reflectedSome = rust_reflect_option_enum_wit_no_data(val)
+        let reflectedNone = rust_reflect_option_enum_wit_no_data(nil)
+        
+        switch reflectedSome! {
+        case .Variant2:
+            break;
+        default:
+            fatalError()
+        }
+        
+        XCTAssertNil(reflectedNone)
+    }
+    
     func testRustCallSwiftReturnOption() {
         run_option_tests()
     }
