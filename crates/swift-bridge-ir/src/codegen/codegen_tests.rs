@@ -29,6 +29,7 @@ use crate::test_utils::{
 };
 
 mod already_declared_attribute_codegen_tests;
+mod async_function_codegen_tests;
 mod conditional_compilation_codegen_tests;
 mod extern_rust_function_opaque_rust_type_argument_codegen_tests;
 mod extern_rust_function_opaque_rust_type_return_codegen_tests;

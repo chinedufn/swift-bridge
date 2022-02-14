@@ -24,27 +24,32 @@ class AsyncTests: XCTestCase {
     }
     
     func testSwiftCallsRustAsyncFn() async throws {
-        let num = await rust_async_u8()
+        await rust_async_return_null()
+    }
+    
+    func testSwiftCallsRustAsyncFnRetU8() async throws {
+        let num = await rust_async_return_u8()
         XCTAssertEqual(num, 123)
     }
 }
 
 func callRustAsyncFn() async -> Int32 {
+    class CbWrapper {
+        var cb: (Result<Int32, Never>) -> ()
+        
+        init(cb: @escaping (Result<Int32, Never>) -> ()) {
+            self.cb = cb
+        }
+    }
+       
+    func onComplete(wrapperPtr: UnsafeMutableRawPointer?, value: Int32) {
+        let wrapper = Unmanaged<CbWrapper>.fromOpaque(wrapperPtr!).takeRetainedValue()
+        wrapper.cb(.success(Int32(5)))
+    }
+ 
     return await withCheckedContinuation({ (continuation: CheckedContinuation<Int32, Never>) in
         let callback = { num in
             continuation.resume(with: num)
-        }
-        class CbWrapper {
-            var cb: (Result<Int32, Never>) -> ()
-            
-            init(cb: @escaping (Result<Int32, Never>) -> ()) {
-                self.cb = cb
-            }
-        }
-        
-        func onComplete(wrapperPtr: UnsafeMutableRawPointer?, value: Int32) {
-            let wrapper = Unmanaged<CbWrapper>.fromOpaque(wrapperPtr!).takeRetainedValue()
-            wrapper.cb(.success(Int32(5)))
         }
         
         let wrapper = CbWrapper(cb: callback)

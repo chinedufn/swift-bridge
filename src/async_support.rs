@@ -20,7 +20,13 @@ pub struct TokioRuntime {
     sender: SyncSender<AsyncFnToSpawn>,
 }
 
-// TODO: Audit to make sure that this is safe. Need to research Swift class thread safety
+// TODO: Audit to make sure that this is safe to be Send/Sync.
+//  Need to research Swift class thread safety. If there are cases where this can be unsafe then
+//  we can just have one tokio runtime per thread (lazily initialized) and then run async functions
+//  on the same thread that spawned them.
+//  Or some other approach that guarantees thread safety.
+//  Make sure to think through the implications of non thread-safe types in the async function's
+//  arguments or its return type.
 #[doc(hidden)]
 pub struct SwiftCallbackWrapper(pub *mut std::ffi::c_void);
 unsafe impl Send for SwiftCallbackWrapper {}

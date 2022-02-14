@@ -33,16 +33,59 @@ impl ParsedExternFn {
 
         let prefixed_fn_name = self.prefixed_fn_name();
 
-        let ret = self.rust_return_type(swift_bridge_path, types);
+        let ret = self.rust_fn_sig_return_tokens(swift_bridge_path, types);
 
         match self.host_lang {
             HostLang::Rust => {
                 let call_fn = self.call_fn_tokens(swift_bridge_path, types);
 
-                quote! {
-                    #[export_name = #link_name]
-                    pub extern "C" fn #prefixed_fn_name ( #params ) #ret {
-                        #call_fn
+                let maybe_return_ty = self.maybe_async_rust_fn_return_ty(swift_bridge_path, types);
+
+                if self.sig.asyncness.is_none() {
+                    quote! {
+                        #[export_name = #link_name]
+                        pub extern "C" fn #prefixed_fn_name ( #params ) #ret {
+                            #call_fn
+                        }
+                    }
+                } else {
+                    let (call_fn, call_callback) = if maybe_return_ty.is_some() {
+                        (
+                            quote! {
+                                let val = #call_fn.await;
+                            },
+                            quote! {
+                                (callback)(callback_wrapper, val)
+                            },
+                        )
+                    } else {
+                        (
+                            quote! {
+                                #call_fn.await;
+                            },
+                            quote! {
+                                (callback)(callback_wrapper)
+                            },
+                        )
+                    };
+
+                    quote! {
+                        #[export_name = #link_name]
+                        pub extern "C" fn #prefixed_fn_name (
+                            callback_wrapper: *mut std::ffi::c_void,
+                            callback: extern "C" fn(*mut std::ffi::c_void #maybe_return_ty) -> ()
+                        ) {
+                            let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
+                            let task = async move {
+                                #call_fn
+
+                                let callback_wrapper = callback_wrapper;
+                                let callback_wrapper = callback_wrapper.0;
+
+                                #call_callback
+                            };
+                            swift_bridge::async_support::ASYNC_RUNTIME.spawn_task(Box::pin(task))
+                        }
                     }
                 }
             }

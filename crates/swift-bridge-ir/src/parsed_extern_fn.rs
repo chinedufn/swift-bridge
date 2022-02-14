@@ -100,7 +100,7 @@ impl ParsedExternFn {
         }
     }
 
-    pub(crate) fn rust_return_type(
+    pub(crate) fn rust_fn_sig_return_tokens(
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
@@ -113,6 +113,25 @@ impl ParsedExternFn {
                 quote! {}
             } else {
                 quote! { -> #ty }
+            }
+        } else {
+            todo!("Push to ParseErrors")
+        }
+    }
+
+    pub(crate) fn maybe_async_rust_fn_return_ty(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Option<TokenStream> {
+        let sig = &self.func.sig;
+
+        if let Some(ret) = BridgedType::new_with_return_type(&sig.output, types) {
+            let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path);
+            if ty.to_string() == "()" {
+                None
+            } else {
+                Some(quote! { , #ty })
             }
         } else {
             todo!("Push to ParseErrors")

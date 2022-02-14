@@ -374,7 +374,12 @@ fn gen_func_swift_calls_rust(
     let fn_name = function.sig.ident.to_string();
     let params = function.to_swift_param_names_and_types(false, types);
     let call_args = function.to_swift_call_args(true, false, types, swift_bridge_path);
-    let call_fn = format!("{}({})", fn_name, call_args);
+
+    let call_fn = if function.sig.asyncness.is_some() {
+        format!("{}(wrapperPtr, onComplete)", fn_name)
+    } else {
+        format!("{}({})", fn_name, call_args)
+    };
 
     let type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
         match ty {
@@ -544,18 +549,76 @@ fn gen_func_swift_calls_rust(
         format!("<{}>", m.join(", "))
     };
 
-    let func_definition = format!(
-        r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}){maybe_ret} {{
+    let func_definition = if function.sig.asyncness.is_some() {
+        let rust_fn_ret_ty = function
+            .return_ty_built_in(types)
+            .unwrap()
+            .to_swift_type(TypePosition::FnReturn(HostLang::Rust));
+
+        let fn_body = format!(
+            r#"class CbWrapper {{
+    var cb: (Result<{rust_fn_ret_ty}, Never>) -> ()
+
+    var init(cb: @escaping (Result<{rust_fn_ret_ty}, Never>) -> ()) {{
+        self.cb = cb
+    }}
+}}
+
+func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: {rust_fn_ret_ty}) {{
+    let wrapper = Unmanaged<CbWrapper>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+    wrapper.cb(.success(rustFnRetVal))
+}}
+
+return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust_fn_ret_ty}, Never>) in
+    let callback = {{ rustFnRetVal in
+        continuation.resume(with: rustFnRetVal)
+    }}
+
+    let wrapper = CbWrapper(cb: callback)
+    let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
+
+    {call_rust}
+}})"#,
+            rust_fn_ret_ty = rust_fn_ret_ty,
+            call_rust = call_rust,
+        );
+
+        let mut fn_body_indented = "".to_string();
+        for line in fn_body.lines() {
+            if line.len() > 0 {
+                fn_body_indented += &format!("{}    {}\n", indentation, line);
+            } else {
+                fn_body_indented += "\n"
+            }
+        }
+        let fn_body_indented = fn_body_indented.trim_end();
+
+        format!(
+            r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}) async{maybe_ret} {{
+{fn_body_indented}
+{indentation}}}"#,
+            indentation = indentation,
+            maybe_static_class_func = maybe_static_class_func,
+            swift_class_func_name = swift_class_func_name,
+            maybe_generics = maybe_generics,
+            params = params,
+            maybe_ret = maybe_return,
+            fn_body_indented = fn_body_indented,
+        )
+    } else {
+        format!(
+            r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}){maybe_ret} {{
 {indentation}    {call_rust}
 {indentation}}}"#,
-        indentation = indentation,
-        maybe_static_class_func = maybe_static_class_func,
-        swift_class_func_name = swift_class_func_name,
-        maybe_generics = maybe_generics,
-        params = params,
-        maybe_ret = maybe_return,
-        call_rust = call_rust
-    );
+            indentation = indentation,
+            maybe_static_class_func = maybe_static_class_func,
+            swift_class_func_name = swift_class_func_name,
+            maybe_generics = maybe_generics,
+            params = params,
+            maybe_ret = maybe_return,
+            call_rust = call_rust
+        )
+    };
 
     func_definition
 }

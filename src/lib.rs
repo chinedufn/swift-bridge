@@ -10,7 +10,7 @@ pub use self::std_bridge::{option, string};
 
 #[doc(hidden)]
 #[cfg(feature = "async")]
-pub mod async_runtime;
+pub mod async_support;
 
 #[doc(hidden)]
 #[repr(C)]
