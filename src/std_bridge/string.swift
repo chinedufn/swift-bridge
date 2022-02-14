@@ -44,6 +44,19 @@ extension RustStr {
         return String(bytes: bytes, encoding: .utf8)!
     }
 }
+extension RustStr: Identifiable {
+    public var id: String {
+        self.toString()
+    }
+}
+extension RustStr: Equatable {
+    public static func == (lhs: RustStr, rhs: RustStr) -> Bool {
+        // TODO: Rather than compare Strings, we can avoid allocating by calling a function
+        // on the Rust side that compares the underlying byte slices.
+        return
+            lhs.toString() == rhs.toString()
+    }
+}
 
 protocol IntoRustString {
     func intoRustString() -> RustString;
@@ -90,10 +103,11 @@ extension String: ToRustStr {
     /// Safely get a scoped pointer to the String and then call the callback with a RustStr
     /// that uses that pointer.
     func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T {
-        return self.utf8CString.withUnsafeBufferPointer({ stringPtr in
+        return self.utf8CString.withUnsafeBufferPointer({ bufferPtr in
             let rustStr = RustStr(
-                start: UnsafeMutableRawPointer(mutating: stringPtr.baseAddress!).assumingMemoryBound(to: UInt8.self),
-                len: UInt(self.count)
+                start: UnsafeMutableRawPointer(mutating: bufferPtr.baseAddress!).assumingMemoryBound(to: UInt8.self),
+                // Subtract 1 because of the null termination character at the end
+                len: UInt(bufferPtr.count - 1)
             )
             return withUnsafeRustStr(rustStr)
         })

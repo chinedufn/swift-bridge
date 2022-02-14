@@ -2,6 +2,32 @@
 
 #[swift_bridge::bridge]
 mod ffi {
+    #[swift_bridge(swift_repr = "struct")]
+    struct StructWithOptionFields {
+        u8: Option<u8>,
+        i8: Option<i8>,
+        u16: Option<u16>,
+        i16: Option<i16>,
+        u32: Option<u32>,
+        i32: Option<i32>,
+        u64: Option<u64>,
+        i64: Option<i64>,
+        usize: Option<usize>,
+        isize: Option<isize>,
+        f32: Option<f32>,
+        f64: Option<f64>,
+        boolean: Option<bool>,
+        // TODO: Support test more types:
+        // string: Option<String>,
+        // str: Option<&'static str>,
+    }
+
+    // An enum where none of the variants have data.
+    enum OptionEnumWithNoData {
+        Variant1,
+        Variant2,
+    }
+
     extern "Rust" {
         fn rust_reflect_option_u8(arg: Option<u8>) -> Option<u8>;
         fn rust_reflect_option_i8(arg: Option<i8>) -> Option<i8>;
@@ -25,6 +51,14 @@ mod ffi {
         fn rust_reflect_option_opaque_rust_type(
             arg: Option<OptTestOpaqueRustType>,
         ) -> Option<OptTestOpaqueRustType>;
+
+        fn rust_reflect_struct_with_option_fields(
+            arg: StructWithOptionFields,
+        ) -> StructWithOptionFields;
+
+        fn rust_reflect_option_enum_wit_no_data(
+            arg: Option<OptionEnumWithNoData>,
+        ) -> Option<OptionEnumWithNoData>;
 
         fn run_option_tests();
     }
@@ -95,5 +129,16 @@ fn rust_reflect_option_str(arg: Option<&str>) -> Option<&str> {
 fn rust_reflect_option_opaque_rust_type(
     arg: Option<OptTestOpaqueRustType>,
 ) -> Option<OptTestOpaqueRustType> {
+    arg
+}
+
+fn rust_reflect_struct_with_option_fields(
+    arg: ffi::StructWithOptionFields,
+) -> ffi::StructWithOptionFields {
+    arg
+}
+fn rust_reflect_option_enum_wit_no_data(
+    arg: Option<ffi::OptionEnumWithNoData>,
+) -> Option<ffi::OptionEnumWithNoData> {
     arg
 }

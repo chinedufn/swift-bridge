@@ -1,4 +1,4 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType, TypePosition};
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::TokenStream;
@@ -64,11 +64,7 @@ impl ParsedExternFn {
         };
 
         if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
-            inner = built_in.convert_ffi_value_to_rust_value(
-                &inner,
-                TypePosition::FnReturn(self.host_lang),
-                sig.output.span(),
-            );
+            inner = built_in.convert_ffi_value_to_rust_value(&inner, sig.output.span());
         } else {
             todo!("Push to ParsedErrors")
         }
@@ -114,6 +110,9 @@ impl ParsedExternFn {
                                 match types.get_with_pat_type(pat_ty).unwrap() {
                                     TypeDeclaration::Shared(SharedTypeDeclaration::Struct(_)) => {
                                         // quote! { #pat: #fn_arg}
+                                        todo!("Add a test that hits this code path")
+                                    }
+                                    TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_)) => {
                                         todo!("Add a test that hits this code path")
                                     }
                                     TypeDeclaration::Opaque(opaque) => {

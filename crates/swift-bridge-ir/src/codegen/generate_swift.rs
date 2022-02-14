@@ -16,6 +16,7 @@ use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
 mod vec;
 
+mod shared_enum;
 mod shared_struct;
 
 impl SwiftBridgeModule {
@@ -29,6 +30,7 @@ impl SwiftBridgeModule {
 
         let mut associated_funcs_and_methods: HashMap<String, Vec<&ParsedExternFn>> =
             HashMap::new();
+        let mut class_protocols: HashMap<String, ClassProtocols> = HashMap::new();
 
         for function in &self.functions {
             if function.host_lang.is_rust() {
@@ -38,11 +40,27 @@ impl SwiftBridgeModule {
                             //
                             todo!("Think about what to do here..")
                         }
-                        TypeDeclaration::Opaque(ty) => {
+                        TypeDeclaration::Opaque(opaque_ty) => {
                             associated_funcs_and_methods
-                                .entry(ty.ident.to_string())
+                                .entry(opaque_ty.ident.to_string())
                                 .or_default()
                                 .push(function);
+
+                            if function.is_swift_identifiable {
+                                let identifiable_protocol = IdentifiableProtocol {
+                                    func_name: function.func.sig.ident.to_string(),
+                                    return_ty: BridgedType::new_with_return_type(
+                                        &function.func.sig.output,
+                                        &self.types,
+                                    )
+                                    .unwrap()
+                                    .to_swift_type(TypePosition::FnReturn(opaque_ty.host_lang)),
+                                };
+                                class_protocols
+                                    .entry(opaque_ty.ident.to_string())
+                                    .or_default()
+                                    .identifiable = Some(identifiable_protocol);
+                            }
                         }
                     };
                     continue;
@@ -72,11 +90,22 @@ impl SwiftBridgeModule {
                         swift += "\n";
                     }
                 }
+                TypeDeclaration::Shared(SharedTypeDeclaration::Enum(shared_enum)) => {
+                    if let Some(swift_enum) = self.generate_shared_enum_string(shared_enum) {
+                        swift += &swift_enum;
+                        swift += "\n";
+                    }
+                }
                 TypeDeclaration::Opaque(ty) => match ty.host_lang {
                     HostLang::Rust => {
+                        let class_protocols = class_protocols.get(&ty.ty.ident.to_string());
+                        let default_cp = ClassProtocols::default();
+                        let class_protocols = class_protocols.unwrap_or(&default_cp);
+
                         swift += &generate_swift_class(
                             ty,
                             &associated_funcs_and_methods,
+                            class_protocols,
                             &self.types,
                             &self.swift_bridge_path,
                         );
@@ -99,9 +128,20 @@ impl SwiftBridgeModule {
     }
 }
 
+#[derive(Default)]
+struct ClassProtocols {
+    // The name of the function to use for the Identifiable protocol implementation.
+    identifiable: Option<IdentifiableProtocol>,
+}
+struct IdentifiableProtocol {
+    func_name: String,
+    return_ty: String,
+}
+
 fn generate_swift_class(
     ty: &OpaqueForeignTypeDeclaration,
     associated_funcs_and_methods: &HashMap<String, Vec<&ParsedExternFn>>,
+    class_protocols: &ClassProtocols,
     types: &TypeDeclarations,
     swift_bridge_path: &Path,
 ) -> String {
@@ -121,7 +161,7 @@ fn generate_swift_class(
 
             let is_class_func = type_method.func.sig.inputs.is_empty();
 
-            if type_method.is_initializer {
+            if type_method.is_swift_initializer {
                 initializers.push(func_definition);
             } else if is_class_func {
                 ref_self_methods.push(func_definition);
@@ -162,7 +202,7 @@ fn generate_swift_class(
             free_func_call = free_func_call
         )
     };
-    let class_ref_decl = if ty.already_declared {
+    let class_ref_mut_decl = if ty.already_declared {
         "".to_string()
     } else {
         format!(
@@ -175,7 +215,7 @@ public class {type_name}RefMut: {type_name}Ref {{
             type_name = type_name
         )
     };
-    let class_ref_mut_decl = if ty.already_declared {
+    let mut class_ref_decl = if ty.already_declared {
         "".to_string()
     } else {
         format!(
@@ -190,6 +230,28 @@ public class {type_name}Ref {{
             type_name = type_name,
         )
     };
+    if let Some(identifiable) = class_protocols.identifiable.as_ref() {
+        let identifiable_var = if identifiable.func_name == "id" {
+            "".to_string()
+        } else {
+            format!(
+                r#"
+    public var id: {identifiable_return_ty} {{
+        return self.{identifiable_func}()
+    }}
+"#,
+                identifiable_func = identifiable.func_name,
+                identifiable_return_ty = identifiable.return_ty
+            )
+        };
+
+        class_ref_decl += &format!(
+            r#"
+extension {type_name}Ref: Identifiable {{{identifiable_var}}}"#,
+            type_name = type_name,
+            identifiable_var = identifiable_var,
+        );
+    }
 
     let initializers = if initializers.len() == 0 {
         "".to_string()
@@ -251,8 +313,8 @@ extension {type_name}RefMut {{
         r#"
 {class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}"#,
         class_decl = class_decl,
-        class_ref_decl = class_ref_decl,
-        class_ref_mut_decl = class_ref_mut_decl,
+        class_ref_decl = class_ref_mut_decl,
+        class_ref_mut_decl = class_ref_decl,
         initializers = initializers,
         owned_instance_methods = owned_instance_methods,
         ref_mut_instance_methods = ref_mut_instance_methods,
@@ -329,14 +391,14 @@ fn gen_func_swift_calls_rust(
     };
 
     let maybe_static_class_func = if function.associated_type.is_some()
-        && (!function.is_method() && !function.is_initializer)
+        && (!function.is_method() && !function.is_swift_initializer)
     {
         "class "
     } else {
         ""
     };
 
-    let swift_class_func_name = if function.is_initializer {
+    let swift_class_func_name = if function.is_swift_initializer {
         "convenience init".to_string()
     } else {
         format!("func {}", fn_name.as_str())
@@ -354,12 +416,12 @@ fn gen_func_swift_calls_rust(
         type_name_segment = type_name_segment,
         call_fn = call_fn
     );
-    let mut call_rust = if function.is_initializer {
+    let mut call_rust = if function.is_swift_initializer {
         call_rust
     } else if let Some(built_in) = function.return_ty_built_in(types) {
         built_in.convert_ffi_value_to_swift_value(
-            TypePosition::FnReturn(function.host_lang),
             &call_rust,
+            TypePosition::FnReturn(function.host_lang),
         )
     } else {
         if function.host_lang.is_swift() {
@@ -405,7 +467,7 @@ fn gen_func_swift_calls_rust(
     let returns_null = Some(BridgedType::StdLib(StdLibType::Null))
         == BridgedType::new_with_return_type(&function.func.sig.output, types);
 
-    let maybe_return = if returns_null || function.is_initializer {
+    let maybe_return = if returns_null || function.is_swift_initializer {
         ""
     } else {
         "return "
@@ -458,11 +520,11 @@ fn gen_func_swift_calls_rust(
         }
     }
 
-    if function.is_initializer {
+    if function.is_swift_initializer {
         call_rust = format!("self.init(ptr: {})", call_rust)
     }
 
-    let maybe_return = if function.is_initializer {
+    let maybe_return = if function.is_swift_initializer {
         "".to_string()
     } else {
         function.to_swift_return_type(types)
@@ -538,7 +600,7 @@ fn gen_function_exposes_swift_to_rust(
                     ty_name = ty_name,
                     call_fn = call_fn
                 );
-            } else if func.is_initializer {
+            } else if func.is_swift_initializer {
                 call_fn = format!(
                     "__private__PointerToSwiftType(ptr: Unmanaged.passRetained({}({})).toOpaque())",
                     ty_name, args

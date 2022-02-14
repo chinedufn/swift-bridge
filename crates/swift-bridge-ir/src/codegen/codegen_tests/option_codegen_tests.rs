@@ -385,3 +385,110 @@ void __swift_bridge__$some_function(void* arg);
         .test();
     }
 }
+
+/// Test conversion to and from the FFI representation of a struct that contains Option<F> fields.
+mod shared_struct_with_option_field_ffi_repr {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                struct SomeStruct {
+                    field: Option<u8>
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub struct __swift_bridge__SomeStruct {
+                    field: swift_bridge::option::OptionU8
+                }
+            },
+            quote! {
+                impl SomeStruct {
+                    #[doc(hidden)]
+                    #[inline(always)]
+                    pub fn into_ffi_repr(self) -> __swift_bridge__SomeStruct {
+                        {
+                            let val = self;
+                            __swift_bridge__SomeStruct {
+                                field: if let Some(val) = val.field {
+                                    swift_bridge::option::OptionU8 {
+                                        val,
+                                        is_some: true
+                                    }
+                                } else {
+                                    swift_bridge::option::OptionU8 {
+                                        val: 123,
+                                        is_some: false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            quote! {
+                impl __swift_bridge__SomeStruct {
+                    #[doc(hidden)]
+                    #[inline(always)]
+                    pub fn into_rust_repr(self) -> SomeStruct {
+                         {
+                            let val = self;
+                            SomeStruct {
+                                field: if val.field.is_some {
+                                    Some(val.field.val)
+                                } else {
+                                   None
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public struct SomeStruct {
+    var field: Optional<UInt8>
+
+    @inline(__always)
+    func intoFfiRepr() -> __swift_bridge__$SomeStruct {
+        { let val = self; return __swift_bridge__$SomeStruct(field: { let val = val.field; return __private__OptionU8(val: val ?? 123, is_some: val != nil); }()); }()
+    }
+}
+extension __swift_bridge__$SomeStruct {
+    @inline(__always)
+    func intoSwiftRepr() -> SomeStruct {
+        { let val = self; return SomeStruct(field: { let val = val.field; if val.is_some { return val.val } else { return nil } }()); }()
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+typedef struct __swift_bridge__$SomeStruct { struct __private__OptionU8 field; } __swift_bridge__$SomeStruct;
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_return_option_str() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

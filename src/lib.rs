@@ -9,6 +9,7 @@ mod std_bridge;
 pub use self::std_bridge::{option, string};
 
 #[doc(hidden)]
+#[cfg(feature = "async")]
 pub mod async_runtime;
 
 #[doc(hidden)]
@@ -61,6 +62,26 @@ pub trait SharedStruct {
     type FfiRepr;
 }
 
+// The code generation automatically implements this for all shared enum.
+// This trait is private and should not be used outside of swift-bridge.
+#[doc(hidden)]
+pub trait SharedEnum {
+    /// The FFI friendly representation of this struct.
+    ///
+    /// ```
+    /// enum MyEnum {
+    ///     Variant1,
+    ///     Variant2,
+    /// }
+    /// // This is the auto generated ffi representation.
+    /// #[repr(C)]
+    /// enum __swift_bridge__MyEnum {
+    ///     Variant1,
+    ///     Variant2,
+    /// }
+    /// ```
+    type FfiRepr;
+}
 
 #[no_mangle]
 #[doc(hidden)]

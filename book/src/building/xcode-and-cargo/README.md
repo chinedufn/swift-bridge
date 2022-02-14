@@ -1,9 +1,6 @@
-# Tutorial: Running rust-analyzer on an iPhone
+# Xcode + Cargo
 
-> The tutorial is a work in progress. You can follow it and it works, but it's currently sparse on
-> details and explanations.
-
-In this chapter we'll create a new iOS application that makes use of `swift-bridge` in order
+To demonstrate how to set up an Xcode + Cargo project, we'll create a new iOS application that makes use of `swift-bridge` in order
 use `rust-analyzer` to perform syntax highlighting of Rust code.
 
 When we're done we'll have a simple application where we can type Rust code into a text area and see the syntax
@@ -220,7 +217,7 @@ Select the `target/universal/debug/libios_rust_analyzer.a` file.
 
 ![Frameworks and libraries](./screenshots/xcode-frameworks-libraries-section.png)
 
-![Libraries add other](./screenshots/libraries-add-other.png)
+![Libraries add other](./screenshots/xcode-libraries-add-other.png)
 
 ---
 
@@ -422,6 +419,3 @@ Make sure that you see 4 files in your `Compile Sources` build phase.
 Runing the application in the iPhone simulator using `Cmd` + `R` should show a working demo!
 
 ![Simulator rust analyzer app](./screenshots/simulator-rust-analyzer-app.png)
-
-
-

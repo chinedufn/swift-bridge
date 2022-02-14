@@ -58,9 +58,10 @@ impl SwiftBridgeModule {
                     fields = format!("\n{}", fields)
                 }
 
-                let convert_swift_to_ffi_repr = shared_struct.convert_swift_to_ffi_repr("self");
+                let convert_swift_to_ffi_repr =
+                    shared_struct.convert_swift_to_ffi_repr("self", &self.types);
                 let convert_ffi_repr_to_swift =
-                    shared_struct.convert_ffi_expression_to_swift("self");
+                    shared_struct.convert_ffi_expression_to_swift("self", &self.types);
 
                 // No need to generate any code. Swift will automatically generate a
                 //  struct from our C header typedef that we generate for this struct.

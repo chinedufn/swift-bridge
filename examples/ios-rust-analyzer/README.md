@@ -9,7 +9,7 @@ git clone https://github.com/chinedufn/swift-bridge
 cd swift-bridge/examples/ios-rust-analyzer
 
 open IosRustAnalyzer/IosRustAnalyzer.xcodeproj
-# Click to "Run" button at the top left of Xcode
+# Click the "Run" button at the top left of Xcode
 ```
 
 ## Screenshots

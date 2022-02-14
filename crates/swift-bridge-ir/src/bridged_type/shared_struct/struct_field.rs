@@ -1,9 +1,12 @@
-use proc_macro2::{Ident, TokenStream};
-use quote::{quote_spanned, ToTokens};
 use std::fmt::{Debug, Formatter};
-use std::str::FromStr;
-use syn::spanned::Spanned;
-use syn::Type;
+
+use proc_macro2::{Ident, TokenStream};
+use quote::{quote, ToTokens};
+use syn::{Fields, Type};
+
+pub(crate) use self::normalized_field::*;
+
+mod normalized_field;
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum StructFields {
@@ -19,6 +22,74 @@ impl StructFields {
             StructFields::Named(named) => named.is_empty(),
             StructFields::Unnamed(unnamed) => unnamed.is_empty(),
             StructFields::Unit => true,
+        }
+    }
+
+    pub fn normalized_fields(&self) -> Vec<NormalizedStructField> {
+        match self {
+            StructFields::Named(named) => named
+                .iter()
+                .map(|n| NormalizedStructField {
+                    accessor: NormalizedStructFieldAccessor::Named(n.name.clone()),
+                    ty: n.ty.clone(),
+                })
+                .collect(),
+            StructFields::Unnamed(unnamed) => unnamed
+                .iter()
+                .map(|u| NormalizedStructField {
+                    accessor: NormalizedStructFieldAccessor::Unnamed(u.idx),
+                    ty: u.ty.clone(),
+                })
+                .collect(),
+            StructFields::Unit => Vec::new(),
+        }
+    }
+
+    pub fn wrap_declaration_fields(&self, struct_fields: &[TokenStream]) -> TokenStream {
+        match &self {
+            StructFields::Named(_) => {
+                quote! {
+                    { #(#struct_fields),* }
+                }
+            }
+            StructFields::Unnamed(_) => {
+                quote! {
+                    ( #(#struct_fields),* );
+                }
+            }
+            StructFields::Unit => {
+                quote! { ; }
+            }
+        }
+    }
+
+    pub fn from_syn_fields(fields: Fields) -> Self {
+        match fields {
+            Fields::Named(f) => {
+                let mut fields = vec![];
+                for field in f.named.iter() {
+                    let field = NamedStructField {
+                        name: field.ident.clone().unwrap(),
+                        ty: field.ty.clone(),
+                    };
+                    fields.push(field);
+                }
+
+                StructFields::Named(fields)
+            }
+            Fields::Unnamed(f) => {
+                let mut fields = vec![];
+                for (idx, field) in f.unnamed.iter().enumerate() {
+                    let field = UnnamedStructField {
+                        ty: field.ty.clone(),
+                        idx,
+                    };
+                    fields.push(field);
+                }
+
+                StructFields::Unnamed(fields)
+            }
+            Fields::Unit => StructFields::Unit,
         }
     }
 }
@@ -44,16 +115,6 @@ impl NamedStructField {
 impl UnnamedStructField {
     pub fn swift_name_string(&self) -> String {
         format!("_{}", self.idx)
-    }
-
-    pub fn rust_field_accessor(&self) -> TokenStream {
-        let idx = format!("{}", self.idx);
-        let idx = TokenStream::from_str(&idx).unwrap();
-        quote_spanned! {self.ty.span()=> #idx}
-    }
-
-    pub fn ffi_field_name(&self) -> Ident {
-        Ident::new(&format!("_{}", self.idx), self.ty.span())
     }
 }
 

@@ -17,62 +17,67 @@ class VecTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
     
-    func testRustVecU8() throws {
-        let start: [UInt8] = [1, 9, 3, 4, 5]
-        let vec = create_vec_u8(start.toUnsafeBufferPointer())
-        
-        XCTAssertEqual(vec.len(), 5)
-        
-        vec.push(value: 10)
-        XCTAssertEqual(vec.len(), 6)
-        
-        XCTAssertEqual(vec.pop(), 10)
-        XCTAssertEqual(vec.len(), 5)
-        
-        XCTAssertEqual(vec.get(index: 1), 9)
-    }
-    
-    func testRustVecI32() throws {
-        let start: [Int32] = [1, 9, 3, 4, 5]
-        let vec = create_vec_i32(start.toUnsafeBufferPointer())
-        
-        XCTAssertEqual(vec.len(), 5)
-        
-        vec.push(value: 10)
-        XCTAssertEqual(vec.len(), 6)
-        
-        XCTAssertEqual(vec.pop(), 10)
-        XCTAssertEqual(vec.len(), 5)
-        
-        XCTAssertEqual(vec.get(index: 1), 9)
-    }
-    
-    func testVecOfOpaqueRustType() throws {
-        let vec = create_vec_opaque_rust_type()
-        
-        XCTAssertEqual(vec.len(), 1)
-        XCTAssertEqual(vec.get(index: 0)!.text().toString(), "hello there, friend")
-        
-        let popped = vec.pop()
-        XCTAssertEqual(popped?.text().toString(), "hello there, friend")
-        
+    func testRustVecU8Len() throws {
+        let vec = RustVec<UInt8>()
         XCTAssertEqual(vec.len(), 0)
-        XCTAssertNil(vec.pop())
-        XCTAssertNil(vec.get(index: 1))
-        
-        let text = "My pushed text"
-        vec.push(value: ARustTypeInsideVecT(text))
+        vec.push(value: 123)
         XCTAssertEqual(vec.len(), 1)
-        XCTAssertEqual(vec.get(index: 0)!.text().toString(), "My pushed text")
+    }
+    func testRustVecU8Pop() throws {
+        let vec = RustVec<UInt8>()
+        vec.push(value: 123)
+        let popped = vec.pop()
+        XCTAssertEqual(popped, 123)
+        XCTAssertEqual(vec.len(), 0)
+    }
+    func testRustVecU8Get() throws {
+        let vec = RustVec<UInt8>()
+        vec.push(value: 111)
+        vec.push(value: 222)
+        XCTAssertEqual(vec.get(index: 1), 222)
+    }
+    func testRustVecU8Iterator() throws {
+        let vec = RustVec<UInt8>()
+        vec.push(value: 111)
+        vec.push(value: 222)
+        
+        var iterations = 0
+        for (index, val) in vec.enumerated() {
+            XCTAssertEqual(val, vec[index])
+            iterations += 1
+        }
+        XCTAssertEqual(iterations, 2)
     }
     
-    func testRustVecIterator() throws {
-        let numbers: [Int32] = [5, 6, 7]
-        let vec = create_vec_i32(numbers.toUnsafeBufferPointer())
+    func testVecOfOpaqueRustTypeLen() throws {
+        let vec = RustVec<ARustTypeInsideVecT>()
+        XCTAssertEqual(vec.len(), 0)
+        vec.push(value: ARustTypeInsideVecT("hello world"))
+        XCTAssertEqual(vec.len(), 1)
+    }
+    func testVecOfOpaqueRustTypeGet() throws {
+        let vec: RustVec<ARustTypeInsideVecT> = RustVec()
+        vec.push(value: ARustTypeInsideVecT("hello world"))
+        XCTAssertEqual(vec.get(index: 0)!.text().toString(), "hello world")
+    }
+    func testVecOfOpaqueRustTypePop() throws {
+        let vec: RustVec<ARustTypeInsideVecT> = RustVec()
+        vec.push(value: ARustTypeInsideVecT("hello world"))
         
-        for (index, val) in vec.enumerated() {
-            XCTAssertEqual(val, numbers[index])
-        }
+        XCTAssertEqual(vec.len(), 1)
+        let popped = vec.pop()
+        XCTAssertEqual(popped?.text().toString(), "hello world")
+        XCTAssertEqual(vec.len(), 0)
+    }
+    /// Verify that a Vec<T> of opaque Rust types can be used as an argument and return
+    /// type for extern "Rust" functions.
+    func testReflectVecOfOpaqueRustType() throws {
+        let vec: RustVec<ARustTypeInsideVecT> = RustVec()
+        vec.push(value: ARustTypeInsideVecT("hello world"))
+        
+        let reflected = rust_reflect_vec_opaque_rust_type(vec)
+        XCTAssertEqual(reflected.len(), 1)
+        XCTAssertEqual(reflected.get(index: 0)!.text().toString(), "hello world")
     }
     
     /// Verify that we can construct a RustVec of every primitive type.

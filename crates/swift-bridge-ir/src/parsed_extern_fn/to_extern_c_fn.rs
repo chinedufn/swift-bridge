@@ -33,7 +33,7 @@ impl ParsedExternFn {
 
         let prefixed_fn_name = self.prefixed_fn_name();
 
-        let ret = self.rust_return_type(self.host_lang, swift_bridge_path, types);
+        let ret = self.rust_return_type(swift_bridge_path, types);
 
         match self.host_lang {
             HostLang::Rust => {
@@ -87,7 +87,13 @@ impl ParsedExternFn {
             call_fn = return_ty.rust_expression_into(&call_fn);
         }
 
-        call_fn = return_ty.convert_rust_value_to_ffi_compatible_value(swift_bridge_path, &call_fn);
+        if let Some(return_with) = self.return_with.as_ref() {
+            call_fn = quote! {
+                super:: #return_with ( #call_fn )
+            }
+        }
+
+        call_fn = return_ty.convert_rust_value_to_ffi_compatible_value(&call_fn, swift_bridge_path);
 
         call_fn
     }

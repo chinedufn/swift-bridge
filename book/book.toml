@@ -7,3 +7,6 @@ title = "The swift-bridge Book"
 
 [output.html]
 git-repository-url = "https://github.com/chinedufn/swift-bridge"
+
+[output.html.redirect]
+"tutorial/running-rust-analyzer-on-an-iphone/index.html" = "../../building/swiftc-and-cargo/index.html"

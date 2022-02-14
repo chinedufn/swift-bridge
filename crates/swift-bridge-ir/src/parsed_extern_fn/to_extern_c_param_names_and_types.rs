@@ -51,8 +51,7 @@ impl ParsedExternFn {
                         }
                     } else if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                         let pat = &pat_ty.pat;
-                        let ty =
-                            built_in.to_ffi_compatible_rust_type(self.host_lang, swift_bridge_path);
+                        let ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path);
                         params.push(quote! { #pat: #ty});
                         continue;
                     } else {
@@ -79,6 +78,10 @@ impl ParsedExternFn {
                                 quote! {
                                     #ty
                                 }
+                            }
+                            TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_shared_enum)) => {
+                                //
+                                todo!("Shared enum to type name")
                             }
                             TypeDeclaration::Opaque(opaque) => {
                                 if opaque.host_lang.is_rust() {

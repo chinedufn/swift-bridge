@@ -1,4 +1,4 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType, TypePosition};
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
@@ -23,9 +23,28 @@ mod to_swift_func;
 /// ... etc
 pub(crate) struct ParsedExternFn {
     pub func: ForeignItemFn,
+    /// The type that this function is associated to.
+    ///
+    /// ```
+    /// # const  _: &str = stringify!(
+    /// #[swift_bridge::bridge]
+    /// mod ffi {
+    ///     extern "Rust" {
+    ///         type SomeType;
+    ///
+    ///         // This function is associated to `SomeType` since it has a receiver `&self`.
+    ///         fn some_function(&self);
+    ///     }
+    /// }
+    /// # );
+    /// ```
     pub associated_type: Option<TypeDeclaration>,
-    pub is_initializer: bool,
     pub host_lang: HostLang,
+    /// Whether or not this function is a Swift initializer.
+    pub is_swift_initializer: bool,
+    /// Whether or not this function should be used for the associated type's Swift
+    /// `Identifiable` protocol implementation.
+    pub is_swift_identifiable: bool,
     pub rust_name_override: Option<syn::LitStr>,
     pub swift_name_override: Option<syn::LitStr>,
     /// If true, we call `.into()` on the expression that the function returns before returning it.
@@ -40,6 +59,7 @@ pub(crate) struct ParsedExternFn {
     /// }
     /// ```
     pub into_return_type: bool,
+    pub return_with: Option<Path>,
     /// Call `.into()` before passing this argument to the function that handles it.
     ///
     /// ```no_run,ignore
@@ -82,14 +102,13 @@ impl ParsedExternFn {
 
     pub(crate) fn rust_return_type(
         &self,
-        func_host_lang: HostLang,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
         let sig = &self.func.sig;
 
         if let Some(ret) = BridgedType::new_with_return_type(&sig.output, types) {
-            let ty = ret.to_ffi_compatible_rust_type(func_host_lang, swift_bridge_path);
+            let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path);
             if ty.to_string() == "()" {
                 quote! {}
             } else {
@@ -180,11 +199,7 @@ impl ParsedExternFn {
 
                     if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                         if self.host_lang.is_rust() {
-                            arg = built_in.convert_ffi_value_to_rust_value(
-                                &arg,
-                                TypePosition::FnArg(self.host_lang),
-                                pat_ty.ty.span(),
-                            );
+                            arg = built_in.convert_ffi_value_to_rust_value(&arg, pat_ty.ty.span());
 
                             if self.args_into_contains_arg(fn_arg) {
                                 arg = quote_spanned! {pat_ty.span()=>
@@ -193,8 +208,8 @@ impl ParsedExternFn {
                             }
                         } else {
                             arg = built_in.convert_rust_value_to_ffi_compatible_value(
-                                swift_bridge_path,
                                 &arg,
+                                swift_bridge_path,
                             );
                         };
                     } else {
@@ -259,6 +274,10 @@ impl ParsedExternFn {
                     match types.get(&ty_string).unwrap() {
                         TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
                             format!("struct {}", shared_struct.swift_name_string())
+                        }
+                        TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_shared_enum)) => {
+                            //
+                            todo!("Enum C header")
                         }
                         TypeDeclaration::Opaque(opaque) => {
                             if opaque.host_lang.is_rust() {

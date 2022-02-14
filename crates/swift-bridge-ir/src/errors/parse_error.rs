@@ -19,27 +19,53 @@ pub(crate) enum ParseError {
     },
     /// `fn foo (&self)`
     ///           ----
-    AmbiguousSelf { self_: Receiver },
+    AmbiguousSelf {
+        self_: Receiver,
+    },
     /// fn foo (bar: &Bar);
     /// If Bar wasn't declared using a `type Bar` declaration.
-    UndeclaredType { ty: Type },
+    UndeclaredType {
+        ty: Type,
+    },
     /// Declared a type that we already support.
     /// Example: `type u32`
-    DeclaredBuiltInType { ty: ForeignItemType },
+    DeclaredBuiltInType {
+        ty: ForeignItemType,
+    },
     /// A bridge module struct with one or more fields must have a
     /// `#\[swift_bridge(swift_repr ="...")\[\]` attribute so that we know whether to create a
     /// `struct` or `class` on the Swift side.
-    StructMissingSwiftRepr { struct_ident: Ident },
+    StructMissingSwiftRepr {
+        struct_ident: Ident,
+    },
     /// Only "class" and "struct" can be used as swift_repr.
-    StructInvalidSwiftRepr { swift_repr_attr_value: LitStr },
+    StructInvalidSwiftRepr {
+        swift_repr_attr_value: LitStr,
+    },
     /// A struct was declared with an unrecognized attribute.
-    StructUnrecognizedAttribute { attribute: Ident },
+    StructUnrecognizedAttribute {
+        attribute: Ident,
+    },
     /// There is no reason to use `swift_repr = "class"` on an empty struct.
     /// It's extra overhead with no advantages.
     EmptyStructHasSwiftReprClass {
         struct_ident: Ident,
         swift_repr_attr_value: LitStr,
     },
+    FunctionAttribute(FunctionAttributeParseError),
+}
+
+/// An error while parsing a function attribute.
+pub(crate) enum FunctionAttributeParseError {
+    Identifiable(IdentifiableParseError),
+}
+
+/// An error while parsing a function's `Identifiable` attribute.
+pub(crate) enum IdentifiableParseError {
+    /// An `Identifiable` implementation function must take a single `(&self)` argument.
+    MustBeRefSelf { fn_ident: Ident },
+    /// An `Identifiable` implementation function must return a value.
+    MissingReturnType { fn_ident: Ident },
 }
 
 impl Into<syn::Error> for ParseError {
@@ -98,13 +124,14 @@ representation.
 ```
 // Valid values are "struct" and "class"
 #[swift_bridge(swift_repr = "struct")]
-struct MyStruct {{
-    count: u8
+struct {struct_name} {{
+    // ... fields ...
 }}
 ```
 
 TODO: Link to documntation on how to decide on the swift representation.
-"#
+"#,
+                    struct_name = struct_ident
                 );
                 Error::new_spanned(struct_ident, message)
             }
@@ -135,6 +162,24 @@ struct {struct_name};
                 let message = format!(r#"Did not recognize struct attribute "{}"."#, attribute);
                 Error::new_spanned(attribute, message)
             }
+            ParseError::FunctionAttribute(fn_attrib) => match fn_attrib {
+                FunctionAttributeParseError::Identifiable(identifiable) => match identifiable {
+                    IdentifiableParseError::MustBeRefSelf { fn_ident } => {
+                        let message = format!(
+                            r#"Identifiable function {} must take `&self` as its only argument."#,
+                            fn_ident
+                        );
+                        Error::new_spanned(fn_ident, message)
+                    }
+                    IdentifiableParseError::MissingReturnType { fn_ident } => {
+                        let message = format!(
+                            r#"Identifiable function {} must have a return type."#,
+                            fn_ident
+                        );
+                        Error::new_spanned(fn_ident, message)
+                    }
+                },
+            },
         }
     }
 }

@@ -11,6 +11,7 @@ use crate::codegen::generate_rust_tokens::vec::generate_vec_of_opaque_rust_type_
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 
+mod shared_enum;
 mod shared_struct;
 mod vec;
 
@@ -23,6 +24,7 @@ impl ToTokens for SwiftBridgeModule {
         let mut structs_for_swift_classes = vec![];
 
         let mut shared_struct_definitions = vec![];
+        let mut shared_enum_definitions = vec![];
         let mut impl_fn_tokens: HashMap<String, Vec<TokenStream>> = HashMap::new();
         let mut freestanding_rust_call_swift_fn_tokens = vec![];
         let mut extern_swift_fn_tokens = vec![];
@@ -68,6 +70,11 @@ impl ToTokens for SwiftBridgeModule {
                 TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
                     if let Some(definition) = self.generate_shared_struct_tokens(shared_struct) {
                         shared_struct_definitions.push(definition);
+                    }
+                }
+                TypeDeclaration::Shared(SharedTypeDeclaration::Enum(shared_enum)) => {
+                    if let Some(definition) = self.generate_shared_enum_tokens(shared_enum) {
+                        shared_enum_definitions.push(definition);
                     }
                 }
                 TypeDeclaration::Opaque(ty) => {
@@ -163,6 +170,8 @@ impl ToTokens for SwiftBridgeModule {
 
         let module_inner = quote! {
             #(#shared_struct_definitions)*
+
+            #(#shared_enum_definitions)*
 
             #(#extern_rust_fn_tokens)*
 

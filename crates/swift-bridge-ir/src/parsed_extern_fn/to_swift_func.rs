@@ -110,8 +110,8 @@ impl ParsedExternFn {
                                 )
                             } else {
                                 bridged_ty.convert_ffi_value_to_swift_value(
-                                    TypePosition::FnArg(self.host_lang),
                                     &arg,
+                                    TypePosition::FnArg(self.host_lang),
                                 )
                             }
                         } else {

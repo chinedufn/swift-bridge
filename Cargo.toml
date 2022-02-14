@@ -1,6 +1,6 @@
 [package]
 name = "swift-bridge"
-version = "0.1.23"
+version = "0.1.27"
 edition = "2021"
 keywords = ["swift", "ffi", "bindings", "ios", "mac"]
 description = "Generate FFI bindings for safe interop between Rust and Swift."
@@ -9,20 +9,30 @@ license = "Apache-2.0/MIT"
 
 build = "build.rs"
 
+[features]
+default = []
+
+# Enables bridging of async functions.
+async = ["tokio", "once_cell"]
+
 [build-dependencies]
-swift-bridge-build = {version = "0.1.23", path = "crates/swift-bridge-build"}
+swift-bridge-build = {version = "0.1.27", path = "crates/swift-bridge-build"}
 
 [dependencies]
-swift-bridge-macro = {version = "0.1.23", path = "crates/swift-bridge-macro"}
+swift-bridge-macro = {version = "0.1.27", path = "crates/swift-bridge-macro"}
 
-tokio = {version = "1", features = ["rt-multi-thread"]}
-once_cell = "1.9"
+################################################################################
+# Optional features used for async function support.
+################################################################################
+tokio = {optional = true, version = "1", features = ["rt-multi-thread"]}
+once_cell = {optional = true, version = "1.9"}
 
 [workspace]
 members = [
-  "crates/swift-bridge-macro",
   "crates/swift-bridge-build",
+  "crates/swift-bridge-cli",
   "crates/swift-bridge-ir",
+  "crates/swift-bridge-macro",
   "crates/swift-integration-tests",
 
   "examples/codegen-visualizer",

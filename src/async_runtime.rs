@@ -20,6 +20,7 @@ pub struct TokioRuntime {
     sender: SyncSender<AsyncFnToSpawn>,
 }
 
+// TODO: Audit to make sure that this is safe. Need to research Swift class thread safety
 #[doc(hidden)]
 pub struct SwiftCallbackWrapper(pub *mut std::ffi::c_void);
 unsafe impl Send for SwiftCallbackWrapper {}

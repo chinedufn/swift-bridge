@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2202BC0827B2DD1700D43CC4 /* SharedEnumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */; };
 		22043293274A8FDF00BAE645 /* VecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22043292274A8FDF00BAE645 /* VecTests.swift */; };
 		22043295274ADA7A00BAE645 /* OptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22043294274ADA7A00BAE645 /* OptionTests.swift */; };
 		22043297274B0AB000BAE645 /* Option.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22043296274B0AB000BAE645 /* Option.swift */; };
@@ -33,6 +34,7 @@
 		228FE6502749C43100805D9E /* BooleanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE64F2749C43100805D9E /* BooleanTests.swift */; };
 		22BC10F62799283100A0D046 /* SharedStruct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BC10F52799283100A0D046 /* SharedStruct.swift */; };
 		22BC10F82799A3A000A0D046 /* SharedStructAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BC10F72799A3A000A0D046 /* SharedStructAttributes.swift */; };
+		22BCAAB927A2607700686A21 /* FunctionAttributeIdentifiableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */; };
 		22C0AD51278ECA9E00A96469 /* SharedStructAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */; };
 		22D092A327B7E865009A4C2B /* AsyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22D092A227B7E865009A4C2B /* AsyncTests.swift */; };
 		22FD1C542753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */; };
@@ -50,6 +52,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedEnumTests.swift; sourceTree = "<group>"; };
 		22043292274A8FDF00BAE645 /* VecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VecTests.swift; sourceTree = "<group>"; };
 		22043294274ADA7A00BAE645 /* OptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionTests.swift; sourceTree = "<group>"; };
 		22043296274B0AB000BAE645 /* Option.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Option.swift; sourceTree = "<group>"; };
@@ -82,6 +85,7 @@
 		228FE64F2749C43100805D9E /* BooleanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BooleanTests.swift; sourceTree = "<group>"; };
 		22BC10F52799283100A0D046 /* SharedStruct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStruct.swift; sourceTree = "<group>"; };
 		22BC10F72799A3A000A0D046 /* SharedStructAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStructAttributes.swift; sourceTree = "<group>"; };
+		22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FunctionAttributeIdentifiableTests.swift; sourceTree = "<group>"; };
 		22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStructAttributeTests.swift; sourceTree = "<group>"; };
 		22D092A227B7E865009A4C2B /* AsyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncTests.swift; sourceTree = "<group>"; };
 		22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustType.swift; sourceTree = "<group>"; };
@@ -167,12 +171,14 @@
 				22043292274A8FDF00BAE645 /* VecTests.swift */,
 				22043294274ADA7A00BAE645 /* OptionTests.swift */,
 				220432A6274C953E00BAE645 /* PointerTests.swift */,
+				2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */,
 				220432AE274E7BF800BAE645 /* SharedStructTests.swift */,
 				220432EB27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift */,
 				22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */,
 				221E16B32786233600F94AC0 /* ConditionalCompilationTests.swift */,
 				221E16B52786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift */,
 				22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */,
+				22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */,
 				22D092A227B7E865009A4C2B /* AsyncTests.swift */,
 			);
 			path = SwiftRustIntegrationTestRunnerTests;
@@ -353,6 +359,8 @@
 				220432AF274E7BF800BAE645 /* SharedStructTests.swift in Sources */,
 				220432EC27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift in Sources */,
 				228FE6502749C43100805D9E /* BooleanTests.swift in Sources */,
+				2202BC0827B2DD1700D43CC4 /* SharedEnumTests.swift in Sources */,
+				22BCAAB927A2607700686A21 /* FunctionAttributeIdentifiableTests.swift in Sources */,
 				221E16B42786233600F94AC0 /* ConditionalCompilationTests.swift in Sources */,
 				22043295274ADA7A00BAE645 /* OptionTests.swift in Sources */,
 				22C0AD51278ECA9E00A96469 /* SharedStructAttributeTests.swift in Sources */,

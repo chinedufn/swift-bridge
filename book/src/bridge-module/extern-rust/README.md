@@ -252,6 +252,38 @@ func maybeSendLongMessage(text: String) {
 }
 ```
 
+#### #[swift_bridge(Identifiable)]
+
+Used to generate a Swift `Idenfiable` protocol implementation.
+
+```rust
+// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        type SomeType;
+
+        #[swift_bridge(Identifiable, swift_name = "someFunction")]
+        fn some_function(&self) -> i16;
+    }
+}
+```
+
+```swift
+// Generated Swift
+// (rough example, the real generated code looks a little different)
+
+class SomeType {
+    // ...
+}
+extension SomeType: Identifiable {
+    var id: UInt16 {
+        return self.someFunction()
+    }
+}
+```
+
 #### #[swift_bridge(into_return_type)]
 
 Allows a swift-bridge definition of `fn foo() -> T` to work for any `fn foo() -> impl Into<T>`.
@@ -277,6 +309,7 @@ impl From<Uuid> for ffi::FFiUuid {
 	}
 }
 
+use self::some_other_crate::make_uuid;
 mod some_other_crate {
 	pub struct Uuid {
 	    uuid: [u8; 16]
@@ -285,6 +318,31 @@ mod some_other_crate {
     // Here we can return a Uuid, even though swift-bridge is expecting an FfiUuid.
     pub fn make_uuid() -> Uuid {
         Uuid::new_v4()
+    }
+}
+```
+
+#### #[swift_bridge(return_with = path::to::some_function)]
+
+Allows a swift-bridge definition of `fn foo() -> T` to work for a `fn foo() -> U` by
+passing `T` to a `fn(T) -> U`.
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        #[swift_bridge(return_with = some_module::convert_str_to_u32)]
+        fn get_str_value_return_with() -> u32;
+    }
+}
+
+fn get_str_value_return_with() -> &'static str {
+    "123"
+}
+
+mod some_module {
+    pub fn convert_str_to_u32(val: &str) -> u32 {
+        val.parse().unwrap()
     }
 }
 ```
