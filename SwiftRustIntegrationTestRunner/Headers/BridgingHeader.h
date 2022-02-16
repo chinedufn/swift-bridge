@@ -11,6 +11,4 @@
 #include "../Generated/SwiftBridgeCore.h"
 #include "../Generated/swift-integration-tests/swift-integration-tests.h"
 
-void async_rust_fn(void* callback_wrapper, void async_rust_fn_callback(void* callback_wrapper, int32_t val));
-
 #endif /* BridgingHeader_h */

@@ -23,5 +23,4 @@ HTTP request complete. Returning the value to Swift...
 Now we're in Swift again. IP address: 123.4.56.7
 ```
 
-
 [reqwest](https://github.com/seanmonstar/reqwest)
