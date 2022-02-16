@@ -550,23 +550,30 @@ fn gen_func_swift_calls_rust(
     };
 
     let func_definition = if function.sig.asyncness.is_some() {
-        let rust_fn_ret_ty = function
-            .return_ty_built_in(types)
-            .unwrap()
-            .to_swift_type(TypePosition::FnReturn(HostLang::Rust));
+        let func_ret_ty = function.return_ty_built_in(types).unwrap();
+        let rust_fn_ret_ty = func_ret_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust));
+
+        let (maybe_on_complete_sig_ret_val, on_complete_ret_val) = if func_ret_ty.is_null() {
+            ("".to_string(), "()")
+        } else {
+            (
+                format!(", rustFnRetVal: {}", rust_fn_ret_ty),
+                "rustFnRetVal",
+            )
+        };
 
         let fn_body = format!(
             r#"class CbWrapper {{
     var cb: (Result<{rust_fn_ret_ty}, Never>) -> ()
 
-    var init(cb: @escaping (Result<{rust_fn_ret_ty}, Never>) -> ()) {{
+    init(cb: @escaping (Result<{rust_fn_ret_ty}, Never>) -> ()) {{
         self.cb = cb
     }}
 }}
 
-func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: {rust_fn_ret_ty}) {{
+func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?{maybe_on_complete_sig_ret_val}) {{
     let wrapper = Unmanaged<CbWrapper>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
-    wrapper.cb(.success(rustFnRetVal))
+    wrapper.cb(.success({on_complete_ret_val}))
 }}
 
 return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust_fn_ret_ty}, Never>) in
@@ -580,6 +587,8 @@ return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust
     {call_rust}
 }})"#,
             rust_fn_ret_ty = rust_fn_ret_ty,
+            maybe_on_complete_sig_ret_val = maybe_on_complete_sig_ret_val,
+            on_complete_ret_val = on_complete_ret_val,
             call_rust = call_rust,
         );
 

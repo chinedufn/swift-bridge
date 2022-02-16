@@ -45,14 +45,14 @@ func some_function() async {
     class CbWrapper {
         var cb: (Result<(), Never>) -> ()
 
-        var init(cb: @escaping (Result<(), Never>) -> ()) {
+        init(cb: @escaping (Result<(), Never>) -> ()) {
             self.cb = cb
         }
     }
 
-    func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: ()) {
+    func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?) {
         let wrapper = Unmanaged<CbWrapper>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
-        wrapper.cb(.success(rustFnRetVal))
+        wrapper.cb(.success(()))
     }
 
     return await withCheckedContinuation({ (continuation: CheckedContinuation<(), Never>) in
@@ -132,7 +132,7 @@ func some_function() async -> UInt8 {
     class CbWrapper {
         var cb: (Result<UInt8, Never>) -> ()
 
-        var init(cb: @escaping (Result<UInt8, Never>) -> ()) {
+        init(cb: @escaping (Result<UInt8, Never>) -> ()) {
             self.cb = cb
         }
     }

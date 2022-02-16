@@ -155,6 +155,12 @@ impl ToTokens for PointerKind {
     }
 }
 
+impl BridgedType {
+    pub fn is_null(&self) -> bool {
+        matches!(self, BridgedType::StdLib(StdLibType::Null))
+    }
+}
+
 #[cfg(test)]
 impl BridgedType {
     fn unwrap_stdlib(&self) -> &StdLibType {
