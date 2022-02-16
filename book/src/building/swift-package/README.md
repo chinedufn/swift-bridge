@@ -1,6 +1,6 @@
 # Bundling rust code as a Swift package
 
-It is possible to bundle a rust library into a Swift package. This solution only works when targetting Apple platforms.
+It is possible to bundle a rust library into a Swift package. This solution only works when targetting Apple platforms, though.
 
 ## Project setup
 
@@ -206,6 +206,7 @@ public func hello_rust() -> String {
 
 We now have a Swift Package which we can include in other projects using the Swift Package Manager.
 
+### Example: MacOS executable
 Here is an example of an executable project located in `swift_rust_project/testPackage`.
 
 ```swift
@@ -237,3 +238,9 @@ print(hello_rust())
 ```
 Hello Rust!
 ```
+
+### Example: iOS app
+
+To add the package to an iOS app in XCode, go to the target's general panel, click the `+` button in the `Frameworks, Libraries, and Embedded Content` section. Then, click `Add Other` and choose `Add Package Dependency`.
+
+Import and use it in the same way as the executable.
