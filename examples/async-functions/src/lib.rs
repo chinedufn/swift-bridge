@@ -2,6 +2,7 @@ use serde::Deserialize;
 
 #[swift_bridge::bridge]
 mod ffi {
+
     extern "Rust" {
         type MyIpAddress;
         fn origin(&self) -> &str;

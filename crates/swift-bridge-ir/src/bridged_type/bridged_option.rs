@@ -307,6 +307,9 @@ impl BridgedOption {
                     TypePosition::SharedStructField => {
                         todo!("Option<String> fields in structs are not yet supported.")
                     }
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        unimplemented!()
+                    }
                 },
                 StdLibType::Vec(_) => {
                     todo!("Option<Vec<T> is not yet supported")

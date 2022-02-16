@@ -52,7 +52,7 @@ impl ParsedExternFn {
                     let (call_fn, call_callback) = if maybe_return_ty.is_some() {
                         (
                             quote! {
-                                let val = #call_fn.await;
+                                let val = #call_fn;
                             },
                             quote! {
                                 (callback)(callback_wrapper, val)
@@ -61,7 +61,7 @@ impl ParsedExternFn {
                     } else {
                         (
                             quote! {
-                                #call_fn.await;
+                                #call_fn;
                             },
                             quote! {
                                 (callback)(callback_wrapper)
@@ -114,9 +114,14 @@ impl ParsedExternFn {
 
         let call_args = self.to_call_rust_args(swift_bridge_path, types);
 
-        let call_fn = quote! {
+        let mut call_fn = quote! {
             #fn_name ( #call_args )
         };
+        if self.sig.asyncness.is_some() {
+            call_fn = quote! {
+                #call_fn.await
+            };
+        }
 
         let mut call_fn = if self.is_method() {
             self.call_method_tokens(&call_fn)

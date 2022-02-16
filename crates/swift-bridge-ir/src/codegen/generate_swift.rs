@@ -421,7 +421,9 @@ fn gen_func_swift_calls_rust(
         type_name_segment = type_name_segment,
         call_fn = call_fn
     );
-    let mut call_rust = if function.is_swift_initializer {
+    let mut call_rust = if function.sig.asyncness.is_some() {
+        call_rust
+    } else if function.is_swift_initializer {
         call_rust
     } else if let Some(built_in) = function.return_ty_built_in(types) {
         built_in.convert_ffi_value_to_swift_value(
@@ -554,11 +556,17 @@ fn gen_func_swift_calls_rust(
         let rust_fn_ret_ty = func_ret_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust));
 
         let (maybe_on_complete_sig_ret_val, on_complete_ret_val) = if func_ret_ty.is_null() {
-            ("".to_string(), "()")
+            ("".to_string(), "()".to_string())
         } else {
             (
-                format!(", rustFnRetVal: {}", rust_fn_ret_ty),
-                "rustFnRetVal",
+                format!(
+                    ", rustFnRetVal: {}",
+                    func_ret_ty.to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy)
+                ),
+                func_ret_ty.convert_ffi_value_to_swift_value(
+                    "rustFnRetVal",
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
+                ),
             )
         };
 

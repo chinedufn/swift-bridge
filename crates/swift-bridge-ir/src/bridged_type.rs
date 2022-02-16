@@ -68,6 +68,7 @@ pub(crate) enum TypePosition {
     FnArg(HostLang),
     FnReturn(HostLang),
     SharedStructField,
+    SwiftCallsRustAsyncOnCompleteReturnTy,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -665,6 +666,9 @@ impl BridgedType {
                             //
                             unimplemented!()
                         }
+                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                            unimplemented!()
+                        }
                     }
                 }
                 StdLibType::Null => "()".to_string(),
@@ -678,11 +682,17 @@ impl BridgedType {
                     }
                     TypePosition::FnReturn(_func_host_lang) => "RustStr".to_string(),
                     TypePosition::SharedStructField => "RustStr".to_string(),
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        unimplemented!()
+                    }
                 },
                 StdLibType::String => match type_pos {
                     TypePosition::FnArg(_func_host_lang) => "GenericIntoRustString".to_string(),
                     TypePosition::FnReturn(_func_host_lang) => "RustString".to_string(),
                     TypePosition::SharedStructField => "RustString".to_string(),
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        unimplemented!()
+                    }
                 },
                 StdLibType::Vec(ty) => {
                     format!("RustVec<{}>", ty.ty.to_swift_type(type_pos))
@@ -699,6 +709,9 @@ impl BridgedType {
                     TypePosition::SharedStructField => {
                         format!("Optional<{}>", opt.ty.to_swift_type(type_pos))
                     }
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        unimplemented!()
+                    }
                 },
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
@@ -712,6 +725,9 @@ impl BridgedType {
                         }
                     }
                     TypePosition::SharedStructField => shared_struct.swift_name_string(),
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        shared_struct.ffi_name_string()
+                    }
                 }
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
@@ -725,6 +741,9 @@ impl BridgedType {
                         }
                     }
                     TypePosition::SharedStructField => shared_enum.swift_name_string(),
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        unimplemented!()
+                    }
                 }
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
@@ -752,6 +771,9 @@ impl BridgedType {
                             //
                             unimplemented!()
                         }
+                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                            unimplemented!()
+                        }
                     }
                 } else {
                     match type_pos {
@@ -765,6 +787,9 @@ impl BridgedType {
                         }
                         TypePosition::SharedStructField => {
                             //
+                            unimplemented!()
+                        }
+                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                             unimplemented!()
                         }
                     }
@@ -1098,6 +1123,9 @@ impl BridgedType {
                             TypePosition::SharedStructField => {
                                 format!("UnsafeRawPointer({}!)", value)
                             }
+                            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                                unimplemented!()
+                            }
                         },
                         PointerKind::Mut => value.to_string(),
                     },
@@ -1192,6 +1220,9 @@ impl BridgedType {
                         TypePosition::SharedStructField => {
                             todo!("Pointers in shared struct fields are not yet supported")
                         }
+                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                            unimplemented!()
+                        }
                     },
                 },
                 StdLibType::Str => match type_pos {
@@ -1205,6 +1236,9 @@ impl BridgedType {
                     }
                     TypePosition::SharedStructField => {
                         todo!("&str in shared struct fields is not yet supported")
+                    }
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        unimplemented!()
                     }
                 },
                 StdLibType::String => {
@@ -1255,6 +1289,9 @@ impl BridgedType {
                             TypePosition::SharedStructField => {
                                 todo!("Opaque types in shared struct fields are not yet supported")
                             }
+                            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                                unimplemented!()
+                            }
                         }
                     }
                 } else {
@@ -1276,6 +1313,9 @@ impl BridgedType {
                         }
                         TypePosition::SharedStructField => {
                             todo!("Opaque types in shared struct fields are not yet supported")
+                        }
+                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                            unimplemented!()
                         }
                     }
                 }
