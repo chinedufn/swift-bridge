@@ -1,9 +1,9 @@
 # async-functions example
 
-In this example we create a function in Rust that uses [reqwest] in order to make an HTTP request
+In this example we create a Rust function in [src/lib.rs](src/lib.rs) that uses [reqwest][reqwest] in order to make an HTTP request
 to an API that returns your public IP address.
 
-We call that function from Swift and `await` the fetched data.
+We call that function from [main.swift](main.swift) and `await` the fetched data.
 
 ## To Run
 
@@ -23,4 +23,4 @@ HTTP request complete. Returning the value to Swift...
 Now we're in Swift again. IP address: 123.4.56.7
 ```
 
-[reqwest](https://github.com/seanmonstar/reqwest)
+[reqwest]: https://github.com/seanmonstar/reqwest
