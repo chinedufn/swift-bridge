@@ -9,6 +9,10 @@ mod std_bridge;
 pub use self::std_bridge::{option, string};
 
 #[doc(hidden)]
+#[cfg(feature = "async")]
+pub mod async_support;
+
+#[doc(hidden)]
 #[repr(C)]
 pub struct FfiSlice<T> {
     pub start: *const T,

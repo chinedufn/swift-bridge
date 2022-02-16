@@ -19,5 +19,4 @@ crate-type = ["staticlib"]
 swift-bridge-build = {path = "../swift-bridge-build"}
 
 [dependencies]
-lazy_static = "1.4.0"
-swift-bridge = {path = "../../"}
+swift-bridge = {path = "../../", features = ["async"]}

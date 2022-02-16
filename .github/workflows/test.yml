@@ -22,7 +22,13 @@ jobs:
       run: rustc --version && cargo --version
 
     - name: Run tests
-      run: RUSTFLAGS="-D warnings" cargo test --workspace
+      run: |
+        RUSTFLAGS="-D warnings" cargo test -p swift-bridge \
+          -p swift-bridge-build \
+          -p swift-bridge-cli \
+          -p swift-bridge-ir \
+          -p swift-bridge-macro \
+          -p swift-integration-tests
   
   integration-test:
     runs-on: macOS-11

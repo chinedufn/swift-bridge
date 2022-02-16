@@ -9,11 +9,23 @@ license = "Apache-2.0/MIT"
 
 build = "build.rs"
 
+[features]
+default = []
+
+# Enables bridging of async functions.
+async = ["tokio", "once_cell"]
+
 [build-dependencies]
 swift-bridge-build = {version = "0.1.27", path = "crates/swift-bridge-build"}
 
 [dependencies]
 swift-bridge-macro = {version = "0.1.27", path = "crates/swift-bridge-macro"}
+
+################################################################################
+# Optional features used for async function support.
+################################################################################
+tokio = {optional = true, version = "1", features = ["rt-multi-thread"]}
+once_cell = {optional = true, version = "1.9"}
 
 [workspace]
 members = [
@@ -23,6 +35,7 @@ members = [
   "crates/swift-bridge-macro",
   "crates/swift-integration-tests",
 
+  "examples/async-functions",
   "examples/codegen-visualizer",
   "examples/ios-rust-analyzer",
 ]

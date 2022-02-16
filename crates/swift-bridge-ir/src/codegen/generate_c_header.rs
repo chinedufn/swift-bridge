@@ -243,12 +243,27 @@ fn declare_func(
         }
     }
 
-    let declaration = format!(
-        "{ret} {name}({params});\n",
-        ret = ret,
-        name = name,
-        params = params
-    );
+    let declaration = if func.sig.asyncness.is_some() {
+        let maybe_ret = BridgedType::new_with_return_type(&func.sig.output, types).unwrap();
+        let maybe_ret = if maybe_ret == BridgedType::StdLib(StdLibType::Null) {
+            "".to_string()
+        } else {
+            format!(", {} ret", maybe_ret.to_c())
+        };
+
+        format!(
+            "void {name}(void* callback_wrapper, void {name}$async(void* callback_wrapper{maybe_ret}));\n",
+            name = name,
+            maybe_ret = maybe_ret
+        )
+    } else {
+        format!(
+            "{ret} {name}({params});\n",
+            ret = ret,
+            name = name,
+            params = params
+        )
+    };
 
     declaration
 }

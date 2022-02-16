@@ -36,6 +36,7 @@
 		22BC10F82799A3A000A0D046 /* SharedStructAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BC10F72799A3A000A0D046 /* SharedStructAttributes.swift */; };
 		22BCAAB927A2607700686A21 /* FunctionAttributeIdentifiableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */; };
 		22C0AD51278ECA9E00A96469 /* SharedStructAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */; };
+		22D092A327B7E865009A4C2B /* AsyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22D092A227B7E865009A4C2B /* AsyncTests.swift */; };
 		22FD1C542753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */; };
 		22FD1C562753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */; };
 /* End PBXBuildFile section */
@@ -86,6 +87,7 @@
 		22BC10F72799A3A000A0D046 /* SharedStructAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStructAttributes.swift; sourceTree = "<group>"; };
 		22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FunctionAttributeIdentifiableTests.swift; sourceTree = "<group>"; };
 		22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStructAttributeTests.swift; sourceTree = "<group>"; };
+		22D092A227B7E865009A4C2B /* AsyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncTests.swift; sourceTree = "<group>"; };
 		22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustType.swift; sourceTree = "<group>"; };
 		22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustTypeTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -177,6 +179,7 @@
 				221E16B52786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift */,
 				22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */,
 				22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */,
+				22D092A227B7E865009A4C2B /* AsyncTests.swift */,
 			);
 			path = SwiftRustIntegrationTestRunnerTests;
 			sourceTree = "<group>";
@@ -365,6 +368,7 @@
 				228FE61227428A8D00805D9E /* OpaqueSwiftStructTests.swift in Sources */,
 				22FD1C562753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift in Sources */,
 				228FE61027416C0300805D9E /* OpaqueRustStructTests.swift in Sources */,
+				22D092A327B7E865009A4C2B /* AsyncTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -512,7 +516,7 @@
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/debug";
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 11.5;
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftRustIntegrationTestRunner;
@@ -542,7 +546,7 @@
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../target/release";
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 11.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftRustIntegrationTestRunner;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -567,7 +571,7 @@
 					"@loader_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "";
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 11.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftRustIntegrationTestRunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -593,7 +597,7 @@
 					"@loader_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "";
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 11.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xcode.SwiftRustIntegrationTestRunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -33,11 +33,13 @@ SomeType
         )
     }
 
-    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::DoesNotContainAfterTrim(
-        r#"
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::DoesNotContainAfterTrim(
+            r#"
 SomeType
     "#,
-    );
+        )
+    }
 
     #[test]
     fn extern_rust_already_declared_type_attribute() {
@@ -45,7 +47,7 @@ SomeType
             bridge_module: bridge_module().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
-            expected_c_header: EXPECTED_C_HEADER,
+            expected_c_header: expected_c_header(),
         }
         .test();
     }
