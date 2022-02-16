@@ -1,1 +1,0 @@
-/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/rust/target/x86_64-apple-darwin/debug/librust.a: /Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/rust/build.rs /Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/rust/src/lib.rs

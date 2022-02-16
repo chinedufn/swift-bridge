@@ -1,3 +1,0 @@
-cargo:rerun-if-env-changed=SWIFT_BRIDGE_OUT_DIR
-cargo:rerun-if-changed=src/std_bridge/string.swift
-cargo:rerun-if-changed=src/std_bridge/rust_vec.swift
