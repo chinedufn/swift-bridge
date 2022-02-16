@@ -1,0 +1,187 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+    "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/librust.a" : {
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/package/rust.xcframework/macos-x86_64/librust.a"
+        }
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/librust.a"
+        }
+      ]
+    }
+  },
+  "swiftCommands" : {
+    "C.package-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "importPath" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/package/Sources/package/SwiftBridgeCore.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/package/Sources/package/rust.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/librust.a"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "package",
+      "moduleOutputPath" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/package.swiftmodule",
+      "objects" : [
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/package.build/SwiftBridgeCore.swift.o",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/package.build/rust.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "x86_64-apple-macosx10.10",
+        "-swift-version",
+        "5",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/index/store",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-Onone",
+        "-enable-testing",
+        "-g",
+        "-j4",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-Xcc",
+        "-I",
+        "-Xcc",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/package/rust.xcframework/macos-x86_64/Headers",
+        "-module-cache-path",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-F",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/package.build/package-Swift.h",
+        "-color-diagnostics"
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/package.build/SwiftBridgeCore.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/package.build/rust.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/package.swiftmodule"
+        }
+      ],
+      "sources" : [
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/package/Sources/package/SwiftBridgeCore.swift",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/package/Sources/package/rust.swift"
+      ],
+      "tempsPath" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/package.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.testPackage-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "importPath" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/Sources/testPackage/main.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/package.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/librust.a"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "testPackage",
+      "moduleOutputPath" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/testPackage.swiftmodule",
+      "objects" : [
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/testPackage.build/main.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "x86_64-apple-macosx10.10",
+        "-swift-version",
+        "5",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/index/store",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-Onone",
+        "-enable-testing",
+        "-g",
+        "-j4",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-Xcc",
+        "-I",
+        "-Xcc",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/package/rust.xcframework/macos-x86_64/Headers",
+        "-module-cache-path",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "testPackage_main",
+        "-F",
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug",
+        "-color-diagnostics"
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/testPackage.build/main.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/testPackage.swiftmodule"
+        }
+      ],
+      "sources" : [
+        "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/Sources/testPackage/main.swift"
+      ],
+      "tempsPath" : "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/.build/x86_64-apple-macosx/debug/testPackage.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "testDiscoveryCommands" : {
+
+  }
+}

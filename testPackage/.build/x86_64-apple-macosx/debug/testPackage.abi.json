@@ -1,0 +1,29 @@
+{
+  "kind": "Root",
+  "name": "TopLevel",
+  "printedName": "TopLevel",
+  "children": [
+    {
+      "kind": "Import",
+      "name": "SwiftOnoneSupport",
+      "printedName": "SwiftOnoneSupport",
+      "declKind": "Import",
+      "moduleName": "testPackage"
+    },
+    {
+      "kind": "Import",
+      "name": "_Concurrency",
+      "printedName": "_Concurrency",
+      "declKind": "Import",
+      "moduleName": "testPackage"
+    },
+    {
+      "kind": "Import",
+      "name": "package",
+      "printedName": "package",
+      "declKind": "Import",
+      "moduleName": "testPackage"
+    }
+  ],
+  "json_format_version": 6
+}

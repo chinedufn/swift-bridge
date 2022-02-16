@@ -1,0 +1,7 @@
+version: "Apple Swift version 5.5.2 (swiftlang-1300.0.47.5 clang-1300.0.29.30)"
+options: "1bc3453aaeae87dcc9150b27a95c448e91cbcd34aea323b6351d51a1ba6d6230"
+build_start_time: [1644668158, 271532058]
+build_end_time: [1644668171, 536090850]
+inputs:
+  "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/package/Sources/package/SwiftBridgeCore.swift": [1644668100, 20827054]
+  "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/package/Sources/package/rust.swift": [1644668100, 21462440]

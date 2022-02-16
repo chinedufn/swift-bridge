@@ -1,0 +1,6 @@
+version: "Apple Swift version 5.5.2 (swiftlang-1300.0.47.5 clang-1300.0.29.30)"
+options: "fb01fb1ac0ae9003fb129985766fd90d554eb29a17e8af55782e686e81332e95"
+build_start_time: [1644668171, 695287942]
+build_end_time: [1644668172, 157407045]
+inputs:
+  "/Users/jonaseveraert/Documents/projects/swift-bridge-framework/swift-bridge/testPackage/Sources/testPackage/main.swift": [1644668100, 472778797]
