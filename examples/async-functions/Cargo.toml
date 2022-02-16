@@ -1,0 +1,18 @@
+[package]
+name = "async-functions"
+version = "0.1.0"
+edition = "2021"
+publish = []
+
+build = "build.rs"
+
+[lib]
+crate-type = ["staticlib"]
+
+[build-dependencies]
+swift-bridge-build = {path = "../../crates/swift-bridge-build"}
+
+[dependencies]
+reqwest = {version = "0.11", features = ["json"]}
+serde = {version = "1", features = ["derive"]}
+swift-bridge = {path = "../../", features = ["async"]}

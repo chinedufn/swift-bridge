@@ -35,6 +35,7 @@ members = [
   "crates/swift-bridge-macro",
   "crates/swift-integration-tests",
 
+  "examples/async-functions",
   "examples/codegen-visualizer",
   "examples/ios-rust-analyzer",
 ]
