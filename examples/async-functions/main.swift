@@ -6,9 +6,10 @@ import Foundation
 let group = DispatchGroup()
 group.enter()
 
+print("We're in Swift about to call our async Rust function.")
 Task {
     let ipAddress = await get_my_ip_from_rust()
-    print("IP address: \(ipAddress.origin().toString()")
+    print("Now we're in Swift again. IP address: \(ipAddress.origin.toString())")
 
     group.leave()
 }
