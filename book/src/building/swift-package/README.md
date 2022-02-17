@@ -1,11 +1,15 @@
 # Bundling rust code as a Swift package
 
-It is possible to bundle a rust library into a Swift package. This solution only works when targetting Apple platforms, though.
+In this chapter we'll walk through bundling your Rust library into a Swift Package.
+
+Note that Swift Packages that contain native libraries only work on Apple hardware. 
+
+You should avoid bundling your Rust code into a Swift Package if you plan to target Linux, Windows or any other non-Apple target.
 
 ## Project setup
 
 ```bash
-mkdir swift_rust_project && cd $_
+mkdir rust_swift_package && cd rust_swift_package
 ```
 
 ### Rust project setup
@@ -16,7 +20,7 @@ cd my_rust_lib
 ```
 
 ```toml
-# Cargo.toml
+# my_rust_lib/Cargo.toml
 
 [lib]
 crate-type = ["staticlib"]
@@ -31,7 +35,7 @@ swift-bridge = "0.1"
 In `lib.rs`, add the following:
 
 ```rust
-// src/lib.rs
+// my_rust_lib/src/lib.rs
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
@@ -46,7 +50,7 @@ fn hello_rust() -> String {
 
 Add a new `build.rs` file:
 ```rust
-// build.rs
+// my_rust_lib/build.rs
 
 use std::path::PathBuf;
 
@@ -109,11 +113,11 @@ Now it is time to build the xcframework:
 
 ```bash
 xcodebuild -create-xcframework \
-    -library simulator/librust.a \
+    -library simulator/libmy_rust_lib.a \
     -headers include \
-    -library ios/librust.a \
+    -library ios/libmy_rust_lib.a \
     -headers include \
-    -library macos/librust.a \
+    -library macos/libmy_rust_lib.a \
     -headers include \
     -output MyRustLib.xcframework
 ```
@@ -136,7 +140,7 @@ MySwiftPackage
 
 Add the framework as a binary target
 ```swift
-// Package.swift
+// MySwiftPackage/Package.swift
 
 let package = Package(
     name: "MySwiftPackage",
@@ -160,46 +164,18 @@ let package = Package(
 )
 ```
 
-We need to make a few adjustments to the `.swift` files:
+We will need to import our rust library in the `.swift` files:
 
 ```swift
-// Sources/MySwiftPackage/SwiftBridgeCore.swift
+// MySwiftPackage/Sources/MySwiftPackage/SwiftBridgeCore.swift
 import MyRustLib
 
 // ...
 ```
 
 ```swift
-// Sources/MySwiftPackage/my_rust_lib.swift
+// MySwiftPackage/Sources/MySwiftPackage/my_rust_lib.swift
 import MyRustLib
-```
-
-We can choose to either make the functions and classes in `SwiftBridgeCore.swift` public, or to convert the return types of our functions to types recognized by swift, so in this case, do either of the following: 
-
-```swift
-// Sources/MySwiftPackage/SwiftBridgeCore.swift
-// ...
-// Make `toString()` public
-extension RustString {
-    public func toString() -> String {
-        let str = self.as_str()
-        let string = str.toString()
-
-        return string
-    }
-}
-// ...
-```
-
-or 
-
-```swift
-// Sources/MySwiftPackage/my_rust_lib.swift
-// ...
-// Change return type to `String` and call `.toString`
-public func hello_rust() -> String {
-    RustString(ptr: __swift_bridge__$hello_rust()).toString()
-}
 ```
 
 ## Using the Swift Package
@@ -207,10 +183,10 @@ public func hello_rust() -> String {
 We now have a Swift Package which we can include in other projects using the Swift Package Manager.
 
 ### Example: MacOS executable
-Here is an example of an executable project located in `swift_rust_project/testPackage`.
+Here is an example of an executable project located in `rust_swift_project/testPackage`.
 
 ```swift
-// Package.swift
+// testPackage/Package.swift
 let package = Package(
     name: "testPackage",
     dependencies: [
@@ -227,11 +203,10 @@ let package = Package(
 ```
 
 ```swift
+testPackage/Sources/testPackage/main.swift
 import MySwiftPackage
 
 print(hello_rust().toString())
-// Or, if you converted the return type of the function to a `String`:
-print(hello_rust())
 ```
 
 **Output**
