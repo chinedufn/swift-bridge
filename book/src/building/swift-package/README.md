@@ -70,6 +70,7 @@ fn main() {
 Build the project for the desired platforms:
 
 ```bash
+export SWIFT_BRIDGE_OUT_DIR="$(pwd)/generated"
 cargo build --target x86_64-apple-darwin
 cargo build --target aarch64-apple-ios
 cargo build --target x86_64-apple-ios
@@ -86,9 +87,18 @@ mkdir MyFramework && cd $_
 Copy the generated libraries and the headers to this folder:
 ```bash
 mkdir include
-
+touch include/module.modulemap
+cp ../my-rust-lib/generated/SwiftBridgeCore.h ./include
+cp ../my-rust-lib/generated/my_rust_lib/my_rust_lib.h ./includ
+mkdir ios
+cp ../my-rust-lib/target/aarch64-apple-ios/debug/libmy_rust_lib.a ./ios
+mkdir macos
+cp ../my-rust-lib/target/x86_64-apple-darwin/debug/libmy_rust_lib.a ./macos
+mkdir simulator
+cp ../my-rust-lib/target/x86_64-apple-ios/debug/libmy_rust_lib.a ./simulator
 ```
 
+This should result in the follwing folder structure:
 ```
 MyFramework
 ├── include
@@ -103,7 +113,7 @@ MyFramework
     └── libmy_rust_lib.a
 ```
 
-Add `include/module.modulemap`:
+Edit `include/module.modulemap`:
 
 ```modulemap
 module MyRustLib {
@@ -130,8 +140,22 @@ xcodebuild -create-xcframework \
 
 ## Creating the Swift package
 
-Go back to the root of the project and create a new Swift package, copy the xcframework and generated swift files to it:
+Go back to the root of the project (`cd ..`) and create a new Swift package:
 
+```bash
+mkdir MySwiftPackage && cd MySwiftPackage
+```
+
+Now either do `mkdir -r Sources/MySwiftPackage` and `touch Package.swift`, or use `swift package init --type library`.
+
+Copy the xcframework and generated swift files to this folder:
+```bash
+cp -r ../MyFramework/MyRustLib.xcframework ./
+cp ../my-rust-lib/generated/SwiftBridgeCore.swift Sources/MySwiftPackage
+cp ../my-rust-lib/generated/my_rust_lib/my_rust_lib.swift Sources/MySwiftPackage
+```
+
+The folder structure should be:
 ```
 MySwiftPackage
 ├── Sources
@@ -142,16 +166,18 @@ MySwiftPackage
 └── Package.swift
 ```
 
-Add the framework as a binary target
+Add the framework as a binary target to `Package.swift`:
 ```swift
 // MySwiftPackage/Package.swift
 
+// swift-tools-version:5.5.0
+import PackageDescription
 let package = Package(
     name: "MySwiftPackage",
     products: [
         .library(
-            name: "MySwiftPackge",
-            targets: ["MySwiftPackge"]),
+            name: "MySwiftPackage",
+            targets: ["MySwiftPackage"]),
     ],
     dependencies: [
 
@@ -184,16 +210,19 @@ Here is an example of an executable project located in `rust-swift-project/testP
 
 ```swift
 // testPackage/Package.swift
+
+// swift-tools-version:5.5.0
+import PackageDescription
 let package = Package(
     name: "testPackage",
     dependencies: [
-        .package(path: "../package")
+        .package(path: "../MySwiftPackage")
     ],
     targets: [
         .executableTarget(
             name: "testPackage",
             dependencies: [
-                .product(name: "package", package: "package")
+                .product(name: "MySwiftPackage", package: "MySwiftPackage")
             ])
     ]
 )
@@ -206,8 +235,8 @@ import MySwiftPackage
 print(hello_rust().toString())
 ```
 
-**Output**
 ```
+$ swift run
 Hello Rust!
 ```
 
