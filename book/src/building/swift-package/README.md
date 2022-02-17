@@ -203,7 +203,7 @@ let package = Package(
 ```
 
 ```swift
-testPackage/Sources/testPackage/main.swift
+// testPackage/Sources/testPackage/main.swift
 import MySwiftPackage
 
 print(hello_rust().toString())
