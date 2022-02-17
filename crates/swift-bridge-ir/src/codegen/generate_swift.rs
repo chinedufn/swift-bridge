@@ -1103,7 +1103,7 @@ func __swift_bridge__Foo_bar (_ arg: UInt8) {
         let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
-func foo() -> RustString {
+public func foo() -> RustString {
     RustString(ptr: __swift_bridge__$foo())
 }
 "#;
