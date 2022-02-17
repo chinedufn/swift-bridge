@@ -194,6 +194,7 @@ let package = Package(
 )
 ```
 
+<!--TODO: better way of dealing with this instead of editing the generated files?-->
 We will need to import our rust library in `my_rust_lib.swift` and `SwiftBridgeCore.swift`:
 
 ```swift
