@@ -769,7 +769,7 @@ public func foo(_ bar: UInt8) {
         let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
-func foo() -> UInt32 {
+public func foo() -> UInt32 {
     __swift_bridge__$foo()
 } 
 "#;
