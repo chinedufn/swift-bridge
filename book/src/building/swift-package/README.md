@@ -9,18 +9,18 @@ You should avoid bundling your Rust code into a Swift Package if you plan to tar
 ## Project setup
 
 ```bash
-mkdir rust_swift_package && cd rust_swift_package
+mkdir rust-swift-package && cd rust-swift-package
 ```
 
 ### Rust project setup
 
 ```bash
-cargo new my_rust_lib --lib
+cargo new my-rust-lib --lib
 cd my_rust_lib
 ```
 
 ```toml
-# my_rust_lib/Cargo.toml
+# my-rust-lib/Cargo.toml
 
 [lib]
 crate-type = ["staticlib"]
@@ -35,7 +35,7 @@ swift-bridge = "0.1"
 In `lib.rs`, add the following:
 
 ```rust
-// my_rust_lib/src/lib.rs
+// my-rust-lib/src/lib.rs
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
@@ -50,7 +50,7 @@ fn hello_rust() -> String {
 
 Add a new `build.rs` file:
 ```rust
-// my_rust_lib/build.rs
+// my-rust-lib/build.rs
 
 use std::path::PathBuf;
 
@@ -176,7 +176,7 @@ import MyRustLib
 We now have a Swift Package which we can include in other projects using the Swift Package Manager.
 
 ### Example: MacOS executable
-Here is an example of an executable project located in `rust_swift_project/testPackage`.
+Here is an example of an executable project located in `rust-swift-project/testPackage`.
 
 ```swift
 // testPackage/Package.swift
