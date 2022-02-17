@@ -1019,7 +1019,7 @@ public class FooRef {
     }
 }
 extension FooRef {
-    func bar(_ other: FooRef) {
+    public func bar(_ other: FooRef) {
         __swift_bridge__$Foo$bar(ptr, other.ptr)
     }
 }
