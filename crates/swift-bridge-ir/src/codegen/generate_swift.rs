@@ -401,7 +401,7 @@ fn gen_func_swift_calls_rust(
     let swift_class_func_name = if function.is_swift_initializer {
         "convenience init".to_string()
     } else {
-        format!("func {}", fn_name.as_str())
+        format!("public func {}", fn_name.as_str())
     };
 
     let indentation = if function.associated_type.is_some() {
