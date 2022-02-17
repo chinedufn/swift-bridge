@@ -746,7 +746,7 @@ func __swift_bridge__MyType_foo (_ this: UnsafeMutableRawPointer) -> __private__
         let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
-func foo(_ bar: UInt8) {
+public func foo(_ bar: UInt8) {
     __swift_bridge__$foo(bar)
 } 
 "#;
