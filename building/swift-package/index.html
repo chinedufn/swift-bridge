@@ -1,0 +1,394 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Swift Package - The swift-bridge Book</title>
+                
+
+        <!-- Custom HTML head -->
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+                <link rel="icon" href="../../favicon.svg">
+                        <link rel="shortcut icon" href="../../favicon.png">
+                <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+                <link rel="stylesheet" href="../../css/print.css" media="print">
+        
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+                <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+            </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">Introduction</a></li><li class="spacer"></li><li class="chapter-item expanded "><a href="../../building/index.html"><strong aria-hidden="true">1.</strong> Building</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../building/xcode-and-cargo/index.html"><strong aria-hidden="true">1.1.</strong> Xcode + Cargo</a></li><li class="chapter-item expanded "><a href="../../building/swiftc-and-cargo/index.html"><strong aria-hidden="true">1.2.</strong> swiftc + Cargo</a></li><li class="chapter-item expanded "><a href="../../building/swift-package/index.html" class="active"><strong aria-hidden="true">1.3.</strong> Swift Package</a></li></ol></li><li class="chapter-item expanded "><a href="../../bridge-module/index.html"><strong aria-hidden="true">2.</strong> The Bridge Module</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../bridge-module/extern-rust/index.html"><strong aria-hidden="true">2.1.</strong> extern &quot;Rust&quot;</a></li><li class="chapter-item expanded "><a href="../../bridge-module/extern-swift/index.html"><strong aria-hidden="true">2.2.</strong> extern &quot;Swift&quot;</a></li><li class="chapter-item expanded "><a href="../../bridge-module/shared-structs/index.html"><strong aria-hidden="true">2.3.</strong> Shared Structs</a></li><li class="chapter-item expanded "><a href="../../bridge-module/shared-enums/index.html"><strong aria-hidden="true">2.4.</strong> Shared Enums</a></li><li class="chapter-item expanded "><a href="../../bridge-module/conditional-compilation/index.html"><strong aria-hidden="true">2.5.</strong> Conditional Compilation</a></li></ol></li><li class="chapter-item expanded "><a href="../../built-in/index.html"><strong aria-hidden="true">3.</strong> Built In Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../built-in/option/index.html"><strong aria-hidden="true">3.1.</strong> Option &lt;---&gt; Optional</a></li><li class="chapter-item expanded "><a href="../../built-in/vec/index.html"><strong aria-hidden="true">3.2.</strong> Vec &lt;---&gt; RustVec</a></li><li class="chapter-item expanded "><a href="../../built-in/string/index.html"><strong aria-hidden="true">3.3.</strong> String &lt;---&gt; String</a></li><li class="chapter-item expanded "><a href="../../built-in/str/index.html"><strong aria-hidden="true">3.4.</strong> &amp;str &lt;---&gt; RustStr</a></li></ol></li><li class="chapter-item expanded "><a href="../../internal-design/index.html"><strong aria-hidden="true">4.</strong> Internal Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../internal-design/codegen/index.html"><strong aria-hidden="true">4.1.</strong> Code Generation</a></li></ol></li></ol>            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                                                <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                                            </div>
+
+                    <h1 class="menu-title">The swift-bridge Book</h1>
+
+                    <div class="right-buttons">
+                                                <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                                                                        <a href="https://github.com/chinedufn/swift-bridge" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                                                
+                    </div>
+                </div>
+
+                                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="bundling-rust-code-as-a-swift-package"><a class="header" href="#bundling-rust-code-as-a-swift-package">Bundling Rust code as a Swift package</a></h1>
+<p>In this chapter we'll walk through bundling your Rust library into a Swift Package.</p>
+<p>Note that Swift Packages that contain native libraries only work on Apple hardware. </p>
+<p>You should avoid bundling your Rust code into a Swift Package if you plan to target Linux, Windows or any other non-Apple target.</p>
+<h2 id="project-setup"><a class="header" href="#project-setup">Project setup</a></h2>
+<pre><code class="language-bash">mkdir rust-swift-package &amp;&amp; cd rust-swift-package
+</code></pre>
+<h3 id="rust-project-setup"><a class="header" href="#rust-project-setup">Rust project setup</a></h3>
+<pre><code class="language-bash">cargo new my-rust-lib --lib
+cd my_rust_lib
+</code></pre>
+<pre><code class="language-toml"># my-rust-lib/Cargo.toml
+
+[lib]
+crate-type = [&quot;staticlib&quot;]
+
+[build-dependencies]
+swift-bridge-build = &quot;0.1&quot;
+
+[dependencies]
+swift-bridge = &quot;0.1&quot;
+</code></pre>
+<p>In <code>src/lib.rs</code>, add the following:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// my-rust-lib/src/lib.rs
+#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        fn hello_rust() -&gt; String;
+    }
+}
+
+fn hello_rust() -&gt; String {
+    String::from(&quot;Hello Rust!&quot;)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Add a new <code>build.rs</code> file (<code>touch build.rs</code>):</p>
+<pre><pre class="playground"><code class="language-rust">// my-rust-lib/build.rs
+
+use std::path::PathBuf;
+
+fn main() {
+    let out_dir = PathBuf::from(&quot;./generated&quot;);
+
+    let bridges = vec![&quot;src/lib.rs&quot;];
+    for path in &amp;bridges {
+        println!(&quot;cargo:rerun-if-changed={}&quot;, path);
+    }
+
+    swift_bridge_build::parse_bridges(bridges)
+        .write_all_concatenated(out_dir, env!(&quot;CARGO_PKG_NAME&quot;));
+}
+</code></pre></pre>
+<p>Build the project for the desired platforms:</p>
+<pre><code class="language-bash">export SWIFT_BRIDGE_OUT_DIR=&quot;$(pwd)/generated&quot;
+cargo build --target x86_64-apple-darwin
+cargo build --target aarch64-apple-ios
+cargo build --target x86_64-apple-ios
+</code></pre>
+<h2 id="creating-the-xcframework"><a class="header" href="#creating-the-xcframework">Creating the XCFramework</a></h2>
+<p>Go back to the root of the project and make a new directory <code>cd ..</code>.</p>
+<pre><code class="language-bash">mkdir MyFramework &amp;&amp; cd $_
+</code></pre>
+<p>Copy the generated libraries and the headers to this folder:</p>
+<pre><code class="language-bash">mkdir include
+touch include/module.modulemap
+cp ../my-rust-lib/generated/SwiftBridgeCore.h ./include
+cp ../my-rust-lib/generated/my_rust_lib/my_rust_lib.h ./includ
+mkdir ios
+cp ../my-rust-lib/target/aarch64-apple-ios/debug/libmy_rust_lib.a ./ios
+mkdir macos
+cp ../my-rust-lib/target/x86_64-apple-darwin/debug/libmy_rust_lib.a ./macos
+mkdir simulator
+cp ../my-rust-lib/target/x86_64-apple-ios/debug/libmy_rust_lib.a ./simulator
+</code></pre>
+<p>This should result in the follwing folder structure:</p>
+<pre><code>MyFramework
+├── include
+│   ├── SwiftBridgeCore.h
+│   ├── module.modulemap
+│   └── my_rust_lib.h
+├── ios
+│   └── libmy_rust_lib.a
+├── macos
+│   └── libmy_rust_lib.a
+└── simulator
+    └── libmy_rust_lib.a
+</code></pre>
+<p>Edit <code>include/module.modulemap</code>:</p>
+<pre><code class="language-modulemap">module MyRustLib {
+    header &quot;my_rust_lib.h&quot;
+    header &quot;SwiftBridgeCore.h&quot;
+    export *
+}
+</code></pre>
+<p>Now it is time to build the xcframework:</p>
+<pre><code class="language-bash">xcodebuild -create-xcframework \
+    -library simulator/libmy_rust_lib.a \
+    -headers include \
+    -library ios/libmy_rust_lib.a \
+    -headers include \
+    -library macos/libmy_rust_lib.a \
+    -headers include \
+    -output MyRustLib.xcframework
+</code></pre>
+<p><em>The order of the <code>library</code> tags is important, but we don't currently know why</em></p>
+<h2 id="creating-the-swift-package"><a class="header" href="#creating-the-swift-package">Creating the Swift package</a></h2>
+<p>Go back to the root of the project (<code>cd ..</code>) and create a new Swift package:</p>
+<pre><code class="language-bash">mkdir MySwiftPackage &amp;&amp; cd MySwiftPackage
+</code></pre>
+<p>Now either do <code>mkdir -r Sources/MySwiftPackage</code> and <code>touch Package.swift</code>, or use <code>swift package init --type library</code>.</p>
+<p>Copy the xcframework and generated swift files to this folder:</p>
+<pre><code class="language-bash">cp -r ../MyFramework/MyRustLib.xcframework ./
+cp ../my-rust-lib/generated/SwiftBridgeCore.swift Sources/MySwiftPackage
+cp ../my-rust-lib/generated/my_rust_lib/my_rust_lib.swift Sources/MySwiftPackage
+</code></pre>
+<p>The folder structure should be:</p>
+<pre><code>MySwiftPackage
+├── Sources
+│   └── MySwiftPackage
+│       └── SwiftBridgeCore.swift
+│       └── my_rust_lib.swift
+├── MyRustLib.b.xcframework
+└── Package.swift
+</code></pre>
+<p>Add the framework as a binary target to <code>Package.swift</code>:</p>
+<pre><code class="language-swift">// MySwiftPackage/Package.swift
+
+// swift-tools-version:5.5.0
+import PackageDescription
+let package = Package(
+    name: &quot;MySwiftPackage&quot;,
+    products: [
+        .library(
+            name: &quot;MySwiftPackage&quot;,
+            targets: [&quot;MySwiftPackage&quot;]),
+    ],
+    dependencies: [
+
+    ],
+    targets: [
+        .binaryTarget(
+            name: &quot;MyRustLib&quot;,
+            path: &quot;MyRustLib.xcframework&quot;
+        ),
+        .target(
+            name: &quot;MySwiftPackge&quot;,
+            dependencies: [&quot;MyRustLib&quot;]),
+    ]
+)
+</code></pre>
+<!--TODO: better way of dealing with this instead of editing the generated files-->
+<p>We will need to import our rust library in <code>my_rust_lib.swift</code> and <code>SwiftBridgeCore.swift</code>:</p>
+<pre><code class="language-swift">// MySwiftPackage/Sources/MySwiftPackage/SwiftBridgeCore.swift
+import MyRustLib
+</code></pre>
+<pre><code class="language-swift">// MySwiftPackage/Sources/MySwiftPackage/my_rust_lib.swift
+import MyRustLib
+</code></pre>
+<h2 id="using-the-swift-package"><a class="header" href="#using-the-swift-package">Using the Swift Package</a></h2>
+<p>We now have a Swift Package which we can include in other projects using the Swift Package Manager.</p>
+<h3 id="example-macos-executable"><a class="header" href="#example-macos-executable">Example: MacOS executable</a></h3>
+<p>Here is an example of an executable project located in <code>rust-swift-project/testPackage</code>.</p>
+<pre><code class="language-swift">// testPackage/Package.swift
+
+// swift-tools-version:5.5.0
+import PackageDescription
+let package = Package(
+    name: &quot;testPackage&quot;,
+    dependencies: [
+        .package(path: &quot;../MySwiftPackage&quot;)
+    ],
+    targets: [
+        .executableTarget(
+            name: &quot;testPackage&quot;,
+            dependencies: [
+                .product(name: &quot;MySwiftPackage&quot;, package: &quot;MySwiftPackage&quot;)
+            ])
+    ]
+)
+</code></pre>
+<pre><code class="language-swift">// testPackage/Sources/testPackage/main.swift
+import MySwiftPackage
+
+print(hello_rust().toString())
+</code></pre>
+<pre><code>$ swift run
+Hello Rust!
+</code></pre>
+<h3 id="example-ios-app"><a class="header" href="#example-ios-app">Example: iOS app</a></h3>
+<p>To add the package to an iOS app in XCode, go to the target's general panel, click the <code>+</code> button in the <code>Frameworks, Libraries, and Embedded Content</code> section. Then, click <code>Add Other</code> and choose <code>Add Package Dependency</code>.</p>
+<p>Import and use it in the same way as the executable.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                                                    <a rel="prev" href="../../building/swiftc-and-cargo/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+                                                    <a rel="next" href="../../bridge-module/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                                    <a rel="prev" href="../../building/swiftc-and-cargo/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+                                    <a rel="next" href="../../bridge-module/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                            </nav>
+
+        </div>
+
+        
+        
+        
+                <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+        
+                <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+        
+    </body>
+</html>
