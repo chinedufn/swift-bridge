@@ -44,6 +44,24 @@ impl SharedStruct {
             #name
         }
     }
+
+    /// __swift_bridge__Option_SomeStruct
+    pub fn ffi_option_name_tokens(&self) -> TokenStream {
+        let name = Ident::new(
+            &format!("{}Option_{}", SWIFT_BRIDGE_PREFIX, self.name),
+            self.name.span(),
+        );
+        quote! { #name }
+    }
+
+    /// __swift_bridge__$Option$SomeStruct
+    pub fn ffi_option_name_string(&self) -> String {
+        format!(
+            "{}$Option${}",
+            SWIFT_BRIDGE_PREFIX,
+            self.swift_name_string()
+        )
+    }
 }
 
 impl SharedStruct {

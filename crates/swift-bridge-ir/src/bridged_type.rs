@@ -553,9 +553,10 @@ impl BridgedType {
                         }
                     },
                     BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(
-                        _shared_struct,
+                        shared_struct,
                     ))) => {
-                        todo!("Option<SharedStruct> is not yet supported")
+                        let name = shared_struct.ffi_option_name_tokens();
+                        quote! { #name }
                     }
                     BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(
                         shared_enum,
@@ -1422,8 +1423,12 @@ impl BridgedType {
                     todo!("Support nested Option<Option<T>>")
                 }
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
-                todo!("Support Option<SharedStruct>")
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                let option_name = shared_struct.ffi_option_name_tokens();
+                UnusedOptionNoneValue {
+                    rust: quote! { #option_name { is_some: false, val: std::mem::MaybeUninit::uninit() } },
+                    swift: "TODO..Support Swift Option<Enum>::None value".into(),
+                }
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 let option_name = shared_enum.ffi_option_name_tokens();

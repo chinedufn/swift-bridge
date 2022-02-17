@@ -74,7 +74,9 @@ extension __swift_bridge__$SomeStruct {
         ExpectedCHeader::ExactAfterTrim(
             r#"
 #include <stdint.h>
+#include <stdbool.h>
 typedef struct __swift_bridge__$SomeStruct { uint8_t _private; } __swift_bridge__$SomeStruct;
+typedef struct __swift_bridge__$Option$SomeStruct { bool is_some; __swift_bridge__$SomeStruct val; } __swift_bridge__$Option$SomeStruct;
     "#,
         )
     }
@@ -164,9 +166,8 @@ extension __swift_bridge__$SomeStruct {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
+        ExpectedCHeader::ContainsAfterTrim(
             r#"
-#include <stdint.h>
 typedef struct __swift_bridge__$SomeStruct { uint8_t field; } __swift_bridge__$SomeStruct;
     "#,
         )
@@ -240,13 +241,14 @@ struct AnotherStruct {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-#include <stdint.h>
 typedef struct __swift_bridge__$SomeStruct { uint8_t field; } __swift_bridge__$SomeStruct;
+    "#,
+            r#"
 typedef struct __swift_bridge__$AnotherStruct { uint8_t _0; } __swift_bridge__$AnotherStruct;
     "#,
-        )
+        ])
     }
 
     #[test]
@@ -301,10 +303,8 @@ func some_function(_ arg: SomeStruct) {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
+        ExpectedCHeader::ContainsAfterTrim(
             r#"
-#include <stdint.h>
-typedef struct __swift_bridge__$SomeStruct { uint8_t field; } __swift_bridge__$SomeStruct;
 void __swift_bridge__$some_function(struct __swift_bridge__$SomeStruct arg);
     "#,
         )
@@ -364,12 +364,7 @@ func __swift_bridge__some_function (_ arg: __swift_bridge__$SomeStruct) {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
-            r#"
-#include <stdint.h>
-typedef struct __swift_bridge__$SomeStruct { uint8_t field; } __swift_bridge__$SomeStruct;
-    "#,
-        )
+        ExpectedCHeader::SkipTest
     }
 
     #[test]
@@ -423,13 +418,14 @@ func some_function() -> SomeStruct {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-#include <stdint.h>
 typedef struct __swift_bridge__$SomeStruct { uint8_t field; } __swift_bridge__$SomeStruct;
+    "#,
+            r#"
 struct __swift_bridge__$SomeStruct __swift_bridge__$some_function(void);
     "#,
-        )
+        ])
     }
 
     #[test]
@@ -485,9 +481,8 @@ func __swift_bridge__some_function () -> __swift_bridge__$SomeStruct {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
+        ExpectedCHeader::ContainsAfterTrim(
             r#"
-#include <stdint.h>
 typedef struct __swift_bridge__$SomeStruct { uint8_t field; } __swift_bridge__$SomeStruct;
     "#,
         )
@@ -563,6 +558,127 @@ mod shared_struct_swift_name_attribute {
 
     #[test]
     fn shared_struct_swift_name_attribute() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we can use `Option<Struct>` as Rust function arg and return type.
+mod extern_rust_option_struct {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(swift_repr = "struct")]
+                struct SomeStruct {
+                    field: u8
+                }
+
+                extern "Rust" {
+                    fn some_function(arg: Option<SomeStruct>) -> Option<SomeStruct>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                #[repr(C)]
+                #[doc(hidden)]
+                pub struct __swift_bridge__Option_SomeStruct {
+                    is_some: bool,
+                    val: std::mem::MaybeUninit<__swift_bridge__SomeStruct>,
+                }
+
+                impl __swift_bridge__Option_SomeStruct {
+                    #[doc(hidden)]
+                    #[inline(always)]
+                    pub fn into_rust_repr(self) -> Option<SomeStruct> {
+                        if self.is_some {
+                            Some(unsafe { self.val.assume_init().into_rust_repr() })
+                        } else {
+                            None
+                        }
+                    }
+
+                    #[doc(hidden)]
+                    #[inline(always)]
+                    pub fn from_rust_repr(val: Option<SomeStruct>) -> __swift_bridge__Option_SomeStruct {
+                        if let Some(val) = val {
+                            __swift_bridge__Option_SomeStruct {
+                                is_some: true,
+                                val: std::mem::MaybeUninit::new(val.into_ffi_repr())
+                            }
+                        } else {
+                            __swift_bridge__Option_SomeStruct {
+                                is_some: false,
+                                val: std::mem::MaybeUninit::uninit()
+                            }
+                        }
+                    }
+                }
+            },
+            quote! {
+                pub extern "C" fn __swift_bridge__some_function(arg: __swift_bridge__Option_SomeStruct) -> __swift_bridge__Option_SomeStruct {
+                    __swift_bridge__Option_SomeStruct::from_rust_repr(super::some_function(arg.into_rust_repr()))
+                }
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+extension __swift_bridge__$Option$SomeStruct {
+    @inline(__always)
+    func intoSwiftRepr() -> Optional<SomeStruct> {
+        if self.is_some {
+            return self.val.intoSwiftRepr()
+        } else {
+            return nil
+        }
+    }
+
+    @inline(__always)
+    static func fromSwiftRepr(_ val: Optional<SomeStruct>) -> __swift_bridge__$Option$SomeStruct {
+        if let v = val {
+            return __swift_bridge__$Option$SomeStruct(is_some: true, val: v.intoFfiRepr())
+        } else {
+            return __swift_bridge__$Option$SomeStruct(is_some: false, val: __swift_bridge__$SomeStruct())
+        }
+    }
+}
+"#,
+            r#"
+func some_function(_ arg: Optional<SomeStruct>) -> Optional<SomeStruct> {
+    __swift_bridge__$some_function(__swift_bridge__$Option$SomeStruct.fromSwiftRepr(arg)).intoSwiftRepr()
+}
+"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ExactAfterTrim(
+            r#"
+#include <stdint.h>
+#include <stdbool.h>
+typedef struct __swift_bridge__$SomeStruct { uint8_t field; } __swift_bridge__$SomeStruct;
+typedef struct __swift_bridge__$Option$SomeStruct { bool is_some; __swift_bridge__$SomeStruct val; } __swift_bridge__$Option$SomeStruct;
+struct __swift_bridge__$Option$SomeStruct __swift_bridge__$some_function(struct __swift_bridge__$Option$SomeStruct arg);
+    "#,
+        )
+    }
+
+    #[test]
+    fn option_struct() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

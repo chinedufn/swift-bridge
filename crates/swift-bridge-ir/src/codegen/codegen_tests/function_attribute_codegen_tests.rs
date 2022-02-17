@@ -46,14 +46,7 @@ func some_function(_ some_arg: SomeStruct, _ another_arg: AnotherStruct, _ arg3:
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
-            r#"
-#include <stdint.h>
-typedef struct __swift_bridge__$SomeStruct { uint8_t _private; } __swift_bridge__$SomeStruct;
-typedef struct __swift_bridge__$AnotherStruct { uint8_t _0; } __swift_bridge__$AnotherStruct;
-void __swift_bridge__$some_function(struct __swift_bridge__$SomeStruct some_arg, struct __swift_bridge__$AnotherStruct another_arg, uint8_t arg3);
-"#,
-        )
+        ExpectedCHeader::SkipTest
     }
 
     #[test]

@@ -250,8 +250,6 @@ func some_function() async -> SomeStruct {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsAfterTrim(
             r#"
-#include <stdint.h>
-typedef struct __swift_bridge__$SomeStruct { uint8_t _private; } __swift_bridge__$SomeStruct;
 void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge__$some_function$async(void* callback_wrapper, struct __swift_bridge__$SomeStruct ret));
     "#,
         )

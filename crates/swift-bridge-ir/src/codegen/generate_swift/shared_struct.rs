@@ -12,6 +12,7 @@ impl SwiftBridgeModule {
         }
 
         let struct_name = &shared_struct.swift_name_string();
+        let option_ffi_name = shared_struct.ffi_option_name_string();
 
         match shared_struct.swift_repr {
             StructSwiftRepr::Class => {
@@ -77,10 +78,30 @@ extension {ffi_repr_name} {{
     func intoSwiftRepr() -> {struct_name} {{
         {convert_ffi_repr_to_swift}
     }}
+}}
+extension {option_ffi_name} {{
+    @inline(__always)
+    func intoSwiftRepr() -> Optional<{struct_name}> {{
+        if self.is_some {{
+            return self.val.intoSwiftRepr()
+        }} else {{
+            return nil
+        }}
+    }}
+
+    @inline(__always)
+    static func fromSwiftRepr(_ val: Optional<{struct_name}>) -> {option_ffi_name} {{
+        if let v = val {{
+            return {option_ffi_name}(is_some: true, val: v.intoFfiRepr())
+        }} else {{
+            return {option_ffi_name}(is_some: false, val: {ffi_repr_name}())
+        }}
+    }}
 }}"#,
                     struct_name = struct_name,
                     fields = fields,
                     ffi_repr_name = shared_struct.ffi_name_string(),
+                    option_ffi_name = option_ffi_name,
                     convert_swift_to_ffi_repr = convert_swift_to_ffi_repr,
                     convert_ffi_repr_to_swift = convert_ffi_repr_to_swift
                 );
