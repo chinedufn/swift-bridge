@@ -50,11 +50,11 @@ public class SomeType: SomeTypeRefMut {
     }
 }
 extension SomeType {
-    func a() {
+    public func a() {
         __swift_bridge__$SomeType$a({isOwned = false; return ptr;}())
     }
 
-    func b() {
+    public func b() {
         __swift_bridge__$SomeType$b({isOwned = false; return ptr;}())
     }
 }
@@ -64,11 +64,11 @@ public class SomeTypeRefMut: SomeTypeRef {
     }
 }
 extension SomeTypeRefMut {
-    func e() {
+    public func e() {
         __swift_bridge__$SomeType$e(ptr)
     }
 
-    func f() {
+    public func f() {
         __swift_bridge__$SomeType$f(ptr)
     }
 }
@@ -80,11 +80,11 @@ public class SomeTypeRef {
     }
 }
 extension SomeTypeRef {
-    func c() {
+    public func c() {
         __swift_bridge__$SomeType$c(ptr)
     }
 
-    func d() {
+    public func d() {
         __swift_bridge__$SomeType$d(ptr)
     }
 }
