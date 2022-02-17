@@ -122,7 +122,7 @@ xcodebuild -create-xcframework \
     -output MyRustLib.xcframework
 ```
 
-*The order of the `library` tags is important*
+*The order of the `library` tags is important, but we don't currently know why*
 
 ## Creating the Swift package
 
