@@ -194,7 +194,7 @@ let package = Package(
 )
 ```
 
-<!--TODO: better way of dealing with this instead of editing the generated files?-->
+<!--TODO: better way of dealing with this instead of editing the generated files-->
 We will need to import our rust library in `my_rust_lib.swift` and `SwiftBridgeCore.swift`:
 
 ```swift
@@ -202,14 +202,9 @@ We will need to import our rust library in `my_rust_lib.swift` and `SwiftBridgeC
 import MyRustLib
 ```
 
-<!--TODO: always make public, or maybe just have an option for making functions public in build.rs?-->
 ```swift
 // MySwiftPackage/Sources/MySwiftPackage/my_rust_lib.swift
 import MyRustLib
-
-// Also make the functions here public
-public hello_rust() -> RustString {
-// ...
 ```
 
 ## Using the Swift Package
