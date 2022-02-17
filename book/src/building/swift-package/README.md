@@ -194,7 +194,12 @@ let package = Package(
 )
 ```
 
-We will need to import our rust library in `my_rust_lib.swift`:
+We will need to import our rust library in `my_rust_lib.swift` and `SwiftBridgeCore.swift`:
+
+```swift
+// MySwiftPackage/Sources/MySwiftPackage/SwiftBridgeCore.swift
+import MyRustLib
+```
 
 ```swift
 // MySwiftPackage/Sources/MySwiftPackage/my_rust_lib.swift
