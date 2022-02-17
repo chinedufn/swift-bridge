@@ -1,4 +1,4 @@
-# Bundling rust code as a Swift package
+# Bundling Rust code as a Swift package
 
 In this chapter we'll walk through bundling your Rust library into a Swift Package.
 
