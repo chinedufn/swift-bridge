@@ -1,7 +1,7 @@
 // TODO:
 //  Implement iterator https://developer.apple.com/documentation/swift/iteratorprotocol
 
-class RustVec<T: Vectorizable> {
+public class RustVec<T: Vectorizable> {
     var ptr: UnsafeMutableRawPointer
     var isOwned: Bool = true
 
@@ -40,12 +40,12 @@ class RustVec<T: Vectorizable> {
 }
 
 extension RustVec: Sequence {
-    func makeIterator() -> RustVecIterator<T> {
+    public func makeIterator() -> RustVecIterator<T> {
         return RustVecIterator(self)
     }
 }
 
-struct RustVecIterator<T: Vectorizable>: IteratorProtocol {
+public struct RustVecIterator<T: Vectorizable>: IteratorProtocol {
     var rustVec: RustVec<T>
     var index: UInt = 0
 
@@ -53,7 +53,7 @@ struct RustVecIterator<T: Vectorizable>: IteratorProtocol {
         self.rustVec = rustVec
     }
 
-    mutating func next() -> T.SelfRef? {
+    public mutating func next() -> T.SelfRef? {
         let val = rustVec.get(index: index)
         index += 1
         return val
@@ -61,21 +61,21 @@ struct RustVecIterator<T: Vectorizable>: IteratorProtocol {
 }
 
 extension RustVec: Collection {
-    typealias Index = Int
+    public typealias Index = Int
 
-    func index(after i: Int) -> Int {
+    public func index(after i: Int) -> Int {
         i + 1
     }
 
-    subscript(position: Int) -> T.SelfRef {
+    public subscript(position: Int) -> T.SelfRef {
         self.get(index: UInt(position))!
     }
 
-    var startIndex: Int {
+    public var startIndex: Int {
         0
     }
 
-    var endIndex: Int {
+    public var endIndex: Int {
         self.len()
     }
 }
@@ -105,7 +105,7 @@ extension Array {
     }
 }
 
-protocol Vectorizable {
+public protocol Vectorizable {
     associatedtype SelfRef
     associatedtype SelfRefMut
 
