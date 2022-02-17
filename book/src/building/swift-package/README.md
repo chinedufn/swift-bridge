@@ -32,14 +32,14 @@ swift-bridge-build = "0.1"
 swift-bridge = "0.1"
 ```
 
-In `lib.rs`, add the following:
+In `src/lib.rs`, add the following:
 
 ```rust
 // my-rust-lib/src/lib.rs
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
-        fn hello_rust();
+        fn hello_rust() -> String;
     }
 }
 
@@ -48,7 +48,7 @@ fn hello_rust() -> String {
 }
 ```
 
-Add a new `build.rs` file:
+Add a new `build.rs` file (`touch build.rs`):
 ```rust
 // my-rust-lib/build.rs
 
@@ -77,13 +77,17 @@ cargo build --target x86_64-apple-ios
 
 ## Creating the XCFramework
 
-Go back to the root of the project and make a new directory.
+Go back to the root of the project and make a new directory `cd ..`.
 
 ```bash
 mkdir MyFramework && cd $_
 ```
 
 Copy the generated libraries and the headers to this folder:
+```bash
+mkdir include
+
+```
 
 ```
 MyFramework
