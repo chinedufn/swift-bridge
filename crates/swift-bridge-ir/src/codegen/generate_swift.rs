@@ -654,7 +654,7 @@ mod tests {
         let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
-func foo() {
+public func foo() {
     __swift_bridge__$foo()
 } 
 "#;
