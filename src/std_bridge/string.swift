@@ -25,7 +25,7 @@ class SwiftString {
 }
 
 extension RustString {
-    func toString() -> String {
+    public func toString() -> String {
         let str = self.as_str()
         let string = str.toString()
 
@@ -39,7 +39,7 @@ extension RustStr {
         return bytes
     }
 
-    func toString() -> String {
+    public func toString() -> String {
         let bytes = self.toBufferPointer()
         return String(bytes: bytes, encoding: .utf8)!
     }
