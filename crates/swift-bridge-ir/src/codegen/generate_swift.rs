@@ -826,7 +826,7 @@ func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
     /// Verify that we generated a function that Rust can use to reduce a Swift class instance's
     /// reference count.
     #[test]
-    fn extern_swift_claas_init() {
+    fn extern_swift_class_init() {
         let tokens = quote! {
             mod foo {
                 extern "Swift" {
@@ -986,7 +986,7 @@ public class FooRef {
     }
 }
 extension FooRef {
-    func bar() -> UInt8 {
+    public func bar() -> UInt8 {
         __swift_bridge__$Foo$bar(ptr)
     }
 }
