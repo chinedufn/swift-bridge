@@ -1053,7 +1053,7 @@ public class FooRef {
     }
 }
 extension FooRef {
-    class func bar() {
+    class public func bar() {
         __swift_bridge__$Foo$bar()
     }
 }
