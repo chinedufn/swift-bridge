@@ -7,6 +7,7 @@
 - [Building](./building/README.md)
   - [Xcode + Cargo](./building/xcode-and-cargo/README.md)
   - [swiftc + Cargo](./building/swiftc-and-cargo/README.md)
+  - [Swift Package](./building/swift-package/README.md)
 
 - [The Bridge Module](./bridge-module/README.md)
   - [extern "Rust"](./bridge-module/extern-rust/README.md)

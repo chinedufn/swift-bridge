@@ -406,7 +406,7 @@ fn gen_func_swift_calls_rust(
     let swift_class_func_name = if function.is_swift_initializer {
         "convenience init".to_string()
     } else {
-        format!("func {}", fn_name.as_str())
+        format!("public func {}", fn_name.as_str())
     };
 
     let indentation = if function.associated_type.is_some() {
@@ -734,7 +734,7 @@ mod tests {
         let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
-func foo() {
+public func foo() {
     __swift_bridge__$foo()
 } 
 "#;
@@ -826,7 +826,7 @@ func __swift_bridge__MyType_foo (_ this: UnsafeMutableRawPointer) -> __private__
         let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
-func foo(_ bar: UInt8) {
+public func foo(_ bar: UInt8) {
     __swift_bridge__$foo(bar)
 } 
 "#;
@@ -849,7 +849,7 @@ func foo(_ bar: UInt8) {
         let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
-func foo() -> UInt32 {
+public func foo() -> UInt32 {
     __swift_bridge__$foo()
 } 
 "#;
@@ -906,7 +906,7 @@ func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
     /// Verify that we generated a function that Rust can use to reduce a Swift class instance's
     /// reference count.
     #[test]
-    fn extern_swift_claas_init() {
+    fn extern_swift_class_init() {
         let tokens = quote! {
             mod foo {
                 extern "Swift" {
@@ -1066,7 +1066,7 @@ public class FooRef {
     }
 }
 extension FooRef {
-    func bar() -> UInt8 {
+    public func bar() -> UInt8 {
         __swift_bridge__$Foo$bar(ptr)
     }
 }
@@ -1099,7 +1099,7 @@ public class FooRef {
     }
 }
 extension FooRef {
-    func bar(_ other: FooRef) {
+    public func bar(_ other: FooRef) {
         __swift_bridge__$Foo$bar(ptr, other.ptr)
     }
 }
@@ -1133,7 +1133,7 @@ public class FooRef {
     }
 }
 extension FooRef {
-    class func bar() {
+    class public func bar() {
         __swift_bridge__$Foo$bar()
     }
 }
@@ -1183,7 +1183,7 @@ func __swift_bridge__Foo_bar (_ arg: UInt8) {
         let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
 
         let expected = r#"
-func foo() -> RustString {
+public func foo() -> RustString {
     RustString(ptr: __swift_bridge__$foo())
 }
 "#;

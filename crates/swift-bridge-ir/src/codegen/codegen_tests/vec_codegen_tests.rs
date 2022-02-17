@@ -93,19 +93,19 @@ mod extern_rust_type_vec_support {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 extension MyRustType: Vectorizable {
-    static func vecOfSelfNew() -> UnsafeMutableRawPointer {
+    public static func vecOfSelfNew() -> UnsafeMutableRawPointer {
         __swift_bridge__$Vec_MyRustType$new()
     }
 
-    static func vecOfSelfFree(vecPtr: UnsafeMutableRawPointer) {
+    public static func vecOfSelfFree(vecPtr: UnsafeMutableRawPointer) {
         __swift_bridge__$Vec_MyRustType$drop(vecPtr)
     }
 
-    static func vecOfSelfPush(vecPtr: UnsafeMutableRawPointer, value: MyRustType) {
+    public static func vecOfSelfPush(vecPtr: UnsafeMutableRawPointer, value: MyRustType) {
         __swift_bridge__$Vec_MyRustType$push(vecPtr, {value.isOwned = false; return value.ptr;}())
     }
 
-    static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Optional<Self> {
+    public static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Optional<Self> {
         let pointer = __swift_bridge__$Vec_MyRustType$pop(vecPtr)
         if pointer == nil {
             return nil
@@ -114,7 +114,7 @@ extension MyRustType: Vectorizable {
         }
     }
 
-    static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<MyRustTypeRef> {
+    public static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<MyRustTypeRef> {
         let pointer = __swift_bridge__$Vec_MyRustType$get(vecPtr, index)
         if pointer == nil {
             return nil
@@ -123,7 +123,7 @@ extension MyRustType: Vectorizable {
         }
     }
 
-    static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<MyRustTypeRefMut> {
+    public static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<MyRustTypeRefMut> {
         let pointer = __swift_bridge__$Vec_MyRustType$get_mut(vecPtr, index)
         if pointer == nil {
             return nil
@@ -132,7 +132,7 @@ extension MyRustType: Vectorizable {
         }
     }
 
-    static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {
+    public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {
         __swift_bridge__$Vec_MyRustType$len(vecPtr)
     }
 }
