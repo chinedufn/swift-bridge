@@ -28,6 +28,11 @@ mod ffi {
         Variant2,
     }
 
+    #[swift_bridge(swift_repr = "struct")]
+    struct OptionStruct {
+        field: u8,
+    }
+
     extern "Rust" {
         fn rust_reflect_option_u8(arg: Option<u8>) -> Option<u8>;
         fn rust_reflect_option_i8(arg: Option<i8>) -> Option<i8>;
@@ -56,9 +61,13 @@ mod ffi {
             arg: StructWithOptionFields,
         ) -> StructWithOptionFields;
 
-        fn rust_reflect_option_enum_wit_no_data(
+        fn rust_reflect_option_enum_with_no_data(
             arg: Option<OptionEnumWithNoData>,
         ) -> Option<OptionEnumWithNoData>;
+
+        fn rust_reflect_option_struct_with_no_data(
+            arg: Option<OptionStruct>,
+        ) -> Option<OptionStruct>;
 
         fn run_option_tests();
     }
@@ -137,8 +146,14 @@ fn rust_reflect_struct_with_option_fields(
 ) -> ffi::StructWithOptionFields {
     arg
 }
-fn rust_reflect_option_enum_wit_no_data(
+fn rust_reflect_option_enum_with_no_data(
     arg: Option<ffi::OptionEnumWithNoData>,
 ) -> Option<ffi::OptionEnumWithNoData> {
+    arg
+}
+
+fn rust_reflect_option_struct_with_no_data(
+    arg: Option<ffi::OptionStruct>,
+) -> Option<ffi::OptionStruct> {
     arg
 }

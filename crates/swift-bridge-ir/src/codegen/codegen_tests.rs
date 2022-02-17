@@ -223,6 +223,7 @@ enum ExpectedSwiftCode {
 enum ExpectedCHeader {
     ExactAfterTrim(&'static str),
     ContainsAfterTrim(&'static str),
+    ContainsManyAfterTrim(Vec<&'static str>),
     DoesNotContainAfterTrim(&'static str),
     DoesNotContainManyAfterTrim(Vec<&'static str>),
     /// Skip testing C header
@@ -308,6 +309,11 @@ impl CodegenTest {
             }
             ExpectedCHeader::ContainsAfterTrim(expected) => {
                 assert_trimmed_generated_contains_trimmed_expected(&c_header, expected);
+            }
+            ExpectedCHeader::ContainsManyAfterTrim(many_expected) => {
+                for expected in many_expected {
+                    assert_trimmed_generated_contains_trimmed_expected(&c_header, expected);
+                }
             }
             ExpectedCHeader::DoesNotContainAfterTrim(expected) => {
                 assert_trimmed_generated_does_not_contain_trimmed_expected(&c_header, expected);

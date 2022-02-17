@@ -20,8 +20,10 @@ impl SwiftBridgeModule {
         let struct_name = &shared_struct.name;
         let swift_bridge_path = &self.swift_bridge_path;
 
-        let repr_c_struct_name = format!("{}{}", SWIFT_BRIDGE_PREFIX, struct_name);
-        let repr_c_struct_name = Ident::new(&repr_c_struct_name, struct_name.span());
+        let struct_ffi_name = format!("{}{}", SWIFT_BRIDGE_PREFIX, struct_name);
+        let struct_ffi_name = Ident::new(&struct_ffi_name, struct_name.span());
+
+        let option_struct = shared_struct.ffi_option_name_tokens();
 
         let struct_fields: Vec<TokenStream> = shared_struct
             .fields
@@ -71,7 +73,7 @@ impl SwiftBridgeModule {
             quote! {
                 #[repr(C)]
                 #[doc(hidden)]
-                pub struct #repr_c_struct_name {
+                pub struct #struct_ffi_name {
                     _private: u8
                 }
             }
@@ -79,7 +81,7 @@ impl SwiftBridgeModule {
             quote! {
                 #[repr(C)]
                 #[doc(hidden)]
-                pub struct #repr_c_struct_name #repr_c_struct_fields
+                pub struct #struct_ffi_name #repr_c_struct_fields
             }
         };
 
@@ -89,22 +91,57 @@ impl SwiftBridgeModule {
             #struct_ffi_repr
 
             impl #swift_bridge_path::SharedStruct for #struct_name {
-                type FfiRepr = #repr_c_struct_name;
+                type FfiRepr = #struct_ffi_name;
             }
 
             impl #struct_name {
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn into_ffi_repr(self) -> #repr_c_struct_name {
+                pub fn into_ffi_repr(self) -> #struct_ffi_name {
                     #convert_rust_to_ffi
                 }
             }
 
-            impl #repr_c_struct_name {
+            impl #struct_ffi_name {
                 #[doc(hidden)]
                 #[inline(always)]
                 pub fn into_rust_repr(self) -> #struct_name {
                     #convert_ffi_to_rust
+                }
+            }
+
+            #[repr(C)]
+            #[doc(hidden)]
+            pub struct #option_struct {
+                is_some: bool,
+                val: std::mem::MaybeUninit<#struct_ffi_name>,
+            }
+
+            impl #option_struct {
+                #[doc(hidden)]
+                #[inline(always)]
+                pub fn into_rust_repr(self) -> Option<#struct_name> {
+                    if self.is_some {
+                        Some(unsafe { self.val.assume_init().into_rust_repr() })
+                    } else {
+                        None
+                    }
+                }
+
+                #[doc(hidden)]
+                #[inline(always)]
+                pub fn from_rust_repr(val: Option<#struct_name>) -> #option_struct {
+                    if let Some(val) = val {
+                        #option_struct {
+                            is_some: true,
+                            val: std::mem::MaybeUninit::new(val.into_ffi_repr())
+                        }
+                    } else {
+                        #option_struct {
+                            is_some: false,
+                            val: std::mem::MaybeUninit::uninit()
+                        }
+                    }
                 }
             }
         };

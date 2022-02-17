@@ -57,7 +57,7 @@ struct __private__OptionF32 __swift_bridge__$some_function(struct __private__Opt
     );
 
     #[test]
-    fn extern_rust_fn_return_option_string() {
+    fn extern_rust_fn_option_primitive() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -313,7 +313,7 @@ void* __swift_bridge__$some_function(void);
     }
 
     #[test]
-    fn extern_rust_fn_return_option_str() {
+    fn extern_rust_fn_return_option_opaque_rust_type() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -482,7 +482,7 @@ typedef struct __swift_bridge__$SomeStruct { struct __private__OptionU8 field; }
     }
 
     #[test]
-    fn extern_rust_fn_return_option_str() {
+    fn shared_struct_with_option_field_ffi_repr() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

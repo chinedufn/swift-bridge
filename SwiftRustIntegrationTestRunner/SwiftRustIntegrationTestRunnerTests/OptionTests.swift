@@ -149,8 +149,8 @@ class OptionTests: XCTestCase {
     
     func testEnumWhereVariantsHaveNoData() {
         let val = OptionEnumWithNoData.Variant2
-        let reflectedSome = rust_reflect_option_enum_wit_no_data(val)
-        let reflectedNone = rust_reflect_option_enum_wit_no_data(nil)
+        let reflectedSome = rust_reflect_option_enum_with_no_data(val)
+        let reflectedNone = rust_reflect_option_enum_with_no_data(nil)
         
         switch reflectedSome! {
         case .Variant2:
@@ -159,6 +159,15 @@ class OptionTests: XCTestCase {
             fatalError()
         }
         
+        XCTAssertNil(reflectedNone)
+    }
+    
+    func testOptionStruct() {
+        let val = OptionStruct(field: 123)
+        let reflectedSome = rust_reflect_option_struct_with_no_data(val)
+        let reflectedNone = rust_reflect_option_struct_with_no_data(nil)
+        
+        XCTAssertEqual(reflectedSome!.field, 123)
         XCTAssertNil(reflectedNone)
     }
     
