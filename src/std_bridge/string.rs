@@ -20,20 +20,6 @@ mod ffi {
 
         fn trim(&self) -> &str;
     }
-
-    extern "Swift" {
-        type SwiftString;
-
-        #[swift_bridge(init)]
-        fn new() -> SwiftString;
-
-        #[swift_bridge(init)]
-        fn new_with_str(str: &str) -> SwiftString;
-
-        fn as_ptr(&self) -> *const u8;
-
-        fn len(&self) -> usize;
-    }
 }
 
 #[doc(hidden)]
@@ -95,18 +81,5 @@ impl RustStr {
             start: str.as_ptr(),
             len: str.len(),
         }
-    }
-}
-
-impl SwiftString {
-    pub fn as_bytes(&self) -> &[u8] {
-        let ptr = self.as_ptr();
-        let len = self.len();
-
-        unsafe { std::slice::from_raw_parts(ptr, len) }
-    }
-
-    pub fn to_str(&self) -> &str {
-        std::str::from_utf8(self.as_bytes()).expect("Failed to convert Swift String to &str")
     }
 }
