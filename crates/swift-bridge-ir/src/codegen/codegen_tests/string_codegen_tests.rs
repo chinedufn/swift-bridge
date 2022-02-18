@@ -82,13 +82,6 @@ mod extern_rust_fn_with_str_argument {
         })
     }
 
-    // TODO: Think through whether or not we should generate two functions here..
-    //  One that takes a RustStr and one that takes a String.
-    //  One consideration is that this would mean that if we took 5 string args there would
-    //  be 2^5 = 32 different function signatures to generate.
-    //  How would that impact the Swift's code's compile times? Needs research.
-    //  Actually... we can just use generics here.. So have a trait AsRustStr that String and
-    //  RustStr both implement.
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"

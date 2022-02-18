@@ -13,9 +13,9 @@ In addition to allowing you to share your own custom types between Rust and Swif
 | &str                                                            | RustStr                                                          |                     |
 | Vec\<T>                                                         | RustVec\<T>                                                      |                     |
 | SwiftArray\<T>                                                  | Array\<T>                                                        | Not yet implemented |
-| &[T]                                                            | UnsafeBufferPointer\<T>                                          |                     |
+| &[T]                                                            |                                                                  | Not yet implemented |
 | &mut [T]                                                        | UnsafeMutableBufferPointer\<T>                                   | Not yet implemented |
-| SwiftString                                                     | String                                                           |                     |
+| String, &str                                                    | String                                                           |                     |
 | Box<T>                                                          |                                                                  | Not yet implemented |
 | [T; N]                                                          |                                                                  | Not yet implemented |
 | *const T                                                        | UnsafePointer\<T>                                                |                     |

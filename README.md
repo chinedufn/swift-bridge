@@ -107,9 +107,9 @@ In addition to allowing you to share your own custom structs, enums and classes 
 | &str                                                            | RustStr                                                          |                     |
 | Vec\<T>                                                         | RustVec\<T>                                                      |                     |
 | SwiftArray\<T>                                                  | Array\<T>                                                        | Not yet implemented |
-| &[T]                                                            | UnsafeBufferPointer\<T>                                          |                     |
-| &mut [T]                                                        | UnsafeMutableBufferPointer\<T>                                   | Not yet implemented |
-| SwiftString                                                     | String                                                           |                     |
+| &[T]                                                            |                                                                  | Not yet implemented |
+| &mut [T]                                                        |                                                                  | Not yet implemented |
+| String, &str                                                    | String                                                           |                     |
 | Box<T>                                                          |                                                                  | Not yet implemented |
 | [T; N]                                                          |                                                                  | Not yet implemented |
 | *const T                                                        | UnsafePointer\<T>                                                |                     |
