@@ -1538,9 +1538,9 @@ mod ffi {
 <tr><td>&amp;str</td><td>RustStr</td><td></td></tr>
 <tr><td>Vec&lt;T&gt;</td><td>RustVec&lt;T&gt;</td><td></td></tr>
 <tr><td>SwiftArray&lt;T&gt;</td><td>Array&lt;T&gt;</td><td>Not yet implemented</td></tr>
-<tr><td>&amp;[T]</td><td>UnsafeBufferPointer&lt;T&gt;</td><td></td></tr>
+<tr><td>&amp;[T]</td><td></td><td>Not yet implemented</td></tr>
 <tr><td>&amp;mut [T]</td><td>UnsafeMutableBufferPointer&lt;T&gt;</td><td>Not yet implemented</td></tr>
-<tr><td>SwiftString</td><td>String</td><td></td></tr>
+<tr><td>String, &amp;str</td><td>String</td><td></td></tr>
 <tr><td>Box<T></td><td></td><td>Not yet implemented</td></tr>
 <tr><td>[T; N]</td><td></td><td>Not yet implemented</td></tr>
 <tr><td>*const T</td><td>UnsafePointer&lt;T&gt;</td><td></td></tr>
