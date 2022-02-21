@@ -1,8 +1,7 @@
 # Building
 
-Writing an application that uses Swift and Rust essentially boils
-down to taking some Swift source code and some Rust source code and
-compiling it all into a final binary.
+Building an application that uses Swift and Rust means compiling Swift
+source code and Rust source code into a final binary.
 
 If there was a super-compiler that knew about both Swift and Rust code you
 could tell that compiler to compile source files from both languages into
@@ -13,12 +12,11 @@ a Rust compiler in a two-stepped approach.
 
 First you compile one of the languages into a native library.
 
-Then you compile the other language into your final binary, but
-while doing so you tell the second compiler to link in the native library
-that you created.
+Then you use the second compiler to compile the other language into your
+final binary, along the way linking in the native library that you created.
 
-Here's how this process would look if you were linking a Rust native
-library into a Swift executable.
+Here's how this process would look if you were linking in a Rust native
+library when compiling a Swift executable.
 
 ```text
 ┌──────────────────────────────────┐           ┌───────────────────┐       
@@ -47,7 +45,7 @@ library into a Swift executable.
 In a similar fashion, you could also compile Swift code into a native library and then
 link it in when compiling your Rust code.
 
-Which direction you choose largely comes down to whichever is easier based on the
+Which direction to choose largely comes down to whichever is easiest based on the
 build tools that you already use or plan to use.
 
 This chapter walks you through a few different ways to build Swift and Rust code.

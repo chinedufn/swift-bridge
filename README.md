@@ -5,7 +5,7 @@
 `swift-bridge` is a library that lets you pass and share high-level types such as `Option<T>`, `String`, `Struct` and `Class` between Rust and Swift.
 
 You declare the types and functions that you want to import and export using "bridge modules", and
-then run `swift-bridge-build` at build time generate the `Swift` and `C` FFI layer to make it all work.
+then run `swift-bridge-build` at build time to generate the `Swift` and `C` FFI layer to make it all work.
 
 ## Installation
 
@@ -21,15 +21,13 @@ swift-bridge = "0.1"
 
 ## Book
 
-You can find information about using Rust and Swift together in [The `swift-bridge` book](https://chinedufn.github.io/swift-bridge).
+You can find information about using Rust and Swift together in [The `swift-bridge` Book](https://chinedufn.github.io/swift-bridge).
 
 ## Quick Peek
 
 Here's a quick peek at how you might describe an FFI boundary between Swift and Rust using a bridge module.
 
-You would then use the `swift-bridge-build` API or `swift-bridge-cli` CLI to generate the corresponding Swift
-and C FFI glue code at build time.
-
+<!-- ANCHOR: bridge-module-example -->
 ```rust
 // Use the `swift_bridge::bridge` macro to declare a bridge module that
 // `swift-bridge-build` will parse at build time in order to generate
@@ -72,6 +70,7 @@ mod ffi {
     }
 }
 ```
+<!-- ANCHOR_END: bridge-module-example -->
 
 ## Quick Start
 
@@ -95,10 +94,9 @@ You can find information about using Rust and Swift together in [The `swift-brid
 ## Built-In Types
 
 In addition to allowing you to share your own custom structs, enums and classes between Rust and Swift,
-`swift_bridge` comes with support for a number of Rust and Swift standard library types.
+`swift-bridge` comes with support for a number of Rust and Swift standard library types.
 
-<!-- NOTE: Whenever we modify this list we need to copy it over to the book's built in types chapter README  -->
-
+<!-- ANCHOR: built-in-types-table -->
 | name in Rust                                                    | name in Swift                                                    | notes               |
 | ---                                                             | ---                                                              | ---                 |
 | u8, i8, u16, i16... etc                                         | UInt8, Int8, UInt16, Int16 ... etc                               |                     |
@@ -109,7 +107,6 @@ In addition to allowing you to share your own custom structs, enums and classes 
 | SwiftArray\<T>                                                  | Array\<T>                                                        | Not yet implemented |
 | &[T]                                                            |                                                                  | Not yet implemented |
 | &mut [T]                                                        |                                                                  | Not yet implemented |
-| String, &str                                                    | String                                                           |                     |
 | Box<T>                                                          |                                                                  | Not yet implemented |
 | [T; N]                                                          |                                                                  | Not yet implemented |
 | *const T                                                        | UnsafePointer\<T>                                                |                     |
@@ -118,6 +115,7 @@ In addition to allowing you to share your own custom structs, enums and classes 
 | Result\<T>                                                      |                                                                  | Not yet implemented |
 | Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                     |
 |                                                                 | Have a Swift standard library type in mind?<br /> Open an issue! |                     |
+<!-- ANCHOR_END: built-in-types-table -->
 
 ## To Test
 
