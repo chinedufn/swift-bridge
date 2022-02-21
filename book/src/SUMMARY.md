@@ -7,13 +7,13 @@
 - [Building](./building/README.md)
   - [Xcode + Cargo](./building/xcode-and-cargo/README.md)
   - [swiftc + Cargo](./building/swiftc-and-cargo/README.md)
-  - [Swift Package](./building/swift-package/README.md)
+  - [Swift Packages](./building/swift-packages/README.md)
 
 - [The Bridge Module](./bridge-module/README.md)
-  - [extern "Rust"](./bridge-module/extern-rust/README.md)
-  - [extern "Swift"](./bridge-module/extern-swift/README.md)
-  - [Shared Structs](./bridge-module/shared-structs/README.md)
-  - [Shared Enums](./bridge-module/shared-enums/README.md)
+  - [Functions](./bridge-module/functions/README.md)
+  - [Opaque Types](./bridge-module/opaque-types/README.md)
+  - [Transparent Types](./bridge-module/transparent-types/README.md)
+  - [Async Functions](./bridge-module/async-functions/README.md)
   - [Conditional Compilation](./bridge-module/conditional-compilation/README.md)
 
 - [Built In Types](./built-in/README.md)
