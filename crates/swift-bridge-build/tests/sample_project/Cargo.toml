@@ -5,4 +5,11 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["staticlib"]
+
+[build-dependencies]
+swift-bridge-build = "0.1"
+
 [dependencies]
+swift-bridge = "0.1"
