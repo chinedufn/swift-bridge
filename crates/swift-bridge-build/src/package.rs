@@ -12,7 +12,9 @@ pub struct GeneratePackageConfig<'a> {
     /// Path per platform. e.g. (iOS, "target/aarch64-apple-ios/debug/libmy_rust_lib.a")
 	pub paths: HashMap<ApplePlatform, &'a dyn AsRef<Path>>,
 	/// The directory where the package will be saved
-	pub out_dir: &'a dyn AsRef<Path>
+	pub out_dir: &'a dyn AsRef<Path>,
+	/// The name for the Swift package
+	pub package_name: &'a str
 }
 
 #[allow(non_camel_case_types)]
@@ -169,5 +171,78 @@ fn gen_xcframework(output_dir: &Path, config: &GeneratePackageConfig) {
 
 /// Generates the Swift Package
 fn gen_package(output_dir: &Path, config: &GeneratePackageConfig) {
-
+	let sources_dir = output_dir.join("Sources").join(config.package_name);
+	if !sources_dir.exists() {
+		fs::create_dir_all(&sources_dir).expect("Couldn't create directory for source files");
+	}
+	
+	// Copy bridge `.swift` files and append import statements
+	let bridge_dir: &Path = config.bridge_dir.as_ref();
+	fs::write(
+		sources_dir.join("SwiftBridgeCore.swift"),
+		format!(
+			"import Framework\n{}",
+			fs::read_to_string(&bridge_dir.join("SwiftBridgeCore.swift"))
+				.expect("Couldn't read core bridging swift file")
+		)
+	);
+	
+	let bridge_project_dir = fs::read_dir(&bridge_dir)
+		.expect("Couldn't read generated directory")
+		.find_map(|file| {
+			let file = file.unwrap().path();
+			if file.is_dir() {
+				Some(file)
+			} else {
+				None
+			}
+		}).expect("Couldn't find project directory inside of generated directory");
+	let bridge_project_swift_dir = fs::read_dir(&bridge_project_dir)
+		.expect("Couldn't read generated directory")
+		.find_map(|file| {
+			let file = file.unwrap().path();
+			if file.extension().unwrap() == "swift" {
+				Some(file)
+			} else {
+				None
+			}
+		}).expect("Couldn't find project's bridging swift file");
+	fs::write(
+		sources_dir.join(&bridge_project_swift_dir.file_name().unwrap()),
+		format!(
+			"import Framework\n{}",
+			fs::read_to_string(&bridge_project_swift_dir)
+				.expect("Couldn't read project's bridging swift file")
+		)
+	)
+	.expect("Couldn't copy project's bridging swift file to the package");
+	
+	// Generate Package.swift
+	let package_name = config.package_name;
+	let package_swift = format!(r#"
+	// swift-tools-version:5.5.0
+	let package = Package(
+		name: "{package_name}",
+		products: [
+			.library(
+				name: "{package_name}",
+				target: ["{package_name}"]),
+		],
+		dependencies: [],
+		targets: [
+			.binaryTarget(
+				name: "Framework",
+				path: "framework.xcframework"
+			),
+			.target(
+				name: "{package_name}",
+				dependencies: ["{package_name}"])
+		]
+	)
+	"#);
+	
+	fs::write(
+		output_dir.join("Package.swift"),
+		package_swift
+	).expect("Couldn't write Package.swift file")
 }
