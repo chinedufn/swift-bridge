@@ -3,6 +3,8 @@
 
 #![deny(missing_docs)]
 
+mod package;
+pub use package::*;
 use std::path::Path;
 use swift_bridge_ir::{CodegenConfig, SwiftBridgeModule};
 use syn::__private::ToTokens;
