@@ -89,7 +89,7 @@ Copy the generated libraries and the headers to this folder:
 mkdir include
 touch include/module.modulemap
 cp ../my-rust-lib/generated/SwiftBridgeCore.h ./include
-cp ../my-rust-lib/generated/my_rust_lib/my_rust_lib.h ./includ
+cp ../my-rust-lib/generated/my_rust_lib/my_rust_lib.h ./include
 mkdir ios
 cp ../my-rust-lib/target/aarch64-apple-ios/debug/libmy_rust_lib.a ./ios
 mkdir macos
@@ -98,7 +98,7 @@ mkdir simulator
 cp ../my-rust-lib/target/x86_64-apple-ios/debug/libmy_rust_lib.a ./simulator
 ```
 
-This should result in the follwing folder structure:
+This should result in the following folder structure:
 ```
 MyFramework
 ├── include
@@ -162,7 +162,7 @@ MySwiftPackage
 │   └── MySwiftPackage
 │       └── SwiftBridgeCore.swift
 │       └── my_rust_lib.swift
-├── MyRustLib.b.xcframework
+├── MyRustLib.xcframework
 └── Package.swift
 ```
 
