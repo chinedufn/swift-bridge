@@ -220,25 +220,26 @@ fn gen_package(output_dir: &Path, config: &GeneratePackageConfig) {
 	// Generate Package.swift
 	let package_name = config.package_name;
 	let package_swift = format!(r#"
-	// swift-tools-version:5.5.0
-	let package = Package(
-		name: "{package_name}",
-		products: [
-			.library(
-				name: "{package_name}",
-				target: ["{package_name}"]),
-		],
-		dependencies: [],
-		targets: [
-			.binaryTarget(
-				name: "Framework",
-				path: "framework.xcframework"
-			),
-			.target(
-				name: "{package_name}",
-				dependencies: ["{package_name}"])
-		]
-	)
+// swift-tools-version:5.5.0
+import PackageDescription
+let package = Package(
+	name: "{package_name}",
+	products: [
+		.library(
+			name: "{package_name}",
+			target: ["{package_name}"]),
+	],
+	dependencies: [],
+	targets: [
+		.binaryTarget(
+			name: "Framework",
+			path: "framework.xcframework"
+		),
+		.target(
+			name: "{package_name}",
+			dependencies: ["{package_name}"])
+	]
+)
 	"#);
 	
 	fs::write(
