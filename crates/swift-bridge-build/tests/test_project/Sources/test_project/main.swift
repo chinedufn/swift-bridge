@@ -1,3 +1,3 @@
 import MySwiftPackage
 
-print(hello_rust())
+print(hello_rust().toString())
