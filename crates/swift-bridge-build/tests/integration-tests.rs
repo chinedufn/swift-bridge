@@ -13,7 +13,7 @@ fn gen_package() {
             (Platform::macOS, &Path::new("tests/sample_project/target/x86_64-apple-darwin/debug/libsample_project.a") as &dyn AsRef<Path>),
             (Platform::Simulator, &Path::new("tests/sample_project/target/aarch64-apple-ios/debug/libsample_project.a") as &dyn AsRef<Path>),
         ]),
-        out_dir: &Path::new("tests/sample_project/package"),
+        out_dir: &Path::new("tests/sample_project/MySwiftPackage"),
         package_name: "MySwiftPackage"
     });
 }

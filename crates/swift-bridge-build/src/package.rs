@@ -185,7 +185,7 @@ fn gen_package(output_dir: &Path, config: &GeneratePackageConfig) {
 			fs::read_to_string(&bridge_dir.join("SwiftBridgeCore.swift"))
 				.expect("Couldn't read core bridging swift file")
 		)
-	);
+	).expect("Couldn't write core bridging swift file");
 	
 	let bridge_project_dir = fs::read_dir(&bridge_dir)
 		.expect("Couldn't read generated directory")
@@ -219,15 +219,15 @@ fn gen_package(output_dir: &Path, config: &GeneratePackageConfig) {
 	
 	// Generate Package.swift
 	let package_name = config.package_name;
-	let package_swift = format!(r#"
-// swift-tools-version:5.5.0
+	let package_swift = format!(
+	r#"// swift-tools-version:5.5.0
 import PackageDescription
 let package = Package(
 	name: "{package_name}",
 	products: [
 		.library(
 			name: "{package_name}",
-			target: ["{package_name}"]),
+			targets: ["{package_name}"]),
 	],
 	dependencies: [],
 	targets: [
@@ -237,7 +237,7 @@ let package = Package(
 		),
 		.target(
 			name: "{package_name}",
-			dependencies: ["{package_name}"])
+			dependencies: ["Framework"])
 	]
 )
 	"#);
@@ -245,5 +245,5 @@ let package = Package(
 	fs::write(
 		output_dir.join("Package.swift"),
 		package_swift
-	).expect("Couldn't write Package.swift file")
+	).expect("Couldn't write Package.swift file");
 }
