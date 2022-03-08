@@ -1,3 +1,5 @@
+//! Generate a Swift Package from Rust code
+
 use std::collections::HashMap;
 use std::fs;
 use std::fs::OpenOptions;
@@ -9,12 +11,24 @@ use std::process::Command;
 pub struct GeneratePackageConfig<'a> {
 	/// The directory containing the generated bridges
 	pub bridge_dir: &'a dyn AsRef<Path>,
-    /// Path per platform. e.g. (iOS, "target/aarch64-apple-ios/debug/libmy_rust_lib.a")
+    /// Path per platform. e.g. `(ApplePlatform::iOS, "target/aarch64-apple-ios/debug/libmy_rust_lib.a")`
 	pub paths: HashMap<ApplePlatform, &'a dyn AsRef<Path>>,
 	/// The directory where the package will be saved
 	pub out_dir: &'a dyn AsRef<Path>,
 	/// The name for the Swift package
 	pub package_name: &'a str
+}
+
+impl<'a> GeneratePackageConfig<'a> {
+	/// Creates a new `GeneratePackageConfig` for generating Swift Packages from Rust code.
+	pub fn new(bridge_dir: &'a dyn AsRef<Path>, paths: HashMap<ApplePlatform, &'a dyn AsRef<Path>>, out_dir: &'a dyn AsRef<Path>, package_name: &'a str) -> Self {
+		Self {
+			bridge_dir,
+			paths,
+			out_dir,
+			package_name
+		}
+	}
 }
 
 #[allow(non_camel_case_types)]
@@ -24,11 +38,25 @@ pub enum ApplePlatform {
 	/// `aarch64-apple-ios`
 	iOS,
 	/// `x86_64-apple-ios`
+	/// `aarch64-apple-ios-sim`
 	///
 	/// iOS simulator for debugging in XCode's simulator.
 	Simulator,
 	/// `x86_64-apple-darwin`
 	macOS,
+	/// no official Rust target for this platform
+	MacCatalyst,
+	/// `aarch64-apple-tvos`
+	/// `x86_64-apple-tvos`
+	tvOS,
+	/// no official Rust target for this platform
+	watchOS,
+	/// no official Rust target for this platform
+	watchOSSimulator,
+	/// no official Rust target for this platform
+	carPlayOS,
+	/// no official Rust target for this platform
+	carPlayOSSimulator,
 }
 
 impl ApplePlatform {
@@ -36,11 +64,14 @@ impl ApplePlatform {
 	fn dir_name(&self) -> &str {
 		match self {
 			ApplePlatform::iOS => "ios",
-			// PackagePlatform::iOS => "ios-arm64",
 			ApplePlatform::Simulator => "simulator",
-			// PackagePlatform::Simulator => "ios-x86_64-simulator",
-			ApplePlatform::macOS => "macos"
-			// PackagePlatform::macOS => "macos-x86_64"
+			ApplePlatform::macOS => "macos",
+			ApplePlatform::MacCatalyst => "macos-mac-catalyst",
+			ApplePlatform::tvOS => "tvos",
+			ApplePlatform::watchOS => "watchos",
+			ApplePlatform::watchOSSimulator => "watchos-simulator",
+			ApplePlatform::carPlayOS => "carplay",
+			ApplePlatform::carPlayOSSimulator => "carplay-simulator",
 		}
 	}
 	
@@ -54,7 +85,7 @@ impl ApplePlatform {
 /// - `config`: The config for generating the swift package, contains the directory
 ///    containing te bridges, the paths to the libraries per platform and the output directory
 pub fn generate_package(config: GeneratePackageConfig) {
-	// Create output directory
+	// Create output directory //
 	let output_dir: &Path = config.out_dir.as_ref();
 	if !&output_dir.exists() {
 		fs::create_dir_all(&output_dir).expect("Couldn't create output directory");
@@ -143,7 +174,7 @@ fn gen_xcframework(output_dir: &Path, config: &GeneratePackageConfig) {
 	for platform in &config.paths {
 		let file_path = Path::new(platform.0.dir_name())
 			.join((platform.1.as_ref() as &Path).file_name().unwrap());
-		println!("file_path: {:?}", file_path);
+		// println!("file_path: {:?}", file_path);
 		
 		args.push("-library".to_string());
 		args.push(file_path.to_str().unwrap().trim().to_string());

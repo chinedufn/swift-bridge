@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::path::Path;
-use swift_bridge_build::{generate_package, GeneratePackageConfig};
+use std::process::Command;
 
+use swift_bridge_build::{generate_package, GeneratePackageConfig};
 use swift_bridge_build::ApplePlatform as Platform;
 
 #[test]
 fn gen_package() {
+    // Generate package
     generate_package(GeneratePackageConfig {
         bridge_dir: &Path::new("tests/sample_project/generated"),
         paths: HashMap::from([
@@ -16,4 +18,14 @@ fn gen_package() {
         out_dir: &Path::new("tests/sample_project/MySwiftPackage"),
         package_name: "MySwiftPackage"
     });
+    
+    // Test package (macOS)
+    let output = Command::new("swift")
+        .current_dir("tests/test_project")
+        .arg("run")
+        .output()
+        .expect("Failed to execute `swift run`");
+    
+    println!("{}", std::str::from_utf8(&*output.stderr).unwrap());
+    assert_eq!("Hello Rust!\n", std::str::from_utf8(&*output.stdout).unwrap());
 }
