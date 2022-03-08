@@ -174,7 +174,6 @@ fn gen_xcframework(output_dir: &Path, config: &GeneratePackageConfig) {
 	for platform in &config.paths {
 		let file_path = Path::new(platform.0.dir_name())
 			.join((platform.1.as_ref() as &Path).file_name().unwrap());
-		// println!("file_path: {:?}", file_path);
 		
 		args.push("-library".to_string());
 		args.push(file_path.to_str().unwrap().trim().to_string());
