@@ -19,7 +19,7 @@ fn gen_package() {
         package_name: "MySwiftPackage"
     });
     
-    // Test package (macOS)
+    // Test package (macOS executable)
     let output = Command::new("swift")
         .current_dir("tests/test_project")
         .arg("run")
