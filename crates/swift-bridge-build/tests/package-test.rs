@@ -7,6 +7,12 @@ use swift_bridge_build::ApplePlatform as Platform;
 
 #[test]
 fn gen_package() {
+    // Build Rust
+    Command::new("sh")
+        .current_dir("tests/sample_project")
+        .arg("build.sh")
+        .spawn()
+        .expect("Couldn't execute build script");
     // Generate package
     generate_package(GeneratePackageConfig {
         bridge_dir: &Path::new("tests/sample_project/generated"),
