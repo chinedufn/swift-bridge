@@ -136,8 +136,6 @@ xcodebuild -create-xcframework \
     -output MyRustLib.xcframework
 ```
 
-*The order of the `library` tags is important, but we don't currently know why*
-
 ## Creating the Swift package
 
 Go back to the root of the project (`cd ..`) and create a new Swift package:
