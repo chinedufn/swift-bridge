@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "test_project",
     dependencies: [
-        .package(path: "../sample_project/MySwiftPackage")
+        .package(path: "../sample-project/MySwiftPackage")
     ],
     targets: [
         .executableTarget(

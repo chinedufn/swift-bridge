@@ -101,7 +101,7 @@ pub fn generate_package(config: GeneratePackageConfig) {
 /// Generates the XCFramework
 fn gen_xcframework(output_dir: &Path, config: &GeneratePackageConfig) {
 	// Create directories
-	let tmp_framework_path = output_dir.join("_tmp_framework");
+	let tmp_framework_path = std::env::temp_dir().join("swiftbridge._tmp_framework");
 	if !tmp_framework_path.exists() {
 		fs::create_dir(&tmp_framework_path).expect("Couldn't create framework directory");
 	}
@@ -168,6 +168,7 @@ fn gen_xcframework(output_dir: &Path, config: &GeneratePackageConfig) {
 	if xcframework_dir.exists() {
 		fs::remove_dir_all(&xcframework_dir).expect("Couldn't delete previous xcframework file");
 	}
+	fs::create_dir(&xcframework_dir).expect("Couldn't create directory for xcframework");
 	
     let mut args: Vec<String> = Vec::new();
 	args.push("-create-xcframework".to_string());
@@ -181,7 +182,15 @@ fn gen_xcframework(output_dir: &Path, config: &GeneratePackageConfig) {
 		args.push("include".to_string());
 	}
 	args.push("-output".to_string());
-	args.push("../framework.xcframework".to_string());
+	args.push(
+		fs::canonicalize(xcframework_dir)
+			.expect("Couldn't convert output directory to absolute path")
+			.as_path()
+			.to_str()
+			.unwrap()
+			.to_string()
+	);
+	
 	let output = Command::new("xcodebuild")
 		.current_dir(&tmp_framework_path)
 		.args(args)
