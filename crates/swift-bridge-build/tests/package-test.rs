@@ -23,25 +23,11 @@ fn gen_package() {
         .expect("Couldn't execute build script");
     println!("{}", std::str::from_utf8(&*output.stdout).unwrap());
     
-    // Debug
-    let output = Command::new("sh")
-        .arg("ls")
-        .output()
-        .unwrap();
-    println!("{}", std::str::from_utf8(&*output.stdout).unwrap());
-    let output = Command::new("sh")
-        .arg("ls tests/sample-project/target/x86_64-apple-ios/debug/")
-        .output()
-        .unwrap();
-    println!("{}", std::str::from_utf8(&*output.stdout).unwrap());
-    
     // Generate package
     generate_package(GeneratePackageConfig {
         bridge_dir: &Path::new("tests/sample-project/generated"),
         paths: HashMap::from([
-            (Platform::iOS, &Path::new("tests/sample-project/target/x86_64-apple-ios/debug/libsample_project.a") as &dyn AsRef<Path>),
             (Platform::macOS, &Path::new("tests/sample-project/target/x86_64-apple-darwin/debug/libsample_project.a") as &dyn AsRef<Path>),
-            (Platform::Simulator, &Path::new("tests/sample-project/target/aarch64-apple-ios/debug/libsample_project.a") as &dyn AsRef<Path>),
         ]),
         out_dir: &Path::new("tests/sample-project/MySwiftPackage"),
         package_name: "MySwiftPackage"
