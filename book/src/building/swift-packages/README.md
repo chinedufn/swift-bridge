@@ -57,18 +57,14 @@ use swift_bridge_build::{GeneratePackageConfig, ApplePlatform};
 
 fn main() {
     let out_dir = PathBuf::from("./generated");
-
+    
     let bridges = vec!["src/lib.rs"];
     for path in &bridges {
         println!("cargo:rerun-if-changed={}", path);
     }
-
-    // Build bridge files
+    
     swift_bridge_build::parse_bridges(bridges)
         .write_all_concatenated(out_dir, env!("CARGO_PKG_NAME"));
-    
-    // Generate the Swift Package
-
 }
 ```
 

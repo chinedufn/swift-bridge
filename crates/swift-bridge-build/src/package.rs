@@ -191,7 +191,6 @@ fn gen_xcframework(output_dir: &Path, config: &GeneratePackageConfig) {
 	if stderr.chars().count() > 0 {
 		panic!("{}", stderr);
 	}
-	println!("{}", std::str::from_utf8(&*output.stdout).unwrap());
 	
 	// Remove temporary directory
 	if fs::remove_dir_all(&tmp_framework_path).is_err() {
