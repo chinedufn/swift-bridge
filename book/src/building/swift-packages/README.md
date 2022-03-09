@@ -68,6 +68,30 @@ fn main() {
         .write_all_concatenated(out_dir, env!("CARGO_PKG_NAME"));
     
     // Generate the Swift Package
+
+}
+```
+
+Create a new folder called *generated* `mkdir generated`.
+
+Create a new rust project called "post-build":
+
+```
+cargo new post-build
+```
+
+Add `swift-bridge-build = "0.1"` to that crate's dependencies.
+
+In `main.rs`:
+
+```rust
+// src/main.rs
+use std::path::Path;
+use std::collections::HashMap;
+use swift_bridge_build::{GeneratePackageConfig, ApplePlatform};
+
+fn main() {
+    std::env::set_current_dir("../").unwrap();
     swift_bridge_build::generate_package(GeneratePackageConfig {
         bridge_dir: &Path::new("./generated"),
         paths: HashMap::from([
@@ -81,8 +105,6 @@ fn main() {
 }
 ```
 
-Create a new folder called *generated* `mkdir generated`.
-
 Build the project for the desired platforms:
 
 ```bash
@@ -90,6 +112,9 @@ export SWIFT_BRIDGE_OUT_DIR="$(pwd)/generated"
 cargo build --target x86_64-apple-darwin
 cargo build --target aarch64-apple-ios
 cargo build --target x86_64-apple-ios
+
+cd post-build
+cargo run
 ```
 
 You now have a Swift Package in the `MySwiftPackage` directory that can be used on the specified platforms
