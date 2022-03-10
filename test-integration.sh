@@ -28,7 +28,6 @@ mkdir swift-package-rust-library-fixture/generated
 cargo run -p integration-test-create-swift-package
 
 # Test Swift Package
-echo "TESTING SWIFT PACKAGE"
 cd swift-package-test-package
 swift test
 cd ..
