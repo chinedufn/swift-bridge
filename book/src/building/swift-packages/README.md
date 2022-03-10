@@ -70,37 +70,6 @@ fn main() {
 
 Create a new folder called *generated* `mkdir generated`.
 
-Create a new rust project called "post-build":
-
-```
-cargo new post-build
-```
-
-Add `swift-bridge-build = "0.1"` to that crate's dependencies.
-
-In `main.rs`:
-
-```rust
-// src/main.rs
-use std::path::Path;
-use std::collections::HashMap;
-use swift_bridge_build::{GeneratePackageConfig, ApplePlatform};
-
-fn main() {
-    std::env::set_current_dir("../").unwrap();
-    swift_bridge_build::generate_package(GeneratePackageConfig {
-        bridge_dir: &Path::new("./generated"),
-        paths: HashMap::from([
-            (ApplePlatform::iOS, &Path::new("target/x86_64-apple-ios/debug/libmy_rust_lib.a") as &dyn AsRef<Path>),
-            (ApplePlatform::Simulator, &Path::new("target/aarch64-apple-ios/debug/libmy_rust_lib.a") as &dyn AsRef<Path>),
-            (ApplePlatform::macOS, &Path::new("target/x86_64-apple-darwin/debug/libmy_rust_lib.a") as &dyn AsRef<Path>),
-        ]),
-        out_dir: &Path::new("MySwiftPackage"),
-        package_name: "MySwiftPackage"
-    });
-}
-```
-
 Build the project for the desired platforms:
 
 ```bash
@@ -113,11 +82,34 @@ cd post-build
 cargo run
 ```
 
-You now have a Swift Package in the `MySwiftPackage` directory that can be used on the specified platforms
+We can now take our generated files and turn them into a Swift Package. This can be achieved using  the `API` or the `CLI` to package the bridging code and the Rust libraries into a Swift Package.
+
+#### API
+
+```rust
+use std::path::Path;
+use std::collections::HashMap;
+use swift_bridge_build::{GeneratePackageConfig, ApplePlatform};
+fn main() {
+    swift_bridge_build::generate_package(GeneratePackageConfig {
+        bridge_dir: &Path::new("./generated"),
+        paths: HashMap::from([
+            (ApplePlatform::iOS, &"target/x86_64-apple-ios/debug/libmy_rust_lib.a" as _),
+            (ApplePlatform::Simulator, &"target/aarch64-apple-ios/debug/libmy_rust_lib.a" as _),
+            (ApplePlatform::macOS, &"target/x86_64-apple-darwin/debug/libmy_rust_lib.a" as _),
+        ]),
+        out_dir: &Path::new("MySwiftPackage"),
+        package_name: "MySwiftPackage"
+    });
+}
+```
+
+#### CLI
+*Not yet implemented*
 
 ## Using the Swift Package
 
-We now have a Swift Package which we can include in other projects using the Swift Package Manager.
+We now have a Swift Package (in the `MySwiftPackage` directory) which we can include in other projects using the Swift Package Manager.
 
 ### Example: MacOS executable
 Here is an example of an executable project located in `rust-swift-project/testPackage`.
