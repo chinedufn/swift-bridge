@@ -39,7 +39,7 @@ mod extern_rust_method_swift_class_placement {
 public class SomeType: SomeTypeRefMut {
     var isOwned: Bool = true
 
-    override init(ptr: UnsafeMutableRawPointer) {
+    public override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }
 
@@ -59,7 +59,7 @@ extension SomeType {
     }
 }
 public class SomeTypeRefMut: SomeTypeRef {
-    override init(ptr: UnsafeMutableRawPointer) {
+    public override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }
 }
@@ -75,7 +75,7 @@ extension SomeTypeRefMut {
 public class SomeTypeRef {
     var ptr: UnsafeMutableRawPointer
 
-    init(ptr: UnsafeMutableRawPointer) {
+    public init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
 }

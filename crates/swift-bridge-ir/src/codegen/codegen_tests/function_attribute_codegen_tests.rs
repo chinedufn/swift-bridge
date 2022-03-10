@@ -183,7 +183,7 @@ mod protocol_identifiable {
 public class SomeTypeRef {
     var ptr: UnsafeMutableRawPointer
 
-    init(ptr: UnsafeMutableRawPointer) {
+    public init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
 }
@@ -196,7 +196,7 @@ extension SomeTypeRef: Identifiable {
 public class AnotherTypeRef {
     var ptr: UnsafeMutableRawPointer
 
-    init(ptr: UnsafeMutableRawPointer) {
+    public init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
 }
