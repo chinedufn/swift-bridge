@@ -79,10 +79,6 @@ impl ApplePlatform {
 /// Generates an xcframework embedded in a Swift Package from the Rust project.
 ///
 /// - Also see the [relevant book chapter](https://chinedufn.github.io/swift-bridge/building/swift-packages/index.html)
-/// 
-/// # Parameters
-/// - `config`: The config for generating the swift package, contains the directory
-///    containing te bridges, the paths to the libraries per platform and the output directory
 pub fn create_package(config: CreatePackageConfig) {
 	// Create output directory //
 	let output_dir: &Path = config.out_dir.as_ref();
