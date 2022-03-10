@@ -45,7 +45,7 @@ func some_function() async {
     class CbWrapper {
         var cb: (Result<(), Never>) -> ()
 
-        init(cb: @escaping (Result<(), Never>) -> ()) {
+        public init(cb: @escaping (Result<(), Never>) -> ()) {
             self.cb = cb
         }
     }
@@ -132,7 +132,7 @@ func some_function() async -> UInt8 {
     class CbWrapper {
         var cb: (Result<UInt8, Never>) -> ()
 
-        init(cb: @escaping (Result<UInt8, Never>) -> ()) {
+        public init(cb: @escaping (Result<UInt8, Never>) -> ()) {
             self.cb = cb
         }
     }
@@ -222,7 +222,7 @@ func some_function() async -> SomeStruct {
     class CbWrapper {
         var cb: (Result<SomeStruct, Never>) -> ()
 
-        init(cb: @escaping (Result<SomeStruct, Never>) -> ()) {
+        public init(cb: @escaping (Result<SomeStruct, Never>) -> ()) {
             self.cb = cb
         }
     }

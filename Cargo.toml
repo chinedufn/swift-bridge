@@ -33,7 +33,10 @@ members = [
   "crates/swift-bridge-cli",
   "crates/swift-bridge-ir",
   "crates/swift-bridge-macro",
+
   "crates/swift-integration-tests",
+  "SwiftRustIntegrationTestRunner/integration-test-create-swift-package",
+  "SwiftRustIntegrationTestRunner/swift-package-rust-library-fixture",
 
   "examples/async-functions",
   "examples/codegen-visualizer",

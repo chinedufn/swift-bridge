@@ -11,3 +11,4 @@ license = "Apache-2.0/MIT"
 proc-macro2 = "1"
 swift-bridge-ir = {version = "0.1.28", path = "../swift-bridge-ir"}
 syn = {version = "1"}
+tempfile = "3.3"

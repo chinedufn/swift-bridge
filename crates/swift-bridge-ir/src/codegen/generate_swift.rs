@@ -188,7 +188,7 @@ fn generate_swift_class(
             r#"public class {type_name}: {type_name}RefMut {{
     var isOwned: Bool = true
 
-    override init(ptr: UnsafeMutableRawPointer) {{
+    public override init(ptr: UnsafeMutableRawPointer) {{
         super.init(ptr: ptr)
     }}
 
@@ -208,7 +208,7 @@ fn generate_swift_class(
         format!(
             r#"
 public class {type_name}RefMut: {type_name}Ref {{
-    override init(ptr: UnsafeMutableRawPointer) {{
+    public override init(ptr: UnsafeMutableRawPointer) {{
         super.init(ptr: ptr)
     }}
 }}"#,
@@ -223,7 +223,7 @@ public class {type_name}RefMut: {type_name}Ref {{
 public class {type_name}Ref {{
     var ptr: UnsafeMutableRawPointer
 
-    init(ptr: UnsafeMutableRawPointer) {{
+    public init(ptr: UnsafeMutableRawPointer) {{
         self.ptr = ptr
     }}
 }}"#,
@@ -404,7 +404,7 @@ fn gen_func_swift_calls_rust(
     };
 
     let swift_class_func_name = if function.is_swift_initializer {
-        "convenience init".to_string()
+        "public convenience init".to_string()
     } else {
         format!("public func {}", fn_name.as_str())
     };
@@ -574,7 +574,7 @@ fn gen_func_swift_calls_rust(
             r#"class CbWrapper {{
     var cb: (Result<{rust_fn_ret_ty}, Never>) -> ()
 
-    init(cb: @escaping (Result<{rust_fn_ret_ty}, Never>) -> ()) {{
+    public init(cb: @escaping (Result<{rust_fn_ret_ty}, Never>) -> ()) {{
         self.cb = cb
     }}
 }}
@@ -950,7 +950,7 @@ func __swift_bridge__Foo_new (_ a: UInt8) -> __private__PointerToSwiftType {
 public class Foo: FooRefMut {
     var isOwned: Bool = true
 
-    override init(ptr: UnsafeMutableRawPointer) {
+    public override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }
 
@@ -961,7 +961,7 @@ public class Foo: FooRefMut {
     }
 }
 extension Foo {
-    convenience init() {
+    public convenience init() {
         self.init(ptr: __swift_bridge__$Foo$new())
     }
 }
@@ -990,7 +990,7 @@ extension Foo {
 public class Foo: FooRefMut {
     var isOwned: Bool = true
 
-    override init(ptr: UnsafeMutableRawPointer) {
+    public override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }
 
@@ -1001,7 +1001,7 @@ public class Foo: FooRefMut {
     }
 }
 extension Foo {
-    convenience init(_ val: UInt8) {
+    public convenience init(_ val: UInt8) {
         self.init(ptr: __swift_bridge__$Foo$new(val))
     }
 }
@@ -1061,7 +1061,7 @@ func __swift_bridge__Foo_pop (_ this: UnsafeMutableRawPointer) {
 public class FooRef {
     var ptr: UnsafeMutableRawPointer
 
-    init(ptr: UnsafeMutableRawPointer) {
+    public init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
 }
@@ -1094,7 +1094,7 @@ extension FooRef {
 public class FooRef {
     var ptr: UnsafeMutableRawPointer
 
-    init(ptr: UnsafeMutableRawPointer) {
+    public init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
 }
@@ -1128,7 +1128,7 @@ extension FooRef {
 public class FooRef {
     var ptr: UnsafeMutableRawPointer
 
-    init(ptr: UnsafeMutableRawPointer) {
+    public init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
 }

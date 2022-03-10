@@ -1,0 +1,4 @@
+target/
+package/
+generated/
+MySwiftPackage

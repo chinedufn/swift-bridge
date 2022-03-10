@@ -36,7 +36,7 @@ mod extern_rust_type {
 public class SomeType: SomeTypeRefMut {
     var isOwned: Bool = true
 
-    override init(ptr: UnsafeMutableRawPointer) {
+    public override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }
 
@@ -47,14 +47,14 @@ public class SomeType: SomeTypeRefMut {
     }
 }
 public class SomeTypeRefMut: SomeTypeRef {
-    override init(ptr: UnsafeMutableRawPointer) {
+    public override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }
 }
 public class SomeTypeRef {
     var ptr: UnsafeMutableRawPointer
 
-    init(ptr: UnsafeMutableRawPointer) {
+    public init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
 }
