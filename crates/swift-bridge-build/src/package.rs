@@ -6,6 +6,7 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
+use tempfile::tempdir;
 
 /// Config for generating Swift packages
 pub struct CreatePackageConfig<'a> {
@@ -96,7 +97,12 @@ pub fn create_package(config: CreatePackageConfig) {
 /// Generates the XCFramework
 fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
 	// Create directories
-	let tmp_framework_path = std::env::temp_dir().join("swiftbridge._tmp_framework");
+	let temp_dir = tempdir().expect("Couldn't create temporary directory");
+	let tmp_framework_path = &temp_dir.path().join("swiftbridge._tmp_framework");
+	// let tmp_framework_path = tempfile::tempdir()
+	// 	.expect("Couldn't create temporary directory")
+    //     .path()
+    //     .join("swiftbridge._tmp_framework");
 	if !tmp_framework_path.exists() {
 		fs::create_dir(&tmp_framework_path).expect("Couldn't create framework directory");
 	}
@@ -197,8 +203,9 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
 	}
 	
 	// Remove temporary directory
-	if fs::remove_dir_all(&tmp_framework_path).is_err() {
-		eprintln!("Couldn't delete temporary framework directory {:?}", tmp_framework_path);
+	let temp_dir_string = temp_dir.path().to_str().unwrap().to_string();
+	if let Err(err) = temp_dir.close() {
+		eprintln!("Couldn't close temporary directory {} - {}", temp_dir_string, err);
 	}
 }
 
