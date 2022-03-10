@@ -189,127 +189,49 @@ fn hello_rust() -&gt; String {
 <pre><pre class="playground"><code class="language-rust">// my-rust-lib/build.rs
 
 use std::path::PathBuf;
+use swift_bridge_build::{GeneratePackageConfig, ApplePlatform};
 
 fn main() {
     let out_dir = PathBuf::from(&quot;./generated&quot;);
-
+    
     let bridges = vec![&quot;src/lib.rs&quot;];
     for path in &amp;bridges {
         println!(&quot;cargo:rerun-if-changed={}&quot;, path);
     }
-
+    
     swift_bridge_build::parse_bridges(bridges)
         .write_all_concatenated(out_dir, env!(&quot;CARGO_PKG_NAME&quot;));
 }
 </code></pre></pre>
+<p>Create a new folder called <em>generated</em> <code>mkdir generated</code>.</p>
 <p>Build the project for the desired platforms:</p>
 <pre><code class="language-bash">export SWIFT_BRIDGE_OUT_DIR=&quot;$(pwd)/generated&quot;
 cargo build --target x86_64-apple-darwin
 cargo build --target aarch64-apple-ios
 cargo build --target x86_64-apple-ios
 </code></pre>
-<h2 id="creating-the-xcframework"><a class="header" href="#creating-the-xcframework">Creating the XCFramework</a></h2>
-<p>Go back to the root of the project and make a new directory <code>cd ..</code>.</p>
-<pre><code class="language-bash">mkdir MyFramework &amp;&amp; cd $_
-</code></pre>
-<p>Copy the generated libraries and the headers to this folder:</p>
-<pre><code class="language-bash">mkdir include
-touch include/module.modulemap
-cp ../my-rust-lib/generated/SwiftBridgeCore.h ./include
-cp ../my-rust-lib/generated/my_rust_lib/my_rust_lib.h ./includ
-mkdir ios
-cp ../my-rust-lib/target/aarch64-apple-ios/debug/libmy_rust_lib.a ./ios
-mkdir macos
-cp ../my-rust-lib/target/x86_64-apple-darwin/debug/libmy_rust_lib.a ./macos
-mkdir simulator
-cp ../my-rust-lib/target/x86_64-apple-ios/debug/libmy_rust_lib.a ./simulator
-</code></pre>
-<p>This should result in the follwing folder structure:</p>
-<pre><code>MyFramework
-├── include
-│   ├── SwiftBridgeCore.h
-│   ├── module.modulemap
-│   └── my_rust_lib.h
-├── ios
-│   └── libmy_rust_lib.a
-├── macos
-│   └── libmy_rust_lib.a
-└── simulator
-    └── libmy_rust_lib.a
-</code></pre>
-<p>Edit <code>include/module.modulemap</code>:</p>
-<pre><code class="language-modulemap">module MyRustLib {
-    header &quot;my_rust_lib.h&quot;
-    header &quot;SwiftBridgeCore.h&quot;
-    export *
+<p>We can now take our generated files and turn them into a Swift Package. This can be achieved using  the <code>API</code> or the <code>CLI</code> to package the bridging code and the Rust libraries into a Swift Package.</p>
+<h4 id="api"><a class="header" href="#api">API</a></h4>
+<pre><pre class="playground"><code class="language-rust">use std::path::Path;
+use std::collections::HashMap;
+use swift_bridge_build::{CreatePackageConfig, ApplePlatform};
+fn main() {
+    swift_bridge_build::create_package(GeneratePackageConfig {
+        bridge_dir: &amp;Path::new(&quot;./generated&quot;),
+        paths: HashMap::from([
+            (ApplePlatform::IOS, &amp;&quot;target/x86_64-apple-ios/debug/libmy_rust_lib.a&quot; as _),
+            (ApplePlatform::Simulator, &amp;&quot;target/aarch64-apple-ios/debug/libmy_rust_lib.a&quot; as _),
+            (ApplePlatform::MacOS, &amp;&quot;target/x86_64-apple-darwin/debug/libmy_rust_lib.a&quot; as _),
+        ]),
+        out_dir: &amp;Path::new(&quot;MySwiftPackage&quot;),
+        package_name: &quot;MySwiftPackage&quot;
+    });
 }
-</code></pre>
-<p>Now it is time to build the xcframework:</p>
-<pre><code class="language-bash">xcodebuild -create-xcframework \
-    -library simulator/libmy_rust_lib.a \
-    -headers include \
-    -library ios/libmy_rust_lib.a \
-    -headers include \
-    -library macos/libmy_rust_lib.a \
-    -headers include \
-    -output MyRustLib.xcframework
-</code></pre>
-<p><em>The order of the <code>library</code> tags is important, but we don't currently know why</em></p>
-<h2 id="creating-the-swift-package"><a class="header" href="#creating-the-swift-package">Creating the Swift package</a></h2>
-<p>Go back to the root of the project (<code>cd ..</code>) and create a new Swift package:</p>
-<pre><code class="language-bash">mkdir MySwiftPackage &amp;&amp; cd MySwiftPackage
-</code></pre>
-<p>Now either do <code>mkdir -r Sources/MySwiftPackage</code> and <code>touch Package.swift</code>, or use <code>swift package init --type library</code>.</p>
-<p>Copy the xcframework and generated swift files to this folder:</p>
-<pre><code class="language-bash">cp -r ../MyFramework/MyRustLib.xcframework ./
-cp ../my-rust-lib/generated/SwiftBridgeCore.swift Sources/MySwiftPackage
-cp ../my-rust-lib/generated/my_rust_lib/my_rust_lib.swift Sources/MySwiftPackage
-</code></pre>
-<p>The folder structure should be:</p>
-<pre><code>MySwiftPackage
-├── Sources
-│   └── MySwiftPackage
-│       └── SwiftBridgeCore.swift
-│       └── my_rust_lib.swift
-├── MyRustLib.b.xcframework
-└── Package.swift
-</code></pre>
-<p>Add the framework as a binary target to <code>Package.swift</code>:</p>
-<pre><code class="language-swift">// MySwiftPackage/Package.swift
-
-// swift-tools-version:5.5.0
-import PackageDescription
-let package = Package(
-    name: &quot;MySwiftPackage&quot;,
-    products: [
-        .library(
-            name: &quot;MySwiftPackage&quot;,
-            targets: [&quot;MySwiftPackage&quot;]),
-    ],
-    dependencies: [
-
-    ],
-    targets: [
-        .binaryTarget(
-            name: &quot;MyRustLib&quot;,
-            path: &quot;MyRustLib.xcframework&quot;
-        ),
-        .target(
-            name: &quot;MySwiftPackge&quot;,
-            dependencies: [&quot;MyRustLib&quot;]),
-    ]
-)
-</code></pre>
-<!--TODO: better way of dealing with this instead of editing the generated files-->
-<p>We will need to import our rust library in <code>my_rust_lib.swift</code> and <code>SwiftBridgeCore.swift</code>:</p>
-<pre><code class="language-swift">// MySwiftPackage/Sources/MySwiftPackage/SwiftBridgeCore.swift
-import MyRustLib
-</code></pre>
-<pre><code class="language-swift">// MySwiftPackage/Sources/MySwiftPackage/my_rust_lib.swift
-import MyRustLib
-</code></pre>
+</code></pre></pre>
+<h4 id="cli"><a class="header" href="#cli">CLI</a></h4>
+<p><em>Not yet implemented</em></p>
 <h2 id="using-the-swift-package"><a class="header" href="#using-the-swift-package">Using the Swift Package</a></h2>
-<p>We now have a Swift Package which we can include in other projects using the Swift Package Manager.</p>
+<p>We now have a Swift Package (in the <code>MySwiftPackage</code> directory) which we can include in other projects using the Swift Package Manager.</p>
 <h3 id="example-macos-executable"><a class="header" href="#example-macos-executable">Example: MacOS executable</a></h3>
 <p>Here is an example of an executable project located in <code>rust-swift-project/testPackage</code>.</p>
 <pre><code class="language-swift">// testPackage/Package.swift
