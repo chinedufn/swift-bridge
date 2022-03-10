@@ -27,7 +27,7 @@ fn gen_package() {
     create_package(CreatePackageConfig {
         bridge_dir: &Path::new("tests/sample-project/generated"),
         paths: HashMap::from([
-            (Platform::macOS, &Path::new("tests/sample-project/target/x86_64-apple-darwin/debug/libsample_project.a") as &dyn AsRef<Path>),
+            (Platform::MacOS, &Path::new("tests/sample-project/target/x86_64-apple-darwin/debug/libsample_project.a") as &dyn AsRef<Path>),
         ]),
         out_dir: &Path::new("tests/sample-project/MySwiftPackage"),
         package_name: "MySwiftPackage"

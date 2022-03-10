@@ -94,9 +94,9 @@ fn main() {
     swift_bridge_build::create_package(GeneratePackageConfig {
         bridge_dir: &Path::new("./generated"),
         paths: HashMap::from([
-            (ApplePlatform::iOS, &"target/x86_64-apple-ios/debug/libmy_rust_lib.a" as _),
+            (ApplePlatform::IOS, &"target/x86_64-apple-ios/debug/libmy_rust_lib.a" as _),
             (ApplePlatform::Simulator, &"target/aarch64-apple-ios/debug/libmy_rust_lib.a" as _),
-            (ApplePlatform::macOS, &"target/x86_64-apple-darwin/debug/libmy_rust_lib.a" as _),
+            (ApplePlatform::MacOS, &"target/x86_64-apple-darwin/debug/libmy_rust_lib.a" as _),
         ]),
         out_dir: &Path::new("MySwiftPackage"),
         package_name: "MySwiftPackage"

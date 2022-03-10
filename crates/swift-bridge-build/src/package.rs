@@ -31,47 +31,46 @@ impl<'a> CreatePackageConfig<'a> {
 	}
 }
 
-#[allow(non_camel_case_types)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 /// Currently supported platforms for genereting Swift Packages.
 pub enum ApplePlatform {
 	/// `aarch64-apple-ios`
-	iOS,
+	IOS,
 	/// `x86_64-apple-ios`
 	/// `aarch64-apple-ios-sim`
 	///
 	/// iOS simulator for debugging in XCode's simulator.
 	Simulator,
 	/// `x86_64-apple-darwin`
-	macOS,
+	MacOS,
 	/// no official Rust target for this platform
 	MacCatalyst,
 	/// `aarch64-apple-tvos`
 	/// `x86_64-apple-tvos`
-	tvOS,
+	TvOS,
 	/// no official Rust target for this platform
-	watchOS,
+	WatchOS,
 	/// no official Rust target for this platform
-	watchOSSimulator,
+	WatchOSSimulator,
 	/// no official Rust target for this platform
-	carPlayOS,
+	CarPlayOS,
 	/// no official Rust target for this platform
-	carPlayOSSimulator,
+	CarPlayOSSimulator,
 }
 
 impl ApplePlatform {
 	/// The directory name inside of the xcframework for the specified platform.
 	fn dir_name(&self) -> &str {
 		match self {
-			ApplePlatform::iOS => "ios",
+			ApplePlatform::IOS => "ios",
 			ApplePlatform::Simulator => "simulator",
-			ApplePlatform::macOS => "macos",
+			ApplePlatform::MacOS => "macos",
 			ApplePlatform::MacCatalyst => "macos-mac-catalyst",
-			ApplePlatform::tvOS => "tvos",
-			ApplePlatform::watchOS => "watchos",
-			ApplePlatform::watchOSSimulator => "watchos-simulator",
-			ApplePlatform::carPlayOS => "carplay",
-			ApplePlatform::carPlayOSSimulator => "carplay-simulator",
+			ApplePlatform::TvOS => "tvos",
+			ApplePlatform::WatchOS => "watchos",
+			ApplePlatform::WatchOSSimulator => "watchos-simulator",
+			ApplePlatform::CarPlayOS => "carplay",
+			ApplePlatform::CarPlayOSSimulator => "carplay-simulator",
 		}
 	}
 	
