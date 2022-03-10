@@ -47,5 +47,5 @@ fn gen_package() {
         .expect("Failed to execute `swift run`");
     
     println!("{}", std::str::from_utf8(&*output.stderr).unwrap());
-    assert_eq!("Hello Rust!\n", std::str::from_utf8(&*output.stdout).unwrap());
+    assert_eq!("Hello, From Rust!\n", std::str::from_utf8(&*output.stdout).unwrap());
 }

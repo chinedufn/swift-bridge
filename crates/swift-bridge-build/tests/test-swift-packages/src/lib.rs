@@ -6,5 +6,5 @@ mod ffi {
 }
 
 fn hello_rust() -> String {
-    String::from("Hello Rust!")
+    String::from("Hello, From Rust!")
 }
