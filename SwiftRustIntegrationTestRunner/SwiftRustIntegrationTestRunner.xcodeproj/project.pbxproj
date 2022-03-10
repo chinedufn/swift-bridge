@@ -232,6 +232,8 @@
 			dependencies = (
 			);
 			name = SwiftRustIntegrationTestRunner;
+			packageProductDependencies = (
+			);
 			productName = SwiftRustIntegrationTestRunner;
 			productReference = 228FE5D12740DB6A00805D9E /* SwiftRustIntegrationTestRunner.app */;
 			productType = "com.apple.product-type.application";

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e 
+set -e
 
 if [[ -z "$PROJECT_DIR" ]]; then
     echo "Missing PROJECT_DIR environment variable." 1>&2
@@ -11,7 +11,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 export SWIFT_BRIDGE_OUT_DIR="${PROJECT_DIR}/Generated"
 
-# Without this we can't comppile on MacOS Big Sur
+# Without this we can't compile on MacOS Big Sur
 # https://github.com/TimNN/cargo-lipo/issues/41#issuecomment-774793892
 if [[ -n "${DEVELOPER_SDK_DIR:-}" ]]; then
   export LIBRARY_PATH="${DEVELOPER_SDK_DIR}/MacOSX.sdk/usr/lib:${LIBRARY_PATH:-}"

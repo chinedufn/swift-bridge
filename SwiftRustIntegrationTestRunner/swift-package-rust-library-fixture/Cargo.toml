@@ -10,7 +10,7 @@ publish = false
 crate-type = ["staticlib"]
 
 [build-dependencies]
-swift-bridge-build = { path = "../../../swift-bridge-build"}
+swift-bridge-build = { path = "../../crates/swift-bridge-build" }
 
 [dependencies]
-swift-bridge = { path = "../../../../." }
+swift-bridge = { path = "../.." }
