@@ -89,9 +89,9 @@ We can now take our generated files and turn them into a Swift Package. This can
 ```rust
 use std::path::Path;
 use std::collections::HashMap;
-use swift_bridge_build::{GeneratePackageConfig, ApplePlatform};
+use swift_bridge_build::{CreatePackageConfig, ApplePlatform};
 fn main() {
-    swift_bridge_build::generate_package(GeneratePackageConfig {
+    swift_bridge_build::create_package(GeneratePackageConfig {
         bridge_dir: &Path::new("./generated"),
         paths: HashMap::from([
             (ApplePlatform::iOS, &"target/x86_64-apple-ios/debug/libmy_rust_lib.a" as _),

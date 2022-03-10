@@ -8,7 +8,7 @@ use std::path::Path;
 use std::process::Command;
 
 /// Config for generating Swift packages
-pub struct GeneratePackageConfig<'a> {
+pub struct CreatePackageConfig<'a> {
 	/// The directory containing the generated bridges
 	pub bridge_dir: &'a dyn AsRef<Path>,
     /// Path per platform. e.g. `(ApplePlatform::iOS, "target/aarch64-apple-ios/debug/libmy_rust_lib.a")`
@@ -19,7 +19,7 @@ pub struct GeneratePackageConfig<'a> {
 	pub package_name: &'a str
 }
 
-impl<'a> GeneratePackageConfig<'a> {
+impl<'a> CreatePackageConfig<'a> {
 	/// Creates a new `GeneratePackageConfig` for generating Swift Packages from Rust code.
 	pub fn new(bridge_dir: &'a dyn AsRef<Path>, paths: HashMap<ApplePlatform, &'a dyn AsRef<Path>>, out_dir: &'a dyn AsRef<Path>, package_name: &'a str) -> Self {
 		Self {
@@ -84,7 +84,7 @@ impl ApplePlatform {
 /// # Parameters
 /// - `config`: The config for generating the swift package, contains the directory
 ///    containing te bridges, the paths to the libraries per platform and the output directory
-pub fn generate_package(config: GeneratePackageConfig) {
+pub fn create_package(config: CreatePackageConfig) {
 	// Create output directory //
 	let output_dir: &Path = config.out_dir.as_ref();
 	if !&output_dir.exists() {
@@ -99,7 +99,7 @@ pub fn generate_package(config: GeneratePackageConfig) {
 }
 
 /// Generates the XCFramework
-fn gen_xcframework(output_dir: &Path, config: &GeneratePackageConfig) {
+fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
 	// Create directories
 	let tmp_framework_path = std::env::temp_dir().join("swiftbridge._tmp_framework");
 	if !tmp_framework_path.exists() {
@@ -208,7 +208,7 @@ fn gen_xcframework(output_dir: &Path, config: &GeneratePackageConfig) {
 }
 
 /// Generates the Swift Package
-fn gen_package(output_dir: &Path, config: &GeneratePackageConfig) {
+fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
 	let sources_dir = output_dir.join("Sources").join(config.package_name);
 	if !sources_dir.exists() {
 		fs::create_dir_all(&sources_dir).expect("Couldn't create directory for source files");

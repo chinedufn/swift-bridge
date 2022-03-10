@@ -4,7 +4,7 @@ use std::io::ErrorKind;
 use std::path::Path;
 use std::process::Command;
 
-use swift_bridge_build::{generate_package, GeneratePackageConfig};
+use swift_bridge_build::{create_package, CreatePackageConfig};
 use swift_bridge_build::ApplePlatform as Platform;
 
 #[test]
@@ -24,7 +24,7 @@ fn gen_package() {
     println!("{}", std::str::from_utf8(&*output.stdout).unwrap());
     
     // Generate package
-    generate_package(GeneratePackageConfig {
+    create_package(CreatePackageConfig {
         bridge_dir: &Path::new("tests/sample-project/generated"),
         paths: HashMap::from([
             (Platform::macOS, &Path::new("tests/sample-project/target/x86_64-apple-darwin/debug/libsample_project.a") as &dyn AsRef<Path>),
