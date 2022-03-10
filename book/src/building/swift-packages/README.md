@@ -77,9 +77,6 @@ export SWIFT_BRIDGE_OUT_DIR="$(pwd)/generated"
 cargo build --target x86_64-apple-darwin
 cargo build --target aarch64-apple-ios
 cargo build --target x86_64-apple-ios
-
-cd post-build
-cargo run
 ```
 
 We can now take our generated files and turn them into a Swift Package. This can be achieved using  the `API` or the `CLI` to package the bridging code and the Rust libraries into a Swift Package.
