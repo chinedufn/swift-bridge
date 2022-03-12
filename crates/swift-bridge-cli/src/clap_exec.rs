@@ -1,13 +1,15 @@
+use clap::ArgMatches;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use clap::ArgMatches;
-use swift_bridge_build::{ApplePlatform, create_package, CreatePackageConfig};
+use swift_bridge_build::{create_package, ApplePlatform, CreatePackageConfig};
 
 /// Executes the correct function depending on the cli input
 pub fn handle_matches(matches: ArgMatches) {
     match matches.subcommand_name() {
-        Some("create-package") => handle_create_package(matches.subcommand_matches("create-package").unwrap()),
-        _ => unreachable!("No subcommand or unknown subcommand given") // Shouldn't happen
+        Some("create-package") => {
+            handle_create_package(matches.subcommand_matches("create-package").unwrap())
+        }
+        _ => unreachable!("No subcommand or unknown subcommand given"), // Shouldn't happen
     }
 }
 
@@ -16,24 +18,19 @@ fn handle_create_package(matches: &ArgMatches) {
     let bridges_dir = matches.value_of("bridges-dir").unwrap(); // required
     let out_dir = matches.value_of("out-dir").map(|p| Path::new(p)).unwrap(); // required
     let name = matches.value_of("name").unwrap(); // required
-    
+
     let mut config = CreatePackageConfig {
-        bridge_dir: &Path::new(bridges_dir),
+        bridge_dir: PathBuf::from(bridges_dir),
         paths: HashMap::new(),
-        out_dir: &out_dir,
-        package_name: name
+        out_dir: out_dir.to_path_buf(),
+        package_name: name.to_string(),
     };
-    
-    let platforms = ApplePlatform::ALL;
-    let mut paths: Vec<(ApplePlatform, PathBuf)> = Vec::new();
-    for platform in platforms {
+
+    for platform in ApplePlatform::ALL {
         if let Some(path) = matches.value_of(platform.dir_name()) {
-            paths.push((*platform, PathBuf::from(path)));
+            config.paths.insert(*platform, PathBuf::from(path));
         }
     }
-    paths.iter().for_each(|(platform, path)| {
-        config.paths.insert(*platform, path);
-    });
-    
+
     create_package(config);
 }

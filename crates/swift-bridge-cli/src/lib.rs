@@ -1,7 +1,6 @@
-#![deny(missing_docs)]
 //! # The swift-bridge CLI.
-//!
 
+#![deny(missing_docs)]
 
 mod clap_app;
 mod clap_exec;
@@ -10,7 +9,7 @@ mod clap_exec;
 pub mod app {
     pub use crate::clap_app::*;
     pub use crate::clap_exec::*;
-    
+
     /// Execute the CLI
     pub fn run() {
         handle_matches(cli().get_matches());

@@ -4,29 +4,29 @@ use std::collections::HashMap;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use tempfile::tempdir;
 
 /// Config for generating Swift packages
-pub struct CreatePackageConfig<'a> {
+pub struct CreatePackageConfig {
     /// The directory containing the generated bridges
-    pub bridge_dir: &'a dyn AsRef<Path>,
+    pub bridge_dir: PathBuf,
     /// Path per platform. e.g. `(ApplePlatform::iOS, "target/aarch64-apple-ios/debug/libmy_rust_lib.a")`
-    pub paths: HashMap<ApplePlatform, &'a dyn AsRef<Path>>,
+    pub paths: HashMap<ApplePlatform, PathBuf>,
     /// The directory where the package will be saved
-    pub out_dir: &'a dyn AsRef<Path>,
+    pub out_dir: PathBuf,
     /// The name for the Swift package
-    pub package_name: &'a str,
+    pub package_name: String,
 }
 
-impl<'a> CreatePackageConfig<'a> {
+impl CreatePackageConfig {
     /// Creates a new `GeneratePackageConfig` for generating Swift Packages from Rust code.
     pub fn new(
-        bridge_dir: &'a dyn AsRef<Path>,
-        paths: HashMap<ApplePlatform, &'a dyn AsRef<Path>>,
-        out_dir: &'a dyn AsRef<Path>,
-        package_name: &'a str,
+        bridge_dir: PathBuf,
+        paths: HashMap<ApplePlatform, PathBuf>,
+        out_dir: PathBuf,
+        package_name: String,
     ) -> Self {
         Self {
             bridge_dir,
@@ -79,7 +79,7 @@ impl ApplePlatform {
             ApplePlatform::CarPlayOSSimulator => "carplay-simulator",
         }
     }
-    
+
     /// Array containing all `ApplePlatform` variants
     pub const ALL: &'static [Self] = &[
         ApplePlatform::IOS,
@@ -90,7 +90,7 @@ impl ApplePlatform {
         ApplePlatform::WatchOS,
         ApplePlatform::WatchOSSimulator,
         ApplePlatform::CarPlayOS,
-        ApplePlatform::CarPlayOSSimulator
+        ApplePlatform::CarPlayOSSimulator,
     ];
 }
 
@@ -117,7 +117,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     let temp_dir = tempdir().expect("Couldn't create temporary directory");
     let tmp_framework_path = &temp_dir.path().join("swiftbridge._tmp_framework");
     fs::create_dir(&tmp_framework_path).expect("Couldn't create framework directory");
-    
+
     let include_dir = tmp_framework_path.join("include");
     if !include_dir.exists() {
         fs::create_dir(&include_dir).expect("Couldn't create inlcude directory for xcframework");
@@ -249,7 +249,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
 
 /// Generates the Swift Package
 fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
-    let sources_dir = output_dir.join("Sources").join(config.package_name);
+    let sources_dir = output_dir.join("Sources").join(&config.package_name);
     if !sources_dir.exists() {
         fs::create_dir_all(&sources_dir).expect("Couldn't create directory for source files");
     }
@@ -299,7 +299,7 @@ fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
     .expect("Couldn't copy project's bridging swift file to the package");
 
     // Generate Package.swift
-    let package_name = config.package_name;
+    let package_name = &config.package_name;
     let package_swift = format!(
         r#"// swift-tools-version:5.5.0
 import PackageDescription
