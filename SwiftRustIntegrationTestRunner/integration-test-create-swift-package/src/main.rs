@@ -4,9 +4,7 @@ use std::path::PathBuf;
 use swift_bridge_build::ApplePlatform as Platform;
 use swift_bridge_build::{create_package, CreatePackageConfig};
 
-// TODO: paths
 fn main() {
-    // Generate package
     create_package(CreatePackageConfig {
         bridge_dir: PathBuf::from("swift-package-rust-library-fixture/generated"),
         paths: HashMap::from([
