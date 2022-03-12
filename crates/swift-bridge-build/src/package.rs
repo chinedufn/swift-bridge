@@ -37,7 +37,7 @@ impl<'a> CreatePackageConfig<'a> {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
 /// Currently supported platforms for genereting Swift Packages.
 pub enum ApplePlatform {
     /// `aarch64-apple-ios`
@@ -66,12 +66,12 @@ pub enum ApplePlatform {
 
 impl ApplePlatform {
     /// The directory name inside of the xcframework for the specified platform.
-    fn dir_name(&self) -> &str {
+    pub fn dir_name(&self) -> &str {
         match self {
             ApplePlatform::IOS => "ios",
             ApplePlatform::Simulator => "simulator",
             ApplePlatform::MacOS => "macos",
-            ApplePlatform::MacCatalyst => "macos-mac-catalyst",
+            ApplePlatform::MacCatalyst => "mac-catalyst",
             ApplePlatform::TvOS => "tvos",
             ApplePlatform::WatchOS => "watchos",
             ApplePlatform::WatchOSSimulator => "watchos-simulator",
@@ -79,6 +79,19 @@ impl ApplePlatform {
             ApplePlatform::CarPlayOSSimulator => "carplay-simulator",
         }
     }
+    
+    /// Array containing all `ApplePlatform` variants
+    pub const ALL: &'static [Self] = &[
+        ApplePlatform::IOS,
+        ApplePlatform::Simulator,
+        ApplePlatform::MacOS,
+        ApplePlatform::MacCatalyst,
+        ApplePlatform::TvOS,
+        ApplePlatform::WatchOS,
+        ApplePlatform::WatchOSSimulator,
+        ApplePlatform::CarPlayOS,
+        ApplePlatform::CarPlayOSSimulator
+    ];
 }
 
 /// Generates an xcframework embedded in a Swift Package from the Rust project.

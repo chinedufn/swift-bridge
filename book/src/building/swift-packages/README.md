@@ -102,7 +102,30 @@ fn main() {
 ```
 
 #### CLI
-*Not yet implemented*
+
+**Installation**:
+
+```bash
+cargo install -f swift-bridge-cli
+```
+
+**Usage**:
+
+```bash
+swift-bridge-cli create-package [OPTIONS] --bridges-dir <PATH> --out-dir <PATH>
+```
+
+For the above example, the equivalent CLI example would be:
+
+```bash
+swift-bridge-cli create-package \
+  --bridges-dir ./generated \
+  --out-dir MySwiftPackage \
+  --ios target/x86_64-apple-ios/debug/libmy_rust_lib.a \
+  --simulator target/aarch64-apple-ios/debug/libmy_rust_lib.a \
+  --macos target/x86_64-apple-darwin/debug/libmy_rust_lib.a \
+  --name MySwiftPackage
+```
 
 ## Using the Swift Package
 
