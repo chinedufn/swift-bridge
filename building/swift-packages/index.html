@@ -146,18 +146,17 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="bundling-rust-code-as-a-swift-package"><a class="header" href="#bundling-rust-code-as-a-swift-package">Bundling Rust code as a Swift package</a></h1>
+                        <h1 id="creating-swift-packages"><a class="header" href="#creating-swift-packages">Creating Swift Packages</a></h1>
 <p>In this chapter we'll walk through bundling your Rust library into a Swift Package.</p>
-<p>Note that Swift Packages that contain native libraries only work on Apple hardware. </p>
-<p>You should avoid bundling your Rust code into a Swift Package if you plan to target Linux, Windows or any other non-Apple target.</p>
+<blockquote>
+<p>Swift Packages that contain native libraries only work on Apple hardware. </p>
+<p>You should avoid bundling your Rust code into a Swift Package if you plan to target Linux,
+Windows or any other non-Apple target.</p>
+</blockquote>
 <h2 id="project-setup"><a class="header" href="#project-setup">Project setup</a></h2>
-<pre><code class="language-bash">mkdir rust-swift-package &amp;&amp; cd rust-swift-package
+<pre><code class="language-bash">mkdir my-rust-lib &amp;&amp; cd my-ryst-lib
 </code></pre>
-<h3 id="rust-project-setup"><a class="header" href="#rust-project-setup">Rust project setup</a></h3>
-<pre><code class="language-bash">cargo new my-rust-lib --lib
-cd my_rust_lib
-</code></pre>
-<pre><code class="language-toml"># my-rust-lib/Cargo.toml
+<pre><code class="language-toml"># Cargo.toml
 
 [lib]
 crate-type = [&quot;staticlib&quot;]
@@ -172,7 +171,8 @@ swift-bridge = &quot;0.1&quot;
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// my-rust-lib/src/lib.rs
+</span>// src/lib.rs
+
 #[swift_bridge::bridge]
 mod ffi {
     extern &quot;Rust&quot; {
@@ -181,15 +181,16 @@ mod ffi {
 }
 
 fn hello_rust() -&gt; String {
-    String::from(&quot;Hello Rust!&quot;)
+    String::from(&quot;Hello from Rust!&quot;)
 }
 <span class="boring">}
 </span></code></pre></pre>
-<p>Add a new <code>build.rs</code> file (<code>touch build.rs</code>):</p>
-<pre><pre class="playground"><code class="language-rust">// my-rust-lib/build.rs
+<p>Create a new <code>build.rs</code> file with the following contents:</p>
+<pre><code class="language-sh">touch build.rs
+</code></pre>
+<pre><pre class="playground"><code class="language-rust">// build.rs
 
 use std::path::PathBuf;
-use swift_bridge_build::{GeneratePackageConfig, ApplePlatform};
 
 fn main() {
     let out_dir = PathBuf::from(&quot;./generated&quot;);
@@ -203,39 +204,56 @@ fn main() {
         .write_all_concatenated(out_dir, env!(&quot;CARGO_PKG_NAME&quot;));
 }
 </code></pre></pre>
-<p>Create a new folder called <em>generated</em> <code>mkdir generated</code>.</p>
-<p>Build the project for the desired platforms:</p>
-<pre><code class="language-bash">export SWIFT_BRIDGE_OUT_DIR=&quot;$(pwd)/generated&quot;
+<p>Create a new bash script for building our Rust native libraries along with a folder
+that we'll write our parsed bridges too.</p>
+<pre><code>touch build-rust.sh
+chmod +x build-rust.sh
+mkdir generated
+</code></pre>
+<pre><code class="language-bash"># build-rust.sh
+
+#!/bin/bash
+
+set -e
+
+THISDIR=$(dirname $0)
+cd $THISDIR
+
+export SWIFT_BRIDGE_OUT_DIR=&quot;$(pwd)/generated&quot;
+# Build the project for the desired platforms:
 cargo build --target x86_64-apple-darwin
 cargo build --target aarch64-apple-ios
 cargo build --target x86_64-apple-ios
 </code></pre>
-<p>We can now take our generated files and turn them into a Swift Package. This can be achieved using  the <code>API</code> or the <code>CLI</code> to package the bridging code and the Rust libraries into a Swift Package.</p>
+<p>Run the script to build our Rust libraries:</p>
+<pre><code class="language-sh">./build-rust.sh
+</code></pre>
+<p>We can now use the <code>API</code> or the <code>CLI</code> to package the generated bridging code and the Rust libraries into a Swift Package.</p>
 <h4 id="api"><a class="header" href="#api">API</a></h4>
-<pre><pre class="playground"><code class="language-rust">use std::path::Path;
+<p>Here's an example of using the API to package up our generated bridging code and our Rust libraries into a Swift Package.</p>
+<pre><pre class="playground"><code class="language-rust">use std::path::PathBuf;
 use std::collections::HashMap;
 use swift_bridge_build::{CreatePackageConfig, ApplePlatform};
 fn main() {
-    swift_bridge_build::create_package(GeneratePackageConfig {
-        bridge_dir: &amp;Path::new(&quot;./generated&quot;),
+    swift_bridge_build::create_package(CreatePackageConfig {
+        bridge_dir: PathBuf::from(&quot;./generated&quot;),
         paths: HashMap::from([
-            (ApplePlatform::IOS, &amp;&quot;target/x86_64-apple-ios/debug/libmy_rust_lib.a&quot; as _),
-            (ApplePlatform::Simulator, &amp;&quot;target/aarch64-apple-ios/debug/libmy_rust_lib.a&quot; as _),
-            (ApplePlatform::MacOS, &amp;&quot;target/x86_64-apple-darwin/debug/libmy_rust_lib.a&quot; as _),
+            (ApplePlatform::IOS, &quot;target/x86_64-apple-ios/debug/libmy_rust_lib.a&quot;.into()),
+            (ApplePlatform::Simulator, &quot;target/aarch64-apple-ios/debug/libmy_rust_lib.a&quot;.into()),
+            (ApplePlatform::MacOS, &quot;target/x86_64-apple-darwin/debug/libmy_rust_lib.a&quot;.into()),
         ]),
-        out_dir: &amp;Path::new(&quot;MySwiftPackage&quot;),
-        package_name: &quot;MySwiftPackage&quot;
+        out_dir: PathBuf::from(&quot;MySwiftPackage&quot;),
+        package_name: PathBuf::from(&quot;MySwiftPackage&quot;)
     });
 }
 </code></pre></pre>
 <h4 id="cli"><a class="header" href="#cli">CLI</a></h4>
-<p><strong>Installation</strong>:</p>
+<p>You can use the <code>swift-bridge</code> CLI's <code>create-package</code> command in order to create a Swift Package.</p>
+<p>First, install the CLI.</p>
 <pre><code class="language-bash">cargo install -f swift-bridge-cli
+swift-bridge --help
 </code></pre>
-<p><strong>Usage</strong>:</p>
-<pre><code class="language-bash">swift-bridge-cli create-package [OPTIONS] --bridges-dir &lt;PATH&gt; --out-dir &lt;PATH&gt;
-</code></pre>
-<p>For the above example, the equivalent CLI example would be:</p>
+<p>Then, run the following to package up your generated bridges and your Rust libraries into a Swift Package.</p>
 <pre><code class="language-bash">swift-bridge-cli create-package \
   --bridges-dir ./generated \
   --out-dir MySwiftPackage \
@@ -247,32 +265,42 @@ fn main() {
 <h2 id="using-the-swift-package"><a class="header" href="#using-the-swift-package">Using the Swift Package</a></h2>
 <p>We now have a Swift Package (in the <code>MySwiftPackage</code> directory) which we can include in other projects using the Swift Package Manager.</p>
 <h3 id="example-macos-executable"><a class="header" href="#example-macos-executable">Example: MacOS executable</a></h3>
-<p>Here is an example of an executable project located in <code>rust-swift-project/testPackage</code>.</p>
-<pre><code class="language-swift">// testPackage/Package.swift
+<p>Here is an example of an executable Swift project that depends on our newly created <code>MySwiftPackage</code>.</p>
+<pre><code>mkdir SwiftProject
+touch SwiftProject/Package.swift
+mkdir -p SwiftProject/Sources/SwiftProject
+touch SwiftProject/Sources/SwiftProject/main.swift
+</code></pre>
+<p>Add these contents to <code>SwiftProject/Package.swift</code>.</p>
+<pre><code class="language-swift">// SwiftProject/Package.swift
 
 // swift-tools-version:5.5.0
 import PackageDescription
 let package = Package(
-    name: &quot;testPackage&quot;,
+    name: &quot;SwiftProject&quot;,
     dependencies: [
         .package(path: &quot;../MySwiftPackage&quot;)
     ],
     targets: [
         .executableTarget(
-            name: &quot;testPackage&quot;,
+            name: &quot;SwiftProject&quot;,
             dependencies: [
                 .product(name: &quot;MySwiftPackage&quot;, package: &quot;MySwiftPackage&quot;)
             ])
     ]
 )
 </code></pre>
-<pre><code class="language-swift">// testPackage/Sources/testPackage/main.swift
+<p>And then add this to our <code>SwiftProject/Sources/SwiftProject/main.swift</code> file.</p>
+<pre><code class="language-swift">// SwiftProject/Sources/SwiftProject/main.swift
+
 import MySwiftPackage
 
 print(hello_rust().toString())
 </code></pre>
-<pre><code>$ swift run
-Hello Rust!
+<p>And now you can run your Swift project that depends on your Rust based Swift Package:</p>
+<pre><code>cd SwiftProject
+swift run
+# You should see &quot;Hello from Rust!&quot; in your terminal.
 </code></pre>
 <h3 id="example-ios-app"><a class="header" href="#example-ios-app">Example: iOS app</a></h3>
 <p>To add the package to an iOS app in XCode, go to the target's general panel, click the <code>+</code> button in the <code>Frameworks, Libraries, and Embedded Content</code> section. Then, click <code>Add Other</code> and choose <code>Add Package Dependency</code>.</p>
