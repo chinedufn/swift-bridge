@@ -230,10 +230,12 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     let output = Command::new("xcodebuild")
         .current_dir(&tmp_framework_path)
         .args(args)
-        .output()
+        .spawn()
+        .expect("Failed to spawn xcodebuild")
+        .wait_with_output()
         .expect("Failed to execute xcodebuild");
-    let stderr = std::str::from_utf8(&*output.stderr).unwrap();
-    if stderr.chars().count() > 0 {
+    if !output.status.success() {
+        let stderr = std::str::from_utf8(&output.stderr).unwrap();
         panic!("{}", stderr);
     }
 
