@@ -104,14 +104,14 @@ pub fn create_package(config: CreatePackageConfig) {
         fs::create_dir_all(&output_dir).expect("Couldn't create output directory");
     }
 
-    // Generate XCFramework //
+    // Generate RustXcframework //
     gen_xcframework(&output_dir, &config);
 
     // Generate Swift Package //
     gen_package(&output_dir, &config);
 }
 
-/// Generates the XCFramework
+/// Generates the RustXcframework
 fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     // Create directories
     let temp_dir = tempdir().expect("Couldn't create temporary directory");
@@ -127,7 +127,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     let modulemap_path = include_dir.join("module.modulemap");
     fs::write(
         &modulemap_path,
-        "module Framework {\n    header \"SwiftBridgeCore.h\"\n",
+        "module RustXcframework {\n    header \"SwiftBridgeCore.h\"\n",
     )
     .expect("Couldn't write modulemap file");
     let mut modulemap_file = OpenOptions::new()
@@ -200,7 +200,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     }
 
     // build xcframework
-    let xcframework_dir = output_dir.join("framework.xcframework");
+    let xcframework_dir = output_dir.join("rust_framework.xcframework");
     if xcframework_dir.exists() {
         fs::remove_dir_all(&xcframework_dir).expect("Couldn't delete previous xcframework file");
     }
@@ -249,7 +249,15 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     }
 }
 
-/// Generates the Swift Package
+/// Generates the Swift Package.
+///
+/// We copy the Swift files from our generated bridge dir into the Swift Package's Sources
+/// directory. We prepend `import RustXcframework` at the top of all of the Swift files inside of
+/// the package, since without this they'll all error due to not being able to see the Rust code
+/// that they depend on.
+/// The alternative would be to use something like `@_exported import RustXcframework`, but this
+/// would make the Rust xcframework (i.e. methods like __swift_bridge__$some_method) available to
+/// the Swift Package's consumer, which we don't want.
 fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
     let sources_dir = output_dir.join("Sources").join(&config.package_name);
     if !sources_dir.exists() {
@@ -261,7 +269,7 @@ fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
     fs::write(
         sources_dir.join("SwiftBridgeCore.swift"),
         format!(
-            "import Framework\n{}",
+            "import RustXcframework\n{}",
             fs::read_to_string(&bridge_dir.join("SwiftBridgeCore.swift"))
                 .expect("Couldn't read core bridging swift file")
         ),
@@ -293,7 +301,7 @@ fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
     fs::write(
         sources_dir.join(&bridge_project_swift_dir.file_name().unwrap()),
         format!(
-            "import Framework\n{}",
+            "import RustXcframework\n{}",
             fs::read_to_string(&bridge_project_swift_dir)
                 .expect("Couldn't read project's bridging swift file")
         ),
@@ -315,12 +323,12 @@ let package = Package(
 	dependencies: [],
 	targets: [
 		.binaryTarget(
-			name: "Framework",
-			path: "framework.xcframework"
+			name: "RustXcframework",
+			path: "rust_framework.xcframework"
 		),
 		.target(
 			name: "{package_name}",
-			dependencies: ["Framework"])
+			dependencies: ["RustXcframework"])
 	]
 )
 	"#
