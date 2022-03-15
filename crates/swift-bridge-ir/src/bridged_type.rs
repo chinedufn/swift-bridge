@@ -5,7 +5,7 @@ use std::str::FromStr;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
-use syn::{FnArg, ForeignItemType, Pat, PatType, Path, ReturnType, Type};
+use syn::{FnArg, Pat, PatType, Path, ReturnType, Type};
 
 use crate::parse::{HostLang, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
@@ -180,7 +180,7 @@ pub(crate) enum SharedType {
 
 #[derive(Clone)]
 pub(crate) struct OpaqueForeignType {
-    pub ty: ForeignItemType,
+    pub ty: Ident,
     pub host_lang: HostLang,
     pub reference: bool,
     pub mutable: bool,
@@ -188,7 +188,7 @@ pub(crate) struct OpaqueForeignType {
 
 impl OpaqueForeignType {
     fn swift_name(&self) -> String {
-        format!("{}", self.ty.ident)
+        format!("{}", self.ty)
     }
 }
 
@@ -237,7 +237,7 @@ pub(crate) fn fn_arg_name(fn_arg: &FnArg) -> Option<&Ident> {
 }
 
 impl Deref for OpaqueForeignType {
-    type Target = ForeignItemType;
+    type Target = Ident;
 
     fn deref(&self) -> &Self::Target {
         &self.ty
@@ -426,7 +426,7 @@ impl BridgedType {
                 todo!("Shared enum to Rust type name")
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
-                let ty_name = &opaque.ty.ident;
+                let ty_name = &opaque.ty;
 
                 if opaque.host_lang.is_rust() {
                     quote! {
@@ -565,7 +565,7 @@ impl BridgedType {
                         quote! { #name }
                     }
                     BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
-                        let type_name = &opaque.ident;
+                        let type_name = &opaque.ty;
 
                         quote! { *mut super::#type_name }
                     }
@@ -592,7 +592,7 @@ impl BridgedType {
                 quote! { #ffi_ty_name }
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
-                let ty_name = &opaque.ty.ident;
+                let ty_name = &opaque.ty;
 
                 if opaque.host_lang.is_rust() {
                     if opaque.reference {
@@ -753,7 +753,7 @@ impl BridgedType {
                         TypePosition::FnArg(func_host_lang)
                         | TypePosition::FnReturn(func_host_lang) => {
                             if func_host_lang.is_rust() {
-                                let mut class_name = opaque.ty.ident.to_string();
+                                let mut class_name = opaque.ty.to_string();
 
                                 if opaque.reference {
                                     class_name += "Ref";
@@ -781,7 +781,7 @@ impl BridgedType {
                         TypePosition::FnArg(func_host_lang)
                         | TypePosition::FnReturn(func_host_lang) => {
                             if func_host_lang.is_rust() {
-                                opaque.ty.ident.to_string()
+                                opaque.ty.to_string()
                             } else {
                                 "__private__PointerToSwiftType".to_string()
                             }
@@ -961,7 +961,7 @@ impl BridgedType {
                 }
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
-                let ty_name = &opaque.ty.ident;
+                let ty_name = &opaque.ty;
 
                 if opaque.host_lang.is_rust() {
                     if opaque.reference {
@@ -1154,7 +1154,7 @@ impl BridgedType {
                 format!("{}.intoSwiftRepr()", value)
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
-                let mut ty_name = opaque.ty.ident.to_string();
+                let mut ty_name = opaque.ty.to_string();
 
                 if opaque.reference {
                     ty_name += "Ref";
@@ -1265,7 +1265,7 @@ impl BridgedType {
                 format!("{}.intoFfiRepr()", value)
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
-                let ty_name = &opaque.ty.ident;
+                let ty_name = &opaque.ty;
 
                 if opaque.host_lang.is_rust() {
                     if opaque.reference {
@@ -1438,7 +1438,7 @@ impl BridgedType {
                 }
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
-                let ty_name = &opaque.ty.ident;
+                let ty_name = &opaque.ty;
 
                 if opaque.reference {
                     todo!("Support returning Option<&T> where T is an opaque type")

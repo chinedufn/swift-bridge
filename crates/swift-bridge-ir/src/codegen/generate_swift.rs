@@ -42,7 +42,7 @@ impl SwiftBridgeModule {
                         }
                         TypeDeclaration::Opaque(opaque_ty) => {
                             associated_funcs_and_methods
-                                .entry(opaque_ty.ident.to_string())
+                                .entry(opaque_ty.to_string())
                                 .or_default()
                                 .push(function);
 
@@ -57,7 +57,7 @@ impl SwiftBridgeModule {
                                     .to_swift_type(TypePosition::FnReturn(opaque_ty.host_lang)),
                                 };
                                 class_protocols
-                                    .entry(opaque_ty.ident.to_string())
+                                    .entry(opaque_ty.to_string())
                                     .or_default()
                                     .identifiable = Some(identifiable_protocol);
                             }
@@ -98,7 +98,7 @@ impl SwiftBridgeModule {
                 }
                 TypeDeclaration::Opaque(ty) => match ty.host_lang {
                     HostLang::Rust => {
-                        let class_protocols = class_protocols.get(&ty.ty.ident.to_string());
+                        let class_protocols = class_protocols.get(&ty.ty.to_string());
                         let default_cp = ClassProtocols::default();
                         let class_protocols = class_protocols.unwrap_or(&default_cp);
 
@@ -112,7 +112,7 @@ impl SwiftBridgeModule {
                         swift += "\n";
 
                         if !ty.already_declared {
-                            swift += &generate_vectorizable_extension(&ty.ident);
+                            swift += &generate_vectorizable_extension(&ty);
                             swift += "\n";
                         }
                     }
@@ -145,7 +145,7 @@ fn generate_swift_class(
     types: &TypeDeclarations,
     swift_bridge_path: &Path,
 ) -> String {
-    let type_name = ty.ident.to_string();
+    let type_name = ty.to_string();
 
     let mut initializers = vec![];
 
@@ -388,7 +388,7 @@ fn gen_func_swift_calls_rust(
                 todo!()
             }
             TypeDeclaration::Opaque(ty) => {
-                format!("${}", ty.ident.to_string())
+                format!("${}", ty.to_string())
             }
         }
     } else {
@@ -671,7 +671,7 @@ fn gen_function_exposes_swift_to_rust(
                     //
                     todo!()
                 }
-                TypeDeclaration::Opaque(associated_type) => associated_type.ident.to_string(),
+                TypeDeclaration::Opaque(associated_type) => associated_type.to_string(),
             };
 
             if func.is_method() {

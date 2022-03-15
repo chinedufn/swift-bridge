@@ -163,7 +163,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         continue;
                     }
 
-                    let ty_name = ty.ident.to_string();
+                    let ty_name = ty.to_string();
 
                     let ty_decl = format!("typedef struct {ty_name} {ty_name};", ty_name = ty_name);
                     let drop_ty = format!(

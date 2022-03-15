@@ -49,7 +49,7 @@ impl ToTokens for SwiftBridgeModule {
                             }
                             TypeDeclaration::Opaque(ty) => {
                                 impl_fn_tokens
-                                    .entry(ty.ident.to_string())
+                                    .entry(ty.to_string())
                                     .or_default()
                                     .push(tokens);
                             }
@@ -78,14 +78,13 @@ impl ToTokens for SwiftBridgeModule {
                     }
                 }
                 TypeDeclaration::Opaque(ty) => {
-                    let link_name =
-                        format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string(),);
+                    let link_name = format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.to_string(),);
                     let free_mem_func_name = Ident::new(
-                        &format!("{}{}__free", SWIFT_BRIDGE_PREFIX, ty.ident.to_string()),
-                        ty.ident.span(),
+                        &format!("{}{}__free", SWIFT_BRIDGE_PREFIX, ty.to_string()),
+                        ty.span(),
                     );
-                    let this = &ty.ident;
-                    let ty_name = &ty.ident;
+                    let this = &ty.ty;
+                    let ty_name = &ty.ty;
 
                     match ty.host_lang {
                         HostLang::Rust => {
@@ -105,7 +104,7 @@ impl ToTokens for SwiftBridgeModule {
                             }
                         }
                         HostLang::Swift => {
-                            let ty_name = &ty.ident;
+                            let ty_name = &ty.ty;
 
                             let impls = match impl_fn_tokens.get(&ty_name.to_string()) {
                                 Some(impls) if impls.len() > 0 => {
