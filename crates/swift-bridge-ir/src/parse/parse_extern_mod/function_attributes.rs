@@ -184,7 +184,7 @@ mod tests {
         let module = parse_ok(tokens);
 
         let ty = &module.types.types()[0].unwrap_opaque();
-        assert_eq!(ty.ident.to_string(), "Foo");
+        assert_eq!(ty.to_string(), "Foo");
 
         assert_eq!(module.functions.len(), 1,);
     }
@@ -206,7 +206,7 @@ mod tests {
         let module = parse_ok(tokens);
 
         let ty = &module.types.types()[0].unwrap_opaque();
-        assert_eq!(ty.ident.to_string(), "Foo");
+        assert_eq!(ty.to_string(), "Foo");
 
         assert_eq!(module.functions.len(), 1,);
     }

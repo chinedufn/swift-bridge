@@ -7,7 +7,7 @@ use proc_macro2::Ident;
 use quote::ToTokens;
 use std::collections::HashMap;
 use std::ops::Deref;
-use syn::{ForeignItemType, PatType, Type, TypePath};
+use syn::{GenericParam, PatType, Type, TypePath};
 
 #[derive(Default)]
 pub(crate) struct TypeDeclarations {
@@ -61,7 +61,7 @@ impl TypeDeclaration {
 
 #[derive(Clone)]
 pub(crate) struct OpaqueForeignTypeDeclaration {
-    pub ty: ForeignItemType,
+    pub ty: Ident,
     pub host_lang: HostLang,
     /// Whether or not the `#[swift_bridge(already_declared)]` attribute was present on the type.
     /// If it was, we won't generate Swift and C type declarations for this type, since we
@@ -71,10 +71,12 @@ pub(crate) struct OpaqueForeignTypeDeclaration {
     // TODO: Use this to generate doc comment for the generated Swift type.
     #[allow(unused)]
     pub doc_comment: Option<String>,
+    #[allow(unused)]
+    pub generics: Vec<GenericParam>,
 }
 
 impl Deref for OpaqueForeignTypeDeclaration {
-    type Target = ForeignItemType;
+    type Target = Ident;
 
     fn deref(&self) -> &Self::Target {
         &self.ty
@@ -84,20 +86,16 @@ impl Deref for OpaqueForeignTypeDeclaration {
 impl OpaqueForeignTypeDeclaration {
     // "__swift_bridge__$TypeName$_free"
     pub fn free_link_name(&self) -> String {
-        format!(
-            "{}${}$_free",
-            SWIFT_BRIDGE_PREFIX,
-            self.ty.ident.to_string()
-        )
+        format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, self.ty.to_string())
     }
 
     // "__swift_bridge__TypeName__free"
     pub fn free_func_name(&self) -> String {
-        format!("{}{}__free", SWIFT_BRIDGE_PREFIX, self.ty.ident.to_string())
+        format!("{}{}__free", SWIFT_BRIDGE_PREFIX, self.ty.to_string())
     }
 
     pub fn ty_name_ident(&self) -> &Ident {
-        &self.ty.ident
+        &self.ty
     }
 }
 

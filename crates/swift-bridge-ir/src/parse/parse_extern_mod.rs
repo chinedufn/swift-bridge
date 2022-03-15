@@ -1,6 +1,7 @@
 use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
 use crate::errors::{FunctionAttributeParseError, IdentifiableParseError, ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::function_attributes::FunctionAttributes;
+use crate::parse::parse_extern_mod::generic_opaque_type::GenericOpaqueType;
 use crate::parse::parse_extern_mod::opaque_type_attributes::{
     OpaqueTypeAttr, OpaqueTypeAttributes,
 };
@@ -16,6 +17,7 @@ use std::ops::Deref;
 use syn::{FnArg, ForeignItem, ForeignItemFn, ItemForeignMod, Meta, Pat, ReturnType, Type};
 
 mod function_attributes;
+mod generic_opaque_type;
 mod opaque_type_attributes;
 
 pub(super) struct ForeignModParser<'a> {
@@ -59,6 +61,8 @@ impl<'a> ForeignModParser<'a> {
         for foreign_mod_item in foreign_mod.items {
             match foreign_mod_item {
                 ForeignItem::Type(foreign_ty) => {
+                    // TODO: Normalize with the code used to parse generic foreign item types
+
                     let ty_name = foreign_ty.ident.to_string();
 
                     if let Some(_builtin) = BridgedType::new_with_str(
@@ -102,10 +106,11 @@ impl<'a> ForeignModParser<'a> {
                     }
 
                     let foreign_type = OpaqueForeignTypeDeclaration {
-                        ty: foreign_ty.clone(),
+                        ty: foreign_ty.ident.clone(),
                         host_lang,
                         already_declared: attributes.already_declared,
                         doc_comment,
+                        generics: vec![],
                     };
                     self.type_declarations.insert(
                         ty_name.clone(),
@@ -197,6 +202,31 @@ impl<'a> ForeignModParser<'a> {
                         return_with: attributes.return_with,
                         args_into: attributes.args_into,
                     });
+                }
+                ForeignItem::Verbatim(foreign_item_verbatim) => {
+                    if let Ok(generic_foreign_type) =
+                        syn::parse2::<GenericOpaqueType>(foreign_item_verbatim)
+                    {
+                        // TODO: Normalize with the code used to parse non-generic foreign item
+                        //  types
+                        let ty_name = generic_foreign_type.ident.to_string();
+
+                        let foreign_ty = OpaqueForeignTypeDeclaration {
+                            ty: generic_foreign_type.ident,
+                            host_lang,
+                            already_declared: false,
+                            doc_comment: None,
+                            generics: generic_foreign_type
+                                .generics
+                                .params
+                                .clone()
+                                .into_iter()
+                                .collect(),
+                        };
+                        self.type_declarations
+                            .insert(ty_name.clone(), TypeDeclaration::Opaque(foreign_ty.clone()));
+                        local_type_declarations.insert(ty_name, foreign_ty);
+                    }
                 }
                 _ => {}
             }
@@ -363,10 +393,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        assert_eq!(
-            module.types.types()[0].unwrap_opaque().ident.to_string(),
-            "Foo"
-        );
+        assert_eq!(module.types.types()[0].unwrap_opaque().to_string(), "Foo");
     }
 
     /// Verify that we return an error if the declared type is a built in type.
@@ -411,7 +438,7 @@ mod tests {
             let module = parse_ok(tokens);
 
             let ty = &module.types.types()[0].unwrap_opaque();
-            assert_eq!(ty.ident.to_string(), "Foo");
+            assert_eq!(ty.to_string(), "Foo");
 
             assert_eq!(
                 module.functions.len(),
@@ -609,9 +636,7 @@ mod tests {
             assert_eq!(
                 functions
                     .iter()
-                    .filter(
-                        |f| f.associated_type.as_ref().unwrap().unwrap_opaque().ident == ty_name
-                    )
+                    .filter(|f| f.associated_type.as_ref().unwrap().unwrap_opaque().ty == ty_name)
                     .count(),
                 expected_count
             );
@@ -645,9 +670,7 @@ mod tests {
             assert_eq!(
                 functions
                     .iter()
-                    .filter(
-                        |f| f.associated_type.as_ref().unwrap().unwrap_opaque().ident == ty_name
-                    )
+                    .filter(|f| f.associated_type.as_ref().unwrap().unwrap_opaque().ty == ty_name)
                     .count(),
                 expected_count
             );
@@ -725,6 +748,32 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             " Some comment"
+        );
+    }
+
+    /// Verify that we can parse generic extern "Rust" types
+    #[test]
+    fn parse_generic_extern_rust_type() {
+        let tokens = quote! {
+            #[swift_bridge:bridge]
+            mod foo {
+                extern "Rust" {
+                    type SomeType<A, B>;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        assert_eq!(
+            module
+                .types
+                .get("SomeType")
+                .unwrap()
+                .unwrap_opaque()
+                .generics
+                .len(),
+            2
         );
     }
 }

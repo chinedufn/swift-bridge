@@ -17,7 +17,7 @@ impl ParsedExternFn {
             TypeDeclaration::Shared(_) => {
                 todo!()
             }
-            TypeDeclaration::Opaque(h) => &h.ident,
+            TypeDeclaration::Opaque(h) => &h.ty,
         });
         let mut params = vec![];
         let inputs = &self.func.sig.inputs;
@@ -25,7 +25,7 @@ impl ParsedExternFn {
             match arg {
                 FnArg::Receiver(_receiver) => match self.host_lang {
                     HostLang::Rust => {
-                        let this = host_type.as_ref().unwrap();
+                        let this = &host_type.as_ref().unwrap();
                         let this = quote! { this: *mut super:: #this };
                         params.push(this);
                     }
@@ -121,7 +121,7 @@ impl ParsedExternFn {
                                     if opaque.host_lang.is_swift() {
                                         quote! { *mut std::ffi::c_void }
                                     } else {
-                                        let ty = &opaque.ty.ident;
+                                        let ty = &opaque.ty;
                                         quote! { *mut super::#ty }
                                     }
                                 }
@@ -132,7 +132,7 @@ impl ParsedExternFn {
                                     todo!("Add a test that hits this code path")
                                 }
                                 TypeDeclaration::Opaque(opaque) => {
-                                    let ty = &opaque.ty.ident;
+                                    let ty = &opaque.ty;
 
                                     if opaque.host_lang.is_swift() {
                                         quote! { #ty }

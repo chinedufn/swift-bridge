@@ -175,7 +175,7 @@ impl ParsedExternFn {
                     todo!()
                 }
                 TypeDeclaration::Opaque(ty) => {
-                    let ty = &ty.ident;
+                    let ty = &ty.ty;
                     quote! {#ty::}
                 }
             }

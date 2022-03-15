@@ -116,7 +116,7 @@ impl ParsedExternFn {
                                         todo!("Add a test that hits this code path")
                                     }
                                     TypeDeclaration::Opaque(opaque) => {
-                                        let ty = &opaque.ty.ident;
+                                        let ty = &opaque.ty;
                                         if opaque.host_lang.is_rust() {
                                             quote! { #pat: super:: #ty}
                                         } else {

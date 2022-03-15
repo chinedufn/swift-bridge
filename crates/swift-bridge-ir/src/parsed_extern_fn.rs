@@ -147,7 +147,7 @@ impl ParsedExternFn {
                     todo!()
                 }
                 TypeDeclaration::Opaque(associated_ty) => {
-                    format!("{}_", associated_ty.ident)
+                    format!("{}_", associated_ty.ty)
                 }
             }
         } else {
@@ -352,7 +352,7 @@ impl ParsedExternFn {
                         todo!()
                     }
                     TypeDeclaration::Opaque(h) => {
-                        format!("${}", h.ident.to_string())
+                        format!("${}", h.to_string())
                     }
                 }
             })
@@ -377,7 +377,7 @@ impl ParsedExternFn {
                         todo!()
                     }
                     TypeDeclaration::Opaque(h) => {
-                        format!("{}_", h.ident.to_token_stream().to_string())
+                        format!("{}_", h.to_token_stream().to_string())
                     }
                 }
             })
