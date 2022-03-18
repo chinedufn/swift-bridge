@@ -149,12 +149,13 @@
                         <h1 id="creating-swift-packages"><a class="header" href="#creating-swift-packages">Creating Swift Packages</a></h1>
 <p>In this chapter we'll walk through bundling your Rust library into a Swift Package.</p>
 <blockquote>
-<p>Swift Packages that contain native libraries only work on Apple hardware. </p>
-<p>You should avoid bundling your Rust code into a Swift Package if you plan to target Linux,
+<p>Swift Packages that contain binary dependencies are only available on Apple platforms. </p>
+<p>You cannot bundle your Rust code into a Swift Package if you plan to target Linux,
 Windows or any other non-Apple target.</p>
+<p>Instead, use a building approach from one of the other <a href="../README.html">building chapters</a>.</p>
 </blockquote>
 <h2 id="project-setup"><a class="header" href="#project-setup">Project setup</a></h2>
-<pre><code class="language-bash">mkdir my-rust-lib &amp;&amp; cd my-ryst-lib
+<pre><code class="language-bash">mkdir my-rust-lib &amp;&amp; cd my-rust-lib
 </code></pre>
 <pre><code class="language-toml"># Cargo.toml
 
@@ -264,7 +265,10 @@ swift-bridge --help
 </code></pre>
 <h2 id="using-the-swift-package"><a class="header" href="#using-the-swift-package">Using the Swift Package</a></h2>
 <p>We now have a Swift Package (in the <code>MySwiftPackage</code> directory) which we can include in other projects using the Swift Package Manager.</p>
-<h3 id="example-macos-executable"><a class="header" href="#example-macos-executable">Example: MacOS executable</a></h3>
+<h3 id="using-the-package-in-an-xcode-project"><a class="header" href="#using-the-package-in-an-xcode-project">Using the package in an Xcode project</a></h3>
+<p>To add the package to an iOS app in XCode, go to the target's general panel, click the <code>+</code> button in the <code>Frameworks, Libraries, and Embedded Content</code> section. Then, click <code>Add Other</code> and choose <code>Add Package Dependency</code>.</p>
+<p>Import and use it in the same way as the executable.</p>
+<h3 id="using-the-package-in-an-executable-swift-project"><a class="header" href="#using-the-package-in-an-executable-swift-project">Using the package in an executable Swift project</a></h3>
 <p>Here is an example of an executable Swift project that depends on our newly created <code>MySwiftPackage</code>.</p>
 <pre><code>mkdir SwiftProject
 touch SwiftProject/Package.swift
@@ -302,9 +306,6 @@ print(hello_rust().toString())
 swift run
 # You should see &quot;Hello from Rust!&quot; in your terminal.
 </code></pre>
-<h3 id="example-ios-app"><a class="header" href="#example-ios-app">Example: iOS app</a></h3>
-<p>To add the package to an iOS app in XCode, go to the target's general panel, click the <code>+</code> button in the <code>Frameworks, Libraries, and Embedded Content</code> section. Then, click <code>Add Other</code> and choose <code>Add Package Dependency</code>.</p>
-<p>Import and use it in the same way as the executable.</p>
 
                     </main>
 
