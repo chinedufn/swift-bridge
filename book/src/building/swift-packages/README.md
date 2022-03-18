@@ -2,15 +2,17 @@
 
 In this chapter we'll walk through bundling your Rust library into a Swift Package.
 
-> Swift Packages that contain native libraries only work on Apple hardware. 
+> Swift Packages that contain binary dependencies are only available on Apple platforms. 
 >
-> You should avoid bundling your Rust code into a Swift Package if you plan to target Linux,
+> You cannot bundle your Rust code into a Swift Package if you plan to target Linux,
 > Windows or any other non-Apple target.
+>
+> Instead, use a building approach from one of the other [building chapters](../README.md).
 
 ## Project setup
 
 ```bash
-mkdir my-rust-lib && cd my-ryst-lib
+mkdir my-rust-lib && cd my-rust-lib
 ```
 
 ```toml
@@ -150,7 +152,13 @@ swift-bridge-cli create-package \
 
 We now have a Swift Package (in the `MySwiftPackage` directory) which we can include in other projects using the Swift Package Manager.
 
-### Example: MacOS executable
+### Using the package in an Xcode project
+
+To add the package to an iOS app in XCode, go to the target's general panel, click the `+` button in the `Frameworks, Libraries, and Embedded Content` section. Then, click `Add Other` and choose `Add Package Dependency`.
+
+Import and use it in the same way as the executable.
+
+### Using the package in an executable Swift project
 
 Here is an example of an executable Swift project that depends on our newly created `MySwiftPackage`.
 
@@ -201,8 +209,3 @@ swift run
 # You should see "Hello from Rust!" in your terminal.
 ```
 
-### Example: iOS app
-
-To add the package to an iOS app in XCode, go to the target's general panel, click the `+` button in the `Frameworks, Libraries, and Embedded Content` section. Then, click `Add Other` and choose `Add Package Dependency`.
-
-Import and use it in the same way as the executable.
