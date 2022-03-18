@@ -6,9 +6,7 @@ pub fn cli() -> Command<'static> {
         .about("facilitates Rust and Swift interop.")
         .version(env!("CARGO_PKG_VERSION"))
         .subcommand_required(true)
-        .subcommand(
-            create_package_command(),
-        )
+        .subcommand(create_package_command())
 }
 
 /// The command for creating a Swift Package
