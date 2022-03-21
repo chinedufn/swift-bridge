@@ -731,6 +731,9 @@ cargo build --target x86_64-apple-darwin
 cargo build --target aarch64-apple-ios
 cargo build --target x86_64-apple-ios
 </code></pre>
+<p>Install Rust toolchains for the desired platforms:</p>
+<pre><code class="language-bash">rustup target add x86_64-apple-darwin aarch64-apple-ios x86_64-apple-ios
+</code></pre>
 <p>Run the script to build our Rust libraries:</p>
 <pre><code class="language-sh">./build-rust.sh
 </code></pre>
