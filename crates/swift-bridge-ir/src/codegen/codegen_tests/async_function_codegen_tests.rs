@@ -22,7 +22,7 @@ mod extern_rust_async_function_no_return {
         ExpectedRustTokens::Contains(quote! {
             pub extern "C" fn __swift_bridge__some_function(
                 callback_wrapper: *mut std::ffi::c_void,
-                callback: extern "C" fn(*mut std::ffi::c_void) -> ()
+                callback: extern "C" fn(*mut std::ffi::c_void) -> (),
             ) {
                 let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
                 let task = async move {
@@ -90,6 +90,95 @@ void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge_
     }
 }
 
+/// Verify that we generate the correct code for extern "Rust" async functions that takes a u32 arg.
+mod extern_rust_async_function_u32_arg {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    async fn some_function(arg: u32);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+             pub extern "C" fn __swift_bridge__some_function(
+                callback_wrapper: *mut std::ffi::c_void,
+                callback: extern "C" fn(*mut std::ffi::c_void) -> (),
+                arg: u32
+            ) {
+                let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
+                let task = async move {
+                    super::some_function(arg).await;
+
+                    let callback_wrapper = callback_wrapper;
+                    let callback_wrapper = callback_wrapper.0;
+
+                    (callback)(callback_wrapper)
+                };
+                swift_bridge::async_support::ASYNC_RUNTIME.spawn_task(Box::pin(task))
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function(_ arg: UInt32) async {
+    class CbWrapper {
+        var cb: (Result<(), Never>) -> ()
+
+        public init(cb: @escaping (Result<(), Never>) -> ()) {
+            self.cb = cb
+        }
+    }
+
+    func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?) {
+        let wrapper = Unmanaged<CbWrapper>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+        wrapper.cb(.success(()))
+    }
+
+    return await withCheckedContinuation({ (continuation: CheckedContinuation<(), Never>) in
+        let callback = { rustFnRetVal in
+            continuation.resume(with: rustFnRetVal)
+        }
+
+        let wrapper = CbWrapper(cb: callback)
+        let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
+
+        __swift_bridge__$some_function(wrapperPtr, onComplete, arg)
+    })
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+#include <stdint.h>
+void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge__$some_function$async(void* callback_wrapper), uint32_t arg);
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_async_function_returns_u8() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Verify that we generate the correct code for extern "Rust" async functions that returns a u8.
 mod extern_rust_async_function_returns_u8 {
     use super::*;
@@ -109,7 +198,7 @@ mod extern_rust_async_function_returns_u8 {
         ExpectedRustTokens::Contains(quote! {
              pub extern "C" fn __swift_bridge__some_function(
                 callback_wrapper: *mut std::ffi::c_void,
-                callback: extern "C" fn(*mut std::ffi::c_void, u8) -> ()
+                callback: extern "C" fn(*mut std::ffi::c_void, u8) -> (),
             ) {
                 let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
                 let task = async move {
@@ -199,7 +288,7 @@ mod extern_rust_async_function_returns_struct {
         ExpectedRustTokens::Contains(quote! {
              pub extern "C" fn __swift_bridge__some_function(
                 callback_wrapper: *mut std::ffi::c_void,
-                callback: extern "C" fn(*mut std::ffi::c_void, __swift_bridge__SomeStruct) -> ()
+                callback: extern "C" fn(*mut std::ffi::c_void, __swift_bridge__SomeStruct) -> (),
             ) {
                 let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
                 let task = async move {

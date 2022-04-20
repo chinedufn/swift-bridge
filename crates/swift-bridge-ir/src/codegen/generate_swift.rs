@@ -376,7 +376,13 @@ fn gen_func_swift_calls_rust(
     let call_args = function.to_swift_call_args(true, false, types, swift_bridge_path);
 
     let call_fn = if function.sig.asyncness.is_some() {
-        format!("{}(wrapperPtr, onComplete)", fn_name)
+        let maybe_args = if function.sig.inputs.is_empty() {
+            "".to_string()
+        } else {
+            format!(", {}", call_args)
+        };
+
+        format!("{}(wrapperPtr, onComplete{})", fn_name, maybe_args)
     } else {
         format!("{}({})", fn_name, call_args)
     };

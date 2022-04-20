@@ -41,7 +41,9 @@ impl ParsedExternFn {
 
                 let maybe_return_ty = self.maybe_async_rust_fn_return_ty(swift_bridge_path, types);
 
-                if self.sig.asyncness.is_none() {
+                let is_async = self.sig.asyncness.is_some();
+
+                if !is_async {
                     quote! {
                         #[export_name = #link_name]
                         pub extern "C" fn #prefixed_fn_name ( #params ) #ret {
@@ -73,7 +75,8 @@ impl ParsedExternFn {
                         #[export_name = #link_name]
                         pub extern "C" fn #prefixed_fn_name (
                             callback_wrapper: *mut std::ffi::c_void,
-                            callback: extern "C" fn(*mut std::ffi::c_void #maybe_return_ty) -> ()
+                            callback: extern "C" fn(*mut std::ffi::c_void #maybe_return_ty) -> (),
+                            #params
                         ) {
                             let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
                             let task = async move {
