@@ -1444,7 +1444,25 @@ func create_bar_code(upc: Bool) -&gt; BarCode {
 <h3 id="enum-attributes"><a class="header" href="#enum-attributes">Enum Attributes</a></h3>
 <p>... TODO</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="async-functions"><a class="header" href="#async-functions">Async Functions</a></h1>
-<p>... TODO ...</p>
+<p><code>swift-bridge</code> supports async/await between Swift and Rust.</p>
+<h2 id="async-rust-functions"><a class="header" href="#async-rust-functions">Async Rust Functions</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    struct MyStruct;
+    
+    extern &quot;Rust&quot; {
+        async fn some_async_function(list: Vec&lt;u8&gt;) -&gt; MyStruct;
+    }
+}
+
+async fn some_async_function(list: Vec&lt;u8&gt;) -&gt; ffi::MyStruct {
+    ffi::MyStruct
+}
+<span class="boring">}
+</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="conditional-compilation"><a class="header" href="#conditional-compilation">Conditional Compilation</a></h1>
 <p>You can use <a href="https://doc.rust-lang.org/reference/conditional-compilation.html#the-cfg-attribute">the cfg attribute</a>
 in order to conditionally generate bindings.</p>

@@ -147,7 +147,25 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="async-functions"><a class="header" href="#async-functions">Async Functions</a></h1>
-<p>... TODO ...</p>
+<p><code>swift-bridge</code> supports async/await between Swift and Rust.</p>
+<h2 id="async-rust-functions"><a class="header" href="#async-rust-functions">Async Rust Functions</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    struct MyStruct;
+    
+    extern &quot;Rust&quot; {
+        async fn some_async_function(list: Vec&lt;u8&gt;) -&gt; MyStruct;
+    }
+}
+
+async fn some_async_function(list: Vec&lt;u8&gt;) -&gt; ffi::MyStruct {
+    ffi::MyStruct
+}
+<span class="boring">}
+</span></code></pre></pre>
 
                     </main>
 
