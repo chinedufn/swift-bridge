@@ -19,9 +19,9 @@ class AsyncTests: XCTestCase {
     func testSwiftCallsRustAsyncFn() async throws {
         await rust_async_return_null()
     }
-    
-    func testSwiftCallsRustAsyncFnRetU8() async throws {
-        let num = await rust_async_return_u8()
+   
+    func testSwiftCallsRustAsyncFnReflectU8() async throws {
+        let num = await rust_async_reflect_u8(123)
         XCTAssertEqual(num, 123)
     }
     

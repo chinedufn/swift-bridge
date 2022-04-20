@@ -260,8 +260,14 @@ fn declare_func(
             format!(", {} ret", maybe_ret.to_c())
         };
 
+        let maybe_params = if func.sig.inputs.is_empty() {
+            "".to_string()
+        } else {
+            format!(", {}", params)
+        };
+
         format!(
-            "void {name}(void* callback_wrapper, void {name}$async(void* callback_wrapper{maybe_ret}));\n",
+            "void {name}(void* callback_wrapper, void {name}$async(void* callback_wrapper{maybe_ret}){maybe_params});\n",
             name = name,
             maybe_ret = maybe_ret
         )
