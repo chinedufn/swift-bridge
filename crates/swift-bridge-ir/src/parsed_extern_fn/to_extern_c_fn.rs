@@ -51,10 +51,16 @@ impl ParsedExternFn {
                         }
                     }
                 } else {
-                    let (call_fn, call_callback) = if maybe_return_ty.is_some() {
+                    let (await_fut, call_callback) = if maybe_return_ty.is_some() {
+                        let return_ty = self.return_ty_built_in(types).unwrap();
+                        let awaited_val = return_ty.convert_rust_value_to_ffi_compatible_value(
+                            &quote! {fut.await},
+                            swift_bridge_path,
+                        );
+
                         (
                             quote! {
-                                let val = #call_fn;
+                                let val = #awaited_val;
                             },
                             quote! {
                                 (callback)(callback_wrapper, val)
@@ -63,7 +69,7 @@ impl ParsedExternFn {
                     } else {
                         (
                             quote! {
-                                #call_fn;
+                                fut.await;
                             },
                             quote! {
                                 (callback)(callback_wrapper)
@@ -79,8 +85,9 @@ impl ParsedExternFn {
                             #params
                         ) {
                             let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
+                            let fut = #call_fn;
                             let task = async move {
-                                #call_fn
+                                #await_fut
 
                                 let callback_wrapper = callback_wrapper;
                                 let callback_wrapper = callback_wrapper.0;
@@ -117,14 +124,9 @@ impl ParsedExternFn {
 
         let call_args = self.to_call_rust_args(swift_bridge_path, types);
 
-        let mut call_fn = quote! {
+        let call_fn = quote! {
             #fn_name ( #call_args )
         };
-        if self.sig.asyncness.is_some() {
-            call_fn = quote! {
-                #call_fn.await
-            };
-        }
 
         let mut call_fn = if self.is_method() {
             self.call_method_tokens(&call_fn)
@@ -144,7 +146,11 @@ impl ParsedExternFn {
             }
         }
 
-        call_fn = return_ty.convert_rust_value_to_ffi_compatible_value(&call_fn, swift_bridge_path);
+        // Async functions get this conversion done after awaiting the returned future.
+        if self.sig.asyncness.is_none() {
+            call_fn =
+                return_ty.convert_rust_value_to_ffi_compatible_value(&call_fn, swift_bridge_path);
+        }
 
         call_fn
     }
