@@ -2,7 +2,7 @@
 
 In this chapter we'll walk through bundling your Rust library into a Swift Package.
 
-> Swift Packages that contain binary dependencies are only available on Apple platforms. 
+> Swift Packages that contain binary dependencies are only available on Apple platforms.
 >
 > You cannot bundle your Rust code into a Swift Package if you plan to target Linux,
 > Windows or any other non-Apple target.
@@ -58,12 +58,12 @@ use std::path::PathBuf;
 
 fn main() {
     let out_dir = PathBuf::from("./generated");
-    
+
     let bridges = vec!["src/lib.rs"];
     for path in &bridges {
         println!("cargo:rerun-if-changed={}", path);
     }
-    
+
     swift_bridge_build::parse_bridges(bridges)
         .write_all_concatenated(out_dir, env!("CARGO_PKG_NAME"));
 }
@@ -91,14 +91,30 @@ cd $THISDIR
 export SWIFT_BRIDGE_OUT_DIR="$(pwd)/generated"
 # Build the project for the desired platforms:
 cargo build --target x86_64-apple-darwin
+cargo build --target aarch64-apple-darwin
+mkdir -p ./target/universal-macos/debug
+
+lipo \
+    ./target/aarch64-apple-darwin/debug/libmy_rust_lib.a \
+    ./target/x86_64-apple-darwin/debug/libmy_rust_lib.a -create -output \
+    ./target/universal-macos/debug/libmy_rust_lib.a
+
 cargo build --target aarch64-apple-ios
+
 cargo build --target x86_64-apple-ios
+cargo build --target aarch64-apple-ios-sim
+mkdir -p ./target/universal-ios/debug
+
+lipo \
+    ./target/aarch64-apple-ios-sim/debug/libmy_rust_lib.a \
+    ./target/x86_64-apple-ios/debug/libmy_rust_lib.a -create -output \
+    ./target/universal-ios/debug/libmy_rust_lib.a
 ```
 
 Install Rust toolchains for the desired platforms:
 
 ```bash
-rustup target add x86_64-apple-darwin aarch64-apple-ios x86_64-apple-ios
+rustup target add x86_64-apple-darwin aarch64-apple-darwin aarch64-apple-ios x86_64-apple-ios aarch64-apple-ios-sim
 ```
 
 Run the script to build our Rust libraries:
@@ -121,9 +137,9 @@ fn main() {
     swift_bridge_build::create_package(CreatePackageConfig {
         bridge_dir: PathBuf::from("./generated"),
         paths: HashMap::from([
-            (ApplePlatform::IOS, "target/x86_64-apple-ios/debug/libmy_rust_lib.a".into()),
-            (ApplePlatform::Simulator, "target/aarch64-apple-ios/debug/libmy_rust_lib.a".into()),
-            (ApplePlatform::MacOS, "target/x86_64-apple-darwin/debug/libmy_rust_lib.a".into()),
+            (ApplePlatform::IOS, "target/aarch64-apple-ios/debug/libmy_rust_lib.a".into()),
+            (ApplePlatform::Simulator, "target/universal-ios/debug/libmy_rust_lib.a".into()),
+            (ApplePlatform::MacOS, "target/universal-macos/debug/libmy_rust_lib.a".into()),
         ]),
         out_dir: PathBuf::from("MySwiftPackage"),
         package_name: PathBuf::from("MySwiftPackage")
@@ -149,8 +165,8 @@ swift-bridge-cli create-package \
   --bridges-dir ./generated \
   --out-dir MySwiftPackage \
   --ios target/x86_64-apple-ios/debug/libmy_rust_lib.a \
-  --simulator target/aarch64-apple-ios/debug/libmy_rust_lib.a \
-  --macos target/x86_64-apple-darwin/debug/libmy_rust_lib.a \
+  --simulator target/universal-ios/debug/libmy_rust_lib.a \
+  --macos target/universal-macos/debug/libmy_rust_lib.a \
   --name MySwiftPackage
 ```
 

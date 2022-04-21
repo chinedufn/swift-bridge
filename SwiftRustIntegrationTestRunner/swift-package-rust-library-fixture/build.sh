@@ -6,3 +6,12 @@ cd $ROOT_DIR
 
 export SWIFT_BRIDGE_OUT_DIR="$(pwd)/generated"
 cargo build --target x86_64-apple-darwin --target-dir "$(pwd)/target"
+cargo build --target aarch64-apple-darwin --target-dir "$(pwd)/target"
+
+mkdir -p "$(pwd)/target/universal/"
+
+lipo \
+    $(pwd)/target/aarch64-apple-darwin/debug/libtest_swift_packages.a \
+    $(pwd)/target/x86_64-apple-darwin/debug/libtest_swift_packages.a -create -output \
+    $(pwd)/target/universal/libtest_swift_packages.a
+
