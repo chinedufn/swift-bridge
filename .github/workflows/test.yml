@@ -32,7 +32,7 @@ jobs:
           -p swift-bridge-ir \
           -p swift-bridge-macro \
           -p swift-integration-tests
-  
+
   integration-test:
     runs-on: macOS-11
     timeout-minutes: 15
@@ -48,6 +48,9 @@ jobs:
     # This prevents the "Build input files cannot be found" error for generated files.
     - name: Create generated files
       run: PROJECT_DIR="$(pwd)/SwiftRustIntegrationTestRunner" ./SwiftRustIntegrationTestRunner/build-rust.sh
+
+    - name: Add rust targets
+      run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
     - name: Run integration tests
       run: ./test-integration.sh
