@@ -5,6 +5,7 @@ mod async_function;
 mod bool;
 mod conditional_compilation;
 mod option;
+mod result;
 mod pointer;
 mod rust_function_uses_opaque_swift_type;
 mod shared_types;
