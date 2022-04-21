@@ -200,7 +200,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     }
 
     // build xcframework
-    let xcframework_dir = output_dir.join("rust_framework.xcframework");
+    let xcframework_dir = output_dir.join("RustXcframework.xcframework");
     if xcframework_dir.exists() {
         fs::remove_dir_all(&xcframework_dir).expect("Couldn't delete previous xcframework file");
     }
@@ -324,7 +324,7 @@ let package = Package(
 	targets: [
 		.binaryTarget(
 			name: "RustXcframework",
-			path: "rust_framework.xcframework"
+			path: "RustXcframework.xcframework"
 		),
 		.target(
 			name: "{package_name}",
