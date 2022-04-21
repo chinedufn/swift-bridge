@@ -43,16 +43,8 @@ mod extern_rust_async_function_no_return {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 func some_function() async {
-    class CbWrapper {
-        var cb: (Result<(), Never>) -> ()
-
-        public init(cb: @escaping (Result<(), Never>) -> ()) {
-            self.cb = cb
-        }
-    }
-
     func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?) {
-        let wrapper = Unmanaged<CbWrapper>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+        let wrapper = Unmanaged<CbWrapper$some_function>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
         wrapper.cb(.success(()))
     }
 
@@ -61,11 +53,18 @@ func some_function() async {
             continuation.resume(with: rustFnRetVal)
         }
 
-        let wrapper = CbWrapper(cb: callback)
+        let wrapper = CbWrapper$some_function(cb: callback)
         let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
 
         __swift_bridge__$some_function(wrapperPtr, onComplete)
     })
+}
+class CbWrapper$some_function {
+    var cb: (Result<(), Never>) -> ()
+
+    public init(cb: @escaping (Result<(), Never>) -> ()) {
+        self.cb = cb
+    }
 }
 "#,
         )
@@ -132,16 +131,8 @@ mod extern_rust_async_function_u32_arg {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 func some_function(_ arg: UInt32) async {
-    class CbWrapper {
-        var cb: (Result<(), Never>) -> ()
-
-        public init(cb: @escaping (Result<(), Never>) -> ()) {
-            self.cb = cb
-        }
-    }
-
     func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?) {
-        let wrapper = Unmanaged<CbWrapper>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+        let wrapper = Unmanaged<CbWrapper$some_function>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
         wrapper.cb(.success(()))
     }
 
@@ -150,11 +141,18 @@ func some_function(_ arg: UInt32) async {
             continuation.resume(with: rustFnRetVal)
         }
 
-        let wrapper = CbWrapper(cb: callback)
+        let wrapper = CbWrapper$some_function(cb: callback)
         let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
 
         __swift_bridge__$some_function(wrapperPtr, onComplete, arg)
     })
+}
+class CbWrapper$some_function {
+    var cb: (Result<(), Never>) -> ()
+
+    public init(cb: @escaping (Result<(), Never>) -> ()) {
+        self.cb = cb
+    }
 }
 "#,
         )
@@ -221,16 +219,8 @@ mod extern_rust_async_function_returns_u8 {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 func some_function() async -> UInt8 {
-    class CbWrapper {
-        var cb: (Result<UInt8, Never>) -> ()
-
-        public init(cb: @escaping (Result<UInt8, Never>) -> ()) {
-            self.cb = cb
-        }
-    }
-
     func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: UInt8) {
-        let wrapper = Unmanaged<CbWrapper>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+        let wrapper = Unmanaged<CbWrapper$some_function>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
         wrapper.cb(.success(rustFnRetVal))
     }
 
@@ -239,11 +229,18 @@ func some_function() async -> UInt8 {
             continuation.resume(with: rustFnRetVal)
         }
 
-        let wrapper = CbWrapper(cb: callback)
+        let wrapper = CbWrapper$some_function(cb: callback)
         let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
 
         __swift_bridge__$some_function(wrapperPtr, onComplete)
     })
+}
+class CbWrapper$some_function {
+    var cb: (Result<UInt8, Never>) -> ()
+
+    public init(cb: @escaping (Result<UInt8, Never>) -> ()) {
+        self.cb = cb
+    }
 }
 "#,
         )
@@ -260,6 +257,93 @@ void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge_
 
     #[test]
     fn extern_rust_async_function_returns_u8() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we generate the correct code for extern "Rust" async functions that returns a u8.
+mod extern_rust_async_function_returns_string {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    async fn some_function() -> String;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+             pub extern "C" fn __swift_bridge__some_function(
+                callback_wrapper: *mut std::ffi::c_void,
+                callback: extern "C" fn(*mut std::ffi::c_void, *mut swift_bridge::string::RustString) -> (),
+            ) {
+                let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
+                let fut = super::some_function();
+                let task = async move {
+                    let val = swift_bridge::string::RustString(fut.await).box_into_raw();
+
+                    let callback_wrapper = callback_wrapper;
+                    let callback_wrapper = callback_wrapper.0;
+
+                    (callback)(callback_wrapper, val)
+                };
+                swift_bridge::async_support::ASYNC_RUNTIME.spawn_task(Box::pin(task))
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function() async -> RustString {
+    func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: UnsafeMutableRawPointer?) {
+        let wrapper = Unmanaged<CbWrapper$some_function>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+        wrapper.cb(.success(RustString(ptr: rustFnRetVal!)))
+    }
+
+    return await withCheckedContinuation({ (continuation: CheckedContinuation<RustString, Never>) in
+        let callback = { rustFnRetVal in
+            continuation.resume(with: rustFnRetVal)
+        }
+
+        let wrapper = CbWrapper$some_function(cb: callback)
+        let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
+
+        __swift_bridge__$some_function(wrapperPtr, onComplete)
+    })
+}
+class CbWrapper$some_function {
+    var cb: (Result<RustString, Never>) -> ()
+
+    public init(cb: @escaping (Result<RustString, Never>) -> ()) {
+        self.cb = cb
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge__$some_function$async(void* callback_wrapper, void* ret));
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_async_function_returns_string() {
         CodegenTest {
             bridge_module: bridge_module().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -312,16 +396,8 @@ mod extern_rust_async_function_returns_struct {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 func some_function() async -> SomeStruct {
-    class CbWrapper {
-        var cb: (Result<SomeStruct, Never>) -> ()
-
-        public init(cb: @escaping (Result<SomeStruct, Never>) -> ()) {
-            self.cb = cb
-        }
-    }
-
     func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: __swift_bridge__$SomeStruct) {
-        let wrapper = Unmanaged<CbWrapper>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+        let wrapper = Unmanaged<CbWrapper$some_function>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
         wrapper.cb(.success(rustFnRetVal.intoSwiftRepr()))
     }
 
@@ -330,11 +406,18 @@ func some_function() async -> SomeStruct {
             continuation.resume(with: rustFnRetVal)
         }
 
-        let wrapper = CbWrapper(cb: callback)
+        let wrapper = CbWrapper$some_function(cb: callback)
         let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
 
         __swift_bridge__$some_function(wrapperPtr, onComplete)
     })
+}
+class CbWrapper$some_function {
+    var cb: (Result<SomeStruct, Never>) -> ()
+
+    public init(cb: @escaping (Result<SomeStruct, Never>) -> ()) {
+        self.cb = cb
+    }
 }
 "#,
         )
@@ -403,16 +486,8 @@ mod extern_rust_async_method {
             r#"
 extension SomeTypeRef {
     public func some_method() async {
-        class CbWrapper {
-            var cb: (Result<(), Never>) -> ()
-
-            public init(cb: @escaping (Result<(), Never>) -> ()) {
-                self.cb = cb
-            }
-        }
-
         func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?) {
-            let wrapper = Unmanaged<CbWrapper>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+            let wrapper = Unmanaged<CbWrapper$SomeType$some_method>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
             wrapper.cb(.success(()))
         }
 
@@ -421,11 +496,18 @@ extension SomeTypeRef {
                 continuation.resume(with: rustFnRetVal)
             }
 
-            let wrapper = CbWrapper(cb: callback)
+            let wrapper = CbWrapper$SomeType$some_method(cb: callback)
             let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
 
             __swift_bridge__$SomeType$some_method(wrapperPtr, onComplete, ptr)
         })
+    }
+    class CbWrapper$SomeType$some_method {
+        var cb: (Result<(), Never>) -> ()
+    
+        public init(cb: @escaping (Result<(), Never>) -> ()) {
+            self.cb = cb
+        }
     }
 }
 "#,
@@ -441,7 +523,7 @@ void __swift_bridge__$SomeType$some_method(void* callback_wrapper, void __swift_
     }
 
     #[test]
-    fn extern_rust_async_function_returns_u8() {
+    fn extern_rust_async_method() {
         CodegenTest {
             bridge_module: bridge_module().into(),
             expected_rust_tokens: expected_rust_tokens(),

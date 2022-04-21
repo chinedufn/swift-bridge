@@ -387,7 +387,7 @@ fn gen_func_swift_calls_rust(
         format!("{}({})", fn_name, call_args)
     };
 
-    let type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
+    let maybe_type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
         match ty {
             TypeDeclaration::Shared(_) => {
                 //
@@ -409,7 +409,7 @@ fn gen_func_swift_calls_rust(
         ""
     };
 
-    let swift_class_func_name = if function.is_swift_initializer {
+    let public_func_fn_name = if function.is_swift_initializer {
         "public convenience init".to_string()
     } else {
         format!("public func {}", fn_name.as_str())
@@ -424,7 +424,7 @@ fn gen_func_swift_calls_rust(
     let call_rust = format!(
         "{prefix}{type_name_segment}${call_fn}",
         prefix = SWIFT_BRIDGE_PREFIX,
-        type_name_segment = type_name_segment,
+        type_name_segment = maybe_type_name_segment,
         call_fn = call_fn
     );
     let mut call_rust = if function.sig.asyncness.is_some() {
@@ -576,17 +576,11 @@ fn gen_func_swift_calls_rust(
             )
         };
 
+        let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
+
         let fn_body = format!(
-            r#"class CbWrapper {{
-    var cb: (Result<{rust_fn_ret_ty}, Never>) -> ()
-
-    public init(cb: @escaping (Result<{rust_fn_ret_ty}, Never>) -> ()) {{
-        self.cb = cb
-    }}
-}}
-
-func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?{maybe_on_complete_sig_ret_val}) {{
-    let wrapper = Unmanaged<CbWrapper>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+            r#"func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?{maybe_on_complete_sig_ret_val}) {{
+    let wrapper = Unmanaged<{cb_wrapper_ty}>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
     wrapper.cb(.success({on_complete_ret_val}))
 }}
 
@@ -595,7 +589,7 @@ return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust
         continuation.resume(with: rustFnRetVal)
     }}
 
-    let wrapper = CbWrapper(cb: callback)
+    let wrapper = {cb_wrapper_ty}(cb: callback)
     let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
 
     {call_rust}
@@ -603,6 +597,7 @@ return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust
             rust_fn_ret_ty = rust_fn_ret_ty,
             maybe_on_complete_sig_ret_val = maybe_on_complete_sig_ret_val,
             on_complete_ret_val = on_complete_ret_val,
+            cb_wrapper_ty = callback_wrapper_ty,
             call_rust = call_rust,
         );
 
@@ -616,17 +611,31 @@ return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust
         }
         let fn_body_indented = fn_body_indented.trim_end();
 
+        let callback_wrapper = format!(
+            r#"{indentation}class {cb_wrapper_ty} {{
+{indentation}    var cb: (Result<{rust_fn_ret_ty}, Never>) -> ()
+{indentation}
+{indentation}    public init(cb: @escaping (Result<{rust_fn_ret_ty}, Never>) -> ()) {{
+{indentation}        self.cb = cb
+{indentation}    }}
+{indentation}}}"#,
+            indentation = indentation,
+            cb_wrapper_ty = callback_wrapper_ty
+        );
+
         format!(
             r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}) async{maybe_ret} {{
 {fn_body_indented}
-{indentation}}}"#,
+{indentation}}}
+{callback_wrapper}"#,
             indentation = indentation,
             maybe_static_class_func = maybe_static_class_func,
-            swift_class_func_name = swift_class_func_name,
+            swift_class_func_name = public_func_fn_name,
             maybe_generics = maybe_generics,
             params = params,
             maybe_ret = maybe_return,
             fn_body_indented = fn_body_indented,
+            callback_wrapper = callback_wrapper
         )
     } else {
         format!(
@@ -635,11 +644,11 @@ return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust
 {indentation}}}"#,
             indentation = indentation,
             maybe_static_class_func = maybe_static_class_func,
-            swift_class_func_name = swift_class_func_name,
+            swift_class_func_name = public_func_fn_name,
             maybe_generics = maybe_generics,
             params = params,
             maybe_ret = maybe_return,
-            call_rust = call_rust
+            call_rust = call_rust,
         )
     };
 

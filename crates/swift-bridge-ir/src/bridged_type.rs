@@ -692,7 +692,7 @@ impl BridgedType {
                     TypePosition::FnReturn(_func_host_lang) => "RustString".to_string(),
                     TypePosition::SharedStructField => "RustString".to_string(),
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
-                        unimplemented!()
+                        "UnsafeMutableRawPointer?".to_string()
                     }
                 },
                 StdLibType::Vec(ty) => {
@@ -1139,9 +1139,16 @@ impl BridgedType {
                        )
                 }
                 StdLibType::Str => value.to_string(),
-                StdLibType::String => {
-                    format!("RustString(ptr: {})", value)
-                }
+                StdLibType::String => match type_pos {
+                    TypePosition::FnArg(_)
+                    | TypePosition::FnReturn(_)
+                    | TypePosition::SharedStructField => {
+                        format!("RustString(ptr: {})", value)
+                    }
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        format!("RustString(ptr: {}!)", value)
+                    }
+                },
                 StdLibType::Vec(_ty) => {
                     format!("RustVec(ptr: {})", value)
                 }
