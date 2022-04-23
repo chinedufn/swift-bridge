@@ -1,5 +1,5 @@
 use crate::bridged_type::BridgedType;
-use crate::parse::{HostLang, TypeDeclaration, TypeDeclarations};
+use crate::parse::{HostLang, OpaqueCopy, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
@@ -157,16 +157,22 @@ impl ParsedExternFn {
 
     /// Generate tokens for calling a method.
     fn call_method_tokens(&self, call_fn: &TokenStream) -> TokenStream {
-        let this = if let Some(reference) = self.self_reference() {
-            let maybe_ref = reference.0;
-            let maybe_mut = self.self_mutability();
-
+        let this = if self.is_copy_method_on_opaque_type() {
             quote! {
-                (unsafe { #maybe_ref #maybe_mut *this } )
+                this.into_rust_repr()
             }
         } else {
-            quote! {
-                ( * unsafe { Box::from_raw(this) } )
+            if let Some(reference) = self.self_reference() {
+                let maybe_ref = reference.0;
+                let maybe_mut = self.self_mutability();
+
+                quote! {
+                    (unsafe { #maybe_ref #maybe_mut *this } )
+                }
+            } else {
+                quote! {
+                    ( * unsafe { Box::from_raw(this) } )
+                }
             }
         };
 
@@ -198,6 +204,19 @@ impl ParsedExternFn {
     /// If the functions return type is a BuiltInType, return it.
     pub(crate) fn return_ty_built_in(&self, types: &TypeDeclarations) -> Option<BridgedType> {
         BridgedType::new_with_return_type(&self.func.sig.output, types)
+    }
+
+    /// Whether or not this is a method on a type that is using `#[swift_bridge(Copy(...))]`
+    pub(crate) fn is_copy_method_on_opaque_type(&self) -> bool {
+        self.maybe_copy_descriptor().is_some()
+    }
+
+    /// Describes the "..." in a `#[swift_bridge(Copy(...))]`
+    pub(crate) fn maybe_copy_descriptor(&self) -> Option<OpaqueCopy> {
+        match self.associated_type.as_ref()? {
+            TypeDeclaration::Opaque(ty) => ty.copy,
+            _ => None,
+        }
     }
 }
 

@@ -3,7 +3,7 @@ use crate::bridged_type::{
 };
 use crate::parse::HostLang;
 use crate::SWIFT_BRIDGE_PREFIX;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -53,6 +53,7 @@ impl TypeDeclaration {
                     host_lang: opaque.host_lang,
                     reference,
                     mutable,
+                    has_swift_bridge_copy_annotation: opaque.copy.is_some(),
                 }))
             }
         }
@@ -67,12 +68,34 @@ pub(crate) struct OpaqueForeignTypeDeclaration {
     /// If it was, we won't generate Swift and C type declarations for this type, since we
     /// will elsewhere.
     pub already_declared: bool,
+    /// Describes the type's Copy semantics.
+    pub copy: Option<OpaqueCopy>,
     /// A doc comment.
     // TODO: Use this to generate doc comment for the generated Swift type.
     #[allow(unused)]
     pub doc_comment: Option<String>,
     #[allow(unused)]
     pub generics: Vec<GenericParam>,
+}
+
+impl OpaqueForeignTypeDeclaration {
+    pub(crate) fn ffi_repr_type_tokens(&self) -> TokenStream {
+        if self.copy.is_some() {
+            let repr = format!("{}{}", SWIFT_BRIDGE_PREFIX, self.ty);
+            Ident::new(&repr, self.ty.span()).to_token_stream()
+        } else {
+            let ty_name = &self.ty;
+            quote::quote! {
+                *mut super::#ty_name
+            }
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub(crate) struct OpaqueCopy {
+    /// The size of the opaque type, in bytes.
+    pub(crate) size_bytes: usize,
 }
 
 impl Deref for OpaqueForeignTypeDeclaration {
@@ -139,6 +162,15 @@ impl TypeDeclarations {
     }
 }
 
+impl TypeDeclaration {
+    pub(crate) fn as_opaque(&self) -> Option<&OpaqueForeignTypeDeclaration> {
+        match self {
+            TypeDeclaration::Opaque(o) => Some(o),
+            _ => None,
+        }
+    }
+}
+
 #[cfg(test)]
 impl TypeDeclaration {
     pub fn unwrap_shared_struct(&self) -> &SharedStruct {
@@ -156,9 +188,6 @@ impl TypeDeclaration {
     }
 
     pub fn unwrap_opaque(&self) -> &OpaqueForeignTypeDeclaration {
-        match self {
-            TypeDeclaration::Opaque(o) => o,
-            _ => panic!(),
-        }
+        self.as_opaque().unwrap()
     }
 }

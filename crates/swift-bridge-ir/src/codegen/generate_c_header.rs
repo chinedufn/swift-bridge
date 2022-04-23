@@ -165,19 +165,39 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
 
                     let ty_name = ty.to_string();
 
-                    let ty_decl = format!("typedef struct {ty_name} {ty_name};", ty_name = ty_name);
-                    let drop_ty = format!(
-                        r#"void __swift_bridge__${ty_name}$_free(void* self);"#,
-                        ty_name = ty_name
-                    );
-                    let vec_functions = vec_functions(&ty_name);
+                    if let Some(copy) = ty.copy {
+                        bookkeeping.includes.insert("stdint.h");
+                        let ty_decl = format!(
+                            "typedef struct {prefix}${ty_name} {{ uint8_t bytes[{size}]; }} {prefix}${ty_name};",
+                            prefix = SWIFT_BRIDGE_PREFIX,
+                            ty_name = ty_name,
+                            size = copy.size_bytes
+                        );
 
-                    header += &ty_decl;
-                    header += "\n";
-                    header += &drop_ty;
-                    header += "\n";
-                    header += &vec_functions;
-                    header += "\n";
+                        header += &ty_decl;
+                        header += "\n";
+                    } else {
+                        let ty_decl =
+                            format!("typedef struct {ty_name} {ty_name};", ty_name = ty_name);
+                        let drop_ty = format!(
+                            r#"void __swift_bridge__${ty_name}$_free(void* self);"#,
+                            ty_name = ty_name
+                        );
+
+                        header += &ty_decl;
+                        header += "\n";
+                        header += &drop_ty;
+                        header += "\n";
+                    }
+
+                    // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
+                    //  make them pass.
+                    if ty.copy.is_none() {
+                        let vec_functions = vec_functions(&ty_name);
+
+                        header += &vec_functions;
+                        header += "\n";
+                    }
                 }
             }
         }

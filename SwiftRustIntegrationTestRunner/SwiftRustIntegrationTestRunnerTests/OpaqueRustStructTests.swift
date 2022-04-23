@@ -56,5 +56,17 @@ class OpaqueRustStructTests: XCTestCase {
         XCTAssertEqual(ref1.len(), 2)
         XCTAssertEqual(ref1.len(), ref2.len())
     }
+    
+    /// Verify that we can pass a Copy opaque Rust type between Rust and Swift.
+    func testOpaqueRustTypeImplCopy() throws {
+        let val = RustCopyType()
+        let val2 = RustCopyType()
+        
+        // Because `val` is copy we can still use it after calling
+        // a method that takes an owned `self` .
+        val.consume()
+        
+        XCTAssert(val.eq(val2))
+    }
 }
 

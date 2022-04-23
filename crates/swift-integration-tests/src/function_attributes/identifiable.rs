@@ -24,6 +24,17 @@ mod ffi {
     }
 
     extern "Rust" {
+        #[swift_bridge(Copy(1))]
+        type OpaqueCopyTypeIdentifiable;
+
+        #[swift_bridge(init)]
+        fn new() -> OpaqueCopyTypeIdentifiable;
+        // Here we make sure that the `Identifiable` attribute works on a Copy opaque type.
+        #[swift_bridge(Identifiable)]
+        fn id(self: &OpaqueCopyTypeIdentifiable) -> u8;
+    }
+
+    extern "Rust" {
         type IdentifiableU8;
 
         #[swift_bridge(init)]
@@ -62,6 +73,19 @@ impl IdentifiableFnNotNamedId {
 
     fn some_function(&self) -> u32 {
         123
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct OpaqueCopyTypeIdentifiable(u8);
+
+impl OpaqueCopyTypeIdentifiable {
+    fn new() -> Self {
+        Self(123)
+    }
+
+    fn id(&self) -> u8 {
+        self.0
     }
 }
 

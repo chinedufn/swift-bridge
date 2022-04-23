@@ -1,0 +1,17 @@
+error: Mutable references to opaque Copy types are not yet supported.
+  --> tests/ui/opaque-copy-type-mut-ref.rs:14:24
+   |
+14 |         fn some_method(&mut self);
+   |                        ^^^^^^^^^
+
+error: Mutable references to opaque Copy types are not yet supported.
+  --> tests/ui/opaque-copy-type-mut-ref.rs:16:25
+   |
+16 |         fn some_method2(self: &mut SomeType);
+   |                         ^^^^^^^^^^^^^^^^^^^
+
+error: Mutable references to opaque Copy types are not yet supported.
+  --> tests/ui/opaque-copy-type-mut-ref.rs:18:26
+   |
+18 |         fn some_function(arg: &mut SomeType);
+   |                          ^^^^^^^^^^^^^^^^^^

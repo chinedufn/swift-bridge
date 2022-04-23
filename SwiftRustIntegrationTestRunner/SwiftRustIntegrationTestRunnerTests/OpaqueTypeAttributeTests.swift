@@ -23,7 +23,7 @@ class OpaqueTypeAttributeTests: XCTestCase {
     /// where the opaque Rust type was defined.
     /// This ensures that our code generation properly generates Swift convenience initializers inside of class extensions.
     /// See crates/swift-integration-tests/src/type_attributes/already_declared.rs
-    func testExternRustAlreadyDeclaredCallInitializer() throws {
+    func testExternRustAlreadyDeclaredOpaqueRustType() throws {
         let val = AlreadyDeclaredTypeTest()
         
         XCTAssert(val.a_ref_method())
@@ -32,7 +32,17 @@ class OpaqueTypeAttributeTests: XCTestCase {
         
         XCTAssert(AlreadyDeclaredTypeTest.an_associated_function())
     }
+    
+    func testExternRustAlreadyDeclaredCopyOpaqueRustTypeType() throws {
+        let val = AlreadyDeclaredCopyTypeTest()
+        
+        XCTAssert(val.a_ref_method())
+        XCTAssert(val.an_owned_method())
+        
+        XCTAssert(AlreadyDeclaredCopyTypeTest.an_associated_function())
+    }
 
+    
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
         self.measure {

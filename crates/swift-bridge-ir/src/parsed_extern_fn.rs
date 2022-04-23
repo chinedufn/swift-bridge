@@ -1,4 +1,4 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType, CustomBridgedType};
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
@@ -253,12 +253,14 @@ impl ParsedExternFn {
         let inputs = &self.func.sig.inputs;
         for arg in inputs {
             match arg {
-                FnArg::Receiver(_receiver) => params.push("void* self".to_string()),
+                FnArg::Receiver(_receiver) => {
+                    self.push_self_param(&mut params);
+                }
                 FnArg::Typed(pat_ty) => {
                     let pat = &pat_ty.pat;
 
                     if pat_type_pat_is_self(pat_ty) {
-                        params.push("void* self".to_string());
+                        self.push_self_param(&mut params);
                     } else {
                         let built_in = BridgedType::new_with_type(&pat_ty.ty, types).unwrap();
                         let ty = built_in.to_c();
@@ -338,6 +340,26 @@ impl ParsedExternFn {
             None
         }
     }
+
+    fn push_self_param(&self, params: &mut Vec<String>) {
+        let param = if self.is_copy_method_on_opaque_type() {
+            format!(
+                "struct {}${} this",
+                SWIFT_BRIDGE_PREFIX,
+                &self
+                    .associated_type
+                    .as_ref()
+                    .unwrap()
+                    .as_opaque()
+                    .unwrap()
+                    .ty
+            )
+        } else {
+            "void* self".to_string()
+        };
+
+        params.push(param);
+    }
 }
 
 impl ParsedExternFn {
@@ -402,6 +424,41 @@ impl Deref for ParsedExternFn {
 
     fn deref(&self) -> &Self::Target {
         &self.func
+    }
+}
+
+pub(crate) fn fn_arg_is_mutable_reference(fn_arg: &FnArg) -> bool {
+    match fn_arg {
+        FnArg::Receiver(receiver) => receiver.reference.is_some() && receiver.mutability.is_some(),
+        FnArg::Typed(pat_ty) => match pat_ty.ty.deref() {
+            Type::Reference(type_ref) => type_ref.mutability.is_some(),
+            _ => false,
+        },
+    }
+}
+
+pub(crate) fn fn_arg_is_opaque_copy_type(
+    associated: &Option<TypeDeclaration>,
+    fn_arg: &FnArg,
+    types: &TypeDeclarations,
+) -> bool {
+    match fn_arg {
+        FnArg::Receiver(_) => {
+            if let Some(TypeDeclaration::Opaque(opaque)) = associated.as_ref() {
+                opaque.copy.is_some()
+            } else {
+                false
+            }
+        }
+        FnArg::Typed(_) => {
+            if let Some(BridgedType::Foreign(CustomBridgedType::Opaque(opaque))) =
+                BridgedType::new_with_fn_arg(fn_arg, types)
+            {
+                opaque.has_swift_bridge_copy_annotation
+            } else {
+                false
+            }
+        }
     }
 }
 

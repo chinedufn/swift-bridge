@@ -68,13 +68,7 @@ impl ParsedExternFn {
             match arg {
                 FnArg::Receiver(receiver) => {
                     if include_receiver_if_present {
-                        let arg = if receiver.reference.is_some() {
-                            "ptr"
-                        } else {
-                            "{isOwned = false; return ptr;}()"
-                        };
-
-                        args.push(arg.to_string());
+                        self.push_receiver_as_arg(&mut args, receiver.reference.is_some());
                     }
                 }
                 FnArg::Typed(pat_ty) => {
@@ -85,13 +79,7 @@ impl ParsedExternFn {
 
                     if pat_type_pat_is_self(pat_ty) {
                         if include_receiver_if_present {
-                            let arg = if is_reference {
-                                "ptr"
-                            } else {
-                                "{isOwned = false; return ptr;}()"
-                            };
-
-                            args.push(arg.to_string());
+                            self.push_receiver_as_arg(&mut args, is_reference);
                         }
 
                         continue;
@@ -146,6 +134,19 @@ impl ParsedExternFn {
                 }
             }
         }
+    }
+
+    fn push_receiver_as_arg(&self, args: &mut Vec<String>, is_reference: bool) {
+        let arg = if self.is_copy_method_on_opaque_type() {
+            "self.bytes"
+        } else {
+            if is_reference {
+                "ptr"
+            } else {
+                "{isOwned = false; return ptr;}()"
+            }
+        };
+        args.push(arg.to_string());
     }
 }
 

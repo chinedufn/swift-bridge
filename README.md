@@ -41,7 +41,7 @@ mod ffi {
 
     // Shared enums are also supported
     enum UserLookup {
-        ById(u32),
+        ById(UserId),
         ByName(String),
     }
 
@@ -52,15 +52,18 @@ mod ffi {
         #[swift_bridge(init)]
         fn new(config: AppConfig);
         
-        fn insert_user(&mut self, user_id: u32, user: User);
+        fn insert_user(&mut self, user_id: UserId, user: User);
         fn get_user(&self, lookup: UserLookup) -> Option<&User>;
     }
 
     extern "Rust" {
         type User;
 
+        #[swift_bridge(Copy(4))]
+        type UserId;
+
         #[swift_bridge(init)]
-        fn new(user_id: u32, name: String, email: Option<String>) -> User;
+        fn new(user_id: UserId, name: String, email: Option<String>) -> User;
     }
 
     // Import Swift classes and functions for Rust to use.
@@ -69,6 +72,9 @@ mod ffi {
         fn save_file(&self, name: &str, contents: &[u8]);
     }
 }
+
+#[derive(Copy)]
+struct UserId(u32);
 ```
 <!-- ANCHOR_END: bridge-module-example -->
 

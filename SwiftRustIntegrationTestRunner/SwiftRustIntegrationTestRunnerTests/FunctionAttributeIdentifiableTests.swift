@@ -25,6 +25,7 @@ class FunctionAttributeIdentifiableTests: XCTestCase {
     func testIdentifiable() throws {
         XCTAssertEqual(verifyIsIdentifiable(IdentifiableFnNamedId()).id(), 123)
         XCTAssertEqual(IdentifiableFnNotNamedId().id, 123)
+        XCTAssertEqual(OpaqueCopyTypeIdentifiable().id(), 123)
         
         XCTAssertEqual(verifyIsIdentifiable(IdentifiableU8()).id(), 123)
         XCTAssertEqual(verifyIsIdentifiable(IdentifiableI8()).id(), 123)

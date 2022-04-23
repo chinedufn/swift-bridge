@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 
 use proc_macro2::{Ident, TokenStream};
-use quote::quote;
 use quote::ToTokens;
+use quote::{quote, quote_spanned};
 
 use crate::bridge_module_attributes::CfgAttr;
 use crate::codegen::generate_rust_tokens::vec::generate_vec_of_opaque_rust_type_functions;
@@ -18,6 +18,7 @@ mod vec;
 impl ToTokens for SwiftBridgeModule {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let mod_name = &self.name;
+        let swift_bridge_path = &self.swift_bridge_path;
 
         let mut extern_rust_fn_tokens = vec![];
 
@@ -88,19 +89,65 @@ impl ToTokens for SwiftBridgeModule {
 
                     match ty.host_lang {
                         HostLang::Rust => {
-                            let free = quote! {
-                                #[export_name = #link_name]
-                                pub extern "C" fn #free_mem_func_name (this: *mut super::#this) {
-                                    let this = unsafe { Box::from_raw(this) };
-                                    drop(this);
-                                }
-                            };
+                            if let Some(copy) = ty.copy {
+                                let size = copy.size_bytes;
 
-                            let vec_functions = generate_vec_of_opaque_rust_type_functions(ty_name);
+                                // We use a somewhat hacky approach to asserting that the size
+                                // is correct at compile time.
+                                // In the future we'd prefer something like
+                                //  `assert_eq!(std::mem::size_of::<super::#ty_name>(), #size);`
+                                // If compile time assertions are ever supported by Rust.
+                                // https://github.com/rust-lang/rfcs/issues/2790
+                                let assert_size = quote_spanned! {ty.ty.span()=>
+                                    const _: () = {
+                                        let _: [u8; std::mem::size_of::<super::#ty_name>()] = [0; #size];
+                                        fn _assert_copy() {
+                                            #swift_bridge_path::assert_copy::<super::#ty_name>();
+                                        }
+                                    };
+                                };
+
+                                let copy_ty_name = format!("__swift_bridge__{}", ty_name);
+                                let copy_ty_name = Ident::new(&copy_ty_name, ty.span());
+
+                                let copy_ty = quote! {
+                                    #[repr(C)]
+                                    #[doc(hidden)]
+                                    pub struct #copy_ty_name([u8; #size]);
+                                    impl #copy_ty_name {
+                                        #[inline(always)]
+                                        fn into_rust_repr(self) -> super:: #ty_name {
+                                            unsafe { std::mem::transmute(self) }
+                                        }
+                                        #[inline(always)]
+                                        fn from_rust_repr(repr: super:: #ty_name) -> Self {
+                                            unsafe { std::mem::transmute(repr) }
+                                        }
+                                    }
+                                };
+
+                                extern_rust_fn_tokens.push(assert_size);
+                                extern_rust_fn_tokens.push(copy_ty);
+                            }
 
                             if !ty.already_declared {
-                                extern_rust_fn_tokens.push(free);
-                                extern_rust_fn_tokens.push(vec_functions);
+                                if ty.copy.is_none() {
+                                    let free = quote! {
+                                        #[export_name = #link_name]
+                                        pub extern "C" fn #free_mem_func_name (this: *mut super::#this) {
+                                            let this = unsafe { Box::from_raw(this) };
+                                            drop(this);
+                                        }
+                                    };
+
+                                    extern_rust_fn_tokens.push(free);
+
+                                    // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
+                                    //  make them pass.
+                                    let vec_functions =
+                                        generate_vec_of_opaque_rust_type_functions(ty_name);
+                                    extern_rust_fn_tokens.push(vec_functions);
+                                }
                             }
                         }
                         HostLang::Swift => {
