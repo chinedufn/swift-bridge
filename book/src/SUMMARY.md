@@ -24,5 +24,7 @@
   - [String <---> String](./built-in/string/README.md)
   - [&str <---> RustStr](./built-in/str/README.md)
 
+- [Safety](./safety/README.md)
+
 - [Internal Design](./internal-design/README.md)
   - [Code Generation](./internal-design/codegen/README.md)

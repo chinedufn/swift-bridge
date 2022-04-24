@@ -136,6 +136,18 @@ cd swift-bridge
 cargo test --all && ./test-integration.sh
 ```
 
+## Status
+
+I'm using `swift-bridge` in a business-critical production application.
+
+Here and there I'll run into something that I want to be able to bridge that is not yet supported,
+but that's becoming less and less frequent over time.
+
+If you're alright with pre-1.0 software you should feel free to use `swift-bridge` in your application.
+Breaking API changes should be infrequent since our API surface area is fairly small.
+
+If you run into an unsupported use case, please open an issue.
+
 ---
 
 #### License
