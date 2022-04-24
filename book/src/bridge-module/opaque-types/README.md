@@ -165,4 +165,39 @@ mod ffi_dev_utils {
 }
 ```
 
+#### #[swift_bridge(Copy($SIZE))]
 
+If you have an opaque Rust type that implements `Copy`, you will typically want to be
+able to pass it between Swift and Rust by copying the bytes instead of allocating.
+
+For example, let's say you have some new type wrappers for different kinds of IDs
+within your system.
+
+```
+use uuid:Uuid;
+
+#[derive(Copy)]
+struct UserId(Uuid);
+
+#[derive(Copy)]
+struct OrganizationId(Uuid);
+```
+
+You can expose them using:
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        #[swift_bridge(Copy(16))]
+        type UserId;
+
+        #[swift_bridge(Copy(16))]
+        type OrganizationId;
+    }
+}
+```
+
+The `16` indicates that a `UserId` has 16 bytes.
+
+`swift-bridge` will add a compile time assertion that confirms that the given size is correct.

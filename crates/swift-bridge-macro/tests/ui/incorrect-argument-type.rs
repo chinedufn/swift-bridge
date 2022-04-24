@@ -1,3 +1,6 @@
+//! # To Run
+//! cargo test -p swift-bridge-macro -- ui trybuild=incorrect-argument-type.rs
+
 // We declare functions that have an argument with a type that does not match that
 // of the real implementation below.
 //
@@ -11,9 +14,9 @@ mod ffi {
         #[swift_bridge(rust_name = "some_function")]
         fn fn1(arg: &str);
         // TODO: Add more types.
-        // #[swift(bridge(rust_name = function))]
+        // #[swift(bridge(rust_name = "some_function"))]
         // fn fn2(arg: String);
-        // #[swift(bridge(rust_name = function))]
+        // #[swift(bridge(rust_name = "some_function"))]
         // fn fn3(arg: Option<u8>);
     }
 }

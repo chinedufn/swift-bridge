@@ -81,9 +81,11 @@ mod extern_rust_already_declared_type_still_generates_methods {
         ExpectedSwiftCode::ContainsAfterTrim(r#"func some_function"#)
     }
 
-    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ContainsAfterTrim(
-        r#"void __swift_bridge__$SomeType$some_function(void* self);"#,
-    );
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"void __swift_bridge__$SomeType$some_function(void* self);"#,
+        )
+    }
 
     #[test]
     fn extern_rust_already_declared_type_still_generates_methods() {
@@ -91,7 +93,7 @@ mod extern_rust_already_declared_type_still_generates_methods {
             bridge_module: bridge_module().into(),
             expected_rust_tokens: expected_rust_tokens(),
             expected_swift_code: expected_swift_code(),
-            expected_c_header: EXPECTED_C_HEADER,
+            expected_c_header: expected_c_header(),
         }
         .test();
     }
@@ -134,6 +136,97 @@ struct __swift_bridge__$FfiSomeType __swift_bridge__$some_function(struct __swif
 
     #[test]
     fn already_declared_struct() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we do not re-declare the Swift struct of an already defined Rust Copy type.
+/// We still generate the Rust #\[repr(C)] struct since that is private to this module.
+mod already_declared_rust_copy_type_does_not_redeclare_swift {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(already_declared, Copy(4))]
+                    type SomeType;
+                }
+            }
+        }
+    }
+
+    // Make sure we still generate our repr(C) struct representation
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(
+            quote! { #[repr(C)] #[doc(hidden)] pub struct __swift_bridge__SomeType },
+        )
+    }
+
+    // Make sure that we don't regenerate the Swift struct.
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::DoesNotContainAfterTrim("SomeType")
+    }
+
+    // Make sure that we don't re-generate our C header for the type.
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::DoesNotContainAfterTrim("SomeType")
+    }
+
+    #[test]
+    fn already_declared_rust_copy_type_does_not_redeclare_swift() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we generate methods for an already declared opaque Rust Copy type.
+mod already_declared_rust_copy_type_methods {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(already_declared, Copy(4))]
+                    type SomeType;
+
+                    fn some_method(&self);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            fn __swift_bridge__SomeType_some_method
+
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(r#"func some_method"#)
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"void __swift_bridge__$SomeType$some_method(struct __swift_bridge__$SomeType this);"#,
+        )
+    }
+
+    #[test]
+    fn already_declared_rust_copy_type_methods() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

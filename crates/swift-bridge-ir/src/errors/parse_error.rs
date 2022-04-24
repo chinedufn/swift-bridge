@@ -1,6 +1,6 @@
 use proc_macro2::Ident;
 use quote::ToTokens;
-use syn::{Error, Receiver};
+use syn::{Error, FnArg, Receiver};
 use syn::{ForeignItemType, LitStr};
 use syn::{Token, Type};
 
@@ -53,6 +53,12 @@ pub(crate) enum ParseError {
         swift_repr_attr_value: LitStr,
     },
     FunctionAttribute(FunctionAttributeParseError),
+    /// The function argument is a mutable reference to a Copy opaque type.
+    /// We do not currently support passing mutable references to Copy opaque types across FFI.
+    // Would need to Box the copy type and pass a pointer between languages.
+    ArgCopyAndRefMut {
+        arg: FnArg,
+    },
 }
 
 /// An error while parsing a function attribute.
@@ -180,6 +186,11 @@ struct {struct_name};
                     }
                 },
             },
+            ParseError::ArgCopyAndRefMut { arg } => {
+                let message =
+                    format!(r#"Mutable references to opaque Copy types are not yet supported."#);
+                Error::new_spanned(arg, message)
+            }
         }
     }
 }

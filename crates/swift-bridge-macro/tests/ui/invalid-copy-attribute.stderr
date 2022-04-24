@@ -1,0 +1,20 @@
+error[E0308]: mismatched types
+  --> tests/ui/invalid-copy-attribute.rs:11:14
+   |
+11 |         type IncorrectCopySize;
+   |              ^^^^^^^^^^^^^^^^^
+   |              |
+   |              expected an array with a fixed size of 9 elements, found one with 10 elements
+   |              expected due to this
+
+error[E0277]: the trait bound `DoesNotImplementCopy: Copy` is not satisfied
+  --> tests/ui/invalid-copy-attribute.rs:8:14
+   |
+8  |         type DoesNotImplementCopy;
+   |              ^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `DoesNotImplementCopy`
+   |
+note: required by a bound in `assert_copy`
+  --> $WORKSPACE/src/lib.rs
+   |
+   | pub fn assert_copy<T: Copy>() {}
+   |                       ^^^^ required by this bound in `assert_copy`

@@ -66,7 +66,7 @@ pub trait SharedStruct {
 // This trait is private and should not be used outside of swift-bridge.
 #[doc(hidden)]
 pub trait SharedEnum {
-    /// The FFI friendly representation of this struct.
+    /// The FFI friendly representation of this enum.
     ///
     /// ```
     /// enum MyEnum {
@@ -88,3 +88,6 @@ pub trait SharedEnum {
 pub extern "C" fn __swift_bridge__null_pointer() -> *const std::ffi::c_void {
     std::ptr::null()
 }
+
+#[doc(hidden)]
+pub fn assert_copy<T: Copy>() {}

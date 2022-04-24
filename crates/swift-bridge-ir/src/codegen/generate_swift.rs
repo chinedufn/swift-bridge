@@ -1,10 +1,11 @@
-use std::collections::{HashMap, HashSet};
-use std::ops::Deref;
+use std::collections::HashMap;
 
-use quote::ToTokens;
-use syn::{Path, ReturnType, Type};
+use syn::Path;
 
-use crate::bridged_type::{fn_arg_name, BridgedType, StdLibType, TypePosition};
+use crate::bridged_type::{BridgedType, TypePosition};
+use crate::codegen::generate_swift::generate_function_swift_calls_rust::gen_func_swift_calls_rust;
+use crate::codegen::generate_swift::opaque_copy_type::generate_opaque_copy_struct;
+use crate::codegen::generate_swift::swift_class::generate_swift_class;
 use crate::codegen::generate_swift::vec::generate_vectorizable_extension;
 use crate::codegen::CodegenConfig;
 use crate::parse::{
@@ -12,12 +13,15 @@ use crate::parse::{
     TypeDeclarations,
 };
 use crate::parsed_extern_fn::ParsedExternFn;
-use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use crate::SwiftBridgeModule;
 
 mod vec;
 
+mod generate_function_swift_calls_rust;
+mod opaque_copy_type;
 mod shared_enum;
 mod shared_struct;
+mod swift_class;
 
 impl SwiftBridgeModule {
     /// Generate the corresponding Swift code for the bridging module.
@@ -98,22 +102,36 @@ impl SwiftBridgeModule {
                 }
                 TypeDeclaration::Opaque(ty) => match ty.host_lang {
                     HostLang::Rust => {
-                        let class_protocols = class_protocols.get(&ty.ty.to_string());
-                        let default_cp = ClassProtocols::default();
-                        let class_protocols = class_protocols.unwrap_or(&default_cp);
+                        if let Some(_copy) = ty.copy {
+                            swift += &generate_opaque_copy_struct(
+                                ty,
+                                &associated_funcs_and_methods,
+                                &self.types,
+                                &self.swift_bridge_path,
+                            );
+                        } else {
+                            let class_protocols = class_protocols.get(&ty.ty.to_string());
+                            let default_cp = ClassProtocols::default();
+                            let class_protocols = class_protocols.unwrap_or(&default_cp);
 
-                        swift += &generate_swift_class(
-                            ty,
-                            &associated_funcs_and_methods,
-                            class_protocols,
-                            &self.types,
-                            &self.swift_bridge_path,
-                        );
+                            swift += &generate_swift_class(
+                                ty,
+                                &associated_funcs_and_methods,
+                                class_protocols,
+                                &self.types,
+                                &self.swift_bridge_path,
+                            );
+                        }
+
                         swift += "\n";
 
                         if !ty.already_declared {
-                            swift += &generate_vectorizable_extension(&ty);
-                            swift += "\n";
+                            // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
+                            //  make them pass.
+                            if ty.copy.is_none() {
+                                swift += &generate_vectorizable_extension(&ty);
+                                swift += "\n";
+                            }
                         }
                     }
                     HostLang::Swift => {
@@ -136,192 +154,6 @@ struct ClassProtocols {
 struct IdentifiableProtocol {
     func_name: String,
     return_ty: String,
-}
-
-fn generate_swift_class(
-    ty: &OpaqueForeignTypeDeclaration,
-    associated_funcs_and_methods: &HashMap<String, Vec<&ParsedExternFn>>,
-    class_protocols: &ClassProtocols,
-    types: &TypeDeclarations,
-    swift_bridge_path: &Path,
-) -> String {
-    let type_name = ty.to_string();
-
-    let mut initializers = vec![];
-
-    let mut owned_self_methods = vec![];
-    let mut ref_self_methods = vec![];
-    let mut ref_mut_self_methods = vec![];
-
-    if let Some(methods) = associated_funcs_and_methods.get(&type_name) {
-        for type_method in methods {
-            // TODO: Normalize with freestanding func codegen above
-
-            let func_definition = gen_func_swift_calls_rust(type_method, types, swift_bridge_path);
-
-            let is_class_func = type_method.func.sig.inputs.is_empty();
-
-            if type_method.is_swift_initializer {
-                initializers.push(func_definition);
-            } else if is_class_func {
-                ref_self_methods.push(func_definition);
-            } else {
-                if type_method.self_reference().is_some() {
-                    if type_method.self_mutability().is_some() {
-                        ref_mut_self_methods.push(func_definition);
-                    } else {
-                        ref_self_methods.push(func_definition);
-                    }
-                } else {
-                    owned_self_methods.push(func_definition);
-                }
-            }
-        }
-    }
-
-    let class_decl = if ty.already_declared {
-        "".to_string()
-    } else {
-        let free_func_call = format!("{}${}$_free(ptr)", SWIFT_BRIDGE_PREFIX, type_name);
-
-        format!(
-            r#"public class {type_name}: {type_name}RefMut {{
-    var isOwned: Bool = true
-
-    public override init(ptr: UnsafeMutableRawPointer) {{
-        super.init(ptr: ptr)
-    }}
-
-    deinit {{
-        if isOwned {{
-            {free_func_call}
-        }}
-    }}
-}}"#,
-            type_name = type_name,
-            free_func_call = free_func_call
-        )
-    };
-    let class_ref_mut_decl = if ty.already_declared {
-        "".to_string()
-    } else {
-        format!(
-            r#"
-public class {type_name}RefMut: {type_name}Ref {{
-    public override init(ptr: UnsafeMutableRawPointer) {{
-        super.init(ptr: ptr)
-    }}
-}}"#,
-            type_name = type_name
-        )
-    };
-    let mut class_ref_decl = if ty.already_declared {
-        "".to_string()
-    } else {
-        format!(
-            r#"
-public class {type_name}Ref {{
-    var ptr: UnsafeMutableRawPointer
-
-    public init(ptr: UnsafeMutableRawPointer) {{
-        self.ptr = ptr
-    }}
-}}"#,
-            type_name = type_name,
-        )
-    };
-    if let Some(identifiable) = class_protocols.identifiable.as_ref() {
-        let identifiable_var = if identifiable.func_name == "id" {
-            "".to_string()
-        } else {
-            format!(
-                r#"
-    public var id: {identifiable_return_ty} {{
-        return self.{identifiable_func}()
-    }}
-"#,
-                identifiable_func = identifiable.func_name,
-                identifiable_return_ty = identifiable.return_ty
-            )
-        };
-
-        class_ref_decl += &format!(
-            r#"
-extension {type_name}Ref: Identifiable {{{identifiable_var}}}"#,
-            type_name = type_name,
-            identifiable_var = identifiable_var,
-        );
-    }
-
-    let initializers = if initializers.len() == 0 {
-        "".to_string()
-    } else {
-        let initializers: String = initializers.join("\n\n");
-        format!(
-            r#"
-extension {type_name} {{
-{initializers}
-}}"#,
-            type_name = type_name,
-            initializers = initializers
-        )
-    };
-
-    let owned_instance_methods = if owned_self_methods.len() == 0 {
-        "".to_string()
-    } else {
-        let owned_instance_methods: String = owned_self_methods.join("\n\n");
-        format!(
-            r#"
-extension {type_name} {{
-{owned_instance_methods}
-}}"#,
-            type_name = type_name,
-            owned_instance_methods = owned_instance_methods
-        )
-    };
-
-    let ref_instance_methods = if ref_self_methods.len() == 0 {
-        "".to_string()
-    } else {
-        let ref_instance_methods: String = ref_self_methods.join("\n\n");
-        format!(
-            r#"
-extension {type_name}Ref {{
-{ref_instance_methods}
-}}"#,
-            type_name = type_name,
-            ref_instance_methods = ref_instance_methods
-        )
-    };
-
-    let ref_mut_instance_methods = if ref_mut_self_methods.len() == 0 {
-        "".to_string()
-    } else {
-        let ref_mut_instance_methods: String = ref_mut_self_methods.join("\n\n");
-        format!(
-            r#"
-extension {type_name}RefMut {{
-{ref_mut_instance_methods}
-}}"#,
-            type_name = type_name,
-            ref_mut_instance_methods = ref_mut_instance_methods
-        )
-    };
-
-    let class = format!(
-        r#"
-{class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}"#,
-        class_decl = class_decl,
-        class_ref_decl = class_ref_mut_decl,
-        class_ref_mut_decl = class_ref_decl,
-        initializers = initializers,
-        owned_instance_methods = owned_instance_methods,
-        ref_mut_instance_methods = ref_mut_instance_methods,
-        ref_instance_methods = ref_instance_methods,
-    );
-
-    return class;
 }
 
 // Generate functions to drop the reference count on a Swift class instance.
@@ -364,295 +196,6 @@ impl SwiftFuncGenerics {
             SwiftFuncGenerics::Str => "GenericToRustStr: ToRustStr",
         }
     }
-}
-
-fn gen_func_swift_calls_rust(
-    function: &ParsedExternFn,
-    types: &TypeDeclarations,
-    swift_bridge_path: &Path,
-) -> String {
-    let fn_name = function.sig.ident.to_string();
-    let params = function.to_swift_param_names_and_types(false, types);
-    let call_args = function.to_swift_call_args(true, false, types, swift_bridge_path);
-
-    let call_fn = if function.sig.asyncness.is_some() {
-        let maybe_args = if function.sig.inputs.is_empty() {
-            "".to_string()
-        } else {
-            format!(", {}", call_args)
-        };
-
-        format!("{}(wrapperPtr, onComplete{})", fn_name, maybe_args)
-    } else {
-        format!("{}({})", fn_name, call_args)
-    };
-
-    let maybe_type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
-        match ty {
-            TypeDeclaration::Shared(_) => {
-                //
-                todo!()
-            }
-            TypeDeclaration::Opaque(ty) => {
-                format!("${}", ty.to_string())
-            }
-        }
-    } else {
-        "".to_string()
-    };
-
-    let maybe_static_class_func = if function.associated_type.is_some()
-        && (!function.is_method() && !function.is_swift_initializer)
-    {
-        "class "
-    } else {
-        ""
-    };
-
-    let public_func_fn_name = if function.is_swift_initializer {
-        "public convenience init".to_string()
-    } else {
-        format!("public func {}", fn_name.as_str())
-    };
-
-    let indentation = if function.associated_type.is_some() {
-        "    "
-    } else {
-        ""
-    };
-
-    let call_rust = format!(
-        "{prefix}{type_name_segment}${call_fn}",
-        prefix = SWIFT_BRIDGE_PREFIX,
-        type_name_segment = maybe_type_name_segment,
-        call_fn = call_fn
-    );
-    let mut call_rust = if function.sig.asyncness.is_some() {
-        call_rust
-    } else if function.is_swift_initializer {
-        call_rust
-    } else if let Some(built_in) = function.return_ty_built_in(types) {
-        built_in.convert_ffi_value_to_swift_value(
-            &call_rust,
-            TypePosition::FnReturn(function.host_lang),
-        )
-    } else {
-        if function.host_lang.is_swift() {
-            call_rust
-        } else {
-            match &function.sig.output {
-                ReturnType::Default => {
-                    // () is a built in type so this would have been handled in the previous block.
-                    unreachable!()
-                }
-                ReturnType::Type(_, ty) => {
-                    let ty_name = match ty.deref() {
-                        Type::Reference(reference) => reference.elem.to_token_stream().to_string(),
-                        Type::Path(path) => path.path.segments.to_token_stream().to_string(),
-                        _ => todo!(),
-                    };
-
-                    match types.get(&ty_name).unwrap() {
-                        TypeDeclaration::Shared(_) => call_rust,
-                        TypeDeclaration::Opaque(opaque) => {
-                            if opaque.host_lang.is_rust() {
-                                let (is_owned, ty) = match ty.deref() {
-                                    Type::Reference(reference) => ("false", &reference.elem),
-                                    _ => ("true", ty),
-                                };
-
-                                let ty = ty.to_token_stream().to_string();
-                                format!("{}(ptr: {}, isOwned: {})", ty, call_rust, is_owned)
-                            } else {
-                                let ty = ty.to_token_stream().to_string();
-                                format!(
-                                    "Unmanaged<{}>.fromOpaque({}.ptr).takeRetainedValue()",
-                                    ty, call_rust
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    };
-
-    let returns_null = Some(BridgedType::StdLib(StdLibType::Null))
-        == BridgedType::new_with_return_type(&function.func.sig.output, types);
-
-    let maybe_return = if returns_null || function.is_swift_initializer {
-        ""
-    } else {
-        "return "
-    };
-
-    let mut maybe_generics = HashSet::new();
-
-    for arg in function.func.sig.inputs.iter() {
-        let bridged_arg = BridgedType::new_with_fn_arg(arg, types);
-        if bridged_arg.is_none() {
-            continue;
-        }
-        let bridged_arg = bridged_arg.unwrap();
-
-        let arg_name = fn_arg_name(arg).unwrap().to_string();
-
-        if bridged_arg.contains_owned_string_recursive() {
-            maybe_generics.insert(SwiftFuncGenerics::String);
-        } else if bridged_arg.contains_ref_string_recursive() {
-            maybe_generics.insert(SwiftFuncGenerics::Str);
-        }
-
-        // TODO: Refactor to make less duplicative
-        match bridged_arg {
-            BridgedType::StdLib(StdLibType::Str) => {
-                call_rust = format!(
-                    r#"{maybe_return}{arg}.toRustStr({{ {arg}AsRustStr in
-{indentation}        {call_rust}
-{indentation}    }})"#,
-                    maybe_return = maybe_return,
-                    indentation = indentation,
-                    arg = arg_name,
-                    call_rust = call_rust
-                );
-            }
-            BridgedType::StdLib(StdLibType::Option(briged_opt))
-                if briged_opt.ty.deref() == &BridgedType::StdLib(StdLibType::Str) =>
-            {
-                call_rust = format!(
-                    r#"{maybe_return}optionalRustStrToRustStr({arg}, {{ {arg}AsRustStr in
-{indentation}        {call_rust}
-{indentation}    }})"#,
-                    maybe_return = maybe_return,
-                    indentation = indentation,
-                    arg = arg_name,
-                    call_rust = call_rust
-                );
-            }
-            _ => {}
-        }
-    }
-
-    if function.is_swift_initializer {
-        call_rust = format!("self.init(ptr: {})", call_rust)
-    }
-
-    let maybe_return = if function.is_swift_initializer {
-        "".to_string()
-    } else {
-        function.to_swift_return_type(types)
-    };
-
-    let maybe_generics = if maybe_generics.is_empty() {
-        "".to_string()
-    } else {
-        let mut m = vec![];
-
-        let generics: Vec<SwiftFuncGenerics> = maybe_generics.into_iter().collect();
-
-        for generic in generics {
-            m.push(generic.as_bound())
-        }
-
-        format!("<{}>", m.join(", "))
-    };
-
-    let func_definition = if function.sig.asyncness.is_some() {
-        let func_ret_ty = function.return_ty_built_in(types).unwrap();
-        let rust_fn_ret_ty = func_ret_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust));
-
-        let (maybe_on_complete_sig_ret_val, on_complete_ret_val) = if func_ret_ty.is_null() {
-            ("".to_string(), "()".to_string())
-        } else {
-            (
-                format!(
-                    ", rustFnRetVal: {}",
-                    func_ret_ty.to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy)
-                ),
-                func_ret_ty.convert_ffi_value_to_swift_value(
-                    "rustFnRetVal",
-                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
-                ),
-            )
-        };
-
-        let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
-
-        let fn_body = format!(
-            r#"func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?{maybe_on_complete_sig_ret_val}) {{
-    let wrapper = Unmanaged<{cb_wrapper_ty}>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
-    wrapper.cb(.success({on_complete_ret_val}))
-}}
-
-return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust_fn_ret_ty}, Never>) in
-    let callback = {{ rustFnRetVal in
-        continuation.resume(with: rustFnRetVal)
-    }}
-
-    let wrapper = {cb_wrapper_ty}(cb: callback)
-    let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
-
-    {call_rust}
-}})"#,
-            rust_fn_ret_ty = rust_fn_ret_ty,
-            maybe_on_complete_sig_ret_val = maybe_on_complete_sig_ret_val,
-            on_complete_ret_val = on_complete_ret_val,
-            cb_wrapper_ty = callback_wrapper_ty,
-            call_rust = call_rust,
-        );
-
-        let mut fn_body_indented = "".to_string();
-        for line in fn_body.lines() {
-            if line.len() > 0 {
-                fn_body_indented += &format!("{}    {}\n", indentation, line);
-            } else {
-                fn_body_indented += "\n"
-            }
-        }
-        let fn_body_indented = fn_body_indented.trim_end();
-
-        let callback_wrapper = format!(
-            r#"{indentation}class {cb_wrapper_ty} {{
-{indentation}    var cb: (Result<{rust_fn_ret_ty}, Never>) -> ()
-{indentation}
-{indentation}    public init(cb: @escaping (Result<{rust_fn_ret_ty}, Never>) -> ()) {{
-{indentation}        self.cb = cb
-{indentation}    }}
-{indentation}}}"#,
-            indentation = indentation,
-            cb_wrapper_ty = callback_wrapper_ty
-        );
-
-        format!(
-            r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}) async{maybe_ret} {{
-{fn_body_indented}
-{indentation}}}
-{callback_wrapper}"#,
-            indentation = indentation,
-            maybe_static_class_func = maybe_static_class_func,
-            swift_class_func_name = public_func_fn_name,
-            maybe_generics = maybe_generics,
-            params = params,
-            maybe_ret = maybe_return,
-            fn_body_indented = fn_body_indented,
-            callback_wrapper = callback_wrapper
-        )
-    } else {
-        format!(
-            r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}){maybe_ret} {{
-{indentation}    {call_rust}
-{indentation}}}"#,
-            indentation = indentation,
-            maybe_static_class_func = maybe_static_class_func,
-            swift_class_func_name = public_func_fn_name,
-            maybe_generics = maybe_generics,
-            params = params,
-            maybe_ret = maybe_return,
-            call_rust = call_rust,
-        )
-    };
-
-    func_definition
 }
 
 fn gen_function_exposes_swift_to_rust(
@@ -722,6 +265,56 @@ func {prefixed_fn_name} ({params}){ret} {{
     );
 
     generated_func
+}
+
+struct ClassMethods {
+    initializers: Vec<String>,
+    owned_self_methods: Vec<String>,
+    ref_self_methods: Vec<String>,
+    ref_mut_self_methods: Vec<String>,
+}
+
+fn generate_swift_class_methods(
+    type_name: &str,
+    associated_funcs_and_methods: &HashMap<String, Vec<&ParsedExternFn>>,
+    types: &TypeDeclarations,
+    swift_bridge_path: &Path,
+) -> ClassMethods {
+    let mut initializers = vec![];
+    let mut owned_self_methods = vec![];
+    let mut ref_self_methods = vec![];
+    let mut ref_mut_self_methods = vec![];
+
+    if let Some(methods) = associated_funcs_and_methods.get(type_name) {
+        for type_method in methods {
+            let func_definition = gen_func_swift_calls_rust(type_method, types, swift_bridge_path);
+
+            let is_class_func = type_method.func.sig.inputs.is_empty();
+
+            if type_method.is_swift_initializer {
+                initializers.push(func_definition);
+            } else if is_class_func {
+                ref_self_methods.push(func_definition);
+            } else {
+                if type_method.self_reference().is_some() {
+                    if type_method.self_mutability().is_some() {
+                        ref_mut_self_methods.push(func_definition);
+                    } else {
+                        ref_self_methods.push(func_definition);
+                    }
+                } else {
+                    owned_self_methods.push(func_definition);
+                }
+            }
+        }
+    }
+
+    ClassMethods {
+        initializers,
+        owned_self_methods,
+        ref_self_methods,
+        ref_mut_self_methods,
+    }
 }
 
 #[cfg(test)]

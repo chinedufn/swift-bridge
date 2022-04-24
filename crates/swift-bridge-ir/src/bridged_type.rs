@@ -184,11 +184,26 @@ pub(crate) struct OpaqueForeignType {
     pub host_lang: HostLang,
     pub reference: bool,
     pub mutable: bool,
+    pub has_swift_bridge_copy_annotation: bool,
 }
 
 impl OpaqueForeignType {
     fn swift_name(&self) -> String {
         format!("{}", self.ty)
+    }
+
+    /// The name of the type used to pass a `#[swift_bridge(Copy(...))]` type over FFI
+    fn copy_rust_repr_type(&self) -> TokenStream {
+        let ty = format!("{}{}", SWIFT_BRIDGE_PREFIX, self.ty);
+        let ty = Ident::new(&ty, self.ty.span());
+        quote! {
+            #ty
+        }
+    }
+
+    /// The name of the type used to pass a `#[swift_bridge(Copy(...))]` type over FFI
+    fn copy_ffi_repr_type(&self) -> String {
+        format!("{}${}", SWIFT_BRIDGE_PREFIX, self.ty)
     }
 }
 
@@ -594,20 +609,24 @@ impl BridgedType {
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 let ty_name = &opaque.ty;
 
-                if opaque.host_lang.is_rust() {
-                    if opaque.reference {
-                        let ptr = if opaque.mutable {
-                            quote! { *mut }
-                        } else {
-                            quote! { *const }
-                        };
-
-                        quote_spanned! {ty_name.span()=> #ptr super::#ty_name }
-                    } else {
-                        quote! { *mut super::#ty_name }
-                    }
+                if opaque.has_swift_bridge_copy_annotation {
+                    opaque.copy_rust_repr_type()
                 } else {
-                    quote! { #ty_name }
+                    if opaque.host_lang.is_rust() {
+                        if opaque.reference {
+                            let ptr = if opaque.mutable {
+                                quote! { *mut }
+                            } else {
+                                quote! { *const }
+                            };
+
+                            quote_spanned! {ty_name.span()=> #ptr super::#ty_name }
+                        } else {
+                            quote! { *mut super::#ty_name }
+                        }
+                    } else {
+                        quote! { #ty_name }
+                    }
                 }
             }
         };
@@ -755,12 +774,14 @@ impl BridgedType {
                             if func_host_lang.is_rust() {
                                 let mut class_name = opaque.ty.to_string();
 
-                                if opaque.reference {
-                                    class_name += "Ref";
-                                }
+                                if !opaque.has_swift_bridge_copy_annotation {
+                                    if opaque.reference {
+                                        class_name += "Ref";
+                                    }
 
-                                if opaque.mutable {
-                                    class_name += "Mut";
+                                    if opaque.mutable {
+                                        class_name += "Mut";
+                                    }
                                 }
 
                                 class_name
@@ -843,7 +864,11 @@ impl BridgedType {
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
-                    "void*".to_string()
+                    if opaque.has_swift_bridge_copy_annotation {
+                        format!("struct {}", opaque.copy_ffi_repr_type())
+                    } else {
+                        "void*".to_string()
+                    }
                 } else {
                     "struct __private__PointerToSwiftType".to_string()
                 }
@@ -964,7 +989,12 @@ impl BridgedType {
                 let ty_name = &opaque.ty;
 
                 if opaque.host_lang.is_rust() {
-                    if opaque.reference {
+                    if opaque.has_swift_bridge_copy_annotation {
+                        let copy_ty = opaque.copy_rust_repr_type();
+                        quote! {
+                            #copy_ty::from_rust_repr(#expression)
+                        }
+                    } else if opaque.reference {
                         let ptr = if opaque.mutable {
                             quote! { *mut }
                         } else {
@@ -1048,7 +1078,16 @@ impl BridgedType {
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
-                    if opaque.reference {
+                    if opaque.has_swift_bridge_copy_annotation {
+                        let maybe_ref = if opaque.reference {
+                            quote! {&}
+                        } else {
+                            quote! {}
+                        };
+                        quote! {
+                            #maybe_ref #value.into_rust_repr()
+                        }
+                    } else if opaque.reference {
                         let maybe_mut = if opaque.mutable {
                             quote! { mut }
                         } else {
@@ -1171,7 +1210,15 @@ impl BridgedType {
                 }
 
                 if opaque.host_lang.is_rust() {
-                    format!("{ty_name}(ptr: {value})", ty_name = ty_name, value = value,)
+                    if opaque.has_swift_bridge_copy_annotation {
+                        format!(
+                            "{ty_name}(bytes: {value})",
+                            ty_name = ty_name,
+                            value = value,
+                        )
+                    } else {
+                        format!("{ty_name}(ptr: {value})", ty_name = ty_name, value = value,)
+                    }
                 } else {
                     format!(
                         "Unmanaged<{ty_name}>.fromOpaque({value}.ptr).takeRetainedValue()",
@@ -1275,7 +1322,9 @@ impl BridgedType {
                 let ty_name = &opaque.ty;
 
                 if opaque.host_lang.is_rust() {
-                    if opaque.reference {
+                    if opaque.has_swift_bridge_copy_annotation {
+                        format!("{}.intoFfiRepr()", value)
+                    } else if opaque.reference {
                         format!("{}.ptr", value)
                     } else {
                         match type_pos {

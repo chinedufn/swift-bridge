@@ -2,13 +2,12 @@ use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
 use crate::errors::{FunctionAttributeParseError, IdentifiableParseError, ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::function_attributes::FunctionAttributes;
 use crate::parse::parse_extern_mod::generic_opaque_type::GenericOpaqueType;
-use crate::parse::parse_extern_mod::opaque_type_attributes::{
-    OpaqueTypeAttr, OpaqueTypeAttributes,
-};
+use crate::parse::parse_extern_mod::opaque_type_attributes::OpaqueTypeAttributes;
 use crate::parse::type_declarations::{
     OpaqueForeignTypeDeclaration, TypeDeclaration, TypeDeclarations,
 };
 use crate::parse::HostLang;
+use crate::parsed_extern_fn::{fn_arg_is_mutable_reference, fn_arg_is_opaque_copy_type};
 use crate::ParsedExternFn;
 use quote::ToTokens;
 use std::cmp::Ordering;
@@ -98,8 +97,7 @@ impl<'a> ForeignModParser<'a> {
                                 doc_comment = Some(doc);
                             }
                             "swift_bridge" => {
-                                let attr: OpaqueTypeAttr = attr.parse_args()?;
-                                attributes.store_attrib(attr);
+                                attributes = attr.parse_args()?;
                             }
                             _ => todo!("Push unsupported attribute error."),
                         };
@@ -109,6 +107,7 @@ impl<'a> ForeignModParser<'a> {
                         ty: foreign_ty.ident.clone(),
                         host_lang,
                         already_declared: attributes.already_declared,
+                        copy: attributes.copy,
                         doc_comment,
                         generics: vec![],
                     };
@@ -190,7 +189,22 @@ impl<'a> ForeignModParser<'a> {
                         }
                     }
 
-                    self.functions.push(ParsedExternFn {
+                    for arg in func.sig.inputs.iter() {
+                        let is_mutable_ref = fn_arg_is_mutable_reference(arg);
+
+                        let is_copy_opaque_type = fn_arg_is_opaque_copy_type(
+                            &associated_type,
+                            arg,
+                            &self.type_declarations,
+                        );
+
+                        if is_mutable_ref && is_copy_opaque_type {
+                            self.errors
+                                .push(ParseError::ArgCopyAndRefMut { arg: arg.clone() });
+                        }
+                    }
+
+                    let func = ParsedExternFn {
                         func,
                         associated_type,
                         is_swift_initializer: attributes.is_swift_initializer,
@@ -201,7 +215,8 @@ impl<'a> ForeignModParser<'a> {
                         into_return_type: attributes.into_return_type,
                         return_with: attributes.return_with,
                         args_into: attributes.args_into,
-                    });
+                    };
+                    self.functions.push(func);
                 }
                 ForeignItem::Verbatim(foreign_item_verbatim) => {
                     if let Ok(generic_foreign_type) =
@@ -214,7 +229,11 @@ impl<'a> ForeignModParser<'a> {
                         let foreign_ty = OpaqueForeignTypeDeclaration {
                             ty: generic_foreign_type.ident,
                             host_lang,
+                            // TODO
                             already_declared: false,
+                            // TODO
+                            copy: None,
+                            // TODO
                             doc_comment: None,
                             generics: generic_foreign_type
                                 .generics
@@ -724,6 +743,52 @@ mod tests {
         );
     }
 
+    /// Verify that we can parse the `copy` attribute.
+    #[test]
+    fn parse_copy_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(Copy(4))]
+                    type SomeType;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        assert_eq!(
+            module
+                .types
+                .get("SomeType")
+                .unwrap()
+                .unwrap_opaque()
+                .copy
+                .unwrap()
+                .size_bytes,
+            4
+        );
+    }
+
+    /// Verify that we can parse multiple atributes from an opaque type.
+    #[test]
+    fn parse_multiple_attributes() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(already_declared, Copy(4))]
+                    type SomeType;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let ty = module.types.get("SomeType").unwrap().unwrap_opaque();
+        assert!(ty.copy.is_some());
+        assert!(ty.already_declared)
+    }
+
     /// Verify that we can parse a doc comment from an extern "Rust" opaque type.
     #[test]
     fn parse_opaque_rust_type_doc_comment() {
@@ -775,5 +840,34 @@ mod tests {
                 .len(),
             2
         );
+    }
+
+    /// Verify that we push errors for function arguments that are both mutable and opaque Copy.
+    #[test]
+    fn error_if_mutable_opaque_copy_type() {
+        let tokens = quote! {
+            #[swift_bridge:bridge]
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(Copy(2))]
+                    type SomeType;
+
+                    fn a(&mut self);
+                    fn b(self: &mut SomeType);
+                    fn c(arg: &mut SomeType);
+                }
+            }
+        };
+
+        let errors = parse_errors(tokens);
+
+        assert_eq!(errors.len(), 3);
+
+        for error in errors.iter() {
+            match error {
+                ParseError::ArgCopyAndRefMut { arg: _ } => {}
+                _ => panic!(),
+            }
+        }
     }
 }
