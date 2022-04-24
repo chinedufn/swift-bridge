@@ -136,44 +136,6 @@ cd swift-bridge
 cargo test --all && ./test-integration.sh
 ```
 
-## Phases
-
-#### Phase 1 (Current Phase): Make it Possible
-
-Bridging Rust and Swift is fairly unexplored territory, so it will take some experimentation in order to
-figure out the right APIs and code generation.
-
-During this phase we'll focus on adding support for more types, patterns and and common use cases
-that we discover.
-
-While we must always be thoughtful, we won't be obsessively focused on what the best names,
-arguments or approaches are during this phase.
-
-#### Phase 2: Make it Ergonomic
-
-This phase will be focused on making `swift-bridge` feel really good to use.
-
-During this phase we will:
-
-- Simplify our APIs and make them consistent.
-
-- Improve our error messages.
-
-- Improve the information and examples in the book.
-
-#### Phase 3: Make it Stable
-
-This phase is about getting `swift-bridge` to version `1.0.0`.
-
-We'll take inventory of all of our public APIs and aim to remove as much we
-can without impacting the libraries usability.
-
----
-
-The `0.1.x` versions will not follow semver.
-
-We will maintain semver from `0.2` and onwards.
-
 ---
 
 #### License
