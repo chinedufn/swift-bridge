@@ -11,10 +11,12 @@ use crate::parse::{HostLang, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 
 use self::bridged_option::BridgedOption;
+use self::bridged_result::BridgedResult;
 pub(crate) use self::shared_enum::{EnumVariant, SharedEnum};
 pub(crate) use self::shared_struct::{SharedStruct, StructFields, StructSwiftRepr};
 
 mod bridged_option;
+mod bridged_result;
 mod shared_enum;
 mod shared_struct;
 
@@ -60,6 +62,7 @@ pub(crate) enum StdLibType {
     String,
     Vec(BuiltInVec),
     Option(BridgedOption),
+    Result(BridgedResult),
 }
 
 /// TODO: Add this to `OpaqueForeignType`
@@ -338,6 +341,23 @@ impl BridgedType {
             return Some(BridgedType::StdLib(StdLibType::Option(BridgedOption {
                 ty: Box::new(inner),
             })));
+        } else if string.starts_with("Result < ") {
+            let inner = string.trim_start_matches("Result < ");
+            let inner = inner.trim_end_matches(" >");
+            let inner : Vec<&str> = inner.split(",").collect();
+            let inner_ok = inner.first().unwrap();
+            let inner_err = inner.last().unwrap();
+
+            let inner_ok: Type = syn::parse2(TokenStream::from_str(inner_ok).unwrap()).unwrap();
+            let ty_ok = BridgedType::new_with_type(&inner_ok, types)?;
+
+            let inner_err: Type = syn::parse2(TokenStream::from_str(inner_err).unwrap()).unwrap();
+            let ty_err = BridgedType::new_with_type(&inner_err, types)?;
+
+            return Some(BridgedType::StdLib(StdLibType::Result(BridgedResult {
+                ty_ok: Box::new(ty_ok),
+                ty_err: Box::new(ty_err),
+            })));
         }
 
         let ty = match string {
@@ -412,6 +432,11 @@ impl BridgedType {
                     StdLibType::Option(opt) => {
                         let ty = opt.ty.to_rust();
                         quote! { Option<#ty> }
+                    }
+                    StdLibType::Result(opt) => {
+                        let ty_ok = opt.ty_ok.to_rust();
+                        let ty_err = opt.ty_err.to_rust();
+                        quote! { Result<#ty_ok, #ty_err> }
                     }
                 }
             }
@@ -491,6 +516,9 @@ impl BridgedType {
                     let ty = ty.ty.to_rust();
                     quote! { *mut Vec<#ty> }
                 }
+                StdLibType::Result(_opt) => {
+                    todo!();
+                }
                 StdLibType::Option(opt) => match opt.ty.deref() {
                     BridgedType::StdLib(stdlib_ty) => match stdlib_ty {
                         StdLibType::Null => {
@@ -550,6 +578,9 @@ impl BridgedType {
                         }
                         StdLibType::Option(_) => {
                             todo!("Option<Option<T>> is not yet supported")
+                        }
+                        StdLibType::Result(_) => {
+                            todo!("Option<Result<T,U>> is not yet supported")
                         }
                     },
                     BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(
@@ -714,6 +745,9 @@ impl BridgedType {
                         unimplemented!()
                     }
                 },
+                StdLibType::Result(_opt) => {
+                    todo!("result opt.ty.to_swift_type");
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 match type_pos {
@@ -834,6 +868,7 @@ impl BridgedType {
                 StdLibType::String => "void*".to_string(),
                 StdLibType::Vec(_) => "void*".to_string(),
                 StdLibType::Option(opt) => opt.to_c(),
+                StdLibType::Result(opt) => opt.to_c(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 format!("struct {}", shared_struct.ffi_name_string())
@@ -949,6 +984,10 @@ impl BridgedType {
                 StdLibType::Option(opt) => {
                     opt.convert_rust_value_to_ffi_value(expression, swift_bridge_path)
                 }
+                StdLibType::Result(_opt) => {
+                    todo!("result convert_rust_value_to_ffi");
+                    //opt.convert_rust_value_to_ffi_value(expression, swift_bridge_path)
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 quote! {
@@ -1034,6 +1073,10 @@ impl BridgedType {
                 }
                 StdLibType::Option(bridged_option) => {
                     bridged_option.convert_ffi_value_to_rust_value(value)
+                }
+                StdLibType::Result(_bridged_result) => {
+                    todo!("result: convert_ffi_value_to_rust_value");
+                    //bridged_option.convert_ffi_value_to_rust_value(value)
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
@@ -1153,6 +1196,10 @@ impl BridgedType {
                     format!("RustVec(ptr: {})", value)
                 }
                 StdLibType::Option(opt) => opt.convert_ffi_expression_to_swift(value),
+                StdLibType::Result(opt) => {
+                    todo!("Add Result");
+                    //opt.convert_ffi_expression_to_swift(value)
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 format!("{}.intoSwiftRepr()", value)
@@ -1263,6 +1310,10 @@ impl BridgedType {
                 }
                 StdLibType::Option(option) => {
                     option.convert_swift_expression_to_ffi_compatible(value, type_pos)
+                }
+                StdLibType::Result(result) => {
+                    todo!("Add convert result to swift");
+                    //result.convert_swift_expression_to_ffi_compatible(value, type_pos)
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
@@ -1428,6 +1479,9 @@ impl BridgedType {
                 }
                 StdLibType::Option(_) => {
                     todo!("Support nested Option<Option<T>>")
+                }
+                StdLibType::Result(_) => {
+                    todo!("Support nested Result<Option<T>,U>")
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {

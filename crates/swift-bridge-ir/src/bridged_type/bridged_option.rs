@@ -103,6 +103,9 @@ impl BridgedOption {
                 StdLibType::Option(_) => {
                     todo!("Support Option<Option<T>>")
                 }
+                StdLibType::Result(_) => {
+                    todo!("Support Option<Result<T,U>>")
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let option_name = shared_struct.ffi_option_name_tokens();
@@ -175,6 +178,9 @@ impl BridgedOption {
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T>> is not yet supported")
                 }
+                StdLibType::Result(_) => {
+                    todo!("Option<Result<T, U>> is not yet supported")
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 quote! {
@@ -239,6 +245,9 @@ impl BridgedOption {
                 }
                 StdLibType::Option(_) => {
                     todo!("Support Option<Option<T>>")
+                }
+                StdLibType::Result(_) => {
+                    todo!("Support Option<Result<T,U>>")
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
@@ -322,6 +331,9 @@ impl BridgedOption {
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T> is not yet supported")
                 }
+                StdLibType::Result(_) => {
+                    todo!("Option<Result<T, U>> is not yet supported")
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let ffi_name = shared_struct.ffi_option_name_string();
@@ -379,6 +391,9 @@ impl BridgedOption {
                 }
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T>> is not yet supported")
+                }
+                StdLibType::Result(_) => {
+                    todo!("Option<Result<T,U>> is not yet supported")
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
