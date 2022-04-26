@@ -10,6 +10,7 @@ fn main() {
         "src/import_opaque_swift_class.rs",
         "src/bool.rs",
         "src/option.rs",
+        "src/result.rs",
         "src/pointer.rs",
         "src/string.rs",
         "src/vec.rs",

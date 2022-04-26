@@ -1197,8 +1197,7 @@ impl BridgedType {
                 }
                 StdLibType::Option(opt) => opt.convert_ffi_expression_to_swift(value),
                 StdLibType::Result(opt) => {
-                    todo!("Add Result");
-                    //opt.convert_ffi_expression_to_swift(value)
+                    opt.convert_ffi_expression_to_swift(value)
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
