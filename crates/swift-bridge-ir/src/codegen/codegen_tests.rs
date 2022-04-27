@@ -17,7 +17,6 @@
 
 use crate::codegen::CodegenConfig;
 use proc_macro2::TokenStream;
-use quote::quote;
 use quote::ToTokens;
 use std::collections::HashSet;
 
