@@ -256,3 +256,61 @@ void __swift_bridge__$SomeType$some_method_ref(struct __swift_bridge__$SomeType 
         .test();
     }
 }
+
+/// Test code generation for freestanding Swift function that takes an opaque Rust type argument.
+mod extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod foo {
+                extern "Rust" {
+                    type MyType;
+                }
+
+                extern "Swift" {
+                    fn some_function (arg: MyType);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            pub fn some_function (arg: super::MyType) {
+                unsafe { __swift_bridge__some_function( Box::into_raw(Box::new(arg)) as *mut super::MyType ) }
+            }
+
+            extern "C" {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function (arg: *mut super::MyType);
+            }
+        })
+    }
+
+    const EXPECTED_SWIFT: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
+        r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer) {
+    some_function(arg: MyType(ptr: arg))
+}
+"#,
+    );
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ContainsAfterTrim(
+        r#"
+typedef struct MyType MyType;
+"#,
+    );
+
+    #[test]
+    fn extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: EXPECTED_SWIFT,
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}

@@ -34,134 +34,14 @@ mod conditional_compilation_codegen_tests;
 mod extern_rust_function_opaque_rust_type_argument_codegen_tests;
 mod extern_rust_function_opaque_rust_type_return_codegen_tests;
 mod extern_rust_method_swift_class_placement_codegen_tests;
-mod extern_rust_opaque_type_codegen_tests;
 mod function_attribute_codegen_tests;
+mod opaque_rust_type_codegen_tests;
+mod opaque_swift_type_codegen_tests;
 mod option_codegen_tests;
 mod shared_enum_codegen_tests;
 mod shared_struct_codegen_tests;
 mod string_codegen_tests;
 mod vec_codegen_tests;
-
-/// Test code generation for freestanding Swift function that takes an opaque Rust type argument.
-mod extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg {
-    use super::*;
-
-    fn bridge_module_tokens() -> TokenStream {
-        quote! {
-            mod foo {
-                extern "Rust" {
-                    type MyType;
-                }
-
-                extern "Swift" {
-                    fn some_function (arg: MyType);
-                }
-            }
-        }
-    }
-
-    fn expected_rust_tokens() -> ExpectedRustTokens {
-        ExpectedRustTokens::Contains(quote! {
-            pub fn some_function (arg: super::MyType) {
-                unsafe { __swift_bridge__some_function( Box::into_raw(Box::new(arg)) as *mut super::MyType ) }
-            }
-
-            extern "C" {
-                #[link_name = "__swift_bridge__$some_function"]
-                fn __swift_bridge__some_function (arg: *mut super::MyType);
-            }
-        })
-    }
-
-    const EXPECTED_SWIFT: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
-        r#"
-@_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer) {
-    some_function(arg: MyType(ptr: arg))
-}
-"#,
-    );
-
-    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ContainsAfterTrim(
-        r#"
-typedef struct MyType MyType;
-"#,
-    );
-
-    #[test]
-    fn extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg() {
-        CodegenTest {
-            bridge_module: bridge_module_tokens().into(),
-            expected_rust_tokens: expected_rust_tokens(),
-            expected_swift_code: EXPECTED_SWIFT,
-            expected_c_header: EXPECTED_C_HEADER,
-        }
-        .test();
-    }
-}
-
-/// Test code generation for freestanding Swift function that takes an opaque Swift type argument.
-mod extern_swift_freestanding_fn_with_owned_opaque_swift_type_arg {
-    use super::*;
-
-    fn bridge_module_tokens() -> TokenStream {
-        quote! {
-            mod foo {
-                extern "Swift" {
-                    type MyType;
-                    fn some_function (arg: MyType);
-                }
-            }
-        }
-    }
-
-    fn expected_rust_tokens() -> ExpectedRustTokens {
-        ExpectedRustTokens::Contains(quote! {
-            pub fn some_function (arg: MyType) {
-                unsafe { __swift_bridge__some_function (arg) }
-            }
-
-            #[repr(C)]
-            pub struct MyType(*mut std::ffi::c_void);
-
-            impl Drop for MyType {
-                fn drop (&mut self) {
-                    unsafe { __swift_bridge__MyType__free(self.0) }
-                }
-            }
-
-            extern "C" {
-                #[link_name = "__swift_bridge__$some_function"]
-                fn __swift_bridge__some_function (arg: MyType);
-
-                #[link_name = "__swift_bridge__$MyType$_free"]
-                fn __swift_bridge__MyType__free (this: *mut std::ffi::c_void);
-            }
-        })
-    }
-
-    const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
-        r#"
-@_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg: __private__PointerToSwiftType) {
-    some_function(arg: Unmanaged<MyType>.fromOpaque(arg.ptr).takeRetainedValue())
-}
-"#,
-    );
-
-    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ExactAfterTrim(r#""#);
-
-    #[test]
-    fn extern_swift_freestanding_fn_with_owned_opaque_swift_type_arg() {
-        CodegenTest {
-            bridge_module: bridge_module_tokens().into(),
-            expected_rust_tokens: expected_rust_tokens(),
-            expected_swift_code: EXPECTED_SWIFT_CODE,
-            expected_c_header: EXPECTED_C_HEADER,
-        }
-        .test();
-    }
-}
 
 struct CodegenTest {
     bridge_module: BridgeModule,
