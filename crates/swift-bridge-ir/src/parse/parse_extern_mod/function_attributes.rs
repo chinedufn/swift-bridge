@@ -9,7 +9,7 @@ pub(super) struct FunctionAttributes {
     pub is_swift_identifiable: bool,
     pub rust_name: Option<LitStr>,
     pub swift_name: Option<LitStr>,
-    pub into_return_type: bool,
+    pub return_into: bool,
     pub return_with: Option<Path>,
     pub args_into: Option<Vec<Ident>>,
 }
@@ -27,8 +27,8 @@ impl FunctionAttributes {
             FunctionAttr::SwiftName(name) => {
                 self.swift_name = Some(name);
             }
-            FunctionAttr::IntoReturnType => {
-                self.into_return_type = true;
+            FunctionAttr::ReturnInto => {
+                self.return_into = true;
             }
             FunctionAttr::ReturnWith(path) => {
                 self.return_with = Some(path);
@@ -47,7 +47,7 @@ pub(super) enum FunctionAttr {
     RustName(LitStr),
     Init,
     Identifiable,
-    IntoReturnType,
+    ReturnInto,
     ReturnWith(Path),
     ArgsInto(Vec<Ident>),
 }
@@ -86,7 +86,7 @@ impl Parse for FunctionAttr {
             }
             "init" => FunctionAttr::Init,
             "Identifiable" => FunctionAttr::Identifiable,
-            "into_return_type" => FunctionAttr::IntoReturnType,
+            "return_into" => FunctionAttr::ReturnInto,
             "return_with" => {
                 input.parse::<Token![=]>()?;
                 FunctionAttr::ReturnWith(input.parse()?)
@@ -130,7 +130,7 @@ mod tests {
                 extern "Rust" {
                     type Foo;
 
-                    #[swift_bridge(into_return_type)]
+                    #[swift_bridge(return_into)]
                     fn some_function () -> Foo;
                 }
             }
@@ -138,7 +138,7 @@ mod tests {
 
         let module = parse_ok(tokens);
 
-        assert!(module.functions[0].into_return_type);
+        assert!(module.functions[0].return_into);
     }
 
     /// Verify that we can parse the return_with attribute from extern "Rust" blocks.
@@ -409,7 +409,8 @@ mod tests {
             #[swift_bridge::bridge]
             mod ffi {
                 extern "Rust" {
-                    #[swift_bridge(args_into = (a), into_return_type)]
+
+                    #[swift_bridge(args_into = (a), return_into)]
                     fn some_function(a: u8);
                 }
             }
@@ -419,6 +420,6 @@ mod tests {
 
         let func = &module.functions[0];
         assert_eq!(func.args_into.as_ref().unwrap().len(), 1);
-        assert_eq!(func.into_return_type, true);
+        assert_eq!(func.return_into, true);
     }
 }

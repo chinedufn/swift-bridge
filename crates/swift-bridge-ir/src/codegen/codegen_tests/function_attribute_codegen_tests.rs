@@ -76,7 +76,7 @@ mod into_return_type_attribute_for_shared_struct {
                 struct StructName1;
 
                 extern "Rust" {
-                    #[swift_bridge(into_return_type)]
+                    #[swift_bridge(return_into)]
                     fn some_function() -> StructName1;
                 }
             }

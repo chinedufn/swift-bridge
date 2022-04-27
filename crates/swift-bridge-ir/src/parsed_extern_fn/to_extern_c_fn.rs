@@ -136,7 +136,7 @@ impl ParsedExternFn {
 
         let return_ty = self.return_ty_built_in(types).unwrap();
 
-        if self.into_return_type {
+        if self.return_into {
             call_fn = return_ty.rust_expression_into(&call_fn);
         }
 

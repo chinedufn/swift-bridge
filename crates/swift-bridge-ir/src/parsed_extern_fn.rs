@@ -58,7 +58,7 @@ pub(crate) struct ParsedExternFn {
     ///     super::some_function().into()
     /// }
     /// ```
-    pub into_return_type: bool,
+    pub return_into: bool,
     pub return_with: Option<Path>,
     /// Call `.into()` before passing this argument to the function that handles it.
     ///

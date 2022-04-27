@@ -12,17 +12,17 @@ mod ffi {
 
         // The `get_another_type` function returns "AnotherType".
         // Yet here we are trying to return "SomeType".
-        // So, if this compiles it means that our `into_return_type` macro is working.
-        #[swift_bridge(into_return_type)]
+        // So, if this compiles it means that our `return_into` macro is working.
+        #[swift_bridge(return_into)]
         fn get_another_type() -> SomeType;
 
-        // Verify that our code compiles when we use `into_return_type` on a shared struct.
-        #[swift_bridge(into_return_type)]
+        // Verify that our code compiles when we use `return_into` on a shared struct.
+        #[swift_bridge(return_into)]
         fn get_struct() -> SomeStruct;
 
-        // Verify that our code compiles when we use `into_return_type` on an already declared
+        // Verify that our code compiles when we use `return_into` on an already declared
         // shared struct.
-        #[swift_bridge(into_return_type)]
+        #[swift_bridge(return_into)]
         fn get_already_declared_struct() -> AlreadyDeclaredStruct;
     }
 }

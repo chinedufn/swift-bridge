@@ -141,7 +141,7 @@ mod ffi {
 	}
 
     extern "Rust" {
-        #[swift_bridge(into_return_type)]
+        #[swift_bridge(return_into)]
         fn make_uuid() -> FfiUuid;
     }
 }

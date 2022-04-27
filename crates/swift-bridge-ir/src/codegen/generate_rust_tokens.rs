@@ -461,7 +461,7 @@ mod tests {
                 extern "Rust" {
                     type Foo;
 
-                    #[swift_bridge(into_return_type)]
+                    #[swift_bridge(return_into)]
                     fn some_function () -> Foo;
                 }
             }

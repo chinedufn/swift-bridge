@@ -1,5 +1,5 @@
 mod args_into;
 mod identifiable;
-mod into_return_type;
+mod return_into;
 mod return_with;
 mod rust_name;
