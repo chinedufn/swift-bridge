@@ -2,10 +2,10 @@
 
 > `swift-bridge` facilitates Rust and Swift interop.
 
-`swift-bridge` is a library that lets you pass and share high-level types such as `Option<T>`, `String`, `Struct` and `Class` between Rust and Swift.
+`swift-bridge` is a library that lets you pass and share high-level types such as `Option<T>`, `String`,
+`Structs` and `Classes` between Rust and Swift.
 
-You declare the types and functions that you want to import and export using "bridge modules", and
-then run `swift-bridge-build` at build time to generate the `Swift` and `C` FFI layer to make it all work.
+It also lets you bridge higher level language features between Rust and Swift, such as async functions and generics.
 
 ## Installation
 
@@ -24,6 +24,13 @@ swift-bridge = "0.1"
 You can find information about using Rust and Swift together in [The `swift-bridge` Book](https://chinedufn.github.io/swift-bridge).
 
 ## Quick Peek
+
+You use `swift-bridge` by declaring the types and functions that you want to import and export
+in a "bridge module", and then annotating that bridge module with the `#[swift_bridge::bridge]`
+macro.
+
+Then, at build time, you use either the `swift-bridge-build` API or the `swift-bridge-cli` CLI to
+parse your annotated bridge modules and generate the `Swift` and `C` side of the FFI layer.
 
 Here's a quick peek at how you might describe an FFI boundary between Swift and Rust using a bridge module.
 
@@ -95,7 +102,7 @@ open IosRustAnalyzer/IosRustAnalyzer.xcodeproj
 
 ---
 
-You can find information about using Rust and Swift together in [The `swift-bridge` book](https://chinedufn.github.io/swift-bridge).
+You can find information about using Rust and Swift together in [The `swift-bridge` Book](https://chinedufn.github.io/swift-bridge).
 
 ## Built-In Types
 
@@ -135,18 +142,6 @@ cd swift-bridge
 # Run tests
 cargo test --all && ./test-integration.sh
 ```
-
-## Status
-
-I'm using `swift-bridge` in a business-critical production application.
-
-Here and there I'll run into something that I want to be able to bridge that is not yet supported,
-but that's becoming less and less frequent over time.
-
-If you're alright with pre-1.0 software you should feel free to use `swift-bridge` in your application.
-Breaking API changes should be infrequent since our API surface area is fairly small.
-
-If you run into an unsupported use case, please open an issue.
 
 ---
 
