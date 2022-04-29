@@ -31,7 +31,7 @@ pub(super) fn generate_opaque_copy_struct(
 
     if class_methods.owned_self_methods.len() > 0 {};
 
-    let struct_definition = if !ty.already_declared {
+    let struct_definition = if !ty.attributes.already_declared {
         generate_struct_definition(type_name)
     } else {
         "".to_string()

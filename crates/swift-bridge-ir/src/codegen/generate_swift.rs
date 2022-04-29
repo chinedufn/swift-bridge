@@ -58,7 +58,10 @@ impl SwiftBridgeModule {
                                         &self.types,
                                     )
                                     .unwrap()
-                                    .to_swift_type(TypePosition::FnReturn(opaque_ty.host_lang)),
+                                    .to_swift_type(
+                                        TypePosition::FnReturn(opaque_ty.host_lang),
+                                        &self.types,
+                                    ),
                                 };
                                 class_protocols
                                     .entry(opaque_ty.to_string())
@@ -102,7 +105,7 @@ impl SwiftBridgeModule {
                 }
                 TypeDeclaration::Opaque(ty) => match ty.host_lang {
                     HostLang::Rust => {
-                        if let Some(_copy) = ty.copy {
+                        if let Some(_copy) = ty.attributes.copy {
                             swift += &generate_opaque_copy_struct(
                                 ty,
                                 &associated_funcs_and_methods,
@@ -125,10 +128,11 @@ impl SwiftBridgeModule {
 
                         swift += "\n";
 
-                        if !ty.already_declared {
+                        if !ty.attributes.already_declared {
                             // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
                             //  make them pass.
-                            if ty.copy.is_none() {
+                            // TODO: Support Vec<GenericOpaqueRustType
+                            if ty.attributes.copy.is_none() && ty.generics.len() == 0 {
                                 swift += &generate_vectorizable_extension(&ty);
                                 swift += "\n";
                             }
@@ -167,8 +171,8 @@ struct IdentifiableProtocol {
 // }
 // ```
 fn generate_drop_swift_instance_reference_count(ty: &OpaqueForeignTypeDeclaration) -> String {
-    let link_name = ty.free_link_name();
-    let fn_name = ty.free_func_name();
+    let link_name = ty.free_swift_class_link_name();
+    let fn_name = ty.free_swift_class_func_name();
 
     format!(
         r##"

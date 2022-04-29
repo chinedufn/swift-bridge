@@ -27,6 +27,7 @@ pub(super) fn generate_swift_class(
         &class_methods.owned_self_methods,
         &class_methods.ref_self_methods,
         &class_methods.ref_mut_self_methods,
+        types,
     )
 }
 
@@ -37,14 +38,20 @@ fn create_class_declaration(
     owned_self_methods: &[String],
     ref_self_methods: &[String],
     ref_mut_self_methods: &[String],
+    types: &TypeDeclarations,
 ) -> String {
     let type_name = &ty.ty_name_ident().to_string();
+    let generics = ty.generics.angle_bracketed_generic_placeholders_string();
 
     let mut class_decl = {
-        let free_func_call = format!("{}${}$_free(ptr)", SWIFT_BRIDGE_PREFIX, type_name);
+        let free_func_call = if ty.generics.len() == 0 {
+            format!("{}${}$_free(ptr)", SWIFT_BRIDGE_PREFIX, type_name)
+        } else {
+            "(self as! SwiftBridgeGenericFreer).rust_free()".to_string()
+        };
 
         format!(
-            r#"public class {type_name}: {type_name}RefMut {{
+            r#"public class {type_name}{generics}: {type_name}RefMut{generics} {{
     var isOwned: Bool = true
 
     public override init(ptr: UnsafeMutableRawPointer) {{
@@ -58,6 +65,7 @@ fn create_class_declaration(
     }}
 }}"#,
             type_name = type_name,
+            generics = generics,
             free_func_call = free_func_call
         )
     };
@@ -65,18 +73,19 @@ fn create_class_declaration(
     let mut class_ref_mut_decl = {
         format!(
             r#"
-public class {type_name}RefMut: {type_name}Ref {{
+public class {type_name}RefMut{generics}: {type_name}Ref{generics} {{
     public override init(ptr: UnsafeMutableRawPointer) {{
         super.init(ptr: ptr)
     }}
 }}"#,
-            type_name = type_name
+            type_name = type_name,
+            generics = generics
         )
     };
     let mut class_ref_decl = {
         format!(
             r#"
-public class {type_name}Ref {{
+public class {type_name}Ref{generics} {{
     var ptr: UnsafeMutableRawPointer
 
     public init(ptr: UnsafeMutableRawPointer) {{
@@ -84,6 +93,7 @@ public class {type_name}Ref {{
     }}
 }}"#,
             type_name = type_name,
+            generics = generics
         )
     };
     if let Some(identifiable) = class_protocols.identifiable.as_ref() {
@@ -165,15 +175,33 @@ extension {type_name}RefMut {{
         )
     };
 
-    if ty.already_declared {
+    let is_concrete_generic = ty.generics.len() > 0 && !ty.attributes.declare_generic;
+
+    if ty.attributes.already_declared || is_concrete_generic {
         class_decl = "".to_string();
         class_ref_decl = "".to_string();
         class_ref_mut_decl = "".to_string();
     }
 
+    let mut generic_freer = "".to_string();
+    if is_concrete_generic {
+        generic_freer = format!(
+            r#"
+extension {type_name}: SwiftBridgeGenericFreer
+where {swift_generic_bounds} {{
+    public func rust_free() {{
+        {free_func_name}(ptr)
+    }}
+}}"#,
+            type_name = type_name,
+            swift_generic_bounds = ty.generics.rust_opaque_type_swift_generic_bounds(types),
+            free_func_name = ty.free_rust_opaque_type_ffi_name()
+        );
+    }
+
     let class = format!(
         r#"
-{class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}"#,
+{class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}{generic_freer}"#,
         class_decl = class_decl,
         class_ref_decl = class_ref_mut_decl,
         class_ref_mut_decl = class_ref_decl,
@@ -181,6 +209,7 @@ extension {type_name}RefMut {{
         owned_instance_methods = owned_instance_methods,
         ref_mut_instance_methods = ref_mut_instance_methods,
         ref_instance_methods = ref_instance_methods,
+        generic_freer = generic_freer
     );
 
     return class;

@@ -1,22 +1,22 @@
+pub(crate) use self::opaque_type_attributes::OpaqueTypeAllAttributes;
 use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
 use crate::errors::{FunctionAttributeParseError, IdentifiableParseError, ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::function_attributes::FunctionAttributes;
-use crate::parse::parse_extern_mod::generic_opaque_type::GenericOpaqueType;
-use crate::parse::parse_extern_mod::opaque_type_attributes::OpaqueTypeAttributes;
+use crate::parse::parse_extern_mod::generics::GenericOpaqueType;
 use crate::parse::type_declarations::{
     OpaqueForeignTypeDeclaration, TypeDeclaration, TypeDeclarations,
 };
-use crate::parse::HostLang;
+use crate::parse::{HostLang, OpaqueRustTypeGenerics};
 use crate::parsed_extern_fn::{fn_arg_is_mutable_reference, fn_arg_is_opaque_copy_type};
 use crate::ParsedExternFn;
 use quote::ToTokens;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::ops::Deref;
-use syn::{FnArg, ForeignItem, ForeignItemFn, ItemForeignMod, Meta, Pat, ReturnType, Type};
+use syn::{FnArg, ForeignItem, ForeignItemFn, GenericParam, ItemForeignMod, Pat, ReturnType, Type};
 
 mod function_attributes;
-mod generic_opaque_type;
+mod generics;
 mod opaque_type_attributes;
 
 pub(super) struct ForeignModParser<'a> {
@@ -73,43 +73,11 @@ impl<'a> ForeignModParser<'a> {
                         });
                     }
 
-                    let mut attributes = OpaqueTypeAttributes::default();
-                    let mut doc_comment = None;
-
-                    for attr in foreign_ty.attrs.iter() {
-                        let attribute_name = attr.path.to_token_stream().to_string();
-
-                        match attribute_name.as_str() {
-                            "doc" => {
-                                let meta = attr.parse_meta()?;
-                                let doc = match meta {
-                                    Meta::NameValue(name_val) => match name_val.lit {
-                                        syn::Lit::Str(comment) => comment.value(),
-                                        _ => {
-                                            todo!("Push parse error that doc attribute is in incorrect format")
-                                        }
-                                    },
-                                    _ => {
-                                        todo!("Push parse error that doc attribute is in incorrect format")
-                                    }
-                                };
-
-                                doc_comment = Some(doc);
-                            }
-                            "swift_bridge" => {
-                                attributes = attr.parse_args()?;
-                            }
-                            _ => todo!("Push unsupported attribute error."),
-                        };
-                    }
-
                     let foreign_type = OpaqueForeignTypeDeclaration {
                         ty: foreign_ty.ident.clone(),
                         host_lang,
-                        already_declared: attributes.already_declared,
-                        copy: attributes.copy,
-                        doc_comment,
-                        generics: vec![],
+                        attributes: OpaqueTypeAllAttributes::from_attributes(&foreign_ty.attrs)?,
+                        generics: OpaqueRustTypeGenerics::new(),
                     };
                     self.type_declarations.insert(
                         ty_name.clone(),
@@ -222,26 +190,37 @@ impl<'a> ForeignModParser<'a> {
                     if let Ok(generic_foreign_type) =
                         syn::parse2::<GenericOpaqueType>(foreign_item_verbatim)
                     {
-                        // TODO: Normalize with the code used to parse non-generic foreign item
-                        //  types
                         let ty_name = generic_foreign_type.ident.to_string();
 
                         let foreign_ty = OpaqueForeignTypeDeclaration {
                             ty: generic_foreign_type.ident,
                             host_lang,
-                            // TODO
-                            already_declared: false,
-                            // TODO
-                            copy: None,
-                            // TODO
-                            doc_comment: None,
-                            generics: generic_foreign_type
-                                .generics
-                                .params
-                                .clone()
-                                .into_iter()
-                                .collect(),
+                            attributes: OpaqueTypeAllAttributes::from_attributes(
+                                &generic_foreign_type.attributes,
+                            )?,
+                            generics: OpaqueRustTypeGenerics {
+                                generics: generic_foreign_type
+                                    .generics
+                                    .params
+                                    .clone()
+                                    .into_iter()
+                                    .map(|p| match p {
+                                        GenericParam::Type(generic_ty) => generic_ty,
+                                        _ => todo!(
+                                            "Push a ParseError for non-concrete generic types"
+                                        ),
+                                    })
+                                    .collect(),
+                            },
                         };
+                        let generics: Vec<String> = foreign_ty
+                            .generics
+                            .generics
+                            .iter()
+                            .map(|g| g.ident.to_string())
+                            .collect();
+                        let generics: String = generics.join(",");
+                        let ty_name = format!("{}<{}>", ty_name, generics);
                         self.type_declarations
                             .insert(ty_name.clone(), TypeDeclaration::Opaque(foreign_ty.clone()));
                         local_type_declarations.insert(ty_name, foreign_ty);
@@ -286,6 +265,9 @@ impl<'a> ForeignModParser<'a> {
                         };
 
                         let self_ty_string = self_ty.to_string();
+                        // Handles generics. i.e. "SomeType< u32, u64 >" -> "SomeType<u32,u64>";
+                        let self_ty_string = self_ty_string.replace(" ", "");
+
                         let ty = self.type_declarations.get(&self_ty_string).unwrap();
                         let associated_type = Some(ty.clone());
                         associated_type
@@ -326,7 +308,10 @@ Otherwise we use a more general error that says that your argument is invalid.
                         ReturnType::Default => {
                             todo!("Push error if initializer does not return a type")
                         }
-                        ReturnType::Type(_, ty) => ty.deref().to_token_stream().to_string(),
+                        ReturnType::Type(_, ty) => {
+                            let ty_string = ty.deref().to_token_stream().to_string();
+                            ty_string
+                        }
                     };
 
                     let ty = self.type_declarations.get(&ty_string);
@@ -739,6 +724,7 @@ mod tests {
                 .get("AnotherType")
                 .unwrap()
                 .unwrap_opaque()
+                .attributes
                 .already_declared
         );
     }
@@ -763,6 +749,7 @@ mod tests {
                 .get("SomeType")
                 .unwrap()
                 .unwrap_opaque()
+                .attributes
                 .copy
                 .unwrap()
                 .size_bytes,
@@ -785,8 +772,8 @@ mod tests {
         let module = parse_ok(tokens);
 
         let ty = module.types.get("SomeType").unwrap().unwrap_opaque();
-        assert!(ty.copy.is_some());
-        assert!(ty.already_declared)
+        assert!(ty.attributes.copy.is_some());
+        assert!(ty.attributes.already_declared)
     }
 
     /// Verify that we can parse a doc comment from an extern "Rust" opaque type.
@@ -809,36 +796,11 @@ mod tests {
                 .get("AnotherType")
                 .unwrap()
                 .unwrap_opaque()
+                .attributes
                 .doc_comment
                 .as_ref()
                 .unwrap(),
             " Some comment"
-        );
-    }
-
-    /// Verify that we can parse generic extern "Rust" types
-    #[test]
-    fn parse_generic_extern_rust_type() {
-        let tokens = quote! {
-            #[swift_bridge:bridge]
-            mod foo {
-                extern "Rust" {
-                    type SomeType<A, B>;
-                }
-            }
-        };
-
-        let module = parse_ok(tokens);
-
-        assert_eq!(
-            module
-                .types
-                .get("SomeType")
-                .unwrap()
-                .unwrap_opaque()
-                .generics
-                .len(),
-            2
         );
     }
 

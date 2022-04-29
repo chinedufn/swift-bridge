@@ -4,6 +4,7 @@ mod import_opaque_swift_class;
 mod async_function;
 mod bool;
 mod conditional_compilation;
+mod generics;
 mod option;
 mod pointer;
 mod rust_function_uses_opaque_swift_type;

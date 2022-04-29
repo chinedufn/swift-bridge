@@ -1,13 +1,17 @@
 use crate::bridged_type::{
     BridgedType, CustomBridgedType, OpaqueForeignType, SharedEnum, SharedStruct, SharedType,
 };
+use crate::parse::parse_extern_mod::OpaqueTypeAllAttributes;
 use crate::parse::HostLang;
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use std::collections::HashMap;
 use std::ops::Deref;
-use syn::{GenericParam, PatType, Type, TypePath};
+use syn::{PatType, Type, TypePath};
+
+mod generics;
+pub(crate) use self::generics::*;
 
 #[derive(Default)]
 pub(crate) struct TypeDeclarations {
@@ -53,7 +57,8 @@ impl TypeDeclaration {
                     host_lang: opaque.host_lang,
                     reference,
                     mutable,
-                    has_swift_bridge_copy_annotation: opaque.copy.is_some(),
+                    has_swift_bridge_copy_annotation: opaque.attributes.copy.is_some(),
+                    generics: opaque.generics.clone(),
                 }))
             }
         }
@@ -64,23 +69,13 @@ impl TypeDeclaration {
 pub(crate) struct OpaqueForeignTypeDeclaration {
     pub ty: Ident,
     pub host_lang: HostLang,
-    /// Whether or not the `#[swift_bridge(already_declared)]` attribute was present on the type.
-    /// If it was, we won't generate Swift and C type declarations for this type, since we
-    /// will elsewhere.
-    pub already_declared: bool,
-    /// Describes the type's Copy semantics.
-    pub copy: Option<OpaqueCopy>,
-    /// A doc comment.
-    // TODO: Use this to generate doc comment for the generated Swift type.
-    #[allow(unused)]
-    pub doc_comment: Option<String>,
-    #[allow(unused)]
-    pub generics: Vec<GenericParam>,
+    pub attributes: OpaqueTypeAllAttributes,
+    pub generics: OpaqueRustTypeGenerics,
 }
 
 impl OpaqueForeignTypeDeclaration {
     pub(crate) fn ffi_repr_type_tokens(&self) -> TokenStream {
-        if self.copy.is_some() {
+        if self.attributes.copy.is_some() {
             let repr = format!("{}{}", SWIFT_BRIDGE_PREFIX, self.ty);
             Ident::new(&repr, self.ty.span()).to_token_stream()
         } else {
@@ -89,6 +84,35 @@ impl OpaqueForeignTypeDeclaration {
                 *mut super::#ty_name
             }
         }
+    }
+
+    /// The C FFI link name of the function used to free memory for this opaque Rust type.
+    ///
+    /// For `type SomeType<u32>` this would be:
+    /// "__swift_bridge__$SomeType$u32$_free"
+    pub(crate) fn free_rust_opaque_type_ffi_name(&self) -> String {
+        format!(
+            "{}${}{}$_free",
+            SWIFT_BRIDGE_PREFIX,
+            self.to_string(),
+            self.generics.dollar_prefixed_generics_string(),
+        )
+    }
+
+    /// The Rust function used to free memory for this opaque Rust type.
+    ///
+    /// For `type SomeType<u32>` this would be:
+    /// "__swift_bridge__SomeType_u32__free"
+    pub(crate) fn free_rust_opaque_type_ident(&self) -> Ident {
+        Ident::new(
+            &format!(
+                "{}{}{}__free",
+                SWIFT_BRIDGE_PREFIX,
+                self.ty.to_string(),
+                self.generics.underscore_prefixed_generics_string(),
+            ),
+            self.ty.span(),
+        )
     }
 }
 
@@ -108,12 +132,12 @@ impl Deref for OpaqueForeignTypeDeclaration {
 
 impl OpaqueForeignTypeDeclaration {
     // "__swift_bridge__$TypeName$_free"
-    pub fn free_link_name(&self) -> String {
+    pub fn free_swift_class_link_name(&self) -> String {
         format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, self.ty.to_string())
     }
 
     // "__swift_bridge__TypeName__free"
-    pub fn free_func_name(&self) -> String {
+    pub fn free_swift_class_func_name(&self) -> String {
         format!("{}{}__free", SWIFT_BRIDGE_PREFIX, self.ty.to_string())
     }
 
@@ -137,6 +161,10 @@ impl TypeDeclarations {
 
     pub(crate) fn get_with_type_path(&self, type_path: &TypePath) -> Option<&TypeDeclaration> {
         let ty = type_path.path.to_token_stream().to_string();
+
+        // Handles generics. i.e. "SomeType < u32, u64 >" -> SomeType<u32,u64>
+        let ty = ty.replace(" ", "");
+
         self.get(&ty)
     }
 

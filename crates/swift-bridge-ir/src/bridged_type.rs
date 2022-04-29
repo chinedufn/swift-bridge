@@ -7,7 +7,7 @@ use quote::ToTokens;
 use quote::{quote, quote_spanned};
 use syn::{FnArg, Pat, PatType, Path, ReturnType, Type};
 
-use crate::parse::{HostLang, TypeDeclarations};
+use crate::parse::{HostLang, OpaqueRustTypeGenerics, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 
 use self::bridged_option::BridgedOption;
@@ -185,6 +185,7 @@ pub(crate) struct OpaqueForeignType {
     pub reference: bool,
     pub mutable: bool,
     pub has_swift_bridge_copy_annotation: bool,
+    pub generics: OpaqueRustTypeGenerics,
 }
 
 impl OpaqueForeignType {
@@ -613,6 +614,8 @@ impl BridgedType {
                     opaque.copy_rust_repr_type()
                 } else {
                     if opaque.host_lang.is_rust() {
+                        let generics = opaque.generics.angle_bracketed_generics_tokens();
+
                         if opaque.reference {
                             let ptr = if opaque.mutable {
                                 quote! { *mut }
@@ -622,7 +625,7 @@ impl BridgedType {
 
                             quote_spanned! {ty_name.span()=> #ptr super::#ty_name }
                         } else {
-                            quote! { *mut super::#ty_name }
+                            quote! { *mut super::#ty_name #generics }
                         }
                     } else {
                         quote! { #ty_name }
@@ -637,7 +640,7 @@ impl BridgedType {
     // U8 -> UInt8
     // *const u32 -> UnsafePointer<UInt32>
     // ... etc
-    pub fn to_swift_type(&self, type_pos: TypePosition) -> String {
+    pub fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
         match self {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::U8 => "UInt8".to_string(),
@@ -664,7 +667,7 @@ impl BridgedType {
                             format!(
                                 "Unsafe{}Pointer<{}>",
                                 maybe_mutable,
-                                ty.to_swift_type(type_pos)
+                                ty.to_swift_type(type_pos, types)
                             )
                         }
                         Pointee::Void(_) => {
@@ -679,7 +682,10 @@ impl BridgedType {
                             if func_host_lang.is_swift() {
                                 "__private__FfiSlice".to_string()
                             } else {
-                                format!("UnsafeBufferPointer<{}>", slice.ty.to_swift_type(type_pos))
+                                format!(
+                                    "UnsafeBufferPointer<{}>",
+                                    slice.ty.to_swift_type(type_pos, types)
+                                )
                             }
                         }
                         TypePosition::SharedStructField => {
@@ -715,19 +721,19 @@ impl BridgedType {
                     }
                 },
                 StdLibType::Vec(ty) => {
-                    format!("RustVec<{}>", ty.ty.to_swift_type(type_pos))
+                    format!("RustVec<{}>", ty.ty.to_swift_type(type_pos, types))
                 }
                 StdLibType::Option(opt) => match type_pos {
                     TypePosition::FnArg(func_host_lang)
                     | TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_swift() {
-                            opt.ty.to_swift_type(type_pos)
+                            opt.ty.to_swift_type(type_pos, types)
                         } else {
-                            format!("Optional<{}>", opt.ty.to_swift_type(type_pos))
+                            format!("Optional<{}>", opt.ty.to_swift_type(type_pos, types))
                         }
                     }
                     TypePosition::SharedStructField => {
-                        format!("Optional<{}>", opt.ty.to_swift_type(type_pos))
+                        format!("Optional<{}>", opt.ty.to_swift_type(type_pos, types))
                     }
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         unimplemented!()
@@ -784,7 +790,13 @@ impl BridgedType {
                                     }
                                 }
 
-                                class_name
+                                format!(
+                                    "{}{}",
+                                    class_name,
+                                    opaque
+                                        .generics
+                                        .angle_bracketed_generic_concrete_swift_types_string(types)
+                                )
                             } else {
                                 format!("UnsafeMutableRawPointer")
                             }
@@ -1005,8 +1017,9 @@ impl BridgedType {
                             #expression as #ptr super::#ty_name
                         }
                     } else {
+                        let generics = opaque.generics.angle_bracketed_generics_tokens();
                         quote! {
-                            Box::into_raw(Box::new(#expression)) as *mut super::#ty_name
+                            Box::into_raw(Box::new(#expression)) as *mut super::#ty_name #generics
                         }
                     }
                 } else {
@@ -1129,7 +1142,12 @@ impl BridgedType {
     //
     // Where this function converts
     //  `__swift_bridge__$create_string(str)` to `RustString(ptr: __swift_bridge__$create_string(str))`
-    pub fn convert_ffi_value_to_swift_value(&self, value: &str, type_pos: TypePosition) -> String {
+    pub fn convert_ffi_value_to_swift_value(
+        &self,
+        value: &str,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+    ) -> String {
         match self {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::Null
@@ -1174,7 +1192,7 @@ impl BridgedType {
                     format!(
                            "let slice = {value}; return UnsafeBufferPointer(start: slice.start.assumingMemoryBound(to: {ty}.self), count: Int(slice.len));",
                            value = value,
-                           ty = ty.ty.to_swift_type(type_pos)
+                           ty = ty.ty.to_swift_type(type_pos,types)
                        )
                 }
                 StdLibType::Str => value.to_string(),

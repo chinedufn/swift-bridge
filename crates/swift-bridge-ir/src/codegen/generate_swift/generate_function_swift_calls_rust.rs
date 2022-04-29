@@ -84,6 +84,7 @@ pub(super) fn gen_func_swift_calls_rust(
         built_in.convert_ffi_value_to_swift_value(
             &call_rust,
             TypePosition::FnReturn(function.host_lang),
+            types,
         )
     } else {
         if function.host_lang.is_swift() {
@@ -212,7 +213,8 @@ pub(super) fn gen_func_swift_calls_rust(
 
     let func_definition = if function.sig.asyncness.is_some() {
         let func_ret_ty = function.return_ty_built_in(types).unwrap();
-        let rust_fn_ret_ty = func_ret_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust));
+        let rust_fn_ret_ty =
+            func_ret_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
 
         let (maybe_on_complete_sig_ret_val, on_complete_ret_val) = if func_ret_ty.is_null() {
             ("".to_string(), "()".to_string())
@@ -220,11 +222,13 @@ pub(super) fn gen_func_swift_calls_rust(
             (
                 format!(
                     ", rustFnRetVal: {}",
-                    func_ret_ty.to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy)
+                    func_ret_ty
+                        .to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy, types)
                 ),
                 func_ret_ty.convert_ffi_value_to_swift_value(
                     "rustFnRetVal",
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
+                    types,
                 ),
             )
         };

@@ -63,6 +63,8 @@ fn core_swift() -> String {
         core_swift += &conform_to_vectorizable(swift_ty, rust_ty);
     }
 
+    core_swift += &generic_freer();
+
     core_swift
 }
 
@@ -190,6 +192,14 @@ extension {swift_ty}: Vectorizable {{
         rust_ty = rust_ty,
         swift_ty = swift_ty
     )
+}
+
+fn generic_freer() -> &'static str {
+    r#"
+protocol SwiftBridgeGenericFreer {
+    func rust_free();
+}
+    "#
 }
 
 fn manifest_dir() -> PathBuf {

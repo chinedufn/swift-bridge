@@ -9,6 +9,7 @@ fn main() {
         "src/expose_opaque_rust_type.rs",
         "src/import_opaque_swift_class.rs",
         "src/bool.rs",
+        "src/generics.rs",
         "src/option.rs",
         "src/pointer.rs",
         "src/string.rs",
