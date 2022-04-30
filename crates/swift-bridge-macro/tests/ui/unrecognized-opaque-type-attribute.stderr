@@ -1,0 +1,5 @@
+error: Unrecognized attribute "InvalidAttribute".
+ --> tests/ui/unrecognized-opaque-type-attribute.rs:7:24
+  |
+7 |         #[swift_bridge(InvalidAttribute)]
+  |                        ^^^^^^^^^^^^^^^^
