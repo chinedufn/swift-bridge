@@ -32,6 +32,14 @@ cd swift-package-test-package
 swift test
 cd ..
 
+# If project files don't exist before Xcode begins building we get something like:
+# error: Build input file cannot be found: '/path/to/Generated/SwiftBridgeCore.swift'
+# So.. here we create empty versions of the files that will get generated during the
+# build so that Xcode knows about them.
+# During the build process these will get overwritten with their real final contents.
+touch ./Generated/SwiftBridgeCore.{h,swift}
+mkdir -p ./Generated/swift-integration-tests
+touch ./Generated/swift-integration-tests/swift-integration-tests.{h,swift}
 
 xcodebuild \
   -project SwiftRustIntegrationTestRunner.xcodeproj \
