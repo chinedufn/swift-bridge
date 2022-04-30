@@ -214,7 +214,7 @@ impl ParsedExternFn {
     /// Describes the "..." in a `#[swift_bridge(Copy(...))]`
     pub(crate) fn maybe_copy_descriptor(&self) -> Option<OpaqueCopy> {
         match self.associated_type.as_ref()? {
-            TypeDeclaration::Opaque(ty) => ty.copy,
+            TypeDeclaration::Opaque(ty) => ty.attributes.copy,
             _ => None,
         }
     }

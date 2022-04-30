@@ -445,7 +445,7 @@ pub(crate) fn fn_arg_is_opaque_copy_type(
     match fn_arg {
         FnArg::Receiver(_) => {
             if let Some(TypeDeclaration::Opaque(opaque)) = associated.as_ref() {
-                opaque.copy.is_some()
+                opaque.attributes.copy.is_some()
             } else {
                 false
             }

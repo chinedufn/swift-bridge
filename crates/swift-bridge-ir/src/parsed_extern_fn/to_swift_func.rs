@@ -34,7 +34,7 @@ impl ParsedExternFn {
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
                     let ty = if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
-                        built_in.to_swift_type(TypePosition::FnArg(self.host_lang))
+                        built_in.to_swift_type(TypePosition::FnArg(self.host_lang), types)
                     } else {
                         todo!("Push to ParsedErrors")
                     };
@@ -100,6 +100,7 @@ impl ParsedExternFn {
                                 bridged_ty.convert_ffi_value_to_swift_value(
                                     &arg,
                                     TypePosition::FnArg(self.host_lang),
+                                    types,
                                 )
                             }
                         } else {
@@ -127,7 +128,7 @@ impl ParsedExternFn {
                 if let Some(built_in) = BridgedType::new_with_type(&ty, types) {
                     format!(
                         " -> {}",
-                        built_in.to_swift_type(TypePosition::FnReturn(self.host_lang,))
+                        built_in.to_swift_type(TypePosition::FnReturn(self.host_lang,), types)
                     )
                 } else {
                     todo!("Push ParsedErrors")

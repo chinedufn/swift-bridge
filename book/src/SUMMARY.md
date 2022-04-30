@@ -16,6 +16,7 @@
     - [Transparent Structs](./bridge-module/transparent-types/structs/README.md)
     - [Transparent Enums](./bridge-module/transparent-types/enums/README.md)
   - [Async Functions](./bridge-module/async-functions/README.md)
+  - [Generics](./bridge-module/generics/README.md)
   - [Conditional Compilation](./bridge-module/conditional-compilation/README.md)
 
 - [Built In Types](./built-in/README.md)

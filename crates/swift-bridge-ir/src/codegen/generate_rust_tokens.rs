@@ -9,7 +9,7 @@ use quote::{quote, quote_spanned};
 use crate::bridge_module_attributes::CfgAttr;
 use crate::codegen::generate_rust_tokens::vec::generate_vec_of_opaque_rust_type_functions;
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
-use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use crate::SwiftBridgeModule;
 
 mod shared_enum;
 mod shared_struct;
@@ -79,17 +79,18 @@ impl ToTokens for SwiftBridgeModule {
                     }
                 }
                 TypeDeclaration::Opaque(ty) => {
-                    let link_name = format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, ty.to_string(),);
-                    let free_mem_func_name = Ident::new(
-                        &format!("{}{}__free", SWIFT_BRIDGE_PREFIX, ty.to_string()),
-                        ty.span(),
-                    );
+                    if ty.attributes.declare_generic {
+                        continue;
+                    }
+
+                    let link_name = ty.free_rust_opaque_type_ffi_name();
+                    let free_mem_func_name = ty.free_rust_opaque_type_ident();
                     let this = &ty.ty;
                     let ty_name = &ty.ty;
 
                     match ty.host_lang {
                         HostLang::Rust => {
-                            if let Some(copy) = ty.copy {
+                            if let Some(copy) = ty.attributes.copy {
                                 let size = copy.size_bytes;
 
                                 // We use a somewhat hacky approach to asserting that the size
@@ -130,11 +131,13 @@ impl ToTokens for SwiftBridgeModule {
                                 extern_rust_fn_tokens.push(copy_ty);
                             }
 
-                            if !ty.already_declared {
-                                if ty.copy.is_none() {
+                            if !ty.attributes.already_declared {
+                                if ty.attributes.copy.is_none() {
+                                    let generics = ty.generics.angle_bracketed_generics_tokens();
+
                                     let free = quote! {
                                         #[export_name = #link_name]
-                                        pub extern "C" fn #free_mem_func_name (this: *mut super::#this) {
+                                        pub extern "C" fn #free_mem_func_name (this: *mut super::#this #generics) {
                                             let this = unsafe { Box::from_raw(this) };
                                             drop(this);
                                         }
@@ -144,9 +147,12 @@ impl ToTokens for SwiftBridgeModule {
 
                                     // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
                                     //  make them pass.
-                                    let vec_functions =
-                                        generate_vec_of_opaque_rust_type_functions(ty_name);
-                                    extern_rust_fn_tokens.push(vec_functions);
+                                    // TODO: Support Vec<GenericOpaqueRustType
+                                    if ty.generics.len() == 0 {
+                                        let vec_functions =
+                                            generate_vec_of_opaque_rust_type_functions(ty_name);
+                                        extern_rust_fn_tokens.push(vec_functions);
+                                    }
                                 }
                             }
                         }

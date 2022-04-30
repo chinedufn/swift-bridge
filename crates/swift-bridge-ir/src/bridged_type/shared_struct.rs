@@ -201,6 +201,7 @@ impl SharedStruct {
                 let access_field = ty.convert_ffi_value_to_swift_value(
                     &format!("val.{field_name}", field_name = field_name),
                     TypePosition::SharedStructField,
+                    types,
                 );
 
                 format!(

@@ -30,7 +30,8 @@ impl SwiftBridgeModule {
                             fields += &format!(
                                 "    var {}: {}\n",
                                 field.swift_name_string(),
-                                bridged_ty.to_swift_type(TypePosition::SharedStructField)
+                                bridged_ty
+                                    .to_swift_type(TypePosition::SharedStructField, &self.types)
                             );
                         }
 
@@ -46,7 +47,8 @@ impl SwiftBridgeModule {
                             fields += &format!(
                                 "    var {}: {}\n",
                                 field.swift_name_string(),
-                                bridged_ty.to_swift_type(TypePosition::SharedStructField)
+                                bridged_ty
+                                    .to_swift_type(TypePosition::SharedStructField, &self.types)
                             );
                         }
 

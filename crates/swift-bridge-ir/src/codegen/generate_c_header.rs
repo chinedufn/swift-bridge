@@ -159,13 +159,17 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         continue;
                     }
 
-                    if ty.already_declared {
+                    if ty.attributes.already_declared {
+                        continue;
+                    }
+
+                    if ty.attributes.declare_generic {
                         continue;
                     }
 
                     let ty_name = ty.to_string();
 
-                    if let Some(copy) = ty.copy {
+                    if let Some(copy) = ty.attributes.copy {
                         bookkeeping.includes.insert("stdint.h");
                         let ty_decl = format!(
                             "typedef struct {prefix}${ty_name} {{ uint8_t bytes[{size}]; }} {prefix}${ty_name};",
@@ -179,20 +183,24 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                     } else {
                         let ty_decl =
                             format!("typedef struct {ty_name} {ty_name};", ty_name = ty_name);
-                        let drop_ty = format!(
-                            r#"void __swift_bridge__${ty_name}$_free(void* self);"#,
-                            ty_name = ty_name
-                        );
-
                         header += &ty_decl;
                         header += "\n";
+
+                        let generics = ty.generics.dollar_prefixed_generics_string();
+                        let drop_ty = format!(
+                            r#"void __swift_bridge__${ty_name}{generics}$_free(void* self);"#,
+                            ty_name = ty_name,
+                            generics = generics
+                        );
+
                         header += &drop_ty;
                         header += "\n";
                     }
 
                     // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
                     //  make them pass.
-                    if ty.copy.is_none() {
+                    // TODO: Support Vec<GenericOpaqueRustType
+                    if ty.attributes.copy.is_none() && ty.generics.len() == 0 {
                         let vec_functions = vec_functions(&ty_name);
 
                         header += &vec_functions;
