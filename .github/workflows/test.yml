@@ -44,11 +44,6 @@ jobs:
       with:
         toolchain: stable
 
-    # Make sure the files that we will generate exist before the build begins.
-    # This prevents the "Build input files cannot be found" error for generated files.
-    - name: Create generated files
-      run: PROJECT_DIR="$(pwd)/SwiftRustIntegrationTestRunner" ./SwiftRustIntegrationTestRunner/build-rust.sh
-
     - name: Add rust targets
       run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
