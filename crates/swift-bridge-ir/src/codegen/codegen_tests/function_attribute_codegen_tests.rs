@@ -61,11 +61,11 @@ func some_function(_ some_arg: SomeStruct, _ another_arg: AnotherStruct, _ arg3:
     }
 }
 
-/// Verify that we explicitly case to the struct  when generating `into_return_type` code for a
+/// Verify that we explicitly case to the struct when generating `return_into` code for a
 /// Rust function that returns a shared struct.
 /// This explicit conversion into the struct avoids a type inference issues when converting the
 /// shared struct to its FFI representation so that we can return it.
-mod into_return_type_attribute_for_shared_struct {
+mod return_into_attribute_for_shared_struct {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -210,6 +210,146 @@ extension AnotherTypeRef: Identifiable {}"#,
 
     #[test]
     fn protocol_identifiable() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we can use the get attribute
+mod get {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+
+                    #[swift_bridge(get(field))]
+                    fn some_function(&self) -> u16;
+
+                    #[swift_bridge(get(&field))]
+                    fn some_function_ref(&self) -> i16;
+
+                    #[swift_bridge(get(&mut field))]
+                    fn some_function_ref_mut(&mut self) -> u8;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub extern "C" fn __swift_bridge__SomeType_some_function(
+                    this: *mut super::SomeType
+                ) -> u16 {
+                    (unsafe { &*this }).field
+                }
+            },
+            quote! {
+                pub extern "C" fn __swift_bridge__SomeType_some_function_ref(
+                    this: *mut super::SomeType
+                ) -> i16 {
+                    &(unsafe { &*this }).field
+                }
+            },
+            quote! {
+                pub extern "C" fn __swift_bridge__SomeType_some_function_ref_mut(
+                    this: *mut super::SomeType
+                ) -> u8 {
+                    &mut (unsafe { &mut *this }).field
+                }
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::SkipTest
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn get() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we can use the get attribute
+mod get_with {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+
+                    #[swift_bridge(get_with(field = a::b::c))]
+                    fn some_function(&self);
+
+                    #[swift_bridge(get_with(&field = a::b::c))]
+                    fn some_function_ref(&self);
+
+                    #[swift_bridge(get_with(&mut field = a::b::c))]
+                    fn some_function_ref_mut(&mut self);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub extern "C" fn __swift_bridge__SomeType_some_function(
+                    this: *mut super::SomeType
+                ) {
+                    super::a::b::c( (unsafe { &*this }).field )
+                }
+            },
+            quote! {
+                pub extern "C" fn __swift_bridge__SomeType_some_function_ref(
+                    this: *mut super::SomeType
+                ) {
+                    super::a::b::c( & (unsafe { &*this }).field )
+                }
+            },
+            quote! {
+                pub extern "C" fn __swift_bridge__SomeType_some_function_ref_mut(
+                    this: *mut super::SomeType
+                ) {
+                    super::a::b::c( &mut (unsafe { &mut *this }).field )
+                }
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::SkipTest
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn get_with() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

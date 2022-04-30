@@ -458,9 +458,9 @@ mod tests {
         assert_tokens_contain(&parse_ok(start).to_token_stream(), &expected_func);
     }
 
-    /// Verify that we respect the `into_return_type` attribute from within extern "Rust" blocks.
+    /// Verify that we respect the `return_into` attribute from within extern "Rust" blocks.
     #[test]
-    fn extern_rust_into_return_type() {
+    fn extern_rust_return_into() {
         let start = quote! {
             #[swift_bridge::bridge]
             mod foo {

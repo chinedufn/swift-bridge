@@ -4,6 +4,38 @@
 
 ## Function Attributes
 
+#### #[swift_bridge(Identifiable)]
+
+Used to generate a Swift `Idenfiable` protocol implementation.
+
+```rust
+// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        type SomeType;
+
+        #[swift_bridge(Identifiable, swift_name = "someFunction")]
+        fn some_function(&self) -> i16;
+    }
+}
+```
+
+```swift
+// Generated Swift
+// (rough example, the real generated code looks a little different)
+
+class SomeType {
+    // ...
+}
+extension SomeType: Identifiable {
+    var id: UInt16 {
+        return self.someFunction()
+    }
+}
+```
+
 #### #[swift_bridge(args_into = (arg_name, another_arg_name))]
 
 Used to name the arguments that should have `.into()` called on them when
@@ -95,39 +127,78 @@ func maybeSendLongMessage(text: String) {
 }
 ```
 
-#### #[swift_bridge(Identifiable)]
+#### #[swift_bridge(get(field_name))]
 
-Used to generate a Swift `Idenfiable` protocol implementation.
+Allows you to return the value of an opaque Rust struct's field.
+
+You can prefix the field name with `&` or `&mut` in order to return a reference
+or mutable reference to the field.
 
 ```rust
-// Rust
-
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
         type SomeType;
 
-        #[swift_bridge(Identifiable, swift_name = "someFunction")]
-        fn some_function(&self) -> i16;
+        // Returns self.my_u8
+        #[swift_bridge(get(my_u8))]
+        fn my_u8(&self) -> u8;
+
+        // Returns &self.my_string
+        #[swift_bridge(get(&my_string))]
+        fn my_string_reference(&self) -> &str;
     }
+}
+
+pub struct SomeType {
+    my_u8: u8,
+    my_string: String,
 }
 ```
 
-```swift
-// Generated Swift
-// (rough example, the real generated code looks a little different)
+#### #[swift_bridge(get_with(field_name = path::to::function))]
 
-class SomeType {
-    // ...
-}
-extension SomeType: Identifiable {
-    var id: UInt16 {
-        return self.someFunction()
+Allows you to pass an opaque Rust struct's field into a function and then return
+the value that that function returned.
+
+You can prefix the field name with `&` or `&mut` in order to return a reference
+or mutable reference to the field.
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        type SomeType;
+
+        // Returns ui_to_i16(self.my_u8)
+        #[swift_bridge(get_with(my_u8 = u8_to_i16))]
+        fn my_u8_converted(&self) -> u16;
+
+        // Returns Clone::clone(&self.my_string)
+        #[swift_bridge(get_with(&my_string = Clone::clone))]
+        fn my_string_cloned(&self) -> String;
+
+        // Returns string_to_u32(&self.my_string)
+        #[swift_bridge(get_with(&my_string = string_to_u32))]
+        fn my_string_parsed(&self) -> u32;
     }
+}
+
+pub struct SomeType {
+    my_u8: u8,
+    my_string: String,
+}
+
+fn u8_to_i16 (num: u8) -> i16 {
+    num as i16
+}
+
+fn string_to_u32(string: &str) -> u32 {
+    string.parse().unwrap()
 }
 ```
 
-#### #[swift_bridge(into_return_type)]
+#### #[swift_bridge(return_into)]
 
 Allows a swift-bridge definition of `fn foo() -> T` to work for any `fn foo() -> impl Into<T>`.
 

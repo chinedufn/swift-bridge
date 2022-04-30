@@ -183,6 +183,7 @@ impl<'a> ForeignModParser<'a> {
                         return_into: attributes.return_into,
                         return_with: attributes.return_with,
                         args_into: attributes.args_into,
+                        get_field: attributes.get_field,
                     };
                     self.functions.push(func);
                 }

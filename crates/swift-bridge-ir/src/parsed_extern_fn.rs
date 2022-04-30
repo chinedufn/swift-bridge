@@ -73,6 +73,43 @@ pub(crate) struct ParsedExternFn {
     /// }
     /// ```
     pub args_into: Option<Vec<Ident>>,
+    /// Get one of the associated type's fields
+    pub get_field: Option<GetField>,
+}
+
+pub(crate) enum GetField {
+    Direct(GetFieldDirect),
+    With(GetFieldWith),
+}
+
+pub struct GetFieldDirect {
+    pub(crate) maybe_ref: Option<Token![&]>,
+    pub(crate) maybe_mut: Option<Token![mut]>,
+    pub(crate) field_name: Ident,
+}
+
+pub struct GetFieldWith {
+    pub(crate) maybe_ref: Option<Token![&]>,
+    pub(crate) maybe_mut: Option<Token![mut]>,
+    pub(crate) field_name: Ident,
+    pub(crate) path: Path,
+}
+
+#[cfg(test)]
+impl GetField {
+    pub(crate) fn unwrap_direct(&self) -> &GetFieldDirect {
+        match self {
+            GetField::Direct(d) => d,
+            _ => panic!(),
+        }
+    }
+
+    pub(crate) fn unwrap_with(&self) -> &GetFieldWith {
+        match self {
+            GetField::With(d) => d,
+            _ => panic!(),
+        }
+    }
 }
 
 impl ParsedExternFn {
