@@ -145,9 +145,13 @@ impl Parse for FunctionAttr {
                     path,
                 })
             }
-            _ => panic!(
-                "TODO: Return spanned error for unrecognized attribute... Like we do for StructAttr"
-            ),
+            _ => {
+                let attrib = key.to_string();
+                Err(syn::Error::new_spanned(
+                    key,
+                    format!(r#"Unrecognized attribute "{}"."#, attrib,),
+                ))?
+            }
         };
 
         Ok(attrib)

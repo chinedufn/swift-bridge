@@ -112,7 +112,13 @@ impl Parse for OpaqueTypeAttr {
                 }
             }
             "declare_generic" => OpaqueTypeAttr::DeclareGeneric,
-            _ => panic!("TODO: Return spanned error"),
+            _ => {
+                let attrib = key.to_string();
+                Err(syn::Error::new_spanned(
+                    key,
+                    format!(r#"Unrecognized attribute "{}"."#, attrib),
+                ))?
+            }
         };
 
         Ok(attrib)
