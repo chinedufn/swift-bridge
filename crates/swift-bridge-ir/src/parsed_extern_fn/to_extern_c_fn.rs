@@ -1,6 +1,6 @@
 use crate::bridged_type::BridgedType;
 use crate::parse::{HostLang, OpaqueCopy, TypeDeclaration, TypeDeclarations};
-use crate::parsed_extern_fn::ParsedExternFn;
+use crate::parsed_extern_fn::{GetField, GetFieldDirect, GetFieldWith, ParsedExternFn};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::Path;
@@ -176,8 +176,33 @@ impl ParsedExternFn {
             }
         };
 
-        quote! {
-                #this.#call_fn
+        match &self.get_field {
+            Some(GetField::Direct(get_direct)) => {
+                let GetFieldDirect {
+                    maybe_ref,
+                    maybe_mut,
+                    field_name,
+                } = get_direct;
+                quote! {
+                   #maybe_ref #maybe_mut #this . #field_name
+                }
+            }
+            Some(GetField::With(get_with)) => {
+                let GetFieldWith {
+                    maybe_ref,
+                    maybe_mut,
+                    field_name,
+                    path,
+                } = get_with;
+                quote! {
+                   super::#path ( #maybe_ref #maybe_mut #this . #field_name )
+                }
+            }
+            None => {
+                quote! {
+                        #this.#call_fn
+                }
+            }
         }
     }
 

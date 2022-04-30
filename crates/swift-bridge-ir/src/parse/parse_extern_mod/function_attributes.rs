@@ -1,3 +1,4 @@
+use crate::parsed_extern_fn::{GetField, GetFieldDirect, GetFieldWith};
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseStream};
 use syn::{LitStr, Path, Token};
@@ -12,6 +13,7 @@ pub(super) struct FunctionAttributes {
     pub return_into: bool,
     pub return_with: Option<Path>,
     pub args_into: Option<Vec<Ident>>,
+    pub get_field: Option<GetField>,
 }
 
 impl FunctionAttributes {
@@ -37,6 +39,10 @@ impl FunctionAttributes {
             FunctionAttr::Identifiable => {
                 self.is_swift_identifiable = true;
             }
+            FunctionAttr::GetField(get_field) => self.get_field = Some(GetField::Direct(get_field)),
+            FunctionAttr::GetFieldWith(get_field) => {
+                self.get_field = Some(GetField::With(get_field))
+            }
         }
     }
 }
@@ -50,6 +56,8 @@ pub(super) enum FunctionAttr {
     ReturnInto,
     ReturnWith(Path),
     ArgsInto(Vec<Ident>),
+    GetField(GetFieldDirect),
+    GetFieldWith(GetFieldWith),
 }
 
 impl Parse for FunctionAttributes {
@@ -106,7 +114,37 @@ impl Parse for FunctionAttr {
                 let args = syn::punctuated::Punctuated::<_, Token![,]>::parse_terminated(&content)?;
                 FunctionAttr::ArgsInto(args.into_iter().collect())
             }
+            "get" => {
+                let content;
+                syn::parenthesized!(content in input);
 
+                let maybe_ref = content.parse::<Token![&]>().ok();
+                let maybe_mut = content.parse::<Token![mut]>().ok();
+                let field_name = content.parse::<Ident>()?;
+
+                FunctionAttr::GetField(GetFieldDirect {
+                    maybe_ref,
+                    maybe_mut,
+                    field_name,
+                })
+            }
+            "get_with" => {
+                let content;
+                syn::parenthesized!(content in input);
+
+                let maybe_ref = content.parse::<Token![&]>().ok();
+                let maybe_mut = content.parse::<Token![mut]>().ok();
+                let field_name = content.parse::<Ident>()?;
+                content.parse::<Token![=]>()?;
+                let path = content.parse::<Path>()?;
+
+                FunctionAttr::GetFieldWith(GetFieldWith {
+                    maybe_ref,
+                    maybe_mut,
+                    field_name,
+                    path,
+                })
+            }
             _ => panic!(
                 "TODO: Return spanned error for unrecognized attribute... Like we do for StructAttr"
             ),
@@ -122,9 +160,9 @@ mod tests {
     use crate::test_utils::{parse_errors, parse_ok};
     use quote::{quote, ToTokens};
 
-    /// Verify that we can parse the into_return_type attribute from extern "Rust" blocks.
+    /// Verify that we can parse the return_into attribute from extern "Rust" blocks.
     #[test]
-    fn parse_extern_rust_into_return_type_attribute() {
+    fn parse_extern_rust_return_into_attribute() {
         let tokens = quote! {
             mod foo {
                 extern "Rust" {
@@ -400,6 +438,72 @@ mod tests {
         let func = &module.functions[0];
 
         assert!(func.is_swift_identifiable);
+    }
+
+    /// Verify that we can parse the `get` attribute.
+    #[test]
+    fn parses_get_attribute() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(get(field))]
+                    fn some_function(&self);
+
+                    #[swift_bridge(get(&field))]
+                    fn some_function_ref(&self);
+
+                    #[swift_bridge(get(&mut field))]
+                    fn some_function_ref_mut(&mut self);
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let tests = vec![(false, false), (true, false), (true, true)];
+
+        for (idx, (has_ref, has_mut)) in tests.into_iter().enumerate() {
+            let funcs = &module.functions;
+            let field = funcs[idx].get_field.as_ref().unwrap().unwrap_direct();
+            assert_eq!(field.maybe_ref.is_some(), has_ref);
+            assert_eq!(field.maybe_mut.is_some(), has_mut);
+        }
+    }
+
+    /// Verify that we can parse the `get_with` attribute.
+    #[test]
+    fn parses_get_with_attribute() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(get_with(field = a::b::c))]
+                    fn some_function(&self);
+
+                    #[swift_bridge(get_with(&field = a::b::c))]
+                    fn some_function_ref(&self);
+
+                    #[swift_bridge(get_with(&mut field = a::b::c))]
+                    fn some_function_ref_mut(&mut self);
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let tests = vec![(false, false), (true, false), (true, true)];
+
+        for (idx, (has_ref, has_mut)) in tests.into_iter().enumerate() {
+            let funcs = &module.functions;
+            let field = funcs[idx].get_field.as_ref().unwrap().unwrap_with();
+            assert_eq!(field.maybe_ref.is_some(), has_ref);
+            assert_eq!(field.maybe_mut.is_some(), has_mut);
+        }
     }
 
     /// Verify that we can parse a function that has multiple swift_bridge attributes.
