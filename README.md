@@ -90,13 +90,13 @@ struct UserId(u32);
 The `swift-bridge` repository contains [example applications](examples) that you use to quickly try out the library,
 or as a starting point for your own `Swift` + `Rust` based application.
 
-For example, here's how to run the [`ios-rust-analyzer`](examples/ios-rust-analyzer) example project locally.
+For example, here's how to run the [`codegen-visualizer`](examples/codegen-visualizer) example project locally.
 
 ```sh
 git clone https://github.com/chinedufn/swift-bridge
-cd swift-bridge/examples/ios-rust-analyzer
+cd swift-bridge/examples/codegen-visualizer
 
-open IosRustAnalyzer/IosRustAnalyzer.xcodeproj
+open CodegenVisualizer/CodegenVisualizer.xcodeproj
 # *** Click the "Run" button at the top left of Xcode ***
 ```
 

@@ -40,5 +40,4 @@ members = [
 
   "examples/async-functions",
   "examples/codegen-visualizer",
-  "examples/ios-rust-analyzer",
 ]
