@@ -149,6 +149,36 @@
                         <h1 id="functions"><a class="header" href="#functions">Functions</a></h1>
 <p>... TODO OVERVIEW ...</p>
 <h2 id="function-attributes"><a class="header" href="#function-attributes">Function Attributes</a></h2>
+<h4 id="swift_bridgeidentifiable"><a class="header" href="#swift_bridgeidentifiable">#[swift_bridge(Identifiable)]</a></h4>
+<p>Used to generate a Swift <code>Idenfiable</code> protocol implementation.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        type SomeType;
+
+        #[swift_bridge(Identifiable, swift_name = &quot;someFunction&quot;)]
+        fn some_function(&amp;self) -&gt; i16;
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// Generated Swift
+// (rough example, the real generated code looks a little different)
+
+class SomeType {
+    // ...
+}
+extension SomeType: Identifiable {
+    var id: UInt16 {
+        return self.someFunction()
+    }
+}
+</code></pre>
 <h4 id="swift_bridgeargs_into--arg_name-another_arg_name"><a class="header" href="#swift_bridgeargs_into--arg_name-another_arg_name">#[swift_bridge(args_into = (arg_name, another_arg_name))]</a></h4>
 <p>Used to name the arguments that should have <code>.into()</code> called on them when
 passing them to their handler function.</p>
@@ -237,37 +267,76 @@ func maybeSendLongMessage(text: String) {
     }
 }
 </code></pre>
-<h4 id="swift_bridgeidentifiable"><a class="header" href="#swift_bridgeidentifiable">#[swift_bridge(Identifiable)]</a></h4>
-<p>Used to generate a Swift <code>Idenfiable</code> protocol implementation.</p>
+<h4 id="swift_bridgegetfield_name"><a class="header" href="#swift_bridgegetfield_name">#[swift_bridge(get(field_name))]</a></h4>
+<p>Allows you to return the value of an opaque Rust struct's field.</p>
+<p>You can prefix the field name with <code>&amp;</code> or <code>&amp;mut</code> in order to return a reference
+or mutable reference to the field.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Rust
-
-#[swift_bridge::bridge]
+</span>#[swift_bridge::bridge]
 mod ffi {
     extern &quot;Rust&quot; {
         type SomeType;
 
-        #[swift_bridge(Identifiable, swift_name = &quot;someFunction&quot;)]
-        fn some_function(&amp;self) -&gt; i16;
+        // Returns self.my_u8
+        #[swift_bridge(get(my_u8))]
+        fn my_u8(&amp;self) -&gt; u8;
+
+        // Returns &amp;self.my_string
+        #[swift_bridge(get(&amp;my_string))]
+        fn my_string_reference(&amp;self) -&gt; &amp;str;
     }
+}
+
+pub struct SomeType {
+    my_u8: u8,
+    my_string: String,
 }
 <span class="boring">}
 </span></code></pre></pre>
-<pre><code class="language-swift">// Generated Swift
-// (rough example, the real generated code looks a little different)
+<h4 id="swift_bridgeget_withfield_name--pathtofunction"><a class="header" href="#swift_bridgeget_withfield_name--pathtofunction">#[swift_bridge(get_with(field_name = path::to::function))]</a></h4>
+<p>Allows you to pass an opaque Rust struct's field into a function and then return
+the value that that function returned.</p>
+<p>You can prefix the field name with <code>&amp;</code> or <code>&amp;mut</code> in order to return a reference
+or mutable reference to the field.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        type SomeType;
 
-class SomeType {
-    // ...
-}
-extension SomeType: Identifiable {
-    var id: UInt16 {
-        return self.someFunction()
+        // Returns ui_to_i16(self.my_u8)
+        #[swift_bridge(get_with(my_u8 = u8_to_i16))]
+        fn my_u8_converted(&amp;self) -&gt; u16;
+
+        // Returns Clone::clone(&amp;self.my_string)
+        #[swift_bridge(get_with(&amp;my_string = Clone::clone))]
+        fn my_string_cloned(&amp;self) -&gt; String;
+
+        // Returns string_to_u32(&amp;self.my_string)
+        #[swift_bridge(get_with(&amp;my_string = string_to_u32))]
+        fn my_string_parsed(&amp;self) -&gt; u32;
     }
 }
-</code></pre>
-<h4 id="swift_bridgeinto_return_type"><a class="header" href="#swift_bridgeinto_return_type">#[swift_bridge(into_return_type)]</a></h4>
+
+pub struct SomeType {
+    my_u8: u8,
+    my_string: String,
+}
+
+fn u8_to_i16 (num: u8) -&gt; i16 {
+    num as i16
+}
+
+fn string_to_u32(string: &amp;str) -&gt; u32 {
+    string.parse().unwrap()
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h4 id="swift_bridgereturn_into"><a class="header" href="#swift_bridgereturn_into">#[swift_bridge(return_into)]</a></h4>
 <p>Allows a swift-bridge definition of <code>fn foo() -&gt; T</code> to work for any <code>fn foo() -&gt; impl Into&lt;T&gt;</code>.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
