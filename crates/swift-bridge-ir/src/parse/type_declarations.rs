@@ -76,14 +76,24 @@ pub(crate) struct OpaqueForeignTypeDeclaration {
 impl OpaqueForeignTypeDeclaration {
     pub(crate) fn ffi_repr_type_tokens(&self) -> TokenStream {
         if self.attributes.copy.is_some() {
-            let repr = format!("{}{}", SWIFT_BRIDGE_PREFIX, self.ty);
-            Ident::new(&repr, self.ty.span()).to_token_stream()
+            self.ffi_copy_repr_ident().to_token_stream()
         } else {
             let ty_name = &self.ty;
             quote::quote! {
                 *mut super::#ty_name
             }
         }
+    }
+
+    /// The name of the FFI representation for an opaque Rust type.
+    /// __swift_bridge__$SomeType
+    pub(crate) fn ffi_repr_name_string(&self) -> String {
+        format!(
+            "{}${}{}",
+            SWIFT_BRIDGE_PREFIX,
+            self.ty,
+            self.generics.dollar_prefixed_generics_string()
+        )
     }
 
     /// The C FFI link name of the function used to free memory for this opaque Rust type.
@@ -112,6 +122,31 @@ impl OpaqueForeignTypeDeclaration {
                 self.generics.underscore_prefixed_generics_string(),
             ),
             self.ty.span(),
+        )
+    }
+
+    /// The identifier for the `#[repr(C)] __swift_bridge__SomeStruct([u8; 123usize])`
+    /// type that is generated to pass a Copy type over FFI.
+    pub(crate) fn ffi_copy_repr_ident(&self) -> Ident {
+        Ident::new(
+            &format!(
+                "{}{}{}",
+                SWIFT_BRIDGE_PREFIX,
+                self.ty,
+                self.generics.underscore_prefixed_generics_string()
+            ),
+            self.ty.span(),
+        )
+    }
+
+    /// The String for the FFI representation of the type used to pass a Copy Opaque Rust type
+    /// over FFI.
+    pub(crate) fn ffi_copy_repr_string(&self) -> String {
+        format!(
+            "{}${}{}",
+            SWIFT_BRIDGE_PREFIX,
+            self.ty,
+            self.generics.dollar_prefixed_generics_string()
         )
     }
 }

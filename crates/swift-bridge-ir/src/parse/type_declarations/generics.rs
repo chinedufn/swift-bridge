@@ -1,4 +1,5 @@
 use crate::bridged_type::{BridgedType, TypePosition};
+use crate::parse::HostLang;
 use crate::TypeDeclarations;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -34,9 +35,9 @@ impl OpaqueRustTypeGenerics {
                     GENERIC_PLACEHOLDERS[idx],
                     BridgedType::new_with_str(&g.ident.to_string(), types)
                         .unwrap()
-                        // TODO: SharedStructField isn't the real position.. Add a
+                        // TODO: FnReturn isn't the real position.. Add a
                         //  new variant that makes more sense for our use case (generic bounds).
-                        .to_swift_type(TypePosition::SharedStructField, types)
+                        .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types)
                 )
             })
             .collect();
@@ -79,9 +80,9 @@ impl OpaqueRustTypeGenerics {
                     "{}",
                     BridgedType::new_with_str(&g.ident.to_string(), types)
                         .unwrap()
-                        // TODO: SharedStructField isn't the real position.. Add a
+                        // TODO: FnReturn isn't the real position.. Add a
                         //  new variant that makes more sense for our use case (generic bounds).
-                        .to_swift_type(TypePosition::SharedStructField, types)
+                        .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types)
                 )
             })
             .collect();
@@ -89,9 +90,12 @@ impl OpaqueRustTypeGenerics {
         format!("<{}>", bounds.join(", "))
     }
 
-    /// "<A, B, C>" if there are generics.
+    /// "<u8, i16, super::SomeType>" if there are generics.
     /// "" if there are no generics.
-    pub(crate) fn angle_bracketed_generics_tokens(&self) -> TokenStream {
+    pub(crate) fn angle_bracketed_concrete_generics_tokens(
+        &self,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         if self.generics.len() == 0 {
             return quote! {};
         }
@@ -100,8 +104,9 @@ impl OpaqueRustTypeGenerics {
             .generics
             .iter()
             .map(|g| {
-                let ident = &g.ident;
-                quote! {#ident}
+                let ty = BridgedType::new_with_str(&g.ident.to_string(), types).unwrap();
+                let path = ty.to_rust_type_path();
+                quote! { #path }
             })
             .collect();
         quote! {<#(#generics),*>}

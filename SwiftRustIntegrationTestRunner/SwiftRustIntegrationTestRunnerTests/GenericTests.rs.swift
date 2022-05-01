@@ -22,5 +22,15 @@ class GenericTests: XCTestCase {
         let val = new_some_generic_type_u32()
         let _: SomeGenericType<UInt32> = reflect_generic_u32(val)
     }
+    
+    func testReflectGenericOpaqueCopyRustType() {
+        let val = new_some_generic_copy_type_u32()
+        let _: SomeGenericCopyType<UInt32> = reflect_generic_copy_u32(val)
+    }
+    
+    func testReflectGenericWithInnerOpaqueRustType() {
+        let val = new_generic_with_inner_opaque_type()
+        let _: GenericWithOpaqueRustInnerTy<InnerTy> = reflect_generic_with_inner_opaque_type(val)
+    }
 }
 

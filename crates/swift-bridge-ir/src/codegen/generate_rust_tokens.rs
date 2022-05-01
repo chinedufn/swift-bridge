@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::TokenStream;
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
 
@@ -93,6 +93,10 @@ impl ToTokens for SwiftBridgeModule {
                             if let Some(copy) = ty.attributes.copy {
                                 let size = copy.size_bytes;
 
+                                let generics = ty
+                                    .generics
+                                    .angle_bracketed_concrete_generics_tokens(&self.types);
+
                                 // We use a somewhat hacky approach to asserting that the size
                                 // is correct at compile time.
                                 // In the future we'd prefer something like
@@ -101,15 +105,14 @@ impl ToTokens for SwiftBridgeModule {
                                 // https://github.com/rust-lang/rfcs/issues/2790
                                 let assert_size = quote_spanned! {ty.ty.span()=>
                                     const _: () = {
-                                        let _: [u8; std::mem::size_of::<super::#ty_name>()] = [0; #size];
+                                        let _: [u8; std::mem::size_of::<super::#ty_name #generics>()] = [0; #size];
                                         fn _assert_copy() {
-                                            #swift_bridge_path::assert_copy::<super::#ty_name>();
+                                            #swift_bridge_path::assert_copy::<super::#ty_name #generics>();
                                         }
                                     };
                                 };
 
-                                let copy_ty_name = format!("__swift_bridge__{}", ty_name);
-                                let copy_ty_name = Ident::new(&copy_ty_name, ty.span());
+                                let copy_ty_name = ty.ffi_copy_repr_ident();
 
                                 let copy_ty = quote! {
                                     #[repr(C)]
@@ -117,11 +120,11 @@ impl ToTokens for SwiftBridgeModule {
                                     pub struct #copy_ty_name([u8; #size]);
                                     impl #copy_ty_name {
                                         #[inline(always)]
-                                        fn into_rust_repr(self) -> super:: #ty_name {
+                                        fn into_rust_repr(self) -> super:: #ty_name #generics {
                                             unsafe { std::mem::transmute(self) }
                                         }
                                         #[inline(always)]
-                                        fn from_rust_repr(repr: super:: #ty_name) -> Self {
+                                        fn from_rust_repr(repr: super:: #ty_name #generics) -> Self {
                                             unsafe { std::mem::transmute(repr) }
                                         }
                                     }
@@ -133,7 +136,9 @@ impl ToTokens for SwiftBridgeModule {
 
                             if !ty.attributes.already_declared {
                                 if ty.attributes.copy.is_none() {
-                                    let generics = ty.generics.angle_bracketed_generics_tokens();
+                                    let generics = ty
+                                        .generics
+                                        .angle_bracketed_concrete_generics_tokens(&self.types);
 
                                     let free = quote! {
                                         #[export_name = #link_name]

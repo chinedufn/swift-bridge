@@ -32,7 +32,7 @@ pub(super) fn generate_opaque_copy_struct(
     if class_methods.owned_self_methods.len() > 0 {};
 
     let struct_definition = if !ty.attributes.already_declared {
-        generate_struct_definition(type_name)
+        generate_struct_definition(ty, types)
     } else {
         "".to_string()
     };
@@ -44,22 +44,76 @@ pub(super) fn generate_opaque_copy_struct(
     )
 }
 
-fn generate_struct_definition(type_name: &str) -> String {
-    format!(
-        r#"public struct {type_name} {{
+fn generate_struct_definition(
+    ty: &OpaqueForeignTypeDeclaration,
+    types: &TypeDeclarations,
+) -> String {
+    let type_name = ty.ty.to_string();
+    let generics = ty.generics.angle_bracketed_generic_placeholders_string();
+
+    let declare_struct = if ty.generics.is_empty() {
+        format!(
+            r#"public struct {type_name} {{
     fileprivate var bytes: {prefix}${type_name}
 
     func intoFfiRepr() -> {prefix}${type_name} {{
         bytes
     }}
-}}
-extension {prefix}${type_name} {{
+}}"#,
+            prefix = SWIFT_BRIDGE_PREFIX,
+            type_name = type_name,
+        )
+    } else {
+        format!(
+            r#"public struct {type_name}{generics} {{
+    fileprivate var bytes: SwiftBridgeGenericCopyTypeFfiRepr
+}}"#,
+            type_name = type_name,
+            generics = generics
+        )
+    };
+
+    let ffi_repr_conversion = if ty.generics.is_empty() {
+        format!(
+            r#"extension {prefix}${type_name} {{
     func intoSwiftRepr() -> {type_name} {{
         {type_name}(bytes: self)
     }}
 }}"#,
-        prefix = SWIFT_BRIDGE_PREFIX,
-        type_name = type_name,
+            prefix = SWIFT_BRIDGE_PREFIX,
+            type_name = type_name,
+        )
+    } else {
+        let ffi_repr_name = ty.ffi_repr_name_string();
+        let bounds = ty.generics.rust_opaque_type_swift_generic_bounds(types);
+
+        format!(
+            r#"extension {type_name}
+where {bounds} {{
+    func intoFfiRepr() -> {ffi_repr_name} {{
+        self.bytes as! {ffi_repr_name}
+    }}
+}}
+extension {ffi_repr_name} {{
+    func intoSwiftRepr() -> {type_name}{generics} {{
+        {type_name}(bytes: self)
+    }}
+}}
+extension {ffi_repr_name}: SwiftBridgeGenericCopyTypeFfiRepr {{}}"#,
+            ffi_repr_name = ffi_repr_name,
+            type_name = type_name,
+            bounds = bounds,
+            generics = ty
+                .generics
+                .angle_bracketed_generic_concrete_swift_types_string(types),
+        )
+    };
+
+    format!(
+        r#"{declare_struct}
+{ffi_repr_conversion}"#,
+        declare_struct = declare_struct,
+        ffi_repr_conversion = ffi_repr_conversion
     )
 }
 

@@ -64,6 +64,7 @@ fn core_swift() -> String {
     }
 
     core_swift += &generic_freer();
+    core_swift += &generic_copy_type_ffi_repr();
 
     core_swift
 }
@@ -194,12 +195,21 @@ extension {swift_ty}: Vectorizable {{
     )
 }
 
+/// Used to free memory for generic Opaque Rust types such as `type SomeType<u32>`
 fn generic_freer() -> &'static str {
     r#"
 protocol SwiftBridgeGenericFreer {
     func rust_free();
 }
     "#
+}
+
+/// A Swift protocol that is implemented for the FFI representation of all generic Copy types
+/// such as `#[swift_bride(Copy(4))] type SomeType<u32>`
+fn generic_copy_type_ffi_repr() -> &'static str {
+    r#"
+protocol SwiftBridgeGenericCopyTypeFfiRepr {}
+"#
 }
 
 fn manifest_dir() -> PathBuf {
