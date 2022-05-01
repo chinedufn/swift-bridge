@@ -127,6 +127,13 @@ mod extern_rust_copy_type {
                             unsafe { std::mem::transmute(repr) }
                         }
                     }
+
+                    #[repr(C)]
+                    #[doc(hidden)]
+                    pub struct __swift_bridge__Option_SomeType {
+                        is_some: bool,
+                        val: std::mem::MaybeUninit<__swift_bridge__SomeType>
+                    }
                 },
             ],
             // Copy types don't need a function for freeing memory.
@@ -161,8 +168,12 @@ extension __swift_bridge__$SomeType {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
 typedef struct __swift_bridge__$SomeType { uint8_t bytes[32]; } __swift_bridge__$SomeType;
+typedef struct __swift_bridge__$Option$SomeType { bool is_some; __swift_bridge__$SomeType val; } __swift_bridge__$Option$SomeType;
     "#,
-            "#include <stdint.h>",
+            r#"
+#include <stdint.h>
+#include <stdbool.h>
+"#,
         ])
     }
 

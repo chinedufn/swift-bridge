@@ -386,6 +386,134 @@ void __swift_bridge__$some_function(void* arg);
     }
 }
 
+/// Test code generation for Rust function that returns an Option<OpaqueCopyRustType>
+mod extern_rust_fn_return_option_opaque_copy_rust_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(Copy(4))]
+                    type SomeType;
+                    fn some_function () -> Option<SomeType>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function() -> __swift_bridge__Option_SomeType {
+                if let Some(val) = super::some_function() {
+                    __swift_bridge__Option_SomeType {
+                        is_some: true,
+                        val: std::mem::MaybeUninit::new(__swift_bridge__SomeType::from_rust_repr(val))
+                    }
+                } else {
+                    __swift_bridge__Option_SomeType {
+                        is_some: false,
+                        val: std::mem::MaybeUninit::uninit()
+                    }
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function() -> Optional<SomeType> {
+    { let val = __swift_bridge__$some_function(); if val.is_some { return SomeType(bytes: val.val) } else { return nil } }()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+__swift_bridge__$Option$SomeType __swift_bridge__$some_function(void);
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_return_option_opaque_copy_rust_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that takes an Option<OpaqueCopyRustType> argument.
+mod extern_rust_fn_with_option_opaque_copy_rust_type_arg {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(Copy(4))]
+                    type SomeType;
+                    fn some_function (arg: Option<SomeType>);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function(
+                arg: __swift_bridge__Option_SomeType
+            ) {
+                super::some_function(
+                    if arg.is_some {
+                        Some( unsafe { arg.val.assume_init() }.into_rust_repr() )
+                    } else {
+                        None
+                    }
+                )
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function(_ arg: Optional<SomeType>) {
+    __swift_bridge__$some_function(__swift_bridge__$Option$SomeType(is_some: arg != nil, val: { if let val = arg { return val.intoFfiRepr() } else { return __swift_bridge__$SomeType() } }() ))
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function(__swift_bridge__$Option$SomeType arg);
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_with_option_opaque_copy_rust_type_arg() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Test conversion to and from the FFI representation of a struct that contains Option<F> fields.
 mod shared_struct_with_option_field_ffi_repr {
     use super::*;

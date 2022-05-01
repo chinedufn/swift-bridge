@@ -194,21 +194,47 @@ impl OpaqueForeignType {
     }
 
     /// The name of the type used to pass a `#[swift_bridge(Copy(...))]` type over FFI
-    fn copy_rust_repr_type(&self) -> TokenStream {
+    ///
+    /// __swift_bridge__SomeType
+    fn copy_rust_repr_type(&self) -> Ident {
         let ty = format!(
             "{}{}{}",
             SWIFT_BRIDGE_PREFIX,
             self.ty,
             self.generics.underscore_prefixed_generics_string()
         );
-        let ty = Ident::new(&ty, self.ty.span());
-        quote! {
-            #ty
-        }
+        Ident::new(&ty, self.ty.span())
+    }
+
+    /// The name of the type used to pass a `Option<T>` where T is
+    /// `#[swift_bridge(Copy(...))]` over FFI
+    ///
+    /// __swift_bridge__Option_SomeType
+    fn option_copy_rust_repr_type(&self) -> Ident {
+        let ty = format!(
+            "{}Option_{}{}",
+            SWIFT_BRIDGE_PREFIX,
+            self.ty,
+            self.generics.underscore_prefixed_generics_string()
+        );
+        Ident::new(&ty, self.ty.span())
+    }
+
+    /// The FFI name of the type used to pass a `Option<T>` where T is
+    /// `#[swift_bridge(Copy(...))]` over FFI
+    ///
+    /// __swift_bridge__$Option$SomeType
+    fn option_copy_ffi_repr_type_string(&self) -> String {
+        format!(
+            "{}$Option${}{}",
+            SWIFT_BRIDGE_PREFIX,
+            self.ty,
+            self.generics.dollar_prefixed_generics_string()
+        )
     }
 
     /// The name of the type used to pass a `#[swift_bridge(Copy(...))]` type over FFI
-    fn copy_ffi_repr_type(&self) -> String {
+    fn copy_ffi_repr_type_string(&self) -> String {
         format!(
             "{}${}{}",
             SWIFT_BRIDGE_PREFIX,
@@ -606,7 +632,12 @@ impl BridgedType {
                     BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                         let type_name = &opaque.ty;
 
-                        quote! { *mut super::#type_name }
+                        if opaque.has_swift_bridge_copy_annotation {
+                            let option_ty = opaque.option_copy_rust_repr_type();
+                            quote! { #option_ty }
+                        } else {
+                            quote! { *mut super::#type_name }
+                        }
                     }
                 },
             },
@@ -634,7 +665,8 @@ impl BridgedType {
                 let ty_name = &opaque.ty;
 
                 if opaque.has_swift_bridge_copy_annotation {
-                    opaque.copy_rust_repr_type()
+                    let ty = opaque.copy_rust_repr_type();
+                    quote! { #ty }
                 } else {
                     if opaque.host_lang.is_rust() {
                         let generics = opaque
@@ -902,7 +934,7 @@ impl BridgedType {
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
                     if opaque.has_swift_bridge_copy_annotation {
-                        format!("struct {}", opaque.copy_ffi_repr_type())
+                        format!("struct {}", opaque.copy_ffi_repr_type_string())
                     } else {
                         "void*".to_string()
                     }
