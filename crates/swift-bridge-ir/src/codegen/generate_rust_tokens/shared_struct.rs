@@ -49,7 +49,7 @@ impl SwiftBridgeModule {
                 let ty = &norm_field.ty;
 
                 let ty = BridgedType::new_with_type(ty, &self.types).unwrap();
-                let ty = ty.to_ffi_compatible_rust_type(&self.swift_bridge_path);
+                let ty = ty.to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
 
                 quote! {
                     #maybe_name_and_colon #ty

@@ -42,7 +42,7 @@ impl ParsedExternFn {
                     if !pat_ty_is_self {
                         if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                             let pat = &pat_ty.pat;
-                            let ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path);
+                            let ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path, types);
                             params.push(quote! { #pat: #ty});
                             continue;
                         } else {

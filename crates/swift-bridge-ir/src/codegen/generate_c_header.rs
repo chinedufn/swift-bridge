@@ -171,10 +171,11 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
 
                     if let Some(copy) = ty.attributes.copy {
                         bookkeeping.includes.insert("stdint.h");
+                        let c_ty_name = ty.ffi_copy_repr_string();
+
                         let ty_decl = format!(
-                            "typedef struct {prefix}${ty_name} {{ uint8_t bytes[{size}]; }} {prefix}${ty_name};",
-                            prefix = SWIFT_BRIDGE_PREFIX,
-                            ty_name = ty_name,
+                            "typedef struct {copy_ffi_repr} {{ uint8_t bytes[{size}]; }} {copy_ffi_repr};",
+                            copy_ffi_repr = c_ty_name,
                             size = copy.size_bytes
                         );
 

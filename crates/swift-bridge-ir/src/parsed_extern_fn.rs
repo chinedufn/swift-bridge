@@ -145,7 +145,7 @@ impl ParsedExternFn {
         let sig = &self.func.sig;
 
         if let Some(ret) = BridgedType::new_with_return_type(&sig.output, types) {
-            let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path);
+            let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path, types);
             if ty.to_string() == "()" {
                 quote! {}
             } else {
@@ -164,7 +164,7 @@ impl ParsedExternFn {
         let sig = &self.func.sig;
 
         if let Some(ret) = BridgedType::new_with_return_type(&sig.output, types) {
-            let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path);
+            let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path, types);
             if ty.to_string() == "()" {
                 None
             } else {
@@ -266,6 +266,7 @@ impl ParsedExternFn {
                             arg = built_in.convert_rust_value_to_ffi_compatible_value(
                                 &arg,
                                 swift_bridge_path,
+                                types,
                             );
                         };
                     } else {

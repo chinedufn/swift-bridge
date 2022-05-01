@@ -252,3 +252,261 @@ void* __swift_bridge__$some_function(void);
         .test();
     }
 }
+
+/// Verify that we can declare a generic opaque Rust type.
+mod generic_opaque_rust_type_copy {
+    use super::*;
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(Copy(6))]
+                    type SomeType<u32, u16>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsManyAndDoesNotContainMany {
+            contains: vec![
+                quote! {
+                    const _ : () = {
+                        let _ : [u8 ; std :: mem :: size_of :: < super :: SomeType<u32, u16> > ()] = [0 ; 6usize] ;
+                        fn _assert_copy () {
+                            swift_bridge :: assert_copy :: < super :: SomeType<u32,u16> > () ;
+                        }
+                    }
+                },
+                quote! {
+                    #[repr(C)]
+                    #[doc(hidden)]
+                    pub struct __swift_bridge__SomeType_u32_u16([u8; 6usize]);
+                    impl __swift_bridge__SomeType_u32_u16 {
+                        #[inline(always)]
+                        fn into_rust_repr(self) -> super::SomeType<u32,u16> {
+                            unsafe { std::mem::transmute(self) }
+                        }
+
+                        #[inline(always)]
+                        fn from_rust_repr(repr: super::SomeType<u32,u16>) -> Self {
+                            unsafe { std::mem::transmute(repr) }
+                        }
+                    }
+                },
+            ],
+            // Copy types don't need to be freed.
+            does_not_contain: vec![quote! {
+                free
+            }],
+        }
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+public struct SomeType<A, B> {
+    fileprivate var bytes: SwiftBridgeGenericCopyTypeFfiRepr
+}"#,
+            r#"
+extension SomeType
+where A == UInt32, B == UInt16 {
+    func intoFfiRepr() -> __swift_bridge__$SomeType$u32$u16 {
+        self.bytes as! __swift_bridge__$SomeType$u32$u16
+    }
+}
+extension __swift_bridge__$SomeType$u32$u16 {
+    func intoSwiftRepr() -> SomeType<UInt32, UInt16> {
+        SomeType(bytes: self)
+    }
+}
+extension __swift_bridge__$SomeType$u32$u16: SwiftBridgeGenericCopyTypeFfiRepr {}
+"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+typedef struct __swift_bridge__$SomeType$u32$u16 { uint8_t bytes[6]; } __swift_bridge__$SomeType$u32$u16;
+        "#,
+        )
+    }
+
+    #[test]
+    fn generic_opaque_rust_type_copy() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we can use a generic opaque Rust Copy type as an argument.
+mod generic_opaque_rust_type_copy_arg {
+    use super::*;
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(Copy(6))]
+                    type SomeType<u32, u16>;
+
+                    fn some_function(arg: SomeType<u32, u16>);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            pub extern "C" fn __swift_bridge__some_function(
+                arg: __swift_bridge__SomeType_u32_u16
+            ) {
+                super::some_function(arg.into_rust_repr())
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function(_ arg: SomeType<UInt32, UInt16>) {
+    __swift_bridge__$some_function(arg.intoFfiRepr())
+}
+        "#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function(struct __swift_bridge__$SomeType$u32$u16 arg);
+        "#,
+        )
+    }
+
+    #[test]
+    fn generic_opaque_rust_type_copy_arg() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we can return a generic opaque Rust Copy type.
+mod generic_opaque_rust_type_copy_return {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(Copy(6))]
+                    type SomeType<u32, u16>;
+
+                    fn some_function() -> SomeType<u32, u16>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            pub extern "C" fn __swift_bridge__some_function(
+            ) -> __swift_bridge__SomeType_u32_u16 {
+                __swift_bridge__SomeType_u32_u16::from_rust_repr(super::some_function())
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function() -> SomeType<UInt32, UInt16> {
+    SomeType(bytes: __swift_bridge__$some_function())
+}
+        "#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+struct __swift_bridge__$SomeType$u32$u16 __swift_bridge__$some_function(void);
+        "#,
+        )
+    }
+
+    #[test]
+    fn generic_opaque_rust_type_copy_return() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we can declare a generic opaque Rust type that has an inner opaque Rust concrete
+/// type.
+mod generic_opaque_rust_type_inner_opaque_ty {
+    use super::*;
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(declare_generic)]
+                    type SomeType<A>;
+                    type SomeType<AnotherType>;
+                    type AnotherType;
+                }
+            }
+        }
+    }
+
+    // No need to free memory for Copy types
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$SomeType$AnotherType$_free"]
+            pub extern "C" fn __swift_bridge__SomeType_AnotherType__free (
+                this: *mut super::SomeType<super::AnotherType>
+            ) {
+                let this = unsafe { Box::from_raw(this) };
+                drop(this);
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::SkipTest
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn generic_opaque_rust_type_inner_opaque_ty() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

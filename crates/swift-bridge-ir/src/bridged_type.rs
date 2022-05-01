@@ -90,7 +90,7 @@ impl ToTokens for Pointee {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
             Pointee::BuiltIn(built_in) => {
-                built_in.to_rust().to_tokens(tokens);
+                built_in.to_rust_type_path().to_tokens(tokens);
             }
             Pointee::Void(ty) => {
                 ty.to_tokens(tokens);
@@ -195,7 +195,12 @@ impl OpaqueForeignType {
 
     /// The name of the type used to pass a `#[swift_bridge(Copy(...))]` type over FFI
     fn copy_rust_repr_type(&self) -> TokenStream {
-        let ty = format!("{}{}", SWIFT_BRIDGE_PREFIX, self.ty);
+        let ty = format!(
+            "{}{}{}",
+            SWIFT_BRIDGE_PREFIX,
+            self.ty,
+            self.generics.underscore_prefixed_generics_string()
+        );
         let ty = Ident::new(&ty, self.ty.span());
         quote! {
             #ty
@@ -204,7 +209,12 @@ impl OpaqueForeignType {
 
     /// The name of the type used to pass a `#[swift_bridge(Copy(...))]` type over FFI
     fn copy_ffi_repr_type(&self) -> String {
-        format!("{}${}", SWIFT_BRIDGE_PREFIX, self.ty)
+        format!(
+            "{}${}{}",
+            SWIFT_BRIDGE_PREFIX,
+            self.ty,
+            self.generics.dollar_prefixed_generics_string()
+        )
     }
 }
 
@@ -372,7 +382,9 @@ impl BridgedType {
             "String" => BridgedType::StdLib(StdLibType::String),
             "bool" => BridgedType::StdLib(StdLibType::Bool),
             _ => {
-                return None;
+                let bridged_type = types.get(string)?;
+                let bridged_type = bridged_type.to_bridged_type(false, false);
+                bridged_type
             }
         };
         return Some(ty);
@@ -381,7 +393,8 @@ impl BridgedType {
     // Convert the BuiltInType to the corresponding Rust type.
     // U8 -> u8
     // Vec<U32> -> Vec<u32>
-    fn to_rust(&self) -> TokenStream {
+    // SomeOpaqueRustType -> super::SomeOpaqueRustType
+    pub(crate) fn to_rust_type_path(&self) -> TokenStream {
         match self {
             BridgedType::StdLib(stdlib_type) => {
                 match stdlib_type {
@@ -406,7 +419,7 @@ impl BridgedType {
 
                         match &ptr.pointee {
                             Pointee::BuiltIn(ty) => {
-                                let ty = ty.to_rust();
+                                let ty = ty.to_rust_type_path();
                                 quote! { #ptr_kind #ty}
                             }
                             Pointee::Void(_ty) => {
@@ -416,17 +429,17 @@ impl BridgedType {
                         }
                     }
                     StdLibType::RefSlice(ref_slice) => {
-                        let ty = ref_slice.ty.to_rust();
+                        let ty = ref_slice.ty.to_rust_type_path();
                         quote! { &[#ty]}
                     }
                     StdLibType::Str => quote! { &str },
                     StdLibType::String => quote! { String },
                     StdLibType::Vec(v) => {
-                        let ty = v.ty.to_rust();
+                        let ty = v.ty.to_rust_type_path();
                         quote! { Vec<#ty> }
                     }
                     StdLibType::Option(opt) => {
-                        let ty = opt.ty.to_rust();
+                        let ty = opt.ty.to_rust_type_path();
                         quote! { Option<#ty> }
                     }
                 }
@@ -462,7 +475,11 @@ impl BridgedType {
     // U8 -> u8
     // RefSlice(U8) -> FfiSlice
     // Str -> RustStr
-    pub fn to_ffi_compatible_rust_type(&self, swift_bridge_path: &Path) -> TokenStream {
+    pub fn to_ffi_compatible_rust_type(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         let ty = match self {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::U8 => quote! {u8},
@@ -482,7 +499,9 @@ impl BridgedType {
                     let kind = ptr.kind.to_token_stream();
 
                     let ty = match &ptr.pointee {
-                        Pointee::BuiltIn(ty) => ty.to_ffi_compatible_rust_type(swift_bridge_path),
+                        Pointee::BuiltIn(ty) => {
+                            ty.to_ffi_compatible_rust_type(swift_bridge_path, types)
+                        }
                         Pointee::Void(ty) => {
                             quote! { super::#ty }
                         }
@@ -491,7 +510,9 @@ impl BridgedType {
                     quote! { #kind #ty}
                 }
                 StdLibType::RefSlice(slice) => {
-                    let ty = slice.ty.to_ffi_compatible_rust_type(swift_bridge_path);
+                    let ty = slice
+                        .ty
+                        .to_ffi_compatible_rust_type(swift_bridge_path, types);
                     quote! {#swift_bridge_path::FfiSlice<#ty>}
                 }
                 StdLibType::Str => {
@@ -504,7 +525,7 @@ impl BridgedType {
                     quote! { *mut #swift_bridge_path::string::RustString }
                 }
                 StdLibType::Vec(ty) => {
-                    let ty = ty.ty.to_rust();
+                    let ty = ty.ty.to_rust_type_path();
                     quote! { *mut Vec<#ty> }
                 }
                 StdLibType::Option(opt) => match opt.ty.deref() {
@@ -560,7 +581,9 @@ impl BridgedType {
                         StdLibType::Str => {
                             quote! { #swift_bridge_path::string::RustStr }
                         }
-                        StdLibType::String => opt.ty.to_ffi_compatible_rust_type(swift_bridge_path),
+                        StdLibType::String => {
+                            opt.ty.to_ffi_compatible_rust_type(swift_bridge_path, types)
+                        }
                         StdLibType::Vec(_) => {
                             todo!("Option<Vec<T>> is not yet supported")
                         }
@@ -614,7 +637,9 @@ impl BridgedType {
                     opaque.copy_rust_repr_type()
                 } else {
                     if opaque.host_lang.is_rust() {
-                        let generics = opaque.generics.angle_bracketed_generics_tokens();
+                        let generics = opaque
+                            .generics
+                            .angle_bracketed_concrete_generics_tokens(types);
 
                         if opaque.reference {
                             let ptr = if opaque.mutable {
@@ -916,7 +941,7 @@ impl BridgedType {
                     StdLibType::Pointer(pointer) => match &pointer.pointee {
                         Pointee::BuiltIn(_built_in) => {
                             //
-                            self.to_rust()
+                            self.to_rust_type_path()
                         }
                         Pointee::Void(_) => {
                             let pointer_kind = &pointer.kind;
@@ -925,10 +950,10 @@ impl BridgedType {
                             quote! { #pointer_kind super:: #pointee }
                         }
                     },
-                    _ => self.to_rust(),
+                    _ => self.to_rust_type_path(),
                 }
             }
-            _ => self.to_rust(),
+            _ => self.to_rust_type_path(),
         }
     }
 
@@ -941,6 +966,7 @@ impl BridgedType {
         &self,
         expression: &TokenStream,
         swift_bridge_path: &Path,
+        types: &TypeDeclarations,
     ) -> TokenStream {
         match self {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
@@ -1017,7 +1043,9 @@ impl BridgedType {
                             #expression as #ptr super::#ty_name
                         }
                     } else {
-                        let generics = opaque.generics.angle_bracketed_generics_tokens();
+                        let generics = opaque
+                            .generics
+                            .angle_bracketed_concrete_generics_tokens(types);
                         quote! {
                             Box::into_raw(Box::new(#expression)) as *mut super::#ty_name #generics
                         }
