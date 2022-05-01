@@ -57,6 +57,10 @@ mod ffi {
             arg: Option<OptTestOpaqueRustType>,
         ) -> Option<OptTestOpaqueRustType>;
 
+        fn rust_reflect_option_opaque_rust_copy_type(
+            arg: Option<OptTestOpaqueRustCopyType>,
+        ) -> Option<OptTestOpaqueRustCopyType>;
+
         fn rust_reflect_struct_with_option_fields(
             arg: StructWithOptionFields,
         ) -> StructWithOptionFields;
@@ -78,6 +82,12 @@ mod ffi {
         #[swift_bridge(init)]
         fn new(field: u8) -> OptTestOpaqueRustType;
         fn field(&self) -> u8;
+    }
+
+    extern "Rust" {
+        #[swift_bridge(Copy(1))]
+        type OptTestOpaqueRustCopyType;
+        fn new_opaque_rust_copy_type(field: u8) -> OptTestOpaqueRustCopyType;
     }
 
     extern "Swift" {
@@ -104,6 +114,15 @@ impl OptTestOpaqueRustType {
     fn field(&self) -> u8 {
         self.field
     }
+}
+
+#[derive(Copy, Clone)]
+pub struct OptTestOpaqueRustCopyType {
+    #[allow(unused)]
+    field: u8,
+}
+fn new_opaque_rust_copy_type(field: u8) -> OptTestOpaqueRustCopyType {
+    OptTestOpaqueRustCopyType { field }
 }
 
 use self::reflect_primitives::*;
@@ -138,6 +157,12 @@ fn rust_reflect_option_str(arg: Option<&str>) -> Option<&str> {
 fn rust_reflect_option_opaque_rust_type(
     arg: Option<OptTestOpaqueRustType>,
 ) -> Option<OptTestOpaqueRustType> {
+    arg
+}
+
+fn rust_reflect_option_opaque_rust_copy_type(
+    arg: Option<OptTestOpaqueRustCopyType>,
+) -> Option<OptTestOpaqueRustCopyType> {
     arg
 }
 

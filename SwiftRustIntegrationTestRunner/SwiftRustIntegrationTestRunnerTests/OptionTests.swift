@@ -102,6 +102,11 @@ class OptionTests: XCTestCase {
         XCTAssertNil(rust_reflect_option_opaque_rust_type(nil))
     }
     
+     func testSwiftCallRustWithOptionOpaqueRustCopyType() throws {
+        let val = new_opaque_rust_copy_type(123)
+        let _: OptTestOpaqueRustCopyType? = rust_reflect_option_opaque_rust_copy_type(val)
+    }
+    
     func testStructWithOptionFieldsSome() throws {
         let val = StructWithOptionFields(
             u8: 123, i8: 123, u16: 123, i16: 123,

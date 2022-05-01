@@ -171,15 +171,24 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
 
                     if let Some(copy) = ty.attributes.copy {
                         bookkeeping.includes.insert("stdint.h");
+                        bookkeeping.includes.insert("stdbool.h");
                         let c_ty_name = ty.ffi_copy_repr_string();
+                        let c_option_ty_name = ty.ffi_option_copy_repr_string();
 
                         let ty_decl = format!(
                             "typedef struct {copy_ffi_repr} {{ uint8_t bytes[{size}]; }} {copy_ffi_repr};",
                             copy_ffi_repr = c_ty_name,
                             size = copy.size_bytes
                         );
+                        let option_ty_decl = format!(
+                            "typedef struct {option_copy_ffi_repr} {{ bool is_some; {copy_ffi_repr} val; }} {option_copy_ffi_repr};",
+                            copy_ffi_repr = c_ty_name,
+                            option_copy_ffi_repr = c_option_ty_name,
+                        );
 
                         header += &ty_decl;
+                        header += "\n";
+                        header += &option_ty_decl;
                         header += "\n";
                     } else {
                         let ty_decl =

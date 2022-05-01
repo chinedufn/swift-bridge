@@ -139,6 +139,32 @@ impl OpaqueForeignTypeDeclaration {
         )
     }
 
+    /// The identifier for the FFI representation of an `Option<T>` where `T` is
+    /// the `#[repr(C)] __swift_bridge__SomeStruct([u8; 123usize])`
+    /// type that is generated to pass a Copy type over FFI.
+    pub(crate) fn ffi_option_copy_repr_ident(&self) -> Ident {
+        Ident::new(
+            &format!(
+                "{}Option_{}{}",
+                SWIFT_BRIDGE_PREFIX,
+                self.ty,
+                self.generics.underscore_prefixed_generics_string()
+            ),
+            self.ty.span(),
+        )
+    }
+
+    /// The String for the FFI representation of the type used to pass an Option Copy Opaque Rust
+    /// type over FFI.
+    pub(crate) fn ffi_option_copy_repr_string(&self) -> String {
+        format!(
+            "{}$Option${}{}",
+            SWIFT_BRIDGE_PREFIX,
+            self.ty,
+            self.generics.dollar_prefixed_generics_string()
+        )
+    }
+
     /// The String for the FFI representation of the type used to pass a Copy Opaque Rust type
     /// over FFI.
     pub(crate) fn ffi_copy_repr_string(&self) -> String {

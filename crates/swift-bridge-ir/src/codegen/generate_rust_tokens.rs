@@ -113,6 +113,7 @@ impl ToTokens for SwiftBridgeModule {
                                 };
 
                                 let copy_ty_name = ty.ffi_copy_repr_ident();
+                                let option_copy_ty_name = ty.ffi_option_copy_repr_ident();
 
                                 let copy_ty = quote! {
                                     #[repr(C)]
@@ -127,6 +128,13 @@ impl ToTokens for SwiftBridgeModule {
                                         fn from_rust_repr(repr: super:: #ty_name #generics) -> Self {
                                             unsafe { std::mem::transmute(repr) }
                                         }
+                                    }
+
+                                    #[repr(C)]
+                                    #[doc(hidden)]
+                                    pub struct #option_copy_ty_name {
+                                        is_some: bool,
+                                        val: std::mem::MaybeUninit<#copy_ty_name>
                                     }
                                 };
 

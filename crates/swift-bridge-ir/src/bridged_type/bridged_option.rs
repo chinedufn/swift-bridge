@@ -116,12 +116,31 @@ impl BridgedOption {
                     #option_name::from_rust_repr(#expression)
                 }
             }
-            BridgedType::Foreign(CustomBridgedType::Opaque(_opaque_type)) => {
-                quote! {
-                    if let Some(val) = #expression {
-                        Box::into_raw(Box::new(val))
-                    } else {
-                        std::ptr::null_mut()
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                if opaque.has_swift_bridge_copy_annotation {
+                    let copy_repr = opaque.copy_rust_repr_type();
+                    let option_copy_repr = opaque.option_copy_rust_repr_type();
+
+                    quote! {
+                        if let Some(val) = #expression {
+                            #option_copy_repr {
+                                is_some: true,
+                                val: std::mem::MaybeUninit::new(#copy_repr::from_rust_repr(val))
+                            }
+                        } else {
+                            #option_copy_repr {
+                                is_some: false,
+                                val: std::mem::MaybeUninit::uninit()
+                            }
+                        }
+                    }
+                } else {
+                    quote! {
+                        if let Some(val) = #expression {
+                            Box::into_raw(Box::new(val))
+                        } else {
+                            std::ptr::null_mut()
+                        }
                     }
                 }
             }
@@ -186,12 +205,22 @@ impl BridgedOption {
                     #value.into_rust_repr()
                 }
             }
-            BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
-                quote! {
-                    if #value.is_null() {
-                        None
-                    } else {
-                        Some(unsafe { * Box::from_raw(#value) } )
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                if opaque.has_swift_bridge_copy_annotation {
+                    quote! {
+                        if #value.is_some {
+                            Some(unsafe{ #value.val.assume_init() }.into_rust_repr())
+                        } else {
+                            None
+                        }
+                    }
+                } else {
+                    quote! {
+                        if #value.is_null() {
+                            None
+                        } else {
+                            Some(unsafe { * Box::from_raw(#value) } )
+                        }
                     }
                 }
             }
@@ -248,12 +277,21 @@ impl BridgedOption {
                 format!("{expression}.intoSwiftRepr()", expression = expression)
             }
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
-                let type_name = opaque.swift_name();
-                format!(
-                    "{{ let val = {expression}; if val != nil {{ return {type_name}(ptr: val!) }} else {{ return nil }} }}()",
+                if opaque.has_swift_bridge_copy_annotation {
+                    let type_name = opaque.swift_name();
+                    format!(
+                        "{{ let val = {expression}; if val.is_some {{ return {type_name}(bytes: val.val) }} else {{ return nil }} }}()",
                         expression = expression,
                         type_name = type_name
-                )
+                    )
+                } else {
+                    let type_name = opaque.swift_name();
+                    format!(
+                        "{{ let val = {expression}; if val != nil {{ return {type_name}(ptr: val!) }} else {{ return nil }} }}()",
+                        expression = expression,
+                        type_name = type_name
+                    )
+                }
             }
         }
     }
@@ -339,8 +377,18 @@ impl BridgedOption {
                     expression = expression
                 )
             }
-            BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => {
-                format!("{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()", expression = expression,)
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                if opaque.has_swift_bridge_copy_annotation {
+                    let ffi_repr = opaque.copy_ffi_repr_type_string();
+                    let option_ffi_repr = opaque.option_copy_ffi_repr_type_string();
+
+                    format!("{option_ffi_repr}(is_some: {expression} != nil, val: {{ if let val = {expression} {{ return val.intoFfiRepr() }} else {{ return {ffi_repr}() }} }}() )", expression = expression,
+                        option_ffi_repr = option_ffi_repr,
+                        ffi_repr = ffi_repr
+                    )
+                } else {
+                    format!("{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()", expression = expression,)
+                }
             }
         }
     }
@@ -387,7 +435,13 @@ impl BridgedOption {
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 format!("struct {}", shared_enum.ffi_option_name_string())
             }
-            BridgedType::Foreign(CustomBridgedType::Opaque(_opaque)) => "void*".to_string(),
+            BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
+                if opaque.has_swift_bridge_copy_annotation {
+                    opaque.option_copy_ffi_repr_type_string()
+                } else {
+                    "void*".to_string()
+                }
+            }
         }
     }
 }
