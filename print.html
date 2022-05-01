@@ -1616,6 +1616,31 @@ fn some_function(arg: MyType&lt;u32, String&gt;) -&gt; &amp;str {
 }
 <span class="boring">}
 </span></code></pre></pre>
+<h2 id="generic-copy"><a class="header" href="#generic-copy">Generic Copy</a></h2>
+<p>You do not need to use the <code>declare_geneic</code> attribute for generic opaque Rust types
+that use their <code>Copy</code> implementation across FFI bounds.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        #[swift_bridge(Copy(6))]
+        type MyType&lt;u32, u16&gt;;
+        fn some_function(arg: MyType&lt;u32, u16&gt;) -&gt; &amp;str;
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct MyType&lt;T, U&gt; {
+    my_field1: T,
+    mu_field2: U
+}
+fn some_function(arg: MyType&lt;u32, u16&gt;) -&gt; &amp;str {
+    unimplemented!()
+}
+<span class="boring">}
+</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="conditional-compilation"><a class="header" href="#conditional-compilation">Conditional Compilation</a></h1>
 <p>You can use <a href="https://doc.rust-lang.org/reference/conditional-compilation.html#the-cfg-attribute">the cfg attribute</a>
 in order to conditionally generate bindings.</p>
