@@ -1,4 +1,4 @@
-# swift-bridge [![Actions Status](https://github.com/chinedufn/swift-bridge/workflows/test/badge.svg)](https://github.com/chinedufn/swift-bridge/actions) [![docs](https://docs.rs/swift-bridge/badge.svg)](https://docs.rs/swift-bridge)
+# swift-bridge [![Actions Status](https://github.com/chinedufn/swift-bridge/workflows/test/badge.svg)](https://github.com/chinedufn/swift-bridge/actions) [![docs](https://docs.rs/swift-bridge/badge.svg)](https://docs.rs/swift-bridge) [![crates.io](https://img.shields.io/crates/v/swift-bridge)](https://crates.io/crates/swift-bridge)
 
 > `swift-bridge` facilitates Rust and Swift interop.
 
