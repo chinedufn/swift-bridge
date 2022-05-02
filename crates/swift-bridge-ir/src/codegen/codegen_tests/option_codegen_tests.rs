@@ -375,7 +375,133 @@ void __swift_bridge__$some_function(void* arg);
     }
 
     #[test]
-    fn extern_rust_fn_return_option_str() {
+    fn extern_rust_fn_with_option_opaque_rust_type_arg() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that returns an Option<OpaqueRustType<T>>
+mod extern_rust_fn_return_option_generic_opaque_rust_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(declare_generic)]
+                    type SomeType<A>;
+
+                    type SomeType<u32>;
+                    fn some_function () -> Option<SomeType<u32>>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function() -> *mut super::SomeType<u32> {
+                if let Some(val) = super::some_function() {
+                    Box::into_raw(Box::new(val))
+                } else {
+                    std::ptr::null_mut()
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function() -> Optional<SomeType<UInt32>> {
+    { let val = __swift_bridge__$some_function(); if val != nil { return SomeType(ptr: val!) } else { return nil } }()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void* __swift_bridge__$some_function(void);
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_return_option_generic_opaque_rust_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that takes an Option<OpaqueRustType<T>> argument.
+mod extern_rust_fn_with_option_generic_opaque_rust_type_arg {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(declare_generic)]
+                    type SomeType<A>;
+
+                    type SomeType<u32>;
+                    fn some_function (arg: Option<SomeType<u32>>);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function(
+                arg: *mut super::SomeType<u32>
+            ) {
+                super::some_function(
+                    if arg.is_null() {
+                        None
+                    } else {
+                        Some( unsafe { * Box::from_raw(arg) } )
+                    }
+                )
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function(_ arg: Optional<SomeType<UInt32>>) {
+    __swift_bridge__$some_function({ if let val = arg { val.isOwned = false; return val.ptr } else { return nil } }())
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function(void* arg);
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_with_option_generic_opaque_rust_type_arg() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -504,6 +630,142 @@ void __swift_bridge__$some_function(__swift_bridge__$Option$SomeType arg);
 
     #[test]
     fn extern_rust_fn_with_option_opaque_copy_rust_type_arg() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that returns an Option<OpaqueCopyRustType<T>>
+mod extern_rust_fn_return_option_generic_opaque_copy_rust_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(declare_generic)]
+                    type SomeType<A>;
+
+                    #[swift_bridge(Copy(4))]
+                    type SomeType<u32>;
+
+                    fn some_function () -> Option<SomeType<u32>>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function() -> __swift_bridge__Option_SomeType_u32 {
+                if let Some(val) = super::some_function() {
+                    __swift_bridge__Option_SomeType_u32 {
+                        is_some: true,
+                        val: std::mem::MaybeUninit::new(__swift_bridge__SomeType_u32::from_rust_repr(val))
+                    }
+                } else {
+                    __swift_bridge__Option_SomeType_u32 {
+                        is_some: false,
+                        val: std::mem::MaybeUninit::uninit()
+                    }
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function() -> Optional<SomeType<UInt32>> {
+    { let val = __swift_bridge__$some_function(); if val.is_some { return SomeType(bytes: val.val) } else { return nil } }()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+__swift_bridge__$Option$SomeType$u32 __swift_bridge__$some_function(void);
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_return_option_generic_opaque_copy_rust_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that takes an Option<OpaqueCopyRustType<T>> argument.
+mod extern_rust_fn_with_option_generic_opaque_copy_rust_type_arg {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(declare_generic)]
+                    type SomeType<A>;
+
+                    #[swift_bridge(Copy(4))]
+                    type SomeType<u32>;
+
+                    fn some_function (arg: Option<SomeType<u32>>);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function(
+                arg: __swift_bridge__Option_SomeType_u32
+            ) {
+                super::some_function(
+                    if arg.is_some {
+                        Some( unsafe { arg.val.assume_init() }.into_rust_repr() )
+                    } else {
+                        None
+                    }
+                )
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function(_ arg: Optional<SomeType<UInt32>>) {
+    __swift_bridge__$some_function(__swift_bridge__$Option$SomeType$u32(is_some: arg != nil, val: { if let val = arg { return val.intoFfiRepr() } else { return __swift_bridge__$SomeType$u32() } }() ))
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function(__swift_bridge__$Option$SomeType$u32 arg);
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_with_option_generic_opaque_copy_rust_type_arg() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
