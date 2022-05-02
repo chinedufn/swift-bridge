@@ -445,3 +445,24 @@ impl BridgedOption {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::TypeDeclarations;
+
+    /// Verify that we can parse an `Option<&'static str>' bridged type
+    /// This ensures that our logic that removes the spaces in order to normalize generic type
+    /// strings (i.e. "SomeType < u32 >" -> "SomeType<u32>") does not remove spaces from types
+    /// where the spaces matter such as "&'static str".
+    #[test]
+    fn parse_option_static_str() {
+        let type_str = "Option < & 'static str >";
+        assert_eq!(
+            BridgedType::new_with_str(type_str, &TypeDeclarations::default()).unwrap(),
+            BridgedType::StdLib(StdLibType::Option(BridgedOption {
+                ty: Box::new(BridgedType::StdLib(StdLibType::Str))
+            }))
+        );
+    }
+}

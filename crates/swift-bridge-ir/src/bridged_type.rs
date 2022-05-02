@@ -381,10 +381,19 @@ impl BridgedType {
                 ty: Box::new(inner),
             })));
         } else if string.starts_with("Option < ") {
-            let inner = string.trim_start_matches("Option < ");
-            let inner = inner.trim_end_matches(" >");
+            let last_bracket = string.rfind(">")?;
 
-            let inner: Type = syn::parse2(TokenStream::from_str(inner).unwrap()).unwrap();
+            let inner = &string[0..last_bracket];
+            let inner = inner.trim_start_matches("Option < ");
+
+            // Remove spaces from generics. i.e. "SomeType < u32 > " -> "SomeType<u32>"
+            let inner = if inner.contains("<") {
+                inner.replace(" ", "")
+            } else {
+                inner.to_string()
+            };
+
+            let inner: Type = syn::parse2(TokenStream::from_str(&inner).unwrap()).unwrap();
             let inner = BridgedType::new_with_type(&inner, types)?;
 
             return Some(BridgedType::StdLib(StdLibType::Option(BridgedOption {
@@ -636,7 +645,10 @@ impl BridgedType {
                             let option_ty = opaque.option_copy_rust_repr_type();
                             quote! { #option_ty }
                         } else {
-                            quote! { *mut super::#type_name }
+                            let generics = opaque
+                                .generics
+                                .angle_bracketed_concrete_generics_tokens(types);
+                            quote! { *mut super::#type_name #generics }
                         }
                     }
                 },

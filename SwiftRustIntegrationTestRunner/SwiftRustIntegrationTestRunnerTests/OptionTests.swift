@@ -102,10 +102,33 @@ class OptionTests: XCTestCase {
         XCTAssertNil(rust_reflect_option_opaque_rust_type(nil))
     }
     
-     func testSwiftCallRustWithOptionOpaqueRustCopyType() throws {
+    func testSwiftCallRustWithOptionOpaqueRustCopyType() throws {
         let val = new_opaque_rust_copy_type(123)
-        let _: OptTestOpaqueRustCopyType? = rust_reflect_option_opaque_rust_copy_type(val)
+        let reflect: OptTestOpaqueRustCopyType? = rust_reflect_option_opaque_rust_copy_type(val)
+        
+        // TODO: Support methods on generic types
+        // XCTAssertEqual(reflect!.field(), 123)
+        XCTAssertNil(rust_reflect_option_opaque_rust_copy_type(nil))
     }
+    
+    func testSwiftCallRustWithOptionGenericOpaqueRustType() throws {
+        let val = new_generic_opaque_rust_type(123)
+        let reflect = rust_reflect_option_generic_opaque_rust_type(val)
+        
+        // TODO: Support methods on generic types
+        // XCTAssertEqual(reflect!.field(), 123)
+        XCTAssertNil(rust_reflect_option_opaque_rust_type(nil))
+    }
+    
+     func testSwiftCallRustWithOptionGenericOpaqueRustCopyType() throws {
+        let val = new_generic_opaque_rust_copy_type(123)
+        let reflect: OptTestGenericOpaqueRustCopyType? = rust_reflect_option_generic_opaque_rust_copy_type(val)
+         
+        // TODO: Support methods on generic types
+        // XCTAssertEqual(reflect!.field(), 123)
+        XCTAssertNil(rust_reflect_option_generic_opaque_rust_copy_type(nil))
+    }
+
     
     func testStructWithOptionFieldsSome() throws {
         let val = StructWithOptionFields(
