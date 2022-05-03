@@ -50,23 +50,24 @@ jobs:
     - name: Run integration tests
       run: ./test-integration.sh
 
+  # Can comment examples back in after: https://github.com/chinedufn/swift-bridge/issues/49
   # Used to make sure that all of our examples build
-  build-examples:
-    runs-on: macOS-11
-    timeout-minutes: 15
+  #build-examples:
+  #  runs-on: macOS-11
+  #  timeout-minutes: 15
 
-    steps:
-    - uses: actions/checkout@v2
+  #  steps:
+  #  - uses: actions/checkout@v2
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
+  #  - uses: actions-rs/toolchain@v1
+  #    with:
+  #      toolchain: stable
 
-    - name: Add rust targets
-      run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+  #  - name: Add rust targets
+  #    run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
-    - name: Build codegen-visualizer example
-      run: xcodebuild -project examples/codegen-visualizer/CodegenVisualizer/CodegenVisualizer.xcodeproj -scheme CodegenVisualizer
+  #  - name: Build codegen-visualizer example
+  #    run: xcodebuild -project examples/codegen-visualizer/CodegenVisualizer/CodegenVisualizer.xcodeproj -scheme CodegenVisualizer
 
-    - name: Build async function example
-      run: ./examples/async-functions/build.sh
+  #  - name: Build async function example
+  #    run: ./examples/async-functions/build.sh
