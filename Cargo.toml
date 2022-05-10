@@ -1,6 +1,6 @@
 [package]
 name = "swift-bridge"
-version = "0.1.32"
+version = "0.1.33"
 edition = "2021"
 keywords = ["swift", "ffi", "bindings", "ios", "mac"]
 description = "Generate FFI bindings for safe interop between Rust and Swift."
@@ -16,10 +16,10 @@ default = []
 async = ["tokio", "once_cell"]
 
 [build-dependencies]
-swift-bridge-build = {version = "0.1.32", path = "crates/swift-bridge-build"}
+swift-bridge-build = {version = "0.1.33", path = "crates/swift-bridge-build"}
 
 [dependencies]
-swift-bridge-macro = {version = "0.1.32", path = "crates/swift-bridge-macro"}
+swift-bridge-macro = {version = "0.1.33", path = "crates/swift-bridge-macro"}
 
 ################################################################################
 # Optional features used for async function support.
