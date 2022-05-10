@@ -91,12 +91,47 @@ mod return_into_attribute_for_shared_struct {
         })
     }
 
-    fn expected_swift_code() -> ExpectedSwiftCode {
-        ExpectedSwiftCode::SkipTest
+    #[test]
+    fn shared_struct_swift_name_attribute() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: ExpectedSwiftCode::SkipTest,
+            expected_c_header: ExpectedCHeader::SkipTest,
+        }
+        .test();
+    }
+}
+
+/// Verify that we explicitly case to the struct when generating `return_into` code for a
+/// Rust function that returns a shared struct.
+/// This explicit conversion into the struct avoids a type inference issues when converting the
+/// shared struct to its FFI representation so that we can return it.
+mod return_into_attribute_for_transparent_enum {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                enum SomeEnum {
+                    Variant
+                }
+
+                extern "Rust" {
+                    #[swift_bridge(return_into)]
+                    fn some_function() -> SomeEnum;
+                }
+            }
+        }
     }
 
-    fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::SkipTest
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            pub extern "C" fn __swift_bridge__some_function() -> __swift_bridge__SomeEnum {
+                 { let val: SomeEnum = super::some_function().into(); val }.into_ffi_repr()
+            }
+        })
     }
 
     #[test]
@@ -104,8 +139,8 @@ mod return_into_attribute_for_shared_struct {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
-            expected_swift_code: expected_swift_code(),
-            expected_c_header: expected_c_header(),
+            expected_swift_code: ExpectedSwiftCode::SkipTest,
+            expected_c_header: ExpectedCHeader::SkipTest,
         }
         .test();
     }

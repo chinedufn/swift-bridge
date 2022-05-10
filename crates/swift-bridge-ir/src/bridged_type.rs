@@ -1658,6 +1658,12 @@ impl BridgedType {
                     { let val: #maybe_super #struct_name = #expression.into(); val }
                 }
             }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
+                let enum_name = &shared_enum.name;
+                quote! {
+                    { let val: #enum_name = #expression.into(); val }
+                }
+            }
             // TODO: Instead of this catchall.. explicitly match on all variants and use
             //  a similar approach to how we handle shared structs
             _ => {
