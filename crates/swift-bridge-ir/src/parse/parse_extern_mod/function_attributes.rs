@@ -94,7 +94,10 @@ impl Parse for FunctionAttr {
             }
             "init" => FunctionAttr::Init,
             "Identifiable" => FunctionAttr::Identifiable,
-            "return_into" => FunctionAttr::ReturnInto,
+            // TODO: Right before we release 0.2.0 we should remove this
+            //  "into_return_type" variant since it is deprecated.
+            //
+            "return_into" | "into_return_type" => FunctionAttr::ReturnInto,
             "return_with" => {
                 input.parse::<Token![=]>()?;
                 FunctionAttr::ReturnWith(input.parse()?)
