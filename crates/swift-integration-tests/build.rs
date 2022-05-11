@@ -22,6 +22,7 @@ fn main() {
         "src/conditional_compilation.rs",
         "src/opaque_type_attributes/already_declared.rs",
         "src/opaque_type_attributes/copy.rs",
+        "src/function_attributes/get.rs",
         "src/function_attributes/identifiable.rs",
         "src/struct_attributes/already_declared.rs",
         "src/struct_attributes/swift_name.rs",
