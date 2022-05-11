@@ -298,8 +298,8 @@ pub struct SomeType {
 <h4 id="swift_bridgeget_withfield_name--pathtofunction"><a class="header" href="#swift_bridgeget_withfield_name--pathtofunction">#[swift_bridge(get_with(field_name = path::to::function))]</a></h4>
 <p>Allows you to pass an opaque Rust struct's field into a function and then return
 the value that that function returned.</p>
-<p>You can prefix the field name with <code>&amp;</code> or <code>&amp;mut</code> in order to return a reference
-or mutable reference to the field.</p>
+<p>You can prefix the field name with <code>&amp;</code> or <code>&amp;mut</code> in order to pass the field
+to the function by reference or mutable reference respectively.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
