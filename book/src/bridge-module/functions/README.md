@@ -6,7 +6,7 @@
 
 #### #[swift_bridge(Identifiable)]
 
-Used to generate a Swift `Idenfiable` protocol implementation.
+Used to generate a Swift `Identifiable` protocol implementation.
 
 ```rust
 // Rust
@@ -165,6 +165,8 @@ You can prefix the field name with `&` or `&mut` in order to pass the field
 to the function by reference or mutable reference respectively.
 
 ```rust
+use Clone;
+
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
