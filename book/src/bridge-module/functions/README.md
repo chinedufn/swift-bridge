@@ -161,8 +161,8 @@ pub struct SomeType {
 Allows you to pass an opaque Rust struct's field into a function and then return
 the value that that function returned.
 
-You can prefix the field name with `&` or `&mut` in order to return a reference
-or mutable reference to the field.
+You can prefix the field name with `&` or `&mut` in order to pass the field
+to the function by reference or mutable reference respectively.
 
 ```rust
 #[swift_bridge::bridge]
