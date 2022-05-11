@@ -924,7 +924,7 @@ struct UserId(u32);
 <p>... TODO OVERVIEW ...</p>
 <h2 id="function-attributes"><a class="header" href="#function-attributes">Function Attributes</a></h2>
 <h4 id="swift_bridgeidentifiable"><a class="header" href="#swift_bridgeidentifiable">#[swift_bridge(Identifiable)]</a></h4>
-<p>Used to generate a Swift <code>Idenfiable</code> protocol implementation.</p>
+<p>Used to generate a Swift <code>Identifiable</code> protocol implementation.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1077,7 +1077,9 @@ to the function by reference or mutable reference respectively.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[swift_bridge::bridge]
+</span>use Clone;
+
+#[swift_bridge::bridge]
 mod ffi {
     extern &quot;Rust&quot; {
         type SomeType;
