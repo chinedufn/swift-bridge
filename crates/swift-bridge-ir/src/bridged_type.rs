@@ -16,7 +16,7 @@ pub(crate) use self::shared_struct::{SharedStruct, StructFields, StructSwiftRepr
 
 mod bridged_option;
 mod shared_enum;
-mod shared_struct;
+pub(crate) mod shared_struct;
 
 // FIXME: Rename to BridgedType
 #[derive(Debug, PartialEq, Clone)]

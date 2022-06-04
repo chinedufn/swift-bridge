@@ -8,6 +8,7 @@ use syn::spanned::Spanned;
 use syn::{LitStr, Path};
 
 pub(crate) use self::struct_field::StructFields;
+pub(crate) use self::struct_field::StructField;
 
 mod struct_field;
 
