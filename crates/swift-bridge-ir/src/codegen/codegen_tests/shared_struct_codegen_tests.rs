@@ -148,7 +148,7 @@ mod generates_struct_to_and_from_ffi_conversions_with_fields {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 struct SomeStruct {
-    var field: UInt8
+    public var field: UInt8
 
     @inline(__always)
     func intoFfiRepr() -> __swift_bridge__$SomeStruct {
@@ -231,11 +231,11 @@ mod struct_with_primitive_field {
         ExpectedSwiftCode::ContainsManyAfterTrim(vec![
             r#"
 struct SomeStruct {
-    var field: UInt8
+    public var field: UInt8
 "#,
             r#"
 struct AnotherStruct {
-    var _0: UInt8
+    public var _0: UInt8
 "#,
         ])
     }

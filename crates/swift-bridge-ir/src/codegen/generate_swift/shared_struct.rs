@@ -28,7 +28,7 @@ impl SwiftBridgeModule {
                                 BridgedType::new_with_type(&field.ty, &self.types).unwrap();
 
                             fields += &format!(
-                                "    var {}: {}\n",
+                                "    public var {}: {}\n",
                                 field.swift_name_string(),
                                 bridged_ty
                                     .to_swift_type(TypePosition::SharedStructField, &self.types)
@@ -45,7 +45,7 @@ impl SwiftBridgeModule {
                                 BridgedType::new_with_type(&field.ty, &self.types).unwrap();
 
                             fields += &format!(
-                                "    var {}: {}\n",
+                                "    public var {}: {}\n",
                                 field.swift_name_string(),
                                 bridged_ty
                                     .to_swift_type(TypePosition::SharedStructField, &self.types)

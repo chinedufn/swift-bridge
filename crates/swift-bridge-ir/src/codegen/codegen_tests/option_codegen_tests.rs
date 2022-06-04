@@ -846,7 +846,7 @@ mod shared_struct_with_option_field_ffi_repr {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 public struct SomeStruct {
-    var field: Optional<UInt8>
+    public var field: Optional<UInt8>
 
     @inline(__always)
     func intoFfiRepr() -> __swift_bridge__$SomeStruct {
