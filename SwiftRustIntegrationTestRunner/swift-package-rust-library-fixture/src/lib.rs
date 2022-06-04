@@ -8,6 +8,9 @@ mod ffi {
     struct SomeStruct {
         field: u8
     }
+
+    #[swift_bridge(swift_repr = "struct")]
+    struct UnnamedStruct(u8);
 }
 
 fn hello_rust() -> String {
