@@ -846,6 +846,9 @@ mod shared_struct_with_option_field_ffi_repr {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 public struct SomeStruct {
+    public init(field: Optional<UInt8>) {
+        self.field = field
+    }
     public var field: Optional<UInt8>
 
     @inline(__always)
