@@ -50,8 +50,9 @@ impl SwiftBridgeModule {
                 // No need to generate any code. Swift will automatically generate a
                 //  struct from our C header typedef that we generate for this struct.
                 let swift_struct = format!(
-                    r#"public struct {struct_name} {{
-    public init({initializer_params}) {{{initializer_body}}}{fields}
+                    r#"public struct {struct_name} {{{fields}
+    public init({initializer_params}) {{{initializer_body}}}
+
     @inline(__always)
     func intoFfiRepr() -> {ffi_repr_name} {{
         {convert_swift_to_ffi_repr}
