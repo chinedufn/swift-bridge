@@ -37,8 +37,8 @@ impl SwiftBridgeModule {
                 };
 
                 let fields = match &shared_struct.fields {
-                    StructFields::Named(named) => self.convert_fields(named),
-                    StructFields::Unnamed(unnamed) => self.convert_fields(unnamed),
+                    StructFields::Named(named) => self.declare_fields(named),
+                    StructFields::Unnamed(unnamed) => self.declare_fields(unnamed),
                     StructFields::Unit => "".to_string(),
                 };
 
@@ -148,7 +148,7 @@ extension {option_ffi_name} {{
         body
     }
 
-    fn convert_fields<'a, T>(&self, struct_fields: impl IntoIterator<Item = &'a T>) -> String
+    fn declare_fields<'a, T>(&self, struct_fields: impl IntoIterator<Item = &'a T>) -> String
     where
         T: StructField + 'a,
     {
