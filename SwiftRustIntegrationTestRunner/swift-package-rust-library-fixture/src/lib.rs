@@ -6,7 +6,7 @@ mod ffi {
 
     #[swift_bridge(swift_repr = "struct")]
     struct SomeStruct {
-        field: u8
+        field: u8,
     }
 
     #[swift_bridge(swift_repr = "struct")]

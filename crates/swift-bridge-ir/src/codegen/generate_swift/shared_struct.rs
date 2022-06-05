@@ -21,32 +21,24 @@ impl SwiftBridgeModule {
             }
             StructSwiftRepr::Structure => {
                 let initializer_params = match &shared_struct.fields {
-                    StructFields::Named(named) => {
-                        self.convert_fields_to_initializer_params(named)
-                    },
+                    StructFields::Named(named) => self.convert_fields_to_initializer_params(named),
                     StructFields::Unnamed(unnamed) => {
                         self.convert_fields_to_initializer_params(unnamed)
-                    },
+                    }
                     StructFields::Unit => "".to_string(),
                 };
 
                 let initializer_body = match &shared_struct.fields {
-                    StructFields::Named(named) => {
-                        self.convert_fields_to_initializer_body(named)
-                    },
+                    StructFields::Named(named) => self.convert_fields_to_initializer_body(named),
                     StructFields::Unnamed(unnamed) => {
                         self.convert_fields_to_initializer_body(unnamed)
-                    },
+                    }
                     StructFields::Unit => "".to_string(),
                 };
 
                 let fields = match &shared_struct.fields {
-                    StructFields::Named(named) => {
-                        self.convert_fields(named)
-                    },
-                    StructFields::Unnamed(unnamed) => {
-                        self.convert_fields(unnamed)
-                    },
+                    StructFields::Named(named) => self.convert_fields(named),
+                    StructFields::Unnamed(unnamed) => self.convert_fields(unnamed),
                     StructFields::Unit => "".to_string(),
                 };
 
@@ -105,21 +97,22 @@ extension {option_ffi_name} {{
         }
     }
 
-    fn convert_fields_to_initializer_params<'a, T>(&self, struct_fields: impl IntoIterator<Item = &'a T>) -> String
+    fn convert_fields_to_initializer_params<'a, T>(
+        &self,
+        struct_fields: impl IntoIterator<Item = &'a T>,
+    ) -> String
     where
-        T: StructField + 'a
+        T: StructField + 'a,
     {
         let mut params = "".to_string();
 
         for field in struct_fields.into_iter() {
-            let bridged_ty =
-                BridgedType::new_with_type(field.field_type(), &self.types).unwrap();
+            let bridged_ty = BridgedType::new_with_type(field.field_type(), &self.types).unwrap();
 
             params += &format!(
                 "{}: {},",
                 field.swift_name_string(),
-                bridged_ty
-                    .to_swift_type(TypePosition::SharedStructField, &self.types)
+                bridged_ty.to_swift_type(TypePosition::SharedStructField, &self.types)
             );
         }
 
@@ -130,9 +123,12 @@ extension {option_ffi_name} {{
         params
     }
 
-    fn convert_fields_to_initializer_body<'a, T>(&self, struct_fields: impl IntoIterator<Item = &'a T>) -> String
+    fn convert_fields_to_initializer_body<'a, T>(
+        &self,
+        struct_fields: impl IntoIterator<Item = &'a T>,
+    ) -> String
     where
-        T: StructField + 'a
+        T: StructField + 'a,
     {
         let mut body = "".to_string();
 
@@ -153,19 +149,17 @@ extension {option_ffi_name} {{
 
     fn convert_fields<'a, T>(&self, struct_fields: impl IntoIterator<Item = &'a T>) -> String
     where
-        T: StructField + 'a
+        T: StructField + 'a,
     {
         let mut fields = "".to_string();
 
         for field in struct_fields.into_iter() {
-            let bridged_ty =
-                BridgedType::new_with_type(field.field_type(), &self.types).unwrap();
+            let bridged_ty = BridgedType::new_with_type(field.field_type(), &self.types).unwrap();
 
             fields += &format!(
                 "    public var {}: {}\n",
                 field.swift_name_string(),
-                bridged_ty
-                    .to_swift_type(TypePosition::SharedStructField, &self.types)
+                bridged_ty.to_swift_type(TypePosition::SharedStructField, &self.types)
             );
         }
 
