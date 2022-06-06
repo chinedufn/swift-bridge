@@ -106,14 +106,27 @@ pub(crate) struct UnnamedStructField {
     pub idx: usize,
 }
 
-impl NamedStructField {
-    pub fn swift_name_string(&self) -> String {
+pub(crate) trait StructField {
+    fn field_type(&self) -> &Type;
+    fn swift_name_string(&self) -> String;
+}
+
+impl StructField for NamedStructField {
+    fn field_type(&self) -> &Type {
+        &self.ty
+    }
+
+    fn swift_name_string(&self) -> String {
         self.name.to_string()
     }
 }
 
-impl UnnamedStructField {
-    pub fn swift_name_string(&self) -> String {
+impl StructField for UnnamedStructField {
+    fn field_type(&self) -> &Type {
+        &self.ty
+    }
+
+    fn swift_name_string(&self) -> String {
         format!("_{}", self.idx)
     }
 }

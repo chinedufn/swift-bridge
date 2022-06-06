@@ -1,5 +1,6 @@
 //! Tests can be found in src/codegen/codegen_tests.rs and its submodules.
 
+use crate::bridged_type::shared_struct::StructField;
 use crate::bridged_type::{BridgedType, StdLibType, StructFields};
 use crate::codegen::CodegenConfig;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};

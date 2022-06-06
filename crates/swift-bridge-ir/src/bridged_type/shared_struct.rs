@@ -7,6 +7,7 @@ use std::fmt::{Debug, Formatter};
 use syn::spanned::Spanned;
 use syn::{LitStr, Path};
 
+pub(crate) use self::struct_field::StructField;
 pub(crate) use self::struct_field::StructFields;
 
 mod struct_field;
