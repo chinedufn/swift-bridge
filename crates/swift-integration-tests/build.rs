@@ -11,6 +11,7 @@ fn main() {
         "src/bool.rs",
         "src/generics.rs",
         "src/option.rs",
+        "src/result.rs",
         "src/pointer.rs",
         "src/string.rs",
         "src/vec.rs",
