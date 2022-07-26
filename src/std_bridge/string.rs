@@ -8,9 +8,6 @@ mod ffi {
         #[swift_bridge(init)]
         fn new() -> RustString;
 
-        // TODO: We need to prevent footguns where you can call this with a Swift standard library
-        //  String .toRustStr() but then that String gets de-allocated under our feet.
-        //  Needs more research...
         #[swift_bridge(init)]
         fn new_with_str(str: &str) -> RustString;
 

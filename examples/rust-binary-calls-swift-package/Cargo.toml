@@ -1,0 +1,13 @@
+[package]
+name = "rust-binary-calls-swift-package"
+version = "0.1.0"
+edition = "2021"
+publish = []
+
+build = "build.rs"
+
+[build-dependencies]
+swift-bridge-build = {path = "../../crates/swift-bridge-build"}
+
+[dependencies]
+swift-bridge = {path = "../../"}

@@ -7,8 +7,6 @@ description = "Generate FFI bindings for safe interop between Rust and Swift."
 repository = "https://github.com/chinedufn/swift-bridge"
 license = "Apache-2.0/MIT"
 
-build = "build.rs"
-
 [features]
 default = []
 
@@ -40,4 +38,5 @@ members = [
 
   "examples/async-functions",
   "examples/codegen-visualizer",
+  "examples/rust-binary-calls-swift-package",
 ]
