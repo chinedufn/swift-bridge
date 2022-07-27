@@ -1,39 +1,31 @@
-use std::path::PathBuf;
+use crate::parse_file_contents;
+use std::path::{Path, PathBuf};
 
-fn main() {
-    println!("cargo:rerun-if-env-changed=SWIFT_BRIDGE_OUT_DIR");
+const STRING_RS: &'static str = include_str!("../../../src/std_bridge/string.rs");
 
-    if let Ok(out_dir) = std::env::var("SWIFT_BRIDGE_OUT_DIR") {
-        let out_dir = PathBuf::from(out_dir);
+pub(super) fn write_core_swift_and_c(out_dir: &Path) {
+    let rust_string_ffi_glue = parse_file_contents(STRING_RS).unwrap();
 
-        let generated = swift_bridge_build::parse_bridges(vec![
-            //
-            manifest_dir().join("src/std_bridge/string.rs"),
-        ]);
-        let generated_swift = generated.concat_swift();
-        let generated_c = generated.concat_c();
+    let core_swift_out = out_dir.join("SwiftBridgeCore.swift");
+    let mut swift = core_swift();
+    swift += "\n";
+    swift += &rust_string_ffi_glue.swift;
 
-        let core_swift_out = out_dir.join("SwiftBridgeCore.swift");
-        let mut swift = core_swift();
-        swift += "\n";
-        swift += &generated_swift;
+    std::fs::write(core_swift_out, swift).unwrap();
 
-        std::fs::write(core_swift_out, swift).unwrap();
+    let core_c_header_out = out_dir.join("SwiftBridgeCore.h");
+    let mut c_header = core_c_header().to_string();
+    c_header += "\n";
+    c_header += &rust_string_ffi_glue.c_header;
 
-        let core_c_header_out = out_dir.join("SwiftBridgeCore.h");
-        let mut c_header = core_c_header().to_string();
-        c_header += "\n";
-        c_header += &generated_c;
-
-        std::fs::write(core_c_header_out, c_header).unwrap();
-    }
+    std::fs::write(core_c_header_out, c_header).unwrap();
 }
 
 fn core_swift() -> String {
     let mut core_swift = "".to_string();
 
-    core_swift += include_str!("src/std_bridge/string.swift");
-    core_swift += include_str!("src/std_bridge/rust_vec.swift");
+    core_swift += include_str!("../../../src/std_bridge/string.swift");
+    core_swift += include_str!("../../../src/std_bridge/rust_vec.swift");
 
     for path in vec![
         "src/std_bridge/string.swift",
@@ -210,8 +202,4 @@ fn generic_copy_type_ffi_repr() -> &'static str {
     r#"
 protocol SwiftBridgeGenericCopyTypeFfiRepr {}
 "#
-}
-
-fn manifest_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }

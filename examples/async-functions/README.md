@@ -10,6 +10,7 @@ We call that function from [main.swift](main.swift) and `await` the fetched data
 ```
 git clone https://github.com/chinedufn/swift-bridge
 cd examples/async-functions
+
 ./build.sh
 ./main
 ```

@@ -4,11 +4,14 @@
 #![deny(missing_docs)]
 
 mod package;
+use crate::generate_core::write_core_swift_and_c;
 pub use package::*;
 use std::path::Path;
 use swift_bridge_ir::{CodegenConfig, SwiftBridgeModule};
 use syn::__private::ToTokens;
 use syn::{File, Item};
+
+mod generate_core;
 
 /// Parse rust sources files for `#\[swift_bridge::bridge\]` headers and generate the corresponding
 /// Swift files.
@@ -21,7 +24,7 @@ pub fn parse_bridges(
         let rust_file: &Path = rust_file.as_ref();
 
         let file = std::fs::read_to_string(rust_file).unwrap();
-        let gen = match parse_file(&file) {
+        let gen = match parse_file_contents(&file) {
             Ok(generated) => generated,
             Err(e) => {
                 // TODO: Return an error...
@@ -55,11 +58,7 @@ impl GeneratedCode {
 impl GeneratedCode {
     /// Write all of the generated Swift to a single Swift file and all of the generated C headers
     /// to a single header file.
-    pub fn write_all_concatenated(
-        &self,
-        swift_bridge_out_dir: impl AsRef<Path>,
-        package_name: &str,
-    ) {
+    pub fn write_all_concatenated(&self, swift_bridge_out_dir: impl AsRef<Path>, crate_name: &str) {
         let swift_bridge_out_dir = swift_bridge_out_dir.as_ref();
 
         let mut concatenated_swift = "".to_string();
@@ -70,18 +69,20 @@ impl GeneratedCode {
             concatenated_c += &gen.c_header;
         }
 
-        let out = swift_bridge_out_dir.join(&package_name);
+        let out = swift_bridge_out_dir.join(&crate_name);
         match std::fs::create_dir_all(&out) {
             Ok(_) => {}
             Err(_) => {}
         };
 
-        std::fs::write(out.join(format!("{}.h", package_name)), concatenated_c).unwrap();
+        std::fs::write(out.join(format!("{}.h", crate_name)), concatenated_c).unwrap();
         std::fs::write(
-            out.join(format!("{}.swift", package_name)),
+            out.join(format!("{}.swift", crate_name)),
             concatenated_swift,
         )
         .unwrap();
+
+        write_core_swift_and_c(swift_bridge_out_dir.as_ref());
     }
 
     /// Concatenate all of the generated Swift code into one file.
@@ -107,7 +108,7 @@ impl GeneratedCode {
     }
 }
 
-fn parse_file(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
+fn parse_file_contents(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule> {
     let file: File = syn::parse_str(file)?;
 
     let mut generated = GeneratedFromSwiftBridgeModule {

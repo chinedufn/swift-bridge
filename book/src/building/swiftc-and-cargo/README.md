@@ -149,8 +149,8 @@ fn main() {
     swift_bridge_build::parse_bridges(bridges)
         .write_all_concatenated(out_dir, env!("CARGO_PKG_NAME"));
 
-    println!("rustc-link-lib=static=swiftc_link_rust");
-    println!("rustc-link-search=./");
+    println!("cargo:rustc-link-lib=static=swiftc_link_rust");
+    println!("cargo:rustc-link-search=./");
 }
 ```
 
