@@ -1,22 +1,23 @@
-use crate::parse_file_contents;
 use std::path::{Path, PathBuf};
 
-const STRING_RS: &'static str = include_str!("../../../src/std_bridge/string.rs");
+const RUST_STRING_SWIFT: &'static str = include_str!("./generate_core/rust_string.swift");
+const RUST_STRING_C: &'static str = include_str!("./generate_core/rust_string.c.h");
+
+const STRING_SWIFT: &'static str = include_str!("./generate_core/string.swift");
+const RUST_VEC_SWIFT: &'static str = include_str!("./generate_core/rust_vec.swift");
 
 pub(super) fn write_core_swift_and_c(out_dir: &Path) {
-    let rust_string_ffi_glue = parse_file_contents(STRING_RS).unwrap();
-
     let core_swift_out = out_dir.join("SwiftBridgeCore.swift");
     let mut swift = core_swift();
     swift += "\n";
-    swift += &rust_string_ffi_glue.swift;
+    swift += &RUST_STRING_SWIFT;
 
     std::fs::write(core_swift_out, swift).unwrap();
 
     let core_c_header_out = out_dir.join("SwiftBridgeCore.h");
     let mut c_header = core_c_header().to_string();
     c_header += "\n";
-    c_header += &rust_string_ffi_glue.c_header;
+    c_header += &RUST_STRING_C;
 
     std::fs::write(core_c_header_out, c_header).unwrap();
 }
@@ -24,8 +25,8 @@ pub(super) fn write_core_swift_and_c(out_dir: &Path) {
 fn core_swift() -> String {
     let mut core_swift = "".to_string();
 
-    core_swift += include_str!("../../../src/std_bridge/string.swift");
-    core_swift += include_str!("../../../src/std_bridge/rust_vec.swift");
+    core_swift += STRING_SWIFT;
+    core_swift += RUST_VEC_SWIFT;
 
     for path in vec![
         "src/std_bridge/string.swift",
