@@ -18,7 +18,6 @@ mod bridged_option;
 mod shared_enum;
 pub(crate) mod shared_struct;
 
-// FIXME: Rename to BridgedType
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum BridgedType {
     StdLib(StdLibType),
@@ -1443,8 +1442,7 @@ impl BridgedType {
                     }
                 } else {
                     match type_pos {
-                        TypePosition::FnArg(func_host_lang)
-                        | TypePosition::FnReturn(func_host_lang) => {
+                        TypePosition::FnArg(func_host_lang) => {
                             if func_host_lang.is_rust() {
                                 format!(
                                     "__private__PointerToSwiftType(ptr: Unmanaged.passRetained({}).toOpaque())",
@@ -1457,6 +1455,12 @@ impl BridgedType {
                                     value = value
                                 )
                             }
+                        }
+                        TypePosition::FnReturn(_func_host_lang) => {
+                            format!(
+                                    "__private__PointerToSwiftType(ptr: Unmanaged.passRetained({}).toOpaque())",
+                                    value
+                                )
                         }
                         TypePosition::SharedStructField => {
                             todo!("Opaque types in shared struct fields are not yet supported")
