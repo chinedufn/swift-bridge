@@ -1,5 +1,14 @@
 error[E0308]: mismatched types
   --> tests/ui/incorrect-argument-type.rs:15:16
    |
+10 | #[swift_bridge::bridge]
+   | ----------------------- arguments to this function are incorrect
+...
 15 |         fn fn1(arg: &str);
    |                ^^^^^^ expected `u16`, found `&str`
+   |
+note: function defined here
+  --> tests/ui/incorrect-argument-type.rs:24:4
+   |
+24 | fn some_function(_arg: u16) {}
+   |    ^^^^^^^^^^^^^ ---------

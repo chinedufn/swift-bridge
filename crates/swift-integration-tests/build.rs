@@ -19,6 +19,7 @@ fn main() {
         "src/shared_types/shared_enum.rs",
         "src/rust_function_uses_opaque_swift_type.rs",
         "src/swift_function_uses_opaque_rust_type.rs",
+        "src/swift_function_uses_opaque_swift_type.rs",
         "src/conditional_compilation.rs",
         "src/opaque_type_attributes/already_declared.rs",
         "src/opaque_type_attributes/copy.rs",

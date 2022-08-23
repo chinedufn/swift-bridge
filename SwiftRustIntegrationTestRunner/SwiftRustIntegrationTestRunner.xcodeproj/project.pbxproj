@@ -40,6 +40,8 @@
 		22BCAAB927A2607700686A21 /* FunctionAttributeIdentifiableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */; };
 		22C0AD51278ECA9E00A96469 /* SharedStructAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */; };
 		22D092A327B7E865009A4C2B /* AsyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22D092A227B7E865009A4C2B /* AsyncTests.swift */; };
+		22EE4E0928B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22EE4E0828B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift */; };
+		22EE4E0B28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22EE4E0A28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift */; };
 		22FD1C542753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */; };
 		22FD1C562753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */; };
 /* End PBXBuildFile section */
@@ -94,6 +96,8 @@
 		22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FunctionAttributeIdentifiableTests.swift; sourceTree = "<group>"; };
 		22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStructAttributeTests.swift; sourceTree = "<group>"; };
 		22D092A227B7E865009A4C2B /* AsyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncTests.swift; sourceTree = "<group>"; };
+		22EE4E0828B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueSwiftType.swift; sourceTree = "<group>"; };
+		22EE4E0A28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueSwiftTypeTests.swift; sourceTree = "<group>"; };
 		22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustType.swift; sourceTree = "<group>"; };
 		22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustTypeTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -156,6 +160,7 @@
 				22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */,
 				228FE5DD2740DB6D00805D9E /* SwiftRustIntegrationTestRunner.entitlements */,
 				228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */,
+				22EE4E0828B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift */,
 			);
 			path = SwiftRustIntegrationTestRunner;
 			sourceTree = "<group>";
@@ -189,6 +194,7 @@
 				22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */,
 				22043292274A8FDF00BAE645 /* VecTests.swift */,
 				22553323281DB5FC008A3121 /* GenericTests.rs.swift */,
+				22EE4E0A28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift */,
 			);
 			path = SwiftRustIntegrationTestRunnerTests;
 			sourceTree = "<group>";
@@ -357,6 +363,7 @@
 				228FE5D52740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift in Sources */,
 				228FE64A274919C600805D9E /* swift-integration-tests.swift in Sources */,
 				22BC10F82799A3A000A0D046 /* SharedStructAttributes.swift in Sources */,
+				22EE4E0928B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift in Sources */,
 				228FE60C2740F42000805D9E /* ASwiftStack.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -374,6 +381,7 @@
 				228FE6502749C43100805D9E /* BooleanTests.swift in Sources */,
 				2202BC0827B2DD1700D43CC4 /* SharedEnumTests.swift in Sources */,
 				22BCAAB927A2607700686A21 /* FunctionAttributeIdentifiableTests.swift in Sources */,
+				22EE4E0B28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift in Sources */,
 				221E16B42786233600F94AC0 /* ConditionalCompilationTests.swift in Sources */,
 				22043295274ADA7A00BAE645 /* OptionTests.swift in Sources */,
 				22C0AD51278ECA9E00A96469 /* SharedStructAttributeTests.swift in Sources */,

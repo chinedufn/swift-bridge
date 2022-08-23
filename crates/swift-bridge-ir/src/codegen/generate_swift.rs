@@ -222,11 +222,6 @@ fn gen_function_exposes_swift_to_rust(
     let mut call_fn = format!("{}({})", fn_name, args);
 
     if let Some(built_in) = BridgedType::new_with_return_type(&func.sig.output, types) {
-        call_fn = built_in.convert_swift_expression_to_ffi_compatible(
-            &call_fn,
-            TypePosition::FnReturn(func.host_lang),
-        );
-
         if let Some(associated_type) = func.associated_type.as_ref() {
             let ty_name = match associated_type {
                 TypeDeclaration::Shared(_) => {
@@ -242,6 +237,11 @@ fn gen_function_exposes_swift_to_rust(
                     ty_name = ty_name,
                     call_fn = call_fn
                 );
+
+                call_fn = built_in.convert_swift_expression_to_ffi_compatible(
+                    &call_fn,
+                    TypePosition::FnReturn(func.host_lang),
+                );
             } else if func.is_swift_initializer {
                 call_fn = format!(
                     "__private__PointerToSwiftType(ptr: Unmanaged.passRetained({}({})).toOpaque())",
@@ -250,6 +250,11 @@ fn gen_function_exposes_swift_to_rust(
             } else {
                 call_fn = format!("{}::{}", ty_name, call_fn);
             }
+        } else {
+            call_fn = built_in.convert_swift_expression_to_ffi_compatible(
+                &call_fn,
+                TypePosition::FnReturn(func.host_lang),
+            );
         }
     } else {
         todo!("Push to ParsedErrors")
