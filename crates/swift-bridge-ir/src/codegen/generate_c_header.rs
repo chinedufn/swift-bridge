@@ -221,12 +221,21 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
             }
         }
 
-        for function in self.functions.iter() {
-            if function.host_lang.is_swift() {
+        for func in self.functions.iter() {
+            if func.host_lang.is_swift() {
+                for (idx, boxed_fn) in func.args_filtered_to_boxed_fns(&self.types) {
+                    if boxed_fn.params.is_empty() && boxed_fn.ret.is_null() {
+                        continue;
+                    }
+
+                    let fns = func.boxed_fn_to_c_header_fns(idx, &boxed_fn);
+                    header += &format!("{fns}");
+                    header += "\n";
+                }
                 continue;
             }
 
-            header += &declare_func(&function, &mut bookkeeping, &self.types);
+            header += &declare_func(&func, &mut bookkeeping, &self.types);
         }
 
         for slice_ty in bookkeeping.slice_types.iter() {

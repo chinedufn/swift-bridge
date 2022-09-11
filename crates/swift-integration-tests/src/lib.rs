@@ -3,6 +3,7 @@ mod import_opaque_swift_class;
 
 mod async_function;
 mod bool;
+mod boxed_functions;
 mod conditional_compilation;
 mod generics;
 mod option;

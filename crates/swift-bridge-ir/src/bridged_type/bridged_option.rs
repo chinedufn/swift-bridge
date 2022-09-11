@@ -103,6 +103,9 @@ impl BridgedOption {
                 StdLibType::Option(_) => {
                     todo!("Support Option<Option<T>>")
                 }
+                StdLibType::BoxedFnOnce(_) => {
+                    todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let option_name = shared_struct.ffi_option_name_tokens();
@@ -194,6 +197,9 @@ impl BridgedOption {
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T>> is not yet supported")
                 }
+                StdLibType::BoxedFnOnce(_) => {
+                    todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 quote! {
@@ -269,6 +275,9 @@ impl BridgedOption {
                 StdLibType::Option(_) => {
                     todo!("Support Option<Option<T>>")
                 }
+                StdLibType::BoxedFnOnce(_) => {
+                    todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 format!("{expression}.intoSwiftRepr()", expression = expression)
@@ -338,7 +347,7 @@ impl BridgedOption {
                     format!("{expression}AsRustStr", expression = expression)
                 }
                 StdLibType::String => match type_pos {
-                    TypePosition::FnArg(_func_host_lang) => {
+                    TypePosition::FnArg(_func_host_lang, _) => {
                         format!(
                                 "{{ if let rustString = optionalStringIntoRustString({expression}) {{ rustString.isOwned = false; return rustString.ptr }} else {{ return nil }} }}()",
                                 expression = expression
@@ -359,6 +368,9 @@ impl BridgedOption {
                 }
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T> is not yet supported")
+                }
+                StdLibType::BoxedFnOnce(_) => {
+                    todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
@@ -427,6 +439,9 @@ impl BridgedOption {
                 }
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T>> is not yet supported")
+                }
+                StdLibType::BoxedFnOnce(_) => {
+                    todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {

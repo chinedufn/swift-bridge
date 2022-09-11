@@ -27,6 +27,7 @@ impl ToTokens for SwiftBridgeModule {
         let mut shared_struct_definitions = vec![];
         let mut shared_enum_definitions = vec![];
         let mut impl_fn_tokens: HashMap<String, Vec<TokenStream>> = HashMap::new();
+        let mut callbacks_support = vec![];
         let mut freestanding_rust_call_swift_fn_tokens = vec![];
         let mut extern_swift_fn_tokens = vec![];
 
@@ -40,6 +41,8 @@ impl ToTokens for SwiftBridgeModule {
                 HostLang::Swift => {
                     let tokens = func
                         .to_rust_fn_that_calls_a_swift_extern(&self.swift_bridge_path, &self.types);
+                    callbacks_support
+                        .push(func.callbacks_support(&self.swift_bridge_path, &self.types));
 
                     if let Some(ty) = func.associated_type.as_ref() {
                         match ty {
@@ -245,6 +248,8 @@ impl ToTokens for SwiftBridgeModule {
             #(#structs_for_swift_classes)*
 
             #extern_swift_fn_tokens
+
+            #(#callbacks_support)*
         };
 
         let t = quote! {

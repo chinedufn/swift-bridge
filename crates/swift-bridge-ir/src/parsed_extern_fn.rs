@@ -1,4 +1,5 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType, CustomBridgedType};
+use crate::bridged_type::boxed_fn::BuiltInBoxedFnOnce;
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType, CustomBridgedType, StdLibType};
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
@@ -426,6 +427,39 @@ impl ParsedExternFn {
         )
     }
 
+    pub fn call_boxed_fn_link_name(&self, boxed_fn_idx: usize) -> String {
+        format!("{}$param{}", self.link_name(), boxed_fn_idx)
+    }
+    pub fn free_boxed_fn_link_name(&self, boxed_fn_idx: usize) -> String {
+        format!("{}$_free$param{}", self.link_name(), boxed_fn_idx)
+    }
+
+    /// Generates something like:
+    /// void __swift_bridge__$some_function$param0(void* boxed_fn, uint8_t arg);
+    /// void __swift_bridge__$some_function$_free$param0(void* boxed_fn);
+    pub fn boxed_fn_to_c_header_fns(&self, idx: usize, boxed_fn: &BuiltInBoxedFnOnce) -> String {
+        let call_boxed_fn_link_name = self.call_boxed_fn_link_name(idx);
+        let free_boxed_fn_link_name = self.free_boxed_fn_link_name(idx);
+
+        let boxed_fn_arg_name = self.arg_name_at_idx(idx).unwrap();
+        let boxed_fn_arg_name = format!("{}_{}", self.sig.ident, boxed_fn_arg_name);
+
+        let maybe_args = if boxed_fn.params.is_empty() {
+            "".to_string()
+        } else {
+            let args = boxed_fn.params_to_c_types();
+            format!(", {args}")
+        };
+
+        let ret = boxed_fn.ret.to_c();
+
+        format!(
+            r#"
+{ret} {call_boxed_fn_link_name}(void* {boxed_fn_arg_name}{maybe_args});
+void {free_boxed_fn_link_name}(void* {boxed_fn_arg_name});"#
+        )
+    }
+
     pub fn prefixed_fn_name(&self) -> Ident {
         let host_type_prefix = self
             .associated_type
@@ -454,6 +488,79 @@ impl ParsedExternFn {
         );
 
         prefixed_fn_name
+    }
+
+    /// Get all of the `Box<dyn Fn(A, B) -> C>` arguments.
+    /// We include the arguments position.
+    pub fn args_filtered_to_boxed_fns(
+        &self,
+        type_decls: &TypeDeclarations,
+    ) -> Vec<(usize, BuiltInBoxedFnOnce)> {
+        self.func
+            .sig
+            .inputs
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, arg)| {
+                let ty = BridgedType::new_with_fn_arg(arg, type_decls)?;
+
+                match ty {
+                    BridgedType::StdLib(StdLibType::BoxedFnOnce(boxed_fn)) => Some((idx, boxed_fn)),
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+
+    /// `let cb1 = __private__RustFnOnceCallback$some_function$param0(ptr: callback); let cb0 = ...`
+    pub fn fnonce_callback_initializers(
+        &self,
+        fn_name: &str,
+        maybe_associated_ty: &str,
+        types: &TypeDeclarations,
+    ) -> String {
+        let mut initializers = "".to_string();
+        let mut maybe_space = "";
+
+        for (idx, fn_once) in self.args_filtered_to_boxed_fns(types) {
+            let arg_name = self.arg_name_at_idx(idx).unwrap();
+
+            if fn_once.params.is_empty() && fn_once.ret.is_null() {
+                initializers += &format!(
+                "{maybe_space}let cb{idx} = __private__RustFnOnceCallbackNoArgsNoRet(ptr: {arg_name});"
+            );
+            } else {
+                initializers += &format!("{maybe_space}let cb{idx} = __private__RustFnOnceCallback{maybe_associated_ty}${fn_name}$param{idx}(ptr: {arg_name});");
+            }
+
+            maybe_space = " ";
+        }
+
+        initializers
+    }
+
+    /// Get the name of the argument at the given index.
+    ///
+    /// So, `fn some_function (foo: u32, bar: u8);`
+    ///  would return "foo" for index 0 and "bar" for index 1.
+    pub fn arg_name_tokens_at_idx(&self, idx: usize) -> Option<TokenStream> {
+        self.func
+            .sig
+            .inputs
+            .iter()
+            .nth(idx)
+            .and_then(|arg| match arg {
+                FnArg::Typed(arg) => Some(arg.pat.to_token_stream()),
+                FnArg::Receiver(_) => None,
+            })
+    }
+
+    /// Get the name of the argument at the given index.
+    ///
+    /// So, `fn some_function (foo: u32, bar: u8);`
+    ///  would return "foo" for index 0 and "bar" for index 1.
+    pub fn arg_name_at_idx(&self, idx: usize) -> Option<String> {
+        self.arg_name_tokens_at_idx(idx).map(|a| a.to_string())
     }
 }
 

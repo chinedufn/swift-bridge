@@ -110,24 +110,26 @@ In addition to allowing you to share your own custom structs, enums and classes 
 `swift-bridge` comes with support for a number of Rust and Swift standard library types.
 
 <!-- ANCHOR: built-in-types-table -->
-| name in Rust                                                    | name in Swift                                                    | notes               |
-| ---                                                             | ---                                                              | ---                 |
-| u8, i8, u16, i16... etc                                         | UInt8, Int8, UInt16, Int16 ... etc                               |                     |
-| bool                                                            | Bool                                                             |                     |
-| String, &String, &mut String                                    | RustString, RustStringRef, RustStringRefMut                      |                     |
-| &str                                                            | RustStr                                                          |                     |
-| Vec\<T>                                                         | RustVec\<T>                                                      |                     |
-| SwiftArray\<T>                                                  | Array\<T>                                                        | Not yet implemented |
-| &[T]                                                            |                                                                  | Not yet implemented |
-| &mut [T]                                                        |                                                                  | Not yet implemented |
-| Box<T>                                                          |                                                                  | Not yet implemented |
-| [T; N]                                                          |                                                                  | Not yet implemented |
-| *const T                                                        | UnsafePointer\<T>                                                |                     |
-| *mut T                                                          | UnsafeMutablePointer\<T>                                         |                     |
-| Option\<T>                                                      | Optional\<T>                                                     |                     |
-| Result\<T>                                                      |                                                                  | Not yet implemented |
-| Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                     |
-|                                                                 | Have a Swift standard library type in mind?<br /> Open an issue! |                     |
+| name in Rust                                                    | name in Swift                                                    | notes                                                                              |
+| ---                                                             | ---                                                              | ---                                                                                |
+| u8, i8, u16, i16... etc                                         | UInt8, Int8, UInt16, Int16 ... etc                               |                                                                                    |
+| bool                                                            | Bool                                                             |                                                                                    |
+| String, &String, &mut String                                    | RustString, RustStringRef, RustStringRefMut                      |                                                                                    |
+| &str                                                            | RustStr                                                          |                                                                                    |
+| Vec\<T>                                                         | RustVec\<T>                                                      |                                                                                    |
+| SwiftArray\<T>                                                  | Array\<T>                                                        | Not yet implemented                                                                |
+| &[T]                                                            |                                                                  | Not yet implemented                                                                |
+| &mut [T]                                                        |                                                                  | Not yet implemented                                                                |
+| Box<T>                                                          |                                                                  | Not yet implemented                                                                |
+| Box<dyn FnOnce(A,B,C)> -> D>                                    | (A, B, C) -> D                                                   | Passing from Rust to Swift is supported, but Swift to Rust is not yet implemented. |
+| Box<dyn Fn(A,B,C)> -> D>                                        | (A, B, C) -> D                                                   | Not yet implemented                                                                |
+| [T; N]                                                          |                                                                  | Not yet implemented                                                                |
+| *const T                                                        | UnsafePointer\<T>                                                |                                                                                    |
+| *mut T                                                          | UnsafeMutablePointer\<T>                                         |                                                                                    |
+| Option\<T>                                                      | Optional\<T>                                                     |                                                                                    |
+| Result\<T>                                                      |                                                                  | Not yet implemented                                                                |
+| Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                                                                                    |
+|                                                                 | Have a Swift standard library type in mind?<br /> Open an issue! |                                                                                    |
 <!-- ANCHOR_END: built-in-types-table -->
 
 ## To Test
