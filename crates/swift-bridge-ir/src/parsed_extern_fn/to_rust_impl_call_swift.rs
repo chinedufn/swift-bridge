@@ -1,7 +1,7 @@
 use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
 use std::ops::Deref;
 use syn::spanned::Spanned;
@@ -73,6 +73,100 @@ impl ParsedExternFn {
             pub fn #fn_name(#params) #ret {
                 #inner
             }
+        }
+    }
+
+    /// #\[export_name = "__swift_bridge__$SomeType$some_method$param1"]
+    /// pub extern "C" fn SomeType_some_method_param1(boxed_fn: *mut dyn FnOnce(u8) -> (), arg0: u8) {
+    ///     unsafe { Box::from_raw(boxed_fn) }(arg0)
+    /// }
+    /// #\[export_name = "__swift_bridge__$SomeType$some_method$_free$param1"]
+    /// pub extern "C" fn free_SomeType_some_method_param1(boxed_fn: *mut dyn FnOnce(u8) -> ()) {
+    ///     unsafe { Box::from_raw(boxed_fn) }
+    /// }
+    pub fn callbacks_support(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
+        let sig = &self.func.sig;
+        let fn_name = &sig.ident;
+
+        let mut boxed_fn_support = vec![];
+        for (idx, boxed_fn) in self.args_filtered_to_boxed_fns(types) {
+            if boxed_fn.does_not_have_params_or_return() {
+                continue;
+            }
+
+            let maybe_associated_ty = self
+                .associated_type
+                .as_ref()
+                .and_then(|t| t.as_opaque())
+                .map(|o| format!("{}_", o.ty.to_string()))
+                .unwrap_or("".to_string());
+
+            let boxed_fn_name = format!("{}{}_param{idx}", maybe_associated_ty, fn_name);
+            let boxed_fn_name = Ident::new(&boxed_fn_name, fn_name.span());
+
+            let boxed_fn_ffi_repr = boxed_fn.to_ffi_compatible_rust_type();
+
+            let free_boxed_fn_name = format!("free_{}{}_param{idx}", maybe_associated_ty, fn_name);
+            let free_boxed_fn_name = Ident::new(&free_boxed_fn_name, fn_name.span());
+
+            let params = boxed_fn.params_to_ffi_compatible_rust_types(swift_bridge_path, types);
+            let call_args = boxed_fn.to_rust_call_args();
+
+            let call_boxed_fn_link_name = self.call_boxed_fn_link_name(idx);
+            let free_boxed_fn_link_name = self.free_boxed_fn_link_name(idx);
+
+            let maybe_params = if boxed_fn.params.len() > 0 {
+                quote! {
+                    , #(#params),*
+                }
+            } else {
+                quote! {}
+            };
+
+            let maybe_ret = if boxed_fn.ret.is_null() {
+                quote! {}
+            } else {
+                let ret = boxed_fn
+                    .ret
+                    .to_ffi_compatible_rust_type(swift_bridge_path, types);
+                quote! { -> #ret }
+            };
+
+            let arg_name = self.arg_name_tokens_at_idx(idx).unwrap();
+            let arg_name = Ident::new(&format!("{}_{}", fn_name, arg_name), arg_name.span());
+
+            let call_boxed_fn = quote! {
+                unsafe { Box::from_raw(#arg_name)(#(#call_args),*) }
+            };
+            let call_boxed_fn = boxed_fn.ret.convert_rust_value_to_ffi_compatible_value(
+                &call_boxed_fn,
+                swift_bridge_path,
+                types,
+            );
+            let call_boxed_fn = quote! {
+                #[export_name = #call_boxed_fn_link_name]
+                pub extern "C" fn #boxed_fn_name(#arg_name: #boxed_fn_ffi_repr #maybe_params) #maybe_ret {
+                    #call_boxed_fn
+                }
+            };
+
+            let free_boxed_fn = quote! {
+                #[export_name = #free_boxed_fn_link_name]
+                pub extern "C" fn #free_boxed_fn_name(#arg_name: #boxed_fn_ffi_repr) {
+                    let _ = unsafe { Box::from_raw(#arg_name) };
+                }
+            };
+
+            boxed_fn_support.push(call_boxed_fn);
+            boxed_fn_support.push(free_boxed_fn);
+        }
+
+        quote! {
+            #(#boxed_fn_support)*
         }
     }
 

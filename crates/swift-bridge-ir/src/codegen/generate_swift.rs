@@ -260,11 +260,83 @@ fn gen_function_exposes_swift_to_rust(
         todo!("Push to ParsedErrors")
     };
 
+    let mut rust_fn_once_callback_classes = "".to_string();
+
+    let maybe_associated_ty = if let Some(ty) = func.associated_type.as_ref() {
+        format!("${}", ty.as_opaque().unwrap().ty.to_string())
+    } else {
+        "".to_string()
+    };
+
+    for (idx, boxed_fn) in func.args_filtered_to_boxed_fns(types) {
+        if boxed_fn.does_not_have_params_or_return() {
+            continue;
+        }
+
+        let params_as_swift = boxed_fn.params_to_swift_types(types);
+        let swift_ffi_call_args = boxed_fn.to_from_swift_to_rust_ffi_call_args();
+
+        let maybe_ret = if boxed_fn.ret.is_null() {
+            "".to_string()
+        } else {
+            let ret = boxed_fn
+                .ret
+                .to_swift_type(TypePosition::FnArg(HostLang::Rust, idx), types);
+            format!(" -> {}", ret)
+        };
+
+        let ret_value = format!(
+            "__swift_bridge__{maybe_associated_ty}${fn_name}$param{idx}(ptr{swift_ffi_call_args})"
+        );
+        let ret_value = boxed_fn.ret.convert_swift_expression_to_ffi_compatible(
+            &ret_value,
+            TypePosition::FnReturn(HostLang::Swift),
+        );
+
+        rust_fn_once_callback_classes += &format!(
+            r#"
+class __private__RustFnOnceCallback{maybe_associated_ty}${fn_name}$param{idx} {{
+    var ptr: UnsafeMutableRawPointer
+    var called = false
+
+    init(ptr: UnsafeMutableRawPointer) {{
+        self.ptr = ptr
+    }}
+
+    deinit {{
+        if !called {{
+            __swift_bridge__{maybe_associated_ty}${fn_name}$_free$param{idx}(ptr)
+        }}
+    }}
+
+    func call({params_as_swift}){maybe_ret} {{
+        if called {{
+            fatalError("Cannot call a Rust FnOnce function twice")
+        }}
+        called = true
+        return {ret_value}
+    }}
+}}"#
+        );
+    }
+
+    let callback_initializers =
+        func.fnonce_callback_initializers(&fn_name, &maybe_associated_ty, types);
+    if !callback_initializers.is_empty() {
+        let maybe_ret = if ret.is_empty() {
+            "let _ = "
+        } else {
+            "return "
+        };
+
+        call_fn = format!("{{ {callback_initializers} {maybe_ret}{call_fn} }}()")
+    }
+
     let generated_func = format!(
         r#"@_cdecl("{link_name}")
 func {prefixed_fn_name} ({params}){ret} {{
     {call_fn}
-}}
+}}{rust_fn_once_callback_classes}
 "#,
         link_name = link_name,
         prefixed_fn_name = prefixed_fn_name,

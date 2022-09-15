@@ -2,7 +2,7 @@ use ffi2::AlreadyDeclaredStruct;
 
 #[swift_bridge::bridge]
 mod ffi {
-    struct SomeStruct;
+    struct ReturnIntoSomeStruct;
 
     #[swift_bridge(already_declared, swift_repr = "struct")]
     struct AlreadyDeclaredStruct;
@@ -22,7 +22,7 @@ mod ffi {
 
         // Verify that our code compiles when we use `return_into` on a shared struct.
         #[swift_bridge(return_into)]
-        fn get_struct() -> SomeStruct;
+        fn get_struct() -> ReturnIntoSomeStruct;
 
         // Verify that our code compiles when we use `return_into` on an already declared
         // shared struct.
@@ -71,9 +71,9 @@ impl Into<SomeType> for AnotherType {
     }
 }
 
-impl Into<ffi::SomeStruct> for SomeType {
-    fn into(self) -> ffi::SomeStruct {
-        ffi::SomeStruct
+impl Into<ffi::ReturnIntoSomeStruct> for SomeType {
+    fn into(self) -> ffi::ReturnIntoSomeStruct {
+        ffi::ReturnIntoSomeStruct
     }
 }
 impl Into<ffi2::AlreadyDeclaredStruct> for SomeType {

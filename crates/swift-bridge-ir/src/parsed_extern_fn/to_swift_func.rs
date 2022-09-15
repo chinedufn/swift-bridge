@@ -13,7 +13,7 @@ impl ParsedExternFn {
     ) -> String {
         let mut params: Vec<String> = vec![];
 
-        for arg in &self.func.sig.inputs {
+        for (arg_idx, arg) in self.func.sig.inputs.iter().enumerate() {
             let param = match arg {
                 FnArg::Receiver(_receiver) => {
                     if include_receiver_if_present {
@@ -34,7 +34,7 @@ impl ParsedExternFn {
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
                     let ty = if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
-                        built_in.to_swift_type(TypePosition::FnArg(self.host_lang), types)
+                        built_in.to_swift_type(TypePosition::FnArg(self.host_lang, arg_idx), types)
                     } else {
                         todo!("Push to ParsedErrors")
                     };
@@ -64,7 +64,7 @@ impl ParsedExternFn {
     ) -> String {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
-        for arg in inputs {
+        for (arg_idx, arg) in inputs.iter().enumerate() {
             match arg {
                 FnArg::Receiver(receiver) => {
                     if include_receiver_if_present {
@@ -94,12 +94,12 @@ impl ParsedExternFn {
                             if self.host_lang.is_rust() {
                                 bridged_ty.convert_swift_expression_to_ffi_compatible(
                                     &arg,
-                                    TypePosition::FnArg(self.host_lang),
+                                    TypePosition::FnArg(self.host_lang, arg_idx),
                                 )
                             } else {
                                 bridged_ty.convert_ffi_value_to_swift_value(
                                     &arg,
-                                    TypePosition::FnArg(self.host_lang),
+                                    TypePosition::FnArg(self.host_lang, arg_idx),
                                     types,
                                 )
                             }

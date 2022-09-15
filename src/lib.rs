@@ -13,6 +13,9 @@ pub use self::std_bridge::{option, string};
 pub mod async_support;
 
 #[doc(hidden)]
+pub mod boxed_fn_support;
+
+#[doc(hidden)]
 #[repr(C)]
 pub struct FfiSlice<T> {
     pub start: *const T,

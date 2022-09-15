@@ -2,6 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
 
+use crate::bridged_type::boxed_fn::BuiltInBoxedFnOnce;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
@@ -14,6 +15,7 @@ use self::bridged_option::BridgedOption;
 pub(crate) use self::shared_enum::{EnumVariant, SharedEnum};
 pub(crate) use self::shared_struct::{SharedStruct, StructFields, StructSwiftRepr};
 
+pub(crate) mod boxed_fn;
 mod bridged_option;
 mod shared_enum;
 pub(crate) mod shared_struct;
@@ -58,13 +60,15 @@ pub(crate) enum StdLibType {
     Str,
     String,
     Vec(BuiltInVec),
+    BoxedFnOnce(BuiltInBoxedFnOnce),
     Option(BridgedOption),
 }
 
 /// TODO: Add this to `OpaqueForeignType`
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum TypePosition {
-    FnArg(HostLang),
+    /// A function argument at the given index.
+    FnArg(HostLang, usize),
     FnReturn(HostLang),
     SharedStructField,
     SwiftCallsRustAsyncOnCompleteReturnTy,
@@ -346,6 +350,9 @@ impl BridgedType {
                 }),
                 _ => None,
             },
+            Type::Tuple(tuple) if tuple.elems.len() == 0 => {
+                Some(BridgedType::StdLib(StdLibType::Null))
+            }
             _ => None,
         }
     }
@@ -398,6 +405,10 @@ impl BridgedType {
             return Some(BridgedType::StdLib(StdLibType::Option(BridgedOption {
                 ty: Box::new(inner),
             })));
+        } else if string.starts_with("Box < dyn FnOnce") {
+            return Some(BridgedType::StdLib(StdLibType::BoxedFnOnce(
+                BuiltInBoxedFnOnce::from_str_tokens(&string, types)?,
+            )));
         }
 
         let ty = match string {
@@ -476,6 +487,7 @@ impl BridgedType {
                         let ty = opt.ty.to_rust_type_path();
                         quote! { Option<#ty> }
                     }
+                    StdLibType::BoxedFnOnce(fn_once) => fn_once.to_rust_type_path(),
                 }
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
@@ -624,6 +636,9 @@ impl BridgedType {
                         StdLibType::Option(_) => {
                             todo!("Option<Option<T>> is not yet supported")
                         }
+                        StdLibType::BoxedFnOnce(_) => {
+                            todo!("Support Box<dyn FnOnce(A, B) -> C>")
+                        }
                     },
                     BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(
                         shared_struct,
@@ -651,6 +666,7 @@ impl BridgedType {
                         }
                     }
                 },
+                StdLibType::BoxedFnOnce(fn_once) => fn_once.to_ffi_compatible_rust_type(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let ty_name = &shared_struct.name;
@@ -745,7 +761,7 @@ impl BridgedType {
                 }
                 StdLibType::RefSlice(slice) => {
                     match type_pos {
-                        TypePosition::FnArg(func_host_lang)
+                        TypePosition::FnArg(func_host_lang, _)
                         | TypePosition::FnReturn(func_host_lang) => {
                             if func_host_lang.is_swift() {
                                 "__private__FfiSlice".to_string()
@@ -767,7 +783,7 @@ impl BridgedType {
                 }
                 StdLibType::Null => "()".to_string(),
                 StdLibType::Str => match type_pos {
-                    TypePosition::FnArg(func_host_lang) => {
+                    TypePosition::FnArg(func_host_lang, _) => {
                         if func_host_lang.is_rust() {
                             "GenericToRustStr".to_string()
                         } else {
@@ -781,7 +797,7 @@ impl BridgedType {
                     }
                 },
                 StdLibType::String => match type_pos {
-                    TypePosition::FnArg(_func_host_lang) => "GenericIntoRustString".to_string(),
+                    TypePosition::FnArg(_func_host_lang, _) => "GenericIntoRustString".to_string(),
                     TypePosition::FnReturn(_func_host_lang) => "RustString".to_string(),
                     TypePosition::SharedStructField => "RustString".to_string(),
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
@@ -792,7 +808,7 @@ impl BridgedType {
                     format!("RustVec<{}>", ty.ty.to_swift_type(type_pos, types))
                 }
                 StdLibType::Option(opt) => match type_pos {
-                    TypePosition::FnArg(func_host_lang)
+                    TypePosition::FnArg(func_host_lang, _)
                     | TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_swift() {
                             opt.ty.to_swift_type(type_pos, types)
@@ -807,10 +823,11 @@ impl BridgedType {
                         unimplemented!()
                     }
                 },
+                StdLibType::BoxedFnOnce(boxed_fn) => boxed_fn.to_swift_type().to_string(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 match type_pos {
-                    TypePosition::FnArg(func_host_lang)
+                    TypePosition::FnArg(func_host_lang, _)
                     | TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_rust() {
                             shared_struct.swift_name_string()
@@ -826,7 +843,7 @@ impl BridgedType {
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 match type_pos {
-                    TypePosition::FnArg(func_host_lang)
+                    TypePosition::FnArg(func_host_lang, _)
                     | TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_rust() {
                             shared_enum.swift_name_string()
@@ -843,7 +860,7 @@ impl BridgedType {
             BridgedType::Foreign(CustomBridgedType::Opaque(opaque)) => {
                 if opaque.host_lang.is_rust() {
                     match type_pos {
-                        TypePosition::FnArg(func_host_lang)
+                        TypePosition::FnArg(func_host_lang, _)
                         | TypePosition::FnReturn(func_host_lang) => {
                             if func_host_lang.is_rust() {
                                 let mut class_name = opaque.ty.to_string();
@@ -879,7 +896,7 @@ impl BridgedType {
                     }
                 } else {
                     match type_pos {
-                        TypePosition::FnArg(func_host_lang)
+                        TypePosition::FnArg(func_host_lang, _)
                         | TypePosition::FnReturn(func_host_lang) => {
                             if func_host_lang.is_rust() {
                                 opaque.ty.to_string()
@@ -935,6 +952,7 @@ impl BridgedType {
                 StdLibType::String => "void*".to_string(),
                 StdLibType::Vec(_) => "void*".to_string(),
                 StdLibType::Option(opt) => opt.to_c(),
+                StdLibType::BoxedFnOnce(_) => "void*".to_string(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 format!("struct {}", shared_struct.ffi_name_string())
@@ -1055,6 +1073,9 @@ impl BridgedType {
                 StdLibType::Option(opt) => {
                     opt.convert_rust_value_to_ffi_value(expression, swift_bridge_path)
                 }
+                StdLibType::BoxedFnOnce(fn_once) => {
+                    fn_once.convert_rust_value_to_ffi_compatible_value(expression)
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 quote! {
@@ -1149,6 +1170,9 @@ impl BridgedType {
                 StdLibType::Option(bridged_option) => {
                     bridged_option.convert_ffi_value_to_rust_value(value)
                 }
+                StdLibType::BoxedFnOnce(_) => {
+                    todo!("Support Box<dyn FnOnce(A, B) -> C>")
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 quote_spanned! {span=>
@@ -1239,7 +1263,7 @@ impl BridgedType {
                     Pointee::BuiltIn(_) => value.to_string(),
                     Pointee::Void(_ty) => match ptr.kind {
                         PointerKind::Const => match type_pos {
-                            TypePosition::FnArg(func_host_lang) => {
+                            TypePosition::FnArg(func_host_lang, _) => {
                                 if func_host_lang.is_rust() {
                                     format!("UnsafeRawPointer({}!)", value)
                                 } else {
@@ -1268,7 +1292,7 @@ impl BridgedType {
                 }
                 StdLibType::Str => value.to_string(),
                 StdLibType::String => match type_pos {
-                    TypePosition::FnArg(_)
+                    TypePosition::FnArg(_, _)
                     | TypePosition::FnReturn(_)
                     | TypePosition::SharedStructField => {
                         format!("RustString(ptr: {})", value)
@@ -1281,6 +1305,9 @@ impl BridgedType {
                     format!("RustVec(ptr: {})", value)
                 }
                 StdLibType::Option(opt) => opt.convert_ffi_expression_to_swift(value),
+                StdLibType::BoxedFnOnce(fn_once) => {
+                    fn_once.convert_ffi_value_to_swift_value(type_pos)
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 format!("{}.intoSwiftRepr()", value)
@@ -1353,7 +1380,7 @@ impl BridgedType {
                 StdLibType::Pointer(ptr) => match &ptr.pointee {
                     Pointee::BuiltIn(_) => value.to_string(),
                     Pointee::Void(_ty) => match type_pos {
-                        TypePosition::FnArg(func_host_lang)
+                        TypePosition::FnArg(func_host_lang, _)
                         | TypePosition::FnReturn(func_host_lang) => {
                             if ptr.kind == PointerKind::Const && func_host_lang.is_rust() {
                                 format!("UnsafeMutableRawPointer(mutating: {})", value)
@@ -1370,7 +1397,7 @@ impl BridgedType {
                     },
                 },
                 StdLibType::Str => match type_pos {
-                    TypePosition::FnArg(func_host_lang)
+                    TypePosition::FnArg(func_host_lang, _)
                     | TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_rust() {
                             format!("{val}AsRustStr", val = value)
@@ -1400,6 +1427,9 @@ impl BridgedType {
                 StdLibType::Option(option) => {
                     option.convert_swift_expression_to_ffi_compatible(value, type_pos)
                 }
+                StdLibType::BoxedFnOnce(_) => {
+                    todo!("Support Box<dyn FnOnce(A, B) -> C>")
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 format!("{}.intoFfiRepr()", value)
@@ -1417,7 +1447,7 @@ impl BridgedType {
                         format!("{}.ptr", value)
                     } else {
                         match type_pos {
-                            TypePosition::FnArg(func_host_lang)
+                            TypePosition::FnArg(func_host_lang, _)
                             | TypePosition::FnReturn(func_host_lang) => {
                                 if func_host_lang.is_rust() {
                                     format!(
@@ -1442,7 +1472,7 @@ impl BridgedType {
                     }
                 } else {
                     match type_pos {
-                        TypePosition::FnArg(func_host_lang) => {
+                        TypePosition::FnArg(func_host_lang, _) => {
                             if func_host_lang.is_rust() {
                                 format!(
                                     "__private__PointerToSwiftType(ptr: Unmanaged.passRetained({}).toOpaque())",
@@ -1571,6 +1601,9 @@ impl BridgedType {
                 }
                 StdLibType::Option(_) => {
                     todo!("Support nested Option<Option<T>>")
+                }
+                StdLibType::BoxedFnOnce(_) => {
+                    todo!("Support Box<dyn FnOnce(A, B) -> C>")
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
