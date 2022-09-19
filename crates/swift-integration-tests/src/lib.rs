@@ -8,6 +8,7 @@ mod conditional_compilation;
 mod generics;
 mod option;
 mod pointer;
+mod result;
 mod rust_function_uses_opaque_swift_type;
 mod shared_types;
 mod slice;

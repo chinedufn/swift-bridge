@@ -187,21 +187,6 @@ func {fn_name} (ptr: UnsafeMutableRawPointer) {{
     )
 }
 
-#[derive(Hash, Eq, PartialEq, Ord, PartialOrd)]
-enum SwiftFuncGenerics {
-    String,
-    Str,
-}
-
-impl SwiftFuncGenerics {
-    fn as_bound(&self) -> &'static str {
-        match self {
-            SwiftFuncGenerics::String => "GenericIntoRustString: IntoRustString",
-            SwiftFuncGenerics::Str => "GenericToRustStr: ToRustStr",
-        }
-    }
-}
-
 fn gen_function_exposes_swift_to_rust(
     func: &ParsedExternFn,
     types: &TypeDeclarations,
@@ -293,6 +278,8 @@ fn gen_function_exposes_swift_to_rust(
             TypePosition::FnReturn(HostLang::Swift),
         );
 
+        let maybe_generics = boxed_fn.maybe_swift_generics();
+
         rust_fn_once_callback_classes += &format!(
             r#"
 class __private__RustFnOnceCallback{maybe_associated_ty}${fn_name}$param{idx} {{
@@ -309,7 +296,7 @@ class __private__RustFnOnceCallback{maybe_associated_ty}${fn_name}$param{idx} {{
         }}
     }}
 
-    func call({params_as_swift}){maybe_ret} {{
+    func call{maybe_generics}({params_as_swift}){maybe_ret} {{
         if called {{
             fatalError("Cannot call a Rust FnOnce function twice")
         }}

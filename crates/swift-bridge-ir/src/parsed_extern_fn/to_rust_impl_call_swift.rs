@@ -64,7 +64,12 @@ impl ParsedExternFn {
         };
 
         if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
-            inner = built_in.convert_ffi_value_to_rust_value(&inner, sig.output.span());
+            inner = built_in.convert_ffi_value_to_rust_value(
+                &inner,
+                sig.output.span(),
+                swift_bridge_path,
+                types,
+            );
         } else {
             todo!("Push to ParsedErrors")
         }
@@ -114,7 +119,7 @@ impl ParsedExternFn {
             let free_boxed_fn_name = Ident::new(&free_boxed_fn_name, fn_name.span());
 
             let params = boxed_fn.params_to_ffi_compatible_rust_types(swift_bridge_path, types);
-            let call_args = boxed_fn.to_rust_call_args();
+            let call_args = boxed_fn.to_rust_call_args(swift_bridge_path, types);
 
             let call_boxed_fn_link_name = self.call_boxed_fn_link_name(idx);
             let free_boxed_fn_link_name = self.free_boxed_fn_link_name(idx);

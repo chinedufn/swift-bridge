@@ -6,7 +6,7 @@ pub use swift_bridge_macro::bridge;
 
 mod std_bridge;
 
-pub use self::std_bridge::{option, string};
+pub use self::std_bridge::{option, result, string};
 
 #[doc(hidden)]
 #[cfg(feature = "async")]

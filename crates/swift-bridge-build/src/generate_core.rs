@@ -1,6 +1,7 @@
 use crate::generate_core::boxed_fn_support::{
     C_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN, SWIFT_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN,
 };
+use crate::generate_core::result_support::{C_RESULT_SUPPORT, SWIFT_RUST_RESULT};
 use std::path::{Path, PathBuf};
 
 const RUST_STRING_SWIFT: &'static str = include_str!("./generate_core/rust_string.swift");
@@ -10,6 +11,7 @@ const STRING_SWIFT: &'static str = include_str!("./generate_core/string.swift");
 const RUST_VEC_SWIFT: &'static str = include_str!("./generate_core/rust_vec.swift");
 
 mod boxed_fn_support;
+mod result_support;
 
 pub(super) fn write_core_swift_and_c(out_dir: &Path) {
     let core_swift_out = out_dir.join("SwiftBridgeCore.swift");
@@ -18,6 +20,8 @@ pub(super) fn write_core_swift_and_c(out_dir: &Path) {
     swift += &RUST_STRING_SWIFT;
     swift += "\n";
     swift += &SWIFT_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN;
+    swift += "\n";
+    swift += &SWIFT_RUST_RESULT;
 
     std::fs::write(core_swift_out, swift).unwrap();
 
@@ -27,6 +31,8 @@ pub(super) fn write_core_swift_and_c(out_dir: &Path) {
     c_header += &RUST_STRING_C;
     c_header += "\n";
     c_header += &C_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN;
+    c_header += "\n";
+    c_header += &C_RESULT_SUPPORT;
 
     std::fs::write(core_c_header_out, c_header).unwrap();
 }

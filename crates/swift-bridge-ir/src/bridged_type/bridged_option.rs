@@ -103,6 +103,9 @@ impl BridgedOption {
                 StdLibType::Option(_) => {
                     todo!("Support Option<Option<T>>")
                 }
+                StdLibType::Result(_) => {
+                    todo!("Support Option<Result<T, E>>")
+                }
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
                 }
@@ -197,6 +200,9 @@ impl BridgedOption {
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T>> is not yet supported")
                 }
+                StdLibType::Result(_) => {
+                    todo!("Option<Result<T, E>> is not yet supported")
+                }
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
                 }
@@ -274,6 +280,9 @@ impl BridgedOption {
                 }
                 StdLibType::Option(_) => {
                     todo!("Support Option<Option<T>>")
+                }
+                StdLibType::Result(_) => {
+                    todo!("Option<Result<T, E>> is not yet supported")
                 }
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
@@ -369,6 +378,9 @@ impl BridgedOption {
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T> is not yet supported")
                 }
+                StdLibType::Result(_) => {
+                    todo!("Option<Result<T, E>> is not yet supported")
+                }
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
                 }
@@ -439,6 +451,9 @@ impl BridgedOption {
                 }
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T>> is not yet supported")
+                }
+                StdLibType::Result(_) => {
+                    todo!("Option<Result<T, E>> is not yet supported")
                 }
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")

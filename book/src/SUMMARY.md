@@ -20,10 +20,11 @@
   - [Conditional Compilation](./bridge-module/conditional-compilation/README.md)
 
 - [Built In Types](./built-in/README.md)
-  - [Option<T> <---> Optional<T>](./built-in/option/README.md)
-  - [Vec<T> <---> RustVec<T>](./built-in/vec/README.md)
   - [String <---> String](./built-in/string/README.md)
   - [&str <---> RustStr](./built-in/str/README.md)
+  - [Vec<T> <---> RustVec<T>](./built-in/vec/README.md)
+  - [Option<T> <---> Optional<T>](./built-in/option/README.md)
+  - [Result<T, E> <---> RustResult<T, E>](./built-in/result/README.md)
   - [Box<dyn FnOnce(A, B) -> C>](./built-in/boxed-functions/README.md)
 
 - [Safety](./safety/README.md)

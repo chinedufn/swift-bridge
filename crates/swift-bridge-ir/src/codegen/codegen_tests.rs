@@ -29,7 +29,7 @@ use crate::test_utils::{
 
 mod already_declared_attribute_codegen_tests;
 mod async_function_codegen_tests;
-mod boxed_fnonce_tests;
+mod boxed_fnonce_codegen_tests;
 mod conditional_compilation_codegen_tests;
 mod extern_rust_function_opaque_rust_type_argument_codegen_tests;
 mod extern_rust_function_opaque_rust_type_return_codegen_tests;
@@ -40,6 +40,7 @@ mod generic_opaque_rust_type_codegen_tests;
 mod opaque_rust_type_codegen_tests;
 mod opaque_swift_type_codegen_tests;
 mod option_codegen_tests;
+mod result_codegen_tests;
 mod shared_enum_codegen_tests;
 mod shared_struct_codegen_tests;
 mod string_codegen_tests;

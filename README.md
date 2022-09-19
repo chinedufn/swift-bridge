@@ -127,7 +127,7 @@ In addition to allowing you to share your own custom structs, enums and classes 
 | *const T                                                        | UnsafePointer\<T>                                                |                                                                                    |
 | *mut T                                                          | UnsafeMutablePointer\<T>                                         |                                                                                    |
 | Option\<T>                                                      | Optional\<T>                                                     |                                                                                    |
-| Result\<T>                                                      |                                                                  | Not yet implemented                                                                |
+| Result\<T, E>                                                   | RustResult\<T, E>                                                |                                                                                    |
 | Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                                                                                    |
 |                                                                 | Have a Swift standard library type in mind?<br /> Open an issue! |                                                                                    |
 <!-- ANCHOR_END: built-in-types-table -->

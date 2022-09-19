@@ -15,6 +15,10 @@ mod ffi {
             -> u16;
 
         fn swift_calls_rust_fnonce_callback_twice(arg: Box<dyn FnOnce() -> ()>);
+
+        fn swift_func_takes_callback_with_result_arg(
+            arg: Box<dyn FnOnce(Result<CallbackTestOpaqueRustType, String>)>,
+        );
     }
 
     extern "Swift" {
@@ -128,4 +132,8 @@ fn test_callbacks_rust_calls_swift() {
     let five_times_two =
         swift_callback_tester.method_with_fnonce_callback_primitive(Box::new(|num| num * 2));
     assert_eq!(five_times_two, 10);
+
+    ffi::swift_func_takes_callback_with_result_arg(Box::new(|result| {
+        assert_eq!(result.unwrap().val(), 555)
+    }));
 }

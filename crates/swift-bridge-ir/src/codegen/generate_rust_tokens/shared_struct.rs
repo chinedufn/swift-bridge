@@ -65,8 +65,11 @@ impl SwiftBridgeModule {
             &self.types,
             &self.swift_bridge_path,
         );
-        let convert_ffi_to_rust =
-            shared_struct.convert_ffi_repr_to_rust(&quote! { self }, &self.types);
+        let convert_ffi_to_rust = shared_struct.convert_ffi_repr_to_rust(
+            &quote! { self },
+            swift_bridge_path,
+            &self.types,
+        );
 
         let struct_ffi_repr = if shared_struct.fields.is_empty() {
             // Using a u8 is arbitrary... We just need a field since empty structs aren't FFI safe.

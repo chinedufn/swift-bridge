@@ -70,6 +70,7 @@ impl SharedStruct {
     pub(crate) fn convert_ffi_repr_to_rust(
         &self,
         rust_val: &TokenStream,
+        swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
         let struct_name = &self.name;
@@ -83,8 +84,12 @@ impl SharedStruct {
                 let access_field = norm_field.append_field_accessor(&quote! {val});
 
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-                let converted_field =
-                    ty.convert_ffi_value_to_rust_value(&access_field, norm_field.ty.span());
+                let converted_field = ty.convert_ffi_value_to_rust_value(
+                    &access_field,
+                    norm_field.ty.span(),
+                    swift_bridge_path,
+                    types,
+                );
 
                 quote! {
                     #maybe_name_and_colon #converted_field

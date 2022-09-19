@@ -4,6 +4,7 @@ use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclara
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
+use std::collections::HashSet;
 use std::ops::Deref;
 use syn::spanned::Spanned;
 use syn::{FnArg, ForeignItemFn, Lifetime, Path, ReturnType, Token, Type};
@@ -12,6 +13,21 @@ mod to_extern_c_fn;
 mod to_extern_c_param_names_and_types;
 mod to_rust_impl_call_swift;
 mod to_swift_func;
+
+#[derive(Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub(crate) enum SwiftFuncGenerics {
+    String,
+    Str,
+}
+
+impl SwiftFuncGenerics {
+    pub fn as_bound(&self) -> &'static str {
+        match self {
+            SwiftFuncGenerics::String => "GenericIntoRustString: IntoRustString",
+            SwiftFuncGenerics::Str => "GenericToRustStr: ToRustStr",
+        }
+    }
+}
 
 /// A method or associated function associated with a type.
 ///
@@ -256,7 +272,12 @@ impl ParsedExternFn {
 
                     if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                         if self.host_lang.is_rust() {
-                            arg = built_in.convert_ffi_value_to_rust_value(&arg, pat_ty.ty.span());
+                            arg = built_in.convert_ffi_value_to_rust_value(
+                                &arg,
+                                pat_ty.ty.span(),
+                                swift_bridge_path,
+                                types,
+                            );
 
                             if self.args_into_contains_arg(fn_arg) {
                                 arg = quote_spanned! {pat_ty.span()=>
@@ -561,6 +582,43 @@ void {free_boxed_fn_link_name}(void* {boxed_fn_arg_name});"#
     ///  would return "foo" for index 0 and "bar" for index 1.
     pub fn arg_name_at_idx(&self, idx: usize) -> Option<String> {
         self.arg_name_tokens_at_idx(idx).map(|a| a.to_string())
+    }
+
+    /// Generate the generate bounds for a Swift function.
+    /// For example:
+    /// "<GenericRustString: IntoRustString>"
+    pub fn maybe_swift_generics(&self, types: &TypeDeclarations) -> String {
+        let mut maybe_generics = HashSet::new();
+
+        for arg in self.sig.inputs.iter() {
+            let bridged_arg = BridgedType::new_with_fn_arg(arg, types);
+            if bridged_arg.is_none() {
+                continue;
+            }
+
+            let bridged_arg = bridged_arg.unwrap();
+            if bridged_arg.contains_owned_string_recursive() {
+                maybe_generics.insert(SwiftFuncGenerics::String);
+            } else if bridged_arg.contains_ref_string_recursive() {
+                maybe_generics.insert(SwiftFuncGenerics::Str);
+            }
+        }
+
+        let maybe_generics = if maybe_generics.is_empty() {
+            "".to_string()
+        } else {
+            let mut m = vec![];
+
+            let generics: Vec<SwiftFuncGenerics> = maybe_generics.into_iter().collect();
+
+            for generic in generics {
+                m.push(generic.as_bound())
+            }
+
+            format!("<{}>", m.join(", "))
+        };
+
+        maybe_generics
     }
 }
 
