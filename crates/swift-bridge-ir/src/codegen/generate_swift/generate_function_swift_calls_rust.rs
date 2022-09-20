@@ -1,9 +1,7 @@
 use crate::bridged_type::{fn_arg_name, BridgedType, StdLibType, TypePosition};
-use crate::codegen::generate_swift::SwiftFuncGenerics;
 use crate::parse::{HostLang, TypeDeclaration};
 use crate::{ParsedExternFn, TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use quote::ToTokens;
-use std::collections::HashSet;
 use std::ops::Deref;
 use syn::{Path, ReturnType, Type};
 
@@ -136,8 +134,6 @@ pub(super) fn gen_func_swift_calls_rust(
         "return "
     };
 
-    let mut maybe_generics = HashSet::new();
-
     for arg in function.func.sig.inputs.iter() {
         let bridged_arg = BridgedType::new_with_fn_arg(arg, types);
         if bridged_arg.is_none() {
@@ -146,12 +142,6 @@ pub(super) fn gen_func_swift_calls_rust(
         let bridged_arg = bridged_arg.unwrap();
 
         let arg_name = fn_arg_name(arg).unwrap().to_string();
-
-        if bridged_arg.contains_owned_string_recursive() {
-            maybe_generics.insert(SwiftFuncGenerics::String);
-        } else if bridged_arg.contains_ref_string_recursive() {
-            maybe_generics.insert(SwiftFuncGenerics::Str);
-        }
 
         // TODO: Refactor to make less duplicative
         match bridged_arg {
@@ -197,19 +187,7 @@ pub(super) fn gen_func_swift_calls_rust(
         function.to_swift_return_type(types)
     };
 
-    let maybe_generics = if maybe_generics.is_empty() {
-        "".to_string()
-    } else {
-        let mut m = vec![];
-
-        let generics: Vec<SwiftFuncGenerics> = maybe_generics.into_iter().collect();
-
-        for generic in generics {
-            m.push(generic.as_bound())
-        }
-
-        format!("<{}>", m.join(", "))
-    };
+    let maybe_generics = function.maybe_swift_generics(types);
 
     let func_definition = if function.sig.asyncness.is_some() {
         let func_ret_ty = function.return_ty_built_in(types).unwrap();

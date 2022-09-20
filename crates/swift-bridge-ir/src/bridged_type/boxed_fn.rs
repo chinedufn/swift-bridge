@@ -1,8 +1,10 @@
 use crate::bridged_type::{BridgedType, StdLibType, TypePosition};
 use crate::parse::HostLang;
+use crate::parsed_extern_fn::SwiftFuncGenerics;
 use crate::TypeDeclarations;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
+use std::collections::HashSet;
 use std::str::FromStr;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
@@ -116,13 +118,22 @@ impl BuiltInBoxedFnOnce {
     ///
     /// For example, `Box<dyn FnOnce(u8, SomeType)>` would give us:
     /// arg0, unsafe { *Box::from_raw(arg1) }
-    pub fn to_rust_call_args(&self) -> Vec<TokenStream> {
+    pub fn to_rust_call_args(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Vec<TokenStream> {
         self.params
             .iter()
             .enumerate()
             .map(|(idx, ty)| {
                 let arg_name = Ident::new(&format!("arg{}", idx), Span::call_site());
-                ty.convert_ffi_value_to_rust_value(&arg_name.to_token_stream(), arg_name.span())
+                ty.convert_ffi_value_to_rust_value(
+                    &arg_name.to_token_stream(),
+                    arg_name.span(),
+                    swift_bridge_path,
+                    types,
+                )
             })
             .collect()
     }
@@ -181,6 +192,37 @@ impl BuiltInBoxedFnOnce {
             }
             _ => todo!("Not yet supported"),
         }
+    }
+
+    /// Generate the generate bounds for the Swift side.
+    /// For example:
+    /// "<GenericRustString: IntoRustString>"
+    pub fn maybe_swift_generics(&self) -> String {
+        let mut maybe_generics = HashSet::new();
+
+        for bridged_arg in &self.params {
+            if bridged_arg.contains_owned_string_recursive() {
+                maybe_generics.insert(SwiftFuncGenerics::String);
+            } else if bridged_arg.contains_ref_string_recursive() {
+                maybe_generics.insert(SwiftFuncGenerics::Str);
+            }
+        }
+
+        let maybe_generics = if maybe_generics.is_empty() {
+            "".to_string()
+        } else {
+            let mut m = vec![];
+
+            let generics: Vec<SwiftFuncGenerics> = maybe_generics.into_iter().collect();
+
+            for generic in generics {
+                m.push(generic.as_bound())
+            }
+
+            format!("<{}>", m.join(", "))
+        };
+
+        maybe_generics
     }
 }
 

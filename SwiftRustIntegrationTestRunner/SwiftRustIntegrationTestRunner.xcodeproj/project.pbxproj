@@ -20,6 +20,8 @@
 		221E16B42786233600F94AC0 /* ConditionalCompilationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 221E16B32786233600F94AC0 /* ConditionalCompilationTests.swift */; };
 		221E16B62786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 221E16B52786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift */; };
 		22553324281DB5FC008A3121 /* GenericTests.rs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22553323281DB5FC008A3121 /* GenericTests.rs.swift */; };
+		225908FC28DA0E320080C737 /* ResultTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225908FB28DA0E320080C737 /* ResultTests.swift */; };
+		225908FE28DA0F9F0080C737 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225908FD28DA0F9F0080C737 /* Result.swift */; };
 		226F944B27BF79B400243D86 /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = 226F944A27BF79B400243D86 /* String.swift */; };
 		228FE5D52740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */; };
 		228FE5D72740DB6A00805D9E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228FE5D62740DB6A00805D9E /* ContentView.swift */; };
@@ -72,6 +74,8 @@
 		221E16B32786233600F94AC0 /* ConditionalCompilationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalCompilationTests.swift; sourceTree = "<group>"; };
 		221E16B52786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpaqueTypeAttributeTests.swift; sourceTree = "<group>"; };
 		22553323281DB5FC008A3121 /* GenericTests.rs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenericTests.rs.swift; sourceTree = "<group>"; };
+		225908FB28DA0E320080C737 /* ResultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultTests.swift; sourceTree = "<group>"; };
+		225908FD28DA0F9F0080C737 /* Result.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Result.swift; sourceTree = "<group>"; };
 		226F944A27BF79B400243D86 /* String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
 		228FE5D12740DB6A00805D9E /* SwiftRustIntegrationTestRunner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftRustIntegrationTestRunner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftRustIntegrationTestRunnerApp.swift; sourceTree = "<group>"; };
@@ -166,6 +170,7 @@
 				228FE5D42740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift */,
 				22EE4E0828B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift */,
 				22C0625228CE699D007A6F67 /* Callbacks.swift */,
+				225908FD28DA0F9F0080C737 /* Result.swift */,
 			);
 			path = SwiftRustIntegrationTestRunner;
 			sourceTree = "<group>";
@@ -190,6 +195,7 @@
 				228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */,
 				221E16B52786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift */,
 				22043294274ADA7A00BAE645 /* OptionTests.swift */,
+				225908FB28DA0E320080C737 /* ResultTests.swift */,
 				220432A6274C953E00BAE645 /* PointerTests.swift */,
 				220432EB27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift */,
 				2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */,
@@ -363,6 +369,7 @@
 				220432EA2753092C00BAE645 /* RustFnUsesOpaqueSwiftType.swift in Sources */,
 				22FD1C542753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift in Sources */,
 				220432A9274D31DC00BAE645 /* Pointer.swift in Sources */,
+				225908FE28DA0F9F0080C737 /* Result.swift in Sources */,
 				228FE5D72740DB6A00805D9E /* ContentView.swift in Sources */,
 				228FE64E2749C3D700805D9E /* Boolean.swift in Sources */,
 				228FE64627480E1D00805D9E /* SwiftBridgeCore.swift in Sources */,
@@ -385,6 +392,7 @@
 				220432AF274E7BF800BAE645 /* SharedStructTests.swift in Sources */,
 				220432EC27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift in Sources */,
 				22553324281DB5FC008A3121 /* GenericTests.rs.swift in Sources */,
+				225908FC28DA0E320080C737 /* ResultTests.swift in Sources */,
 				228FE6502749C43100805D9E /* BooleanTests.swift in Sources */,
 				2202BC0827B2DD1700D43CC4 /* SharedEnumTests.swift in Sources */,
 				22BCAAB927A2607700686A21 /* FunctionAttributeIdentifiableTests.swift in Sources */,

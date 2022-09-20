@@ -482,6 +482,115 @@ void __swift_bridge__$some_function$_free$param0(void* some_function_callback);
     }
 }
 
+/// Verify that we can pass a callback with an opaque Rust arg from Rust to Swift.
+mod test_swift_takes_callback_with_result_arg {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Swift" {
+                    fn some_function(callback: Box<dyn FnOnce(Result<ARustType, ARustType>) -> ()>);
+                }
+
+                extern "Rust" {
+                    type ARustType;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub fn some_function (callback: Box<dyn FnOnce(Result<super::ARustType, super::ARustType>) -> ()>) {
+                    unsafe {
+                        __swift_bridge__some_function(
+                            Box::into_raw(Box::new(callback)) as *mut Box<dyn FnOnce(Result<super::ARustType, super::ARustType>) -> ()>
+                        )
+                    }
+                }
+            },
+            quote! {
+                #[export_name = "__swift_bridge__$some_function$param0"]
+                pub extern "C" fn some_function_param0(some_function_callback: *mut Box<dyn FnOnce(Result<super::ARustType, super::ARustType>) -> ()>, arg0: swift_bridge::result::ResultPtrAndPtr) {
+                    unsafe { Box::from_raw(some_function_callback)(
+                        if arg0.is_ok {
+                            std::result::Result::Ok(unsafe { *Box::from_raw(arg0.ok_or_err as *mut super::ARustType) })
+                        } else {
+                            std::result::Result::Err(unsafe { *Box::from_raw(arg0.ok_or_err as *mut super::ARustType) })
+                        }
+                    )}
+                }
+
+                #[export_name = "__swift_bridge__$some_function$_free$param0"]
+                pub extern "C" fn free_some_function_param0(some_function_callback: *mut Box<dyn FnOnce(Result<super::ARustType, super::ARustType>) -> ()>) {
+                    let _ = unsafe { Box::from_raw(some_function_callback) };
+                }
+            },
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(callback: *mut Box<dyn FnOnce(Result<super::ARustType, super::ARustType>) -> ()>);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+class __private__RustFnOnceCallback$some_function$param0 {
+    var ptr: UnsafeMutableRawPointer
+    var called = false
+
+    init(ptr: UnsafeMutableRawPointer) {
+        self.ptr = ptr
+    }
+
+    deinit {
+        if !called {
+            __swift_bridge__$some_function$_free$param0(ptr)
+        }
+    }
+
+    func call(_ arg0: RustResult<ARustType, ARustType>) {
+        if called {
+            fatalError("Cannot call a Rust FnOnce function twice")
+        }
+        called = true
+        return __swift_bridge__$some_function$param0(ptr, { switch arg0 { case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {ok.isOwned = false; return ok.ptr;}()) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {err.isOwned = false; return err.ptr;}()) } }())
+    }
+}
+            "#,
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ callback: UnsafeMutableRawPointer) {
+    { let cb0 = __private__RustFnOnceCallback$some_function$param0(ptr: callback); let _ = some_function(callback: { arg0 in cb0.call(arg0) }) }()
+}
+"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function$param0(void* some_function_callback, struct __private__ResultPtrAndPtr arg0);
+void __swift_bridge__$some_function$_free$param0(void* some_function_callback);
+"#,
+        )
+    }
+
+    #[test]
+    fn test_swift_takes_callback_with_result_arg() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Verify that we can pass two callbacks from Rust to Swift.
 ///
 /// We put a callback that takes arguments in the second position to ensure that our codegen
