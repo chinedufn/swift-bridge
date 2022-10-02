@@ -1,4 +1,4 @@
-use crate::bridged_type::{fn_arg_name, BridgedType, StdLibType, TypePosition};
+use crate::bridged_type::{fn_arg_name, BridgeableType, BridgedType, StdLibType, TypePosition};
 use crate::parse::{HostLang, TypeDeclaration};
 use crate::{ParsedExternFn, TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use quote::ToTokens;
@@ -114,7 +114,7 @@ pub(super) fn gen_func_swift_calls_rust(
                             } else {
                                 let ty = ty.to_token_stream().to_string();
                                 format!(
-                                    "Unmanaged<{}>.fromOpaque({}.ptr).takeRetainedValue()",
+                                    "Unmanaged<{}>.fromOpaque({}).takeRetainedValue()",
                                     ty, call_rust
                                 )
                             }
@@ -125,8 +125,9 @@ pub(super) fn gen_func_swift_calls_rust(
         }
     };
 
-    let returns_null = Some(BridgedType::StdLib(StdLibType::Null))
-        == BridgedType::new_with_return_type(&function.func.sig.output, types);
+    let returns_null = BridgedType::new_with_return_type(&function.func.sig.output, types)
+        .map(|b| b.is_null())
+        .unwrap_or(false);
 
     let maybe_return = if returns_null || function.is_swift_initializer {
         ""
@@ -156,9 +157,7 @@ pub(super) fn gen_func_swift_calls_rust(
                     call_rust = call_rust
                 );
             }
-            BridgedType::StdLib(StdLibType::Option(briged_opt))
-                if briged_opt.ty.deref() == &BridgedType::StdLib(StdLibType::Str) =>
-            {
+            BridgedType::StdLib(StdLibType::Option(briged_opt)) if briged_opt.ty.is_str() => {
                 call_rust = format!(
                     r#"{maybe_return}optionalRustStrToRustStr({arg}, {{ {arg}AsRustStr in
 {indentation}        {call_rust}

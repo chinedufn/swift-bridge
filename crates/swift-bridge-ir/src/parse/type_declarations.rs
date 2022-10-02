@@ -51,16 +51,23 @@ impl TypeDeclaration {
                     variants: shared_enum.variants.clone(),
                 })))
             }
-            TypeDeclaration::Opaque(opaque) => {
-                BridgedType::Foreign(CustomBridgedType::Opaque(OpaqueForeignType {
-                    ty: opaque.ty.clone(),
-                    host_lang: opaque.host_lang,
-                    reference,
-                    mutable,
-                    has_swift_bridge_copy_annotation: opaque.attributes.copy.is_some(),
-                    generics: opaque.generics.clone(),
-                }))
+            TypeDeclaration::Opaque(_o) => {
+                BridgedType::Bridgeable(Box::new(self.to_opaque_type(reference, mutable).unwrap()))
             }
+        }
+    }
+
+    pub fn to_opaque_type(&self, reference: bool, mutable: bool) -> Option<OpaqueForeignType> {
+        match self {
+            TypeDeclaration::Opaque(opaque) => Some(OpaqueForeignType {
+                ty: opaque.ty.clone(),
+                host_lang: opaque.host_lang,
+                reference,
+                mutable,
+                has_swift_bridge_copy_annotation: opaque.attributes.copy.is_some(),
+                generics: opaque.generics.clone(),
+            }),
+            _ => None,
         }
     }
 }

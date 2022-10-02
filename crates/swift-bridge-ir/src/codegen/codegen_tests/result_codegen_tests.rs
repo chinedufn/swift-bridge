@@ -125,3 +125,68 @@ void __swift_bridge__$some_function(struct __private__ResultPtrAndPtr arg);
         .test();
     }
 }
+
+/// Test code generation for Rust function that accepts and returns a Result<T, E>
+/// where T and E are opaque Swift types.
+mod extern_rust_fn_result_opaque_swift {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Swift" {
+                    type SomeType;
+                }
+
+                extern "Rust" {
+                    fn some_function (arg: Result<SomeType, SomeType>);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function(
+                arg: swift_bridge::result::ResultPtrAndPtr
+            ) {
+                super::some_function(
+                    if arg.is_ok {
+                        std::result::Result::Ok(unsafe { SomeType(arg.ok_or_err) })
+                    } else {
+                        std::result::Result::Err(unsafe { SomeType(arg.ok_or_err) })
+                    }
+                )
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function(_ arg: RustResult<SomeType, SomeType>) {
+    __swift_bridge__$some_function({ switch arg { case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: Unmanaged.passRetained(ok).toOpaque()) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: Unmanaged.passRetained(err).toOpaque()) } }())
+}
+"#,
+        )
+    }
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ContainsAfterTrim(
+        r#"
+void __swift_bridge__$some_function(struct __private__ResultPtrAndPtr arg);
+    "#,
+    );
+
+    #[test]
+    fn extern_rust_fn_result_opaque_swift() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}

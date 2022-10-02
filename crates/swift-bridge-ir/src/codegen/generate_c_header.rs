@@ -71,7 +71,7 @@ impl SwiftBridgeModule {
                                     for field in f.iter() {
                                         let ty = BridgedType::new_with_type(&field.ty, &self.types)
                                             .unwrap();
-                                        if let Some(include) = ty.c_include() {
+                                        if let Some(include) = ty.to_c_include() {
                                             bookkeeping.includes.insert(include);
                                         }
 
@@ -84,7 +84,7 @@ impl SwiftBridgeModule {
                                     for (idx, field) in types.iter().enumerate() {
                                         let ty = BridgedType::new_with_type(&field.ty, &self.types)
                                             .unwrap();
-                                        if let Some(include) = ty.c_include() {
+                                        if let Some(include) = ty.to_c_include() {
                                             bookkeeping.includes.insert(include);
                                         }
 
@@ -302,7 +302,7 @@ fn declare_func(
 
     let declaration = if func.sig.asyncness.is_some() {
         let maybe_ret = BridgedType::new_with_return_type(&func.sig.output, types).unwrap();
-        let maybe_ret = if maybe_ret == BridgedType::StdLib(StdLibType::Null) {
+        let maybe_ret = if maybe_ret.is_null() {
             "".to_string()
         } else {
             format!(", {} ret", maybe_ret.to_c())
@@ -666,7 +666,7 @@ struct __private__FfiSlice __swift_bridge__$bar(void);
             }
         };
         let expected = r#"
-struct __private__PointerToSwiftType __swift_bridge__$some_function(void);
+void* __swift_bridge__$some_function(void);
         "#;
 
         let module = parse_ok(tokens);

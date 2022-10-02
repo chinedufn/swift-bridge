@@ -53,7 +53,7 @@ impl ParsedExternFn {
                 } else {
                     let (await_fut, call_callback) = if maybe_return_ty.is_some() {
                         let return_ty = self.return_ty_built_in(types).unwrap();
-                        let awaited_val = return_ty.convert_rust_value_to_ffi_compatible_value(
+                        let awaited_val = return_ty.convert_rust_expression_to_ffi_type(
                             &quote! {fut.await},
                             swift_bridge_path,
                             types,
@@ -149,11 +149,8 @@ impl ParsedExternFn {
 
         // Async functions get this conversion done after awaiting the returned future.
         if self.sig.asyncness.is_none() {
-            call_fn = return_ty.convert_rust_value_to_ffi_compatible_value(
-                &call_fn,
-                swift_bridge_path,
-                types,
-            );
+            call_fn =
+                return_ty.convert_rust_expression_to_ffi_type(&call_fn, swift_bridge_path, types);
         }
 
         call_fn

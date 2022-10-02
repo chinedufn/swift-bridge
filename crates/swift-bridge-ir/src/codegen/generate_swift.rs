@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use syn::Path;
 
-use crate::bridged_type::{BridgedType, TypePosition};
+use crate::bridged_type::{BridgeableType, BridgedType, TypePosition};
 use crate::codegen::generate_swift::generate_function_swift_calls_rust::gen_func_swift_calls_rust;
 use crate::codegen::generate_swift::opaque_copy_type::generate_opaque_copy_struct;
 use crate::codegen::generate_swift::swift_class::generate_swift_class;
@@ -223,20 +223,17 @@ fn gen_function_exposes_swift_to_rust(
                     call_fn = call_fn
                 );
 
-                call_fn = built_in.convert_swift_expression_to_ffi_compatible(
+                call_fn = built_in.convert_swift_expression_to_ffi_type(
                     &call_fn,
                     TypePosition::FnReturn(func.host_lang),
                 );
             } else if func.is_swift_initializer {
-                call_fn = format!(
-                    "__private__PointerToSwiftType(ptr: Unmanaged.passRetained({}({})).toOpaque())",
-                    ty_name, args
-                );
+                call_fn = format!("Unmanaged.passRetained({}({})).toOpaque()", ty_name, args);
             } else {
                 call_fn = format!("{}::{}", ty_name, call_fn);
             }
         } else {
-            call_fn = built_in.convert_swift_expression_to_ffi_compatible(
+            call_fn = built_in.convert_swift_expression_to_ffi_type(
                 &call_fn,
                 TypePosition::FnReturn(func.host_lang),
             );
@@ -273,9 +270,10 @@ fn gen_function_exposes_swift_to_rust(
         let ret_value = format!(
             "__swift_bridge__{maybe_associated_ty}${fn_name}$param{idx}(ptr{swift_ffi_call_args})"
         );
-        let ret_value = boxed_fn.ret.convert_swift_expression_to_ffi_compatible(
+        let ret_value = boxed_fn.ret.convert_ffi_expression_to_swift_type(
             &ret_value,
-            TypePosition::FnReturn(HostLang::Swift),
+            TypePosition::FnReturn(HostLang::Rust),
+            types,
         );
 
         let maybe_generics = boxed_fn.maybe_swift_generics();
@@ -598,8 +596,8 @@ func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$new")
-func __swift_bridge__Foo_new (_ a: UInt8) -> __private__PointerToSwiftType {
-    __private__PointerToSwiftType(ptr: Unmanaged.passRetained(Foo(a: a)).toOpaque())
+func __swift_bridge__Foo_new (_ a: UInt8) -> UnsafeMutableRawPointer {
+    Unmanaged.passRetained(Foo(a: a)).toOpaque()
 }
 "#;
 
@@ -957,7 +955,7 @@ func __swift_bridge__void_pointer (_ arg: UnsafeRawPointer) {
 
         let expected = r#"
 func some_function(_ arg: Foo) {
-    __swift_bridge__$some_function(__private__PointerToSwiftType(ptr: Unmanaged.passRetained(arg).toOpaque()))
+    __swift_bridge__$some_function(Unmanaged.passRetained(arg).toOpaque())
 }
 "#;
 
@@ -984,7 +982,7 @@ func some_function(_ arg: Foo) {
 
         let expected = r#"
 func some_function() -> Foo {
-    Unmanaged<Foo>.fromOpaque(__swift_bridge__$some_function().ptr).takeRetainedValue()
+    Unmanaged<Foo>.fromOpaque(__swift_bridge__$some_function()).takeRetainedValue()
 }
 "#;
 

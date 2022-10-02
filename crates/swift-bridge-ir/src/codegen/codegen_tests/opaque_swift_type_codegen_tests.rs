@@ -45,8 +45,8 @@ mod extern_swift_freestanding_fn_with_owned_opaque_swift_type_arg {
     const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
         r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg: __private__PointerToSwiftType) {
-    some_function(arg: Unmanaged<MyType>.fromOpaque(arg.ptr).takeRetainedValue())
+func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer) {
+    some_function(arg: Unmanaged<MyType>.fromOpaque(arg).takeRetainedValue())
 }
 "#,
     );

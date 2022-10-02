@@ -92,7 +92,7 @@ impl ParsedExternFn {
                     let arg =
                         if let Some(bridged_ty) = BridgedType::new_with_type(&pat_ty.ty, types) {
                             if self.host_lang.is_rust() {
-                                bridged_ty.convert_swift_expression_to_ffi_compatible(
+                                bridged_ty.convert_swift_expression_to_ffi_type(
                                     &arg,
                                     TypePosition::FnArg(self.host_lang, arg_idx),
                                 )

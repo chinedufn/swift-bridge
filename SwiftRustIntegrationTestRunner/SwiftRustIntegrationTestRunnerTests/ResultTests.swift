@@ -3,7 +3,6 @@
 //  SwiftRustIntegrationTestRunnerTests
 //
 //  Created by Frankie Nwafili on 9/20/22.
-//
 
 import XCTest
 @testable import SwiftRustIntegrationTestRunner
@@ -22,6 +21,16 @@ class ResultTests: XCTestCase {
         )
         rust_func_takes_result_opaque_rust(
             .Err(ResultTestOpaqueRustType(222))
+        )
+    }
+    
+    /// Verify that we can pass a Result<OpaqueSwift, OpaqueSwift> from Swift -> Rust
+    func testSwiftCallRustResultOpaqueSwift() throws {
+        rust_func_takes_result_opaque_swift(
+            .Ok(ResultTestOpaqueSwiftType(val: 555))
+        )
+        rust_func_takes_result_opaque_swift(
+            .Err(ResultTestOpaqueSwiftType(val: 666))
         )
     }
 }
