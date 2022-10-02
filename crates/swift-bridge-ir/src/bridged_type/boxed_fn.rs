@@ -247,6 +247,10 @@ impl BuiltInBoxedFnOnce {
         let args: FunctionArguments = syn::parse2(args).unwrap();
 
         let ret = if let Some(ret) = ret {
+            // Parse out the comma in:
+            //   Box<dyn FnOnce() -> (),>
+            let ret = ret.trim_end_matches(",");
+
             let ret = syn::parse2::<Type>(TokenStream::from_str(ret).unwrap()).unwrap();
             BridgedType::new_with_type(&ret, types)?
         } else {
@@ -326,5 +330,26 @@ mod tests {
                 .ret
                 .is_null(),
         );
+    }
+
+    /// Verify that we can parse a boxed fn that has a comma after the FnOnce.
+    /// rustfmt adds a trailing comma when it puts a long function signature on its own line.
+    #[test]
+    fn comma_after_fn_once() {
+        let tests = vec![
+            quote! {Box<dyn FnOnce(),>},
+            quote! {Box<dyn FnOnce() -> (),>},
+        ];
+
+        for test in tests {
+            let tokens = test.to_token_stream().to_string();
+
+            assert!(
+                BuiltInBoxedFnOnce::from_str_tokens(&tokens, &TypeDeclarations::default())
+                    .unwrap()
+                    .ret
+                    .is_null(),
+            );
+        }
     }
 }
