@@ -339,6 +339,11 @@ mod tests {
         let tests = vec![
             quote! {Box<dyn FnOnce(),>},
             quote! {Box<dyn FnOnce() -> (),>},
+            quote! {
+                Box<
+                    dyn FnOnce(Result<String, String>),
+                >
+            },
         ];
 
         for test in tests {

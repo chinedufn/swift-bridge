@@ -375,6 +375,9 @@ impl BridgedType {
     }
 
     pub fn new_with_str(string: &str, types: &TypeDeclarations) -> Option<BridgedType> {
+        let string = string.replace("\n", " ");
+        let string = string.as_str();
+
         if string.starts_with("Vec < ") {
             let inner = string.trim_start_matches("Vec < ");
             let inner = inner.trim_end_matches(" >");
@@ -1826,5 +1829,19 @@ mod tests {
                 tokens.to_string()
             )
         }
+    }
+
+    /// Verify that we treat newline characters as spaces when parsing a type from string.
+    /// Not sure what can lead a stringified token stream to have newline characters in it but
+    /// we've observed it in the wild so this test guards against mishandling that scenario.
+    #[test]
+    fn treats_newline_characters_as_spaces() {
+        let tokens = "Box < dyn\nFnOnce(Result < String, String\n>) >";
+
+        let parsed = BridgedType::new_with_str(tokens, &TypeDeclarations::default()).unwrap();
+        match parsed {
+            BridgedType::StdLib(StdLibType::BoxedFnOnce(_)) => {}
+            _ => panic!(),
+        };
     }
 }
