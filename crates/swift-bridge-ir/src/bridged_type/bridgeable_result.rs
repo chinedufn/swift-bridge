@@ -1,7 +1,7 @@
-use crate::bridged_type::{BridgedType, TypePosition};
+use crate::bridged_type::{BridgeableType, BridgedType, TypePosition};
 use crate::TypeDeclarations;
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{quote, quote_spanned};
 use syn::Path;
 
 /// Rust: Result<T, E>
@@ -13,10 +13,10 @@ use syn::Path;
 ///  pattern that we use to prevent calling mutable methods on immutable references.
 ///  We only saw this error after `extension: ResultTestOpaqueRustType: Error {}` .. which was
 ///  necessary because Swift's Result type requires that the error implements the `Error` protocol.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug)]
 pub(crate) struct BuiltInResult {
-    pub ok_ty: Box<BridgedType>,
-    pub err_ty: Box<BridgedType>,
+    pub ok_ty: Box<dyn BridgeableType>,
+    pub err_ty: Box<dyn BridgeableType>,
 }
 
 impl BuiltInResult {
@@ -40,28 +40,19 @@ impl BuiltInResult {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
-        let ok_ffi_repr = self
-            .ok_ty
-            .to_ffi_compatible_rust_type(swift_bridge_path, types);
-        let err_ffi_repr = self
-            .err_ty
-            .to_ffi_compatible_rust_type(swift_bridge_path, types);
-
-        let convert_ok = self.ok_ty.convert_ffi_value_to_rust_value(
-            &quote! { #expression.ok_or_err as #ok_ffi_repr },
-            span,
+        let convert_ok = self.ok_ty.convert_ffi_result_ok_value_to_rust_value(
+            expression,
             swift_bridge_path,
             types,
         );
 
-        let convert_err = self.err_ty.convert_ffi_value_to_rust_value(
-            &quote! { #expression.ok_or_err as #err_ffi_repr },
-            span,
+        let convert_err = self.err_ty.convert_ffi_result_err_value_to_rust_value(
+            expression,
             swift_bridge_path,
             types,
         );
 
-        quote! {
+        quote_spanned! {span=>
             if #expression.is_ok {
                 std::result::Result::Ok(#convert_ok)
             } else {
@@ -92,10 +83,10 @@ impl BuiltInResult {
     ) -> String {
         let convert_ok = self
             .ok_ty
-            .convert_swift_expression_to_ffi_compatible("ok", type_pos);
+            .convert_swift_expression_to_ffi_type("ok", type_pos);
         let convert_err = self
             .err_ty
-            .convert_swift_expression_to_ffi_compatible("err", type_pos);
+            .convert_swift_expression_to_ffi_type("err", type_pos);
 
         format!(
             "{{ switch {val} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()",

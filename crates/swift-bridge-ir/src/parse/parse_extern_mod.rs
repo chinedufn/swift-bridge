@@ -1,5 +1,7 @@
 pub(crate) use self::opaque_type_attributes::OpaqueTypeAllAttributes;
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
+use crate::bridged_type::{
+    bridgeable_type_from_fn_arg, pat_type_pat_is_self, BridgeableType, BridgedType,
+};
 use crate::errors::{FunctionAttributeParseError, IdentifiableParseError, ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::function_attributes::FunctionAttributes;
 use crate::parse::parse_extern_mod::generics::GenericOpaqueType;
@@ -7,7 +9,7 @@ use crate::parse::type_declarations::{
     OpaqueForeignTypeDeclaration, TypeDeclaration, TypeDeclarations,
 };
 use crate::parse::{HostLang, OpaqueRustTypeGenerics};
-use crate::parsed_extern_fn::{fn_arg_is_mutable_reference, fn_arg_is_opaque_copy_type};
+use crate::parsed_extern_fn::fn_arg_is_mutable_reference;
 use crate::ParsedExternFn;
 use quote::ToTokens;
 use std::cmp::Ordering;
@@ -64,13 +66,15 @@ impl<'a> ForeignModParser<'a> {
 
                     let ty_name = foreign_ty.ident.to_string();
 
-                    if let Some(_builtin) = BridgedType::new_with_str(
+                    if let Some(ty) = BridgedType::new_with_str(
                         &foreign_ty.ident.to_string(),
                         &self.type_declarations,
                     ) {
-                        self.errors.push(ParseError::DeclaredBuiltInType {
-                            ty: foreign_ty.clone(),
-                        });
+                        if ty.is_built_in_type() {
+                            self.errors.push(ParseError::DeclaredBuiltInType {
+                                ty: foreign_ty.clone(),
+                            });
+                        }
                     }
 
                     let foreign_type = OpaqueForeignTypeDeclaration {
@@ -160,11 +164,16 @@ impl<'a> ForeignModParser<'a> {
                     for arg in func.sig.inputs.iter() {
                         let is_mutable_ref = fn_arg_is_mutable_reference(arg);
 
-                        let is_copy_opaque_type = fn_arg_is_opaque_copy_type(
-                            &associated_type,
-                            arg,
-                            &self.type_declarations,
-                        );
+                        let is_copy_opaque_type =
+                            if let Some(TypeDeclaration::Opaque(o)) = associated_type.as_ref() {
+                                o.attributes.copy.is_some()
+                            } else if let Some(ty) =
+                                bridgeable_type_from_fn_arg(arg, &self.type_declarations)
+                            {
+                                ty.has_swift_bridge_copy_annotation()
+                            } else {
+                                false
+                            };
 
                         if is_mutable_ref && is_copy_opaque_type {
                             self.errors

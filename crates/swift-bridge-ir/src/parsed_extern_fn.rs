@@ -1,5 +1,5 @@
-use crate::bridged_type::boxed_fn::BuiltInBoxedFnOnce;
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType, CustomBridgedType, StdLibType};
+use crate::bridged_type::boxed_fn::BridgeableBoxedFnOnce;
+use crate::bridged_type::{pat_type_pat_is_self, BridgedType, StdLibType};
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
@@ -272,7 +272,7 @@ impl ParsedExternFn {
 
                     if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                         if self.host_lang.is_rust() {
-                            arg = built_in.convert_ffi_value_to_rust_value(
+                            arg = built_in.convert_ffi_expression_to_rust_type(
                                 &arg,
                                 pat_ty.ty.span(),
                                 swift_bridge_path,
@@ -285,7 +285,7 @@ impl ParsedExternFn {
                                 };
                             }
                         } else {
-                            arg = built_in.convert_rust_value_to_ffi_compatible_value(
+                            arg = built_in.convert_rust_expression_to_ffi_type(
                                 &arg,
                                 swift_bridge_path,
                                 types,
@@ -364,7 +364,7 @@ impl ParsedExternFn {
                             if opaque.host_lang.is_rust() {
                                 "void*".to_string()
                             } else {
-                                "struct __private__PointerToSwiftType".to_string()
+                                "void*".to_string()
                             }
                         }
                     }
@@ -378,7 +378,7 @@ impl ParsedExternFn {
 
         if let ReturnType::Type(_, ty) = &self.func.sig.output {
             if let Some(ty) = BridgedType::new_with_type(&ty, types) {
-                if let Some(include) = ty.c_include() {
+                if let Some(include) = ty.to_c_include() {
                     includes.push(include);
                 }
             }
@@ -387,7 +387,7 @@ impl ParsedExternFn {
         for param in &self.func.sig.inputs {
             if let FnArg::Typed(pat_ty) = param {
                 if let Some(ty) = BridgedType::new_with_type(&pat_ty.ty, types) {
-                    if let Some(include) = ty.c_include() {
+                    if let Some(include) = ty.to_c_include() {
                         includes.push(include);
                     }
                 }
@@ -458,7 +458,7 @@ impl ParsedExternFn {
     /// Generates something like:
     /// void __swift_bridge__$some_function$param0(void* boxed_fn, uint8_t arg);
     /// void __swift_bridge__$some_function$_free$param0(void* boxed_fn);
-    pub fn boxed_fn_to_c_header_fns(&self, idx: usize, boxed_fn: &BuiltInBoxedFnOnce) -> String {
+    pub fn boxed_fn_to_c_header_fns(&self, idx: usize, boxed_fn: &BridgeableBoxedFnOnce) -> String {
         let call_boxed_fn_link_name = self.call_boxed_fn_link_name(idx);
         let free_boxed_fn_link_name = self.free_boxed_fn_link_name(idx);
 
@@ -516,7 +516,7 @@ void {free_boxed_fn_link_name}(void* {boxed_fn_arg_name});"#
     pub fn args_filtered_to_boxed_fns(
         &self,
         type_decls: &TypeDeclarations,
-    ) -> Vec<(usize, BuiltInBoxedFnOnce)> {
+    ) -> Vec<(usize, BridgeableBoxedFnOnce)> {
         self.func
             .sig
             .inputs
@@ -637,31 +637,6 @@ pub(crate) fn fn_arg_is_mutable_reference(fn_arg: &FnArg) -> bool {
             Type::Reference(type_ref) => type_ref.mutability.is_some(),
             _ => false,
         },
-    }
-}
-
-pub(crate) fn fn_arg_is_opaque_copy_type(
-    associated: &Option<TypeDeclaration>,
-    fn_arg: &FnArg,
-    types: &TypeDeclarations,
-) -> bool {
-    match fn_arg {
-        FnArg::Receiver(_) => {
-            if let Some(TypeDeclaration::Opaque(opaque)) = associated.as_ref() {
-                opaque.attributes.copy.is_some()
-            } else {
-                false
-            }
-        }
-        FnArg::Typed(_) => {
-            if let Some(BridgedType::Foreign(CustomBridgedType::Opaque(opaque))) =
-                BridgedType::new_with_fn_arg(fn_arg, types)
-            {
-                opaque.has_swift_bridge_copy_annotation
-            } else {
-                false
-            }
-        }
     }
 }
 

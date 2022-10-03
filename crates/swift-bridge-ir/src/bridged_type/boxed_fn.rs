@@ -11,8 +11,8 @@ use syn::punctuated::Punctuated;
 use syn::{Path, Type};
 
 /// Box<dyn FnOnce(A, B, C) -> ()>
-#[derive(Debug, PartialEq, Clone)]
-pub(crate) struct BuiltInBoxedFnOnce {
+#[derive(Debug)]
+pub(crate) struct BridgeableBoxedFnOnce {
     /// The functions parameters.
     pub params: Vec<BridgedType>,
     /// The functions return type.
@@ -28,7 +28,7 @@ impl Parse for FunctionArguments {
     }
 }
 
-impl BuiltInBoxedFnOnce {
+impl BridgeableBoxedFnOnce {
     pub fn does_not_have_params_or_return(&self) -> bool {
         self.params.is_empty() && self.ret.is_null()
     }
@@ -128,7 +128,7 @@ impl BuiltInBoxedFnOnce {
             .enumerate()
             .map(|(idx, ty)| {
                 let arg_name = Ident::new(&format!("arg{}", idx), Span::call_site());
-                ty.convert_ffi_value_to_rust_value(
+                ty.convert_ffi_expression_to_rust_type(
                     &arg_name.to_token_stream(),
                     arg_name.span(),
                     swift_bridge_path,
@@ -164,7 +164,7 @@ impl BuiltInBoxedFnOnce {
             let arg_name = format!("arg{}", idx);
             args += &format!(
                 ", {}",
-                ty.convert_swift_expression_to_ffi_compatible(
+                ty.convert_swift_expression_to_ffi_type(
                     &arg_name,
                     TypePosition::FnArg(HostLang::Rust, idx)
                 )
@@ -226,7 +226,7 @@ impl BuiltInBoxedFnOnce {
     }
 }
 
-impl BuiltInBoxedFnOnce {
+impl BridgeableBoxedFnOnce {
     pub fn from_str_tokens(string: &str, types: &TypeDeclarations) -> Option<Self> {
         // ( A , B , C ) -> D >
         //   OR
@@ -262,7 +262,7 @@ impl BuiltInBoxedFnOnce {
             args_bridged_tys.push(BridgedType::new_with_type(&arg, types)?);
         }
 
-        return Some(BuiltInBoxedFnOnce {
+        return Some(BridgeableBoxedFnOnce {
             params: args_bridged_tys,
             ret: Box::new(ret),
         });
@@ -279,7 +279,7 @@ mod tests {
         let tokens = quote! {Box<dyn FnOnce()>}.to_token_stream().to_string();
 
         assert!(
-            BuiltInBoxedFnOnce::from_str_tokens(&tokens, &TypeDeclarations::default())
+            BridgeableBoxedFnOnce::from_str_tokens(&tokens, &TypeDeclarations::default())
                 .unwrap()
                 .ret
                 .is_null()
@@ -294,7 +294,7 @@ mod tests {
             .to_string();
 
         assert!(matches!(
-            *BuiltInBoxedFnOnce::from_str_tokens(&tokens, &TypeDeclarations::default())
+            *BridgeableBoxedFnOnce::from_str_tokens(&tokens, &TypeDeclarations::default())
                 .unwrap()
                 .ret,
             BridgedType::StdLib(StdLibType::U8)
@@ -309,7 +309,7 @@ mod tests {
             .to_string();
 
         assert!(
-            BuiltInBoxedFnOnce::from_str_tokens(&tokens, &TypeDeclarations::default())
+            BridgeableBoxedFnOnce::from_str_tokens(&tokens, &TypeDeclarations::default())
                 .unwrap()
                 .ret
                 .is_null(),
@@ -325,7 +325,7 @@ mod tests {
         let tokens = "Box < dyn FnOnce() -> () >";
 
         assert!(
-            BuiltInBoxedFnOnce::from_str_tokens(tokens, &TypeDeclarations::default())
+            BridgeableBoxedFnOnce::from_str_tokens(tokens, &TypeDeclarations::default())
                 .unwrap()
                 .ret
                 .is_null(),
@@ -350,7 +350,7 @@ mod tests {
             let tokens = test.to_token_stream().to_string();
 
             assert!(
-                BuiltInBoxedFnOnce::from_str_tokens(&tokens, &TypeDeclarations::default())
+                BridgeableBoxedFnOnce::from_str_tokens(&tokens, &TypeDeclarations::default())
                     .unwrap()
                     .ret
                     .is_null(),

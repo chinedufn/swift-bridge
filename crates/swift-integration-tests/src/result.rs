@@ -7,6 +7,9 @@ mod ffi {
         fn rust_func_takes_result_opaque_rust(
             arg: Result<ResultTestOpaqueRustType, ResultTestOpaqueRustType>,
         );
+        fn rust_func_takes_result_opaque_swift(
+            arg: Result<ResultTestOpaqueSwiftType, ResultTestOpaqueSwiftType>,
+        );
     }
 
     extern "Rust" {
@@ -14,6 +17,12 @@ mod ffi {
 
         #[swift_bridge(init)]
         fn new(val: u32) -> ResultTestOpaqueRustType;
+    }
+
+    extern "Swift" {
+        type ResultTestOpaqueSwiftType;
+
+        fn val(&self) -> u32;
     }
 }
 
@@ -37,6 +46,19 @@ fn rust_func_takes_result_opaque_rust(
         }
         Err(err) => {
             assert_eq!(err.val, 222)
+        }
+    }
+}
+
+fn rust_func_takes_result_opaque_swift(
+    arg: Result<ffi::ResultTestOpaqueSwiftType, ffi::ResultTestOpaqueSwiftType>,
+) {
+    match arg {
+        Ok(ok) => {
+            assert_eq!(ok.val(), 555)
+        }
+        Err(err) => {
+            assert_eq!(err.val(), 666)
         }
     }
 }

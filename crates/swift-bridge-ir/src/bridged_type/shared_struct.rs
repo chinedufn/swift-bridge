@@ -84,7 +84,7 @@ impl SharedStruct {
                 let access_field = norm_field.append_field_accessor(&quote! {val});
 
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-                let converted_field = ty.convert_ffi_value_to_rust_value(
+                let converted_field = ty.convert_ffi_expression_to_rust_type(
                     &access_field,
                     norm_field.ty.span(),
                     swift_bridge_path,
@@ -125,11 +125,8 @@ impl SharedStruct {
                 let access_field = norm_field.append_field_accessor(&quote! {val});
 
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-                let converted_field = ty.convert_rust_value_to_ffi_compatible_value(
-                    &access_field,
-                    swift_bridge_path,
-                    types,
-                );
+                let converted_field =
+                    ty.convert_rust_expression_to_ffi_type(&access_field, swift_bridge_path, types);
 
                 quote! {
                     #maybe_name_and_colon #converted_field
@@ -166,7 +163,7 @@ impl SharedStruct {
             .map(|norm_field| {
                 let field_name = norm_field.ffi_field_name();
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-                let access_field = ty.convert_swift_expression_to_ffi_compatible(
+                let access_field = ty.convert_swift_expression_to_ffi_type(
                     &format!("val.{field_name}", field_name = field_name),
                     TypePosition::SharedStructField,
                 );

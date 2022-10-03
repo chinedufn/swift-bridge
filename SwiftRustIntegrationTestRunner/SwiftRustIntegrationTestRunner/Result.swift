@@ -10,3 +10,15 @@ func swift_func_takes_callback_with_result_arg(
 ) {
     arg(.Ok(CallbackTestOpaqueRustType(555)))
 }
+
+public class ResultTestOpaqueSwiftType {
+    var num: UInt32
+    
+    init(val: UInt32) {
+        self.num = val
+    }
+    
+    func val() -> UInt32 {
+        self.num
+    }
+}

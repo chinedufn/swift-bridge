@@ -82,7 +82,6 @@ fn core_c_header() -> String {
 #include <stdbool.h> 
 typedef struct RustStr { uint8_t* const start; uintptr_t len; } RustStr;
 typedef struct __private__FfiSlice { void* const start; uintptr_t len; } __private__FfiSlice;
-typedef struct __private__PointerToSwiftType { void* ptr; } __private__RustHandleToSwiftType;
 void* __swift_bridge__null_pointer(void);
 
 typedef struct __private__OptionU8 { uint8_t val; bool is_some; } __private__OptionU8;
