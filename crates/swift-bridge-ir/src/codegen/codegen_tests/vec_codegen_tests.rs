@@ -159,7 +159,7 @@ void* __swift_bridge__$Vec_MyRustType$as_ptr(void* vec_ptr);
     }
 
     #[test]
-    fn extern_rust_fn_return_vec_of_opaque_rust_type() {
+    fn extern_rust_type_vec_support() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -268,7 +268,265 @@ void __swift_bridge__$some_function(void* arg);
     }
 
     #[test]
-    fn extern_rust_fn_return_vec_of_opaque_rust_type() {
+    fn extern_rust_fn_arg_vec_of_opaque_rust_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we emit Rust, Swift and C header code that allows a transparent enum be used
+/// within a Vec<T>.
+mod transparent_enum_vec_support {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                enum SomeEnum {
+                    VariantA,
+                    VariantB
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            const _: () = {
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeEnum$new"]
+                pub extern "C" fn _new() -> *mut Vec<SomeEnum> {
+                    Box::into_raw(Box::new(Vec::new()))
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeEnum$drop"]
+                pub extern "C" fn _drop(vec: *mut Vec<SomeEnum>) {
+                    let vec = unsafe { Box::from_raw(vec) };
+                    drop(vec)
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeEnum$len"]
+                pub extern "C" fn _len(vec: *const Vec<SomeEnum>) -> usize {
+                    unsafe { &*vec }.len()
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeEnum$get"]
+                pub extern "C" fn _get(vec: *const Vec<SomeEnum>, index: usize) -> __swift_bridge__Option_SomeEnum {
+                    let vec = unsafe { &*vec };
+                    let val = vec.get(index).map(|v| *v);
+                    __swift_bridge__Option_SomeEnum::from_rust_repr(val)
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeEnum$get_mut"]
+                pub extern "C" fn _get_mut(vec: *mut Vec<SomeEnum>, index: usize) -> __swift_bridge__Option_SomeEnum {
+                    let vec = unsafe { &mut *vec };
+                    let val = vec.get_mut(index).map(|v| *v);
+                    __swift_bridge__Option_SomeEnum::from_rust_repr(val)
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeEnum$push"]
+                pub extern "C" fn _push(vec: *mut Vec<SomeEnum>, val: __swift_bridge__SomeEnum) {
+                    unsafe { &mut *vec }.push(val.into_rust_repr())
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeEnum$pop"]
+                pub extern "C" fn _pop(vec: *mut Vec<SomeEnum>) -> __swift_bridge__Option_SomeEnum {
+                    let vec = unsafe { &mut *vec };
+                    let val = vec.pop();
+                    __swift_bridge__Option_SomeEnum::from_rust_repr(val)
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeEnum$as_ptr"]
+                pub extern "C" fn _as_ptr(vec: *const Vec<SomeEnum>) -> *const SomeEnum {
+                    unsafe { & *vec }.as_ptr()
+                }
+            };
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+extension SomeEnum: Vectorizable {
+    public static func vecOfSelfNew() -> UnsafeMutableRawPointer {
+        __swift_bridge__$Vec_SomeEnum$new()
+    }
+
+    public static func vecOfSelfFree(vecPtr: UnsafeMutableRawPointer) {
+        __swift_bridge__$Vec_SomeEnum$drop(vecPtr)
+    }
+
+    public static func vecOfSelfPush(vecPtr: UnsafeMutableRawPointer, value: Self) {
+        __swift_bridge__$Vec_SomeEnum$push(vecPtr, value.intoFfiRepr())
+    }
+
+    public static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Optional<Self> {
+        let maybeEnum = __swift_bridge__$Vec_SomeEnum$pop(vecPtr)
+        return maybeEnum.intoSwiftRepr()
+    }
+
+    public static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {
+        let maybeEnum = __swift_bridge__$Vec_SomeEnum$get(vecPtr, index)
+        return maybeEnum.intoSwiftRepr()
+    }
+
+    public static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {
+        let maybeEnum = __swift_bridge__$Vec_SomeEnum$get_mut(vecPtr, index)
+        return maybeEnum.intoSwiftRepr()
+    }
+
+    public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {
+        __swift_bridge__$Vec_SomeEnum$len(vecPtr)
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void* __swift_bridge__$Vec_SomeEnum$new(void);
+void __swift_bridge__$Vec_SomeEnum$drop(void* vec_ptr);
+void __swift_bridge__$Vec_SomeEnum$push(void* vec_ptr, __swift_bridge__$SomeEnum item);
+__swift_bridge__$Option$SomeEnum __swift_bridge__$Vec_SomeEnum$pop(void* vec_ptr);
+__swift_bridge__$Option$SomeEnum __swift_bridge__$Vec_SomeEnum$get(void* vec_ptr, uintptr_t index);
+__swift_bridge__$Option$SomeEnum __swift_bridge__$Vec_SomeEnum$get_mut(void* vec_ptr, uintptr_t index);
+uintptr_t __swift_bridge__$Vec_SomeEnum$len(void* vec_ptr);
+void* __swift_bridge__$Vec_SomeEnum$as_ptr(void* vec_ptr);
+"#,
+        )
+    }
+
+    #[test]
+    fn transparent_enum_vec_support() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that returns a Vec<T> where T is a transparent enum.
+mod extern_rust_fn_return_vec_of_transparent_enum {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                enum SomeEnum {
+                    A
+                }
+
+                extern "Rust" {
+                    fn some_function() -> Vec<SomeEnum>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            pub extern "C" fn __swift_bridge__some_function() -> *mut Vec<SomeEnum> {
+                Box::into_raw(Box::new(super::some_function()))
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function() -> RustVec<SomeEnum> {
+    RustVec(ptr: __swift_bridge__$some_function())
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void* __swift_bridge__$some_function(void);
+"#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_return_vec_of_transparent_enum() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that has an argument
+/// Vec<T> where T is a transparent enum.
+mod extern_rust_fn_arg_vec_of_transparent_enum {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                enum SomeEnum {
+                    A
+                }
+                extern "Rust" {
+                    type MyRustType;
+                    fn some_function(arg: Vec<SomeEnum>);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            pub extern "C" fn __swift_bridge__some_function(
+                arg: *mut Vec<SomeEnum>
+            ) {
+                super::some_function(unsafe { * Box::from_raw(arg) })
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function(_ arg: RustVec<SomeEnum>) {
+    __swift_bridge__$some_function({ let val = arg; val.isOwned = false; return val.ptr }())
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function(void* arg);
+"#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_arg_vec_of_transparent_enum() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

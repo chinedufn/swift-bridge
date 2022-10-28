@@ -56,7 +56,7 @@ impl SwiftBridgeModule {
                         let mut fields = vec![];
 
                         // Used for `Option<T>` ...
-                        // typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; ...
+                        // typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; ... }
                         bookkeeping.includes.insert("stdbool.h");
 
                         // Empty structs get represented as
@@ -141,10 +141,16 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                             variants += &v;
                         }
 
+                        let maybe_vec_support = if ty_enum.has_one_or_more_variants_with_data() {
+                            "".to_string()
+                        } else {
+                            vec_transparent_enum_c_support(&ty_enum.name.to_string())
+                        };
+
                         let enum_decl = format!(
                             r#"typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
 typedef struct {ffi_name} {{ {ffi_tag_name} tag; }} {ffi_name};
-typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};"#,
+typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{maybe_vec_support}"#,
                             ffi_name = ffi_name,
                             ffi_tag_name = ffi_tag_name,
                             option_ffi_name = option_ffi_name,
@@ -212,7 +218,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                     //  make them pass.
                     // TODO: Support Vec<GenericOpaqueRustType
                     if ty.attributes.copy.is_none() && ty.generics.len() == 0 {
-                        let vec_functions = vec_functions(&ty_name);
+                        let vec_functions = vec_opaque_rust_type_c_support(&ty_name);
 
                         header += &vec_functions;
                         header += "\n";
@@ -261,7 +267,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
     }
 }
 
-fn vec_functions(ty_name: &str) -> String {
+fn vec_opaque_rust_type_c_support(ty_name: &str) -> String {
     format!(
         r#"
 void* __swift_bridge__$Vec_{ty_name}$new(void);
@@ -274,6 +280,22 @@ uintptr_t __swift_bridge__$Vec_{ty_name}$len(void* vec_ptr);
 void* __swift_bridge__$Vec_{ty_name}$as_ptr(void* vec_ptr);
 "#,
         ty_name = ty_name
+    )
+}
+
+fn vec_transparent_enum_c_support(enum_name: &str) -> String {
+    format!(
+        r#"
+void* __swift_bridge__$Vec_{enum_name}$new(void);
+void __swift_bridge__$Vec_{enum_name}$drop(void* vec_ptr);
+void __swift_bridge__$Vec_{enum_name}$push(void* vec_ptr, __swift_bridge__${enum_name} item);
+__swift_bridge__$Option${enum_name} __swift_bridge__$Vec_{enum_name}$pop(void* vec_ptr);
+__swift_bridge__$Option${enum_name} __swift_bridge__$Vec_{enum_name}$get(void* vec_ptr, uintptr_t index);
+__swift_bridge__$Option${enum_name} __swift_bridge__$Vec_{enum_name}$get_mut(void* vec_ptr, uintptr_t index);
+uintptr_t __swift_bridge__$Vec_{enum_name}$len(void* vec_ptr);
+void* __swift_bridge__$Vec_{enum_name}$as_ptr(void* vec_ptr);
+"#,
+        enum_name = enum_name
     )
 }
 
@@ -472,7 +494,7 @@ typedef struct SomeType SomeType;
 void __swift_bridge__$SomeType$_free(void* self);
 {}
 "#,
-            vec_functions("SomeType")
+            vec_opaque_rust_type_c_support("SomeType")
         );
 
         let module = parse_ok(tokens);
@@ -539,7 +561,7 @@ void __swift_bridge__$SomeType$_free(void* self);
 {}
 void __swift_bridge__$SomeType$foo(void* self, uint8_t val);
         "#,
-            vec_functions("SomeType")
+            vec_opaque_rust_type_c_support("SomeType")
         );
 
         let module = parse_ok(tokens);
@@ -570,7 +592,7 @@ void __swift_bridge__$SomeType$_free(void* self);
 {}
 void __swift_bridge__$SomeType$foo(void* self, void* val);
         "#,
-            vec_functions("SomeType")
+            vec_opaque_rust_type_c_support("SomeType")
         );
 
         let module = parse_ok(tokens);
@@ -602,7 +624,7 @@ void __swift_bridge__$SomeType$_free(void* self);
 {}
 uint8_t __swift_bridge__$SomeType$foo(void* self);
         "#,
-            vec_functions("SomeType")
+            vec_opaque_rust_type_c_support("SomeType")
         );
 
         let module = parse_ok(tokens);

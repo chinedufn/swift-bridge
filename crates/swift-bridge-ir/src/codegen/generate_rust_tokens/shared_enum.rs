@@ -2,6 +2,7 @@
 //! crates/swift-bridge-ir/src/codegen/codegen_tests/shared_enum_codegen_tests.rs
 
 use crate::bridged_type::SharedEnum;
+use crate::codegen::generate_rust_tokens::vec::vec_of_transparent_enum::generate_vec_of_transparent_enum_functions;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -59,7 +60,23 @@ impl SwiftBridgeModule {
             convert_ffi_variants_to_rust.push(v);
         }
 
+        // TODO:
+        //  Parse any derives that the user has specified and combine those with our auto derives.
+        let automatic_derives = if shared_enum.has_one_or_more_variants_with_data() {
+            vec![]
+        } else {
+            vec![quote! {Copy}, quote! {Clone}]
+        };
+
+        let vec_support = if shared_enum.has_one_or_more_variants_with_data() {
+            // Enums with variants that contain data are not yet supported.
+            quote! {}
+        } else {
+            generate_vec_of_transparent_enum_functions(&shared_enum.name)
+        };
+
         let definition = quote! {
+            #[derive(#(#automatic_derives),*)]
             pub enum #enum_name {
                 #(#enum_variants),*
             }
@@ -128,6 +145,8 @@ impl SwiftBridgeModule {
                     }
                 }
             }
+
+            #vec_support
         };
 
         Some(definition)

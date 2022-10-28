@@ -21,6 +21,7 @@ mod generates_enum_to_and_from_ffi_conversions_no_data {
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
+            #[derive(Copy, Clone)]
             pub enum SomeEnum {
                 Variant1,
                 Variant2
@@ -95,7 +96,7 @@ extension __swift_bridge__$SomeEnum {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
+        ExpectedCHeader::ContainsAfterTrim(
             r#"
 #include <stdbool.h>
 typedef enum __swift_bridge__$SomeEnumTag { __swift_bridge__$SomeEnum$Variant1, __swift_bridge__$SomeEnum$Variant2, } __swift_bridge__$SomeEnumTag;
@@ -274,15 +275,17 @@ func some_function(_ arg: Optional<SomeEnum>) -> Optional<SomeEnum> {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
 #include <stdbool.h>
 typedef enum __swift_bridge__$SomeEnumTag { __swift_bridge__$SomeEnum$Variant1, __swift_bridge__$SomeEnum$Variant2, } __swift_bridge__$SomeEnumTag;
 typedef struct __swift_bridge__$SomeEnum { __swift_bridge__$SomeEnumTag tag; } __swift_bridge__$SomeEnum;
 typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; __swift_bridge__$SomeEnum val; } __swift_bridge__$Option$SomeEnum;
+"#,
+            r#"
 struct __swift_bridge__$Option$SomeEnum __swift_bridge__$some_function(struct __swift_bridge__$Option$SomeEnum arg);
     "#,
-        )
+        ])
     }
 
     #[test]

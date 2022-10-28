@@ -59,6 +59,46 @@ impl SwiftBridgeModule {
             );
         }
 
+        let vectorizable_impl = if shared_enum.has_one_or_more_variants_with_data() {
+            "".to_string()
+        } else {
+            format!(
+                r#"
+extension {enum_name}: Vectorizable {{
+    public static func vecOfSelfNew() -> UnsafeMutableRawPointer {{
+        __swift_bridge__$Vec_{enum_name}$new()
+    }}
+
+    public static func vecOfSelfFree(vecPtr: UnsafeMutableRawPointer) {{
+        __swift_bridge__$Vec_{enum_name}$drop(vecPtr)
+    }}
+
+    public static func vecOfSelfPush(vecPtr: UnsafeMutableRawPointer, value: Self) {{
+        __swift_bridge__$Vec_{enum_name}$push(vecPtr, value.intoFfiRepr())
+    }}
+
+    public static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Optional<Self> {{
+        let maybeEnum = __swift_bridge__$Vec_{enum_name}$pop(vecPtr)
+        return maybeEnum.intoSwiftRepr()
+    }}
+
+    public static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {{
+        let maybeEnum = __swift_bridge__$Vec_{enum_name}$get(vecPtr, index)
+        return maybeEnum.intoSwiftRepr()
+    }}
+
+    public static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {{
+        let maybeEnum = __swift_bridge__$Vec_{enum_name}$get_mut(vecPtr, index)
+        return maybeEnum.intoSwiftRepr()
+    }}
+
+    public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {{
+        __swift_bridge__$Vec_{enum_name}$len(vecPtr)
+    }}
+}}"#
+            )
+        };
+
         let swift_enum = format!(
             r#"public enum {enum_name} {{{variants}}}
 extension {enum_name} {{
@@ -89,7 +129,7 @@ extension {option_ffi_name} {{
             return {option_ffi_name}(is_some: false, val: {ffi_repr_name}())
         }}
     }}
-}}"#,
+}}{vectorizable_impl}"#,
             enum_name = enum_name,
             enum_ffi_name = enum_ffi_name,
             option_ffi_name = option_ffi_name,
