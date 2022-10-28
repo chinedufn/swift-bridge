@@ -6,8 +6,8 @@ use proc_macro2::TokenStream;
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
 
+use self::vec::vec_of_opaque_rust_type::generate_vec_of_opaque_rust_type_functions;
 use crate::bridge_module_attributes::CfgAttr;
-use crate::codegen::generate_rust_tokens::vec::generate_vec_of_opaque_rust_type_functions;
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
 use crate::SwiftBridgeModule;
 

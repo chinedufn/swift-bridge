@@ -767,9 +767,11 @@ impl BridgedType {
                     #ty_name
                 }
             }
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
-                //
-                todo!("Shared enum to Rust type name")
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
+                let enum_name = &shared_enum.name;
+                quote! {
+                    #enum_name
+                }
             }
         }
     }

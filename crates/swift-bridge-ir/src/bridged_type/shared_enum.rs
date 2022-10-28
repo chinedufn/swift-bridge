@@ -52,6 +52,17 @@ impl SharedEnum {
     }
 }
 
+impl SharedEnum {
+    /// Whether or not any of the enum's variants contain data.
+    ///
+    /// `EnumWithData { VariantA(u8), VariantB }` -> true
+    /// `EnumWithData { VariantA(u8), VariantB(u16) }` -> true
+    /// `EnumWithNoData { VariantA, VariantB }` -> false
+    pub fn has_one_or_more_variants_with_data(&self) -> bool {
+        self.variants.iter().any(|v| !v.fields.is_empty())
+    }
+}
+
 impl PartialEq for SharedEnum {
     fn eq(&self, other: &Self) -> bool {
         self.name.to_string() == other.name.to_string() && self.variants == other.variants

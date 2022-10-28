@@ -69,6 +69,7 @@ class VecTests: XCTestCase {
         XCTAssertEqual(popped?.text().toString(), "hello world")
         XCTAssertEqual(vec.len(), 0)
     }
+    
     /// Verify that a Vec<T> of opaque Rust types can be used as an argument and return
     /// type for extern "Rust" functions.
     func testReflectVecOfOpaqueRustType() throws {
@@ -78,6 +79,18 @@ class VecTests: XCTestCase {
         let reflected = rust_reflect_vec_opaque_rust_type(vec)
         XCTAssertEqual(reflected.len(), 1)
         XCTAssertEqual(reflected.get(index: 0)!.text().toString(), "hello world")
+    }
+    
+    /// Verify that a Vec<T> of transparent enums can be used as an argument and return
+    /// type for extern "Rust" functions.
+    func testReflectVecOfTransparentEnum() throws {
+        let vec: RustVec<TransparentEnumInsideVecT> = RustVec()
+        vec.push(value: TransparentEnumInsideVecT.VariantB)
+        
+        let reflected = rust_reflect_vec_transparent_enum(vec)
+        XCTAssertEqual(reflected.len(), 1)
+        XCTAssertEqual(reflected.get(index: 0)!, TransparentEnumInsideVecT.VariantB)
+        XCTAssertEqual(reflected.pop()!, TransparentEnumInsideVecT.VariantB)
     }
     
     /// Verify that we can construct a RustVec of every primitive type.

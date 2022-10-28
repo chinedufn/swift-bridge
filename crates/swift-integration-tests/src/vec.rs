@@ -1,5 +1,10 @@
 #[swift_bridge::bridge]
 mod ffi {
+    enum TransparentEnumInsideVecT {
+        VariantA,
+        VariantB,
+    }
+
     extern "Rust" {
         type ARustTypeInsideVecT;
 
@@ -13,6 +18,12 @@ mod ffi {
         fn rust_reflect_vec_opaque_rust_type(
             arg: Vec<ARustTypeInsideVecT>,
         ) -> Vec<ARustTypeInsideVecT>;
+    }
+
+    extern "Rust" {
+        fn rust_reflect_vec_transparent_enum(
+            arg: Vec<TransparentEnumInsideVecT>,
+        ) -> Vec<TransparentEnumInsideVecT>;
     }
 }
 
@@ -33,5 +44,11 @@ impl ARustTypeInsideVecT {
 }
 
 fn rust_reflect_vec_opaque_rust_type(arg: Vec<ARustTypeInsideVecT>) -> Vec<ARustTypeInsideVecT> {
+    arg
+}
+
+fn rust_reflect_vec_transparent_enum(
+    arg: Vec<ffi::TransparentEnumInsideVecT>,
+) -> Vec<ffi::TransparentEnumInsideVecT> {
     arg
 }
