@@ -29,5 +29,7 @@
 
 - [Safety](./safety/README.md)
 
-- [Internal Design](./internal-design/README.md)
-  - [Code Generation](./internal-design/codegen/README.md)
+- [Contributing to swift-bridge](./contributing/README.md)
+  - [Internal Design](./contributing/internal-design/README.md)
+    - [Code Generation](./contributing/internal-design/codegen/README.md)
+  - [Adding support for a signature](./contributing/adding-support-for-a-signature/README.md)
