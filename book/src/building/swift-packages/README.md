@@ -164,7 +164,7 @@ Then, run the following to package up your generated bridges and your Rust libra
 swift-bridge-cli create-package \
   --bridges-dir ./generated \
   --out-dir MySwiftPackage \
-  --ios target/x86_64-apple-ios/debug/libmy_rust_lib.a \
+  --ios target/aarch64-apple-ios/debug/libmy_rust_lib.a \
   --simulator target/universal-ios/debug/libmy_rust_lib.a \
   --macos target/universal-macos/debug/libmy_rust_lib.a \
   --name MySwiftPackage
