@@ -105,13 +105,9 @@ impl Parse for SwiftBridgeModuleAndErrors {
                             TypeDeclaration::Shared(SharedTypeDeclaration::Enum(shared_enum)),
                         );
                     }
-                    _ => {
-                        todo!(
-                            r#"
-                        Push an error that the module may only contain `extern` blocks, structs
-                        and enums
-                        "#
-                        )
+                    invalid_item => {
+                        let error = ParseError::InvalidModuleItem { item: invalid_item };
+                        errors.push(error);
                     }
                 };
             }
@@ -146,7 +142,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::parse_ok;
+    use crate::test_utils::{parse_errors, parse_ok};
 
     /// Verify that we can parse a cfg feature from a module.
     #[test]
@@ -166,5 +162,27 @@ mod tests {
                 assert_eq!(feature.value(), "some-feature")
             }
         };
+    }
+
+    /// Verify that we get an error when parsing an unsupported module item, such as a
+    /// `use` statement.
+    #[test]
+    fn invalid_module_item() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod foo {
+                use std;
+            }
+        };
+
+        let errors = parse_errors(tokens);
+
+        assert_eq!(errors.len(), 1);
+        match &errors[0] {
+            ParseError::InvalidModuleItem { item } => {
+                assert!(matches!(item, Item::Use(_)))
+            }
+            _ => panic!(),
+        }
     }
 }

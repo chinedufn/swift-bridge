@@ -1,0 +1,11 @@
+error: Only `extern` blocks, structs and enums are supported.
+ --> tests/ui/invalid-module-item.rs:6:5
+  |
+6 |     use std;
+  |     ^^^^^^^^
+
+error: Only `extern` blocks, structs and enums are supported.
+ --> tests/ui/invalid-module-item.rs:7:5
+  |
+7 |     fn foo() {}
+  |     ^^^^^^^^^^^
