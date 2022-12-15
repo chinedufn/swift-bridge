@@ -42,7 +42,7 @@ func create_bar_code(upc: Bool) -> BarCode {
 
 ### Enum Attributes
 
-#### #[swift_bridge::bridge(already_declared)]
+#### #[swift_bridge(already_declared)]
 
 ```rust
 #[swift_bridge::bridge]
@@ -63,6 +63,20 @@ mod ffi_2 {
 
     extern "Rust" {
         fn some_function() -> SomeTransparentEnum;
+    }
+}
+```
+
+#### #[swift_bridge(swift_name = "...")]
+
+Set the name that is used when generating the enum on the Swift side.
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {
+    #[swift_bridge(swift_name = "RenamedEnum")]
+    enum SomeTransparentEnum {
+        Variant
     }
 }
 ```

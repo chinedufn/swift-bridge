@@ -41,6 +41,7 @@ mod opaque_rust_type_codegen_tests;
 mod opaque_swift_type_codegen_tests;
 mod option_codegen_tests;
 mod result_codegen_tests;
+mod return_into_attribute_codegen_tests;
 mod string_codegen_tests;
 mod transparent_enum_codegen_tests;
 mod transparent_struct_codegen_tests;
