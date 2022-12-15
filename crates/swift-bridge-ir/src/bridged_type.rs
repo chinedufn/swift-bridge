@@ -1707,8 +1707,15 @@ impl BridgedType {
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 let enum_name = &shared_enum.name;
+
+                let maybe_super = if shared_enum.already_declared {
+                    quote! { super:: }
+                } else {
+                    quote! {}
+                };
+
                 quote! {
-                    { let val: #enum_name = #expression.into(); val }
+                    { let val: #maybe_super #enum_name = #expression.into(); val }
                 }
             }
             // TODO: Instead of this catchall.. explicitly match on all variants and use

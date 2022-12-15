@@ -153,7 +153,7 @@ mod already_declared_enum {
     fn bridge_module_tokens() -> TokenStream {
         quote! {
             mod ffi {
-                #[swift_bridge(already_declared, swift_repr = "enum")]
+                #[swift_bridge(already_declared)]
                 enum FfiSomeEnum {}
 
                 extern "Rust" {

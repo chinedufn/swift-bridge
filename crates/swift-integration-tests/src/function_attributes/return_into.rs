@@ -1,3 +1,4 @@
+use ffi2::AlreadyDeclaredEnum;
 use ffi2::AlreadyDeclaredStruct;
 
 #[swift_bridge::bridge]
@@ -10,6 +11,9 @@ mod ffi {
     enum SomeTransparentEnum {
         Variant,
     }
+
+    #[swift_bridge(already_declared)]
+    enum AlreadyDeclaredEnum {}
 
     extern "Rust" {
         type SomeType;
@@ -33,16 +37,29 @@ mod ffi {
         // shared struct.
         #[swift_bridge(return_into)]
         fn get_transparent_enum() -> SomeTransparentEnum;
+
+        // Verify that our code compiles when we use `return_into` on an already declared
+        // transparent enum.
+        #[swift_bridge(return_into)]
+        fn get_already_declared_enum() -> AlreadyDeclaredEnum;
     }
 }
 #[swift_bridge::bridge]
 mod ffi2 {
     struct AlreadyDeclaredStruct;
+
+    enum AlreadyDeclaredEnum {
+        Variant,
+    }
 }
 
 pub struct SomeType;
 
 struct AnotherType;
+
+enum SomeEnum {
+    Variant,
+}
 
 fn get_another_type() -> AnotherType {
     AnotherType
@@ -58,6 +75,9 @@ fn get_already_declared_struct() -> SomeType {
 
 fn get_transparent_enum() -> u32 {
     123
+}
+fn get_already_declared_enum() -> SomeEnum {
+    SomeEnum::Variant
 }
 impl Into<ffi::SomeTransparentEnum> for u32 {
     fn into(self) -> ffi::SomeTransparentEnum {
@@ -79,5 +99,10 @@ impl Into<ffi::ReturnIntoSomeStruct> for SomeType {
 impl Into<ffi2::AlreadyDeclaredStruct> for SomeType {
     fn into(self) -> ffi2::AlreadyDeclaredStruct {
         ffi2::AlreadyDeclaredStruct
+    }
+}
+impl Into<ffi2::AlreadyDeclaredEnum> for SomeEnum {
+    fn into(self) -> ffi2::AlreadyDeclaredEnum {
+        ffi2::AlreadyDeclaredEnum::Variant
     }
 }
