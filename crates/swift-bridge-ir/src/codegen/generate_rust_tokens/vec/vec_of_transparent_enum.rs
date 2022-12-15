@@ -1,4 +1,5 @@
-use proc_macro2::{Ident, TokenStream};
+use crate::bridged_type::SharedEnum;
+use proc_macro2::TokenStream;
 use quote::quote;
 
 /// Generate the functions that Swift calls uses inside of the corresponding class for a
@@ -6,12 +7,20 @@ use quote::quote;
 ///
 /// So inside of `extension SomeTransparentEnum: Vectorizable {}` on the Swift side.
 pub(in super::super) fn generate_vec_of_transparent_enum_functions(
-    enum_name: &Ident,
+    shared_enum: &SharedEnum,
 ) -> TokenStream {
+    let enum_name = &shared_enum.name;
+
     // examples:
     // "__swift_bridge__$Vec_SomeTransparentEnum$new"
     // "__swift_bridge__$Vec_SomeTransparentEnum$drop"
-    let make_export_name = |fn_name| format!("__swift_bridge__$Vec_{}${}", enum_name, fn_name);
+    let make_export_name = |fn_name| {
+        format!(
+            "__swift_bridge__$Vec_{}${}",
+            shared_enum.swift_name_string(),
+            fn_name
+        )
+    };
     let export_name_new = make_export_name("new");
     let export_name_drop = make_export_name("drop");
     let export_name_len = make_export_name("len");
@@ -21,11 +30,8 @@ pub(in super::super) fn generate_vec_of_transparent_enum_functions(
     let export_name_pop = make_export_name("pop");
     let export_name_as_ptr = make_export_name("as_ptr");
 
-    let ffi_enum_repr = Ident::new(&format!("__swift_bridge__{}", enum_name), enum_name.span());
-    let ffi_option_enum_repr = Ident::new(
-        &format!("__swift_bridge__Option_{}", enum_name),
-        enum_name.span(),
-    );
+    let ffi_enum_repr = &shared_enum.ffi_name_tokens();
+    let ffi_option_enum_repr = shared_enum.ffi_option_name_tokens();
 
     quote! {
         const _: () = {
@@ -91,7 +97,7 @@ pub(in super::super) fn generate_vec_of_transparent_enum_functions(
 mod tests {
     use super::*;
     use crate::test_utils::assert_tokens_eq;
-    use proc_macro2::Span;
+    use proc_macro2::{Ident, Span};
 
     /// Verify that we can generate the functions for an opaque Rust type that get exposed to Swift
     /// in order to power the `extension MyRustType: Vectorizable { }` implementation on the Swift
@@ -157,8 +163,14 @@ mod tests {
             };
         };
 
+        let shared_enum = SharedEnum {
+            name: Ident::new("AnEnum", Span::call_site()),
+            variants: vec![],
+            already_declared: false,
+            swift_name: None,
+        };
         assert_tokens_eq(
-            &generate_vec_of_transparent_enum_functions(&Ident::new("AnEnum", Span::call_site())),
+            &generate_vec_of_transparent_enum_functions(&shared_enum),
             &expected,
         );
     }

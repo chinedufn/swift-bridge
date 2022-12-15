@@ -2,6 +2,7 @@ use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use std::fmt::{Debug, Formatter};
+use syn::LitStr;
 
 mod enum_variant;
 pub(crate) use self::enum_variant::EnumVariant;
@@ -11,17 +12,22 @@ pub(crate) struct SharedEnum {
     pub name: Ident,
     pub variants: Vec<EnumVariant>,
     pub already_declared: bool,
+    pub swift_name: Option<LitStr>,
 }
 
 impl SharedEnum {
     /// SomeEnum
     pub fn swift_name_string(&self) -> String {
-        format!("{}", self.name)
+        if let Some(swift_name) = self.swift_name.as_ref() {
+            swift_name.value().to_string()
+        } else {
+            format!("{}", self.name)
+        }
     }
 
     /// __swift_bridge__$SomeEnum
     pub fn ffi_name_string(&self) -> String {
-        format!("{}${}", SWIFT_BRIDGE_PREFIX, self.name)
+        format!("{}${}", SWIFT_BRIDGE_PREFIX, self.swift_name_string())
     }
 
     /// __swift_bridge__$SomeEnumTag
@@ -49,7 +55,11 @@ impl SharedEnum {
 
     /// __swift_bridge__$Option$SomeEnum
     pub fn ffi_option_name_string(&self) -> String {
-        format!("{}$Option${}", SWIFT_BRIDGE_PREFIX, self.name)
+        format!(
+            "{}$Option${}",
+            SWIFT_BRIDGE_PREFIX,
+            self.swift_name_string()
+        )
     }
 }
 

@@ -40,6 +40,7 @@
 		22BC10F62799283100A0D046 /* SharedStruct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BC10F52799283100A0D046 /* SharedStruct.swift */; };
 		22BC10F82799A3A000A0D046 /* SharedStructAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BC10F72799A3A000A0D046 /* SharedStructAttributes.swift */; };
 		22BC4BBA294B8CCD0032B8A8 /* SharedEnumAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BC4BB9294B8CCD0032B8A8 /* SharedEnumAttributeTests.swift */; };
+		22BC4BBC294BA0EC0032B8A8 /* SharedEnumAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BC4BBB294BA0EC0032B8A8 /* SharedEnumAttributes.swift */; };
 		22BCAAB927A2607700686A21 /* FunctionAttributeIdentifiableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */; };
 		22C0625328CE699D007A6F67 /* Callbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22C0625228CE699D007A6F67 /* Callbacks.swift */; };
 		22C0625528CE6C9A007A6F67 /* CallbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22C0625428CE6C9A007A6F67 /* CallbackTests.swift */; };
@@ -101,6 +102,7 @@
 		22BC10F52799283100A0D046 /* SharedStruct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStruct.swift; sourceTree = "<group>"; };
 		22BC10F72799A3A000A0D046 /* SharedStructAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStructAttributes.swift; sourceTree = "<group>"; };
 		22BC4BB9294B8CCD0032B8A8 /* SharedEnumAttributeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedEnumAttributeTests.swift; sourceTree = "<group>"; };
+		22BC4BBB294BA0EC0032B8A8 /* SharedEnumAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedEnumAttributes.swift; sourceTree = "<group>"; };
 		22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FunctionAttributeIdentifiableTests.swift; sourceTree = "<group>"; };
 		22C0625228CE699D007A6F67 /* Callbacks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Callbacks.swift; sourceTree = "<group>"; };
 		22C0625428CE6C9A007A6F67 /* CallbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallbackTests.swift; sourceTree = "<group>"; };
@@ -173,6 +175,7 @@
 				22EE4E0828B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift */,
 				22C0625228CE699D007A6F67 /* Callbacks.swift */,
 				225908FD28DA0F9F0080C737 /* Result.swift */,
+				22BC4BBB294BA0EC0032B8A8 /* SharedEnumAttributes.swift */,
 			);
 			path = SwiftRustIntegrationTestRunner;
 			sourceTree = "<group>";
@@ -370,6 +373,7 @@
 				226F944B27BF79B400243D86 /* String.swift in Sources */,
 				22043297274B0AB000BAE645 /* Option.swift in Sources */,
 				220432EA2753092C00BAE645 /* RustFnUsesOpaqueSwiftType.swift in Sources */,
+				22BC4BBC294BA0EC0032B8A8 /* SharedEnumAttributes.swift in Sources */,
 				22FD1C542753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift in Sources */,
 				220432A9274D31DC00BAE645 /* Pointer.swift in Sources */,
 				225908FE28DA0F9F0080C737 /* Result.swift in Sources */,
