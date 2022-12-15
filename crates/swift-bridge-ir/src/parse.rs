@@ -5,9 +5,10 @@ use crate::parse::parse_enum::SharedEnumDeclarationParser;
 use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::parse::parse_struct::SharedStructDeclarationParser;
 use crate::SwiftBridgeModule;
+use proc_macro2::TokenTree;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
-use syn::{Item, ItemMod};
+use syn::{Item, ItemMod, Token};
 
 mod parse_enum;
 mod parse_extern_mod;
@@ -136,6 +137,27 @@ impl Parse for SwiftBridgeModuleAndErrors {
                 "Only modules are supported.",
             ));
         }
+    }
+}
+
+// Used to fast-forward our attribute parsing to the next attribute when we've run into an
+// issue parsing the current attribute.
+fn move_input_cursor_to_next_comma(input: ParseStream) {
+    if !input.peek(Token![,]) {
+        let _ = input.step(|cursor| {
+            let mut current_cursor = *cursor;
+
+            while let Some((tt, next)) = current_cursor.token_tree() {
+                match &tt {
+                    TokenTree::Punct(punct) if punct.as_char() == ',' => {
+                        return Ok(((), current_cursor));
+                    }
+                    _ => current_cursor = next,
+                }
+            }
+
+            Ok(((), current_cursor))
+        });
     }
 }
 

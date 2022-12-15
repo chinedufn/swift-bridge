@@ -4,6 +4,10 @@ use crate::SwiftBridgeModule;
 impl SwiftBridgeModule {
     /// Generate the tokens for a shared enum.
     pub(super) fn generate_shared_enum_string(&self, shared_enum: &SharedEnum) -> Option<String> {
+        if shared_enum.already_declared {
+            return None;
+        }
+
         let enum_name = shared_enum.swift_name_string();
         let enum_ffi_name = shared_enum.ffi_name_string();
         let option_ffi_name = shared_enum.ffi_option_name_string();

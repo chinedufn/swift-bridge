@@ -10,6 +10,7 @@ pub(crate) use self::enum_variant::EnumVariant;
 pub(crate) struct SharedEnum {
     pub name: Ident,
     pub variants: Vec<EnumVariant>,
+    pub already_declared: bool,
 }
 
 impl SharedEnum {

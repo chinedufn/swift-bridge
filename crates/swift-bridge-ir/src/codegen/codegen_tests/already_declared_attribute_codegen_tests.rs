@@ -146,6 +146,60 @@ struct __swift_bridge__$FfiSomeType __swift_bridge__$some_function(struct __swif
     }
 }
 
+/// Verify that we do not re-declare an already defined enum.
+mod already_declared_enum {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                #[swift_bridge(already_declared, swift_repr = "enum")]
+                enum FfiSomeEnum {}
+
+                extern "Rust" {
+                    fn some_function(arg: FfiSomeEnum) -> FfiSomeEnum;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsManyAndDoesNotContainMany {
+            contains: vec![quote! {
+                pub extern "C" fn __swift_bridge__some_function(arg: <super::FfiSomeEnum as swift_bridge::SharedEnum>::FfiRepr) -> <super::FfiSomeEnum as swift_bridge::SharedEnum>::FfiRepr {
+                    super::some_function(arg.into_rust_repr()).into_ffi_repr()
+                }
+            }],
+            does_not_contain: vec![quote! {
+                enum FfiSomeEnum
+            }],
+        }
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::DoesNotContainAfterTrim("enum FfiSomeEnum")
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ExactAfterTrim(
+            r#"
+struct __swift_bridge__$FfiSomeEnum __swift_bridge__$some_function(struct __swift_bridge__$FfiSomeEnum arg);
+"#,
+        )
+    }
+
+    #[test]
+    fn already_declared_enum() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Verify that we do not re-declare the Swift struct of an already defined Rust Copy type.
 /// We still generate the Rust #\[repr(C)] struct since that is private to this module.
 mod already_declared_rust_copy_type_does_not_redeclare_swift {

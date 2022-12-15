@@ -36,20 +36,13 @@ impl TypeDeclaration {
         match self {
             TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
                 BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(
-                    SharedStruct {
-                        name: shared_struct.name.clone(),
-                        swift_repr: shared_struct.swift_repr,
-                        fields: shared_struct.fields.clone(),
-                        swift_name: shared_struct.swift_name.clone(),
-                        already_declared: shared_struct.already_declared,
-                    },
+                    shared_struct.clone(),
                 )))
             }
             TypeDeclaration::Shared(SharedTypeDeclaration::Enum(shared_enum)) => {
-                BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(SharedEnum {
-                    name: shared_enum.name.clone(),
-                    variants: shared_enum.variants.clone(),
-                })))
+                BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(
+                    shared_enum.clone(),
+                )))
             }
             TypeDeclaration::Opaque(_o) => {
                 BridgedType::Bridgeable(Box::new(self.to_opaque_type(reference, mutable).unwrap()))
