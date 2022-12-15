@@ -14,6 +14,10 @@ impl SwiftBridgeModule {
         &self,
         shared_enum: &SharedEnum,
     ) -> Option<TokenStream> {
+        if shared_enum.already_declared {
+            return None;
+        }
+
         let enum_name = &shared_enum.name;
         let swift_bridge_path = &self.swift_bridge_path;
 

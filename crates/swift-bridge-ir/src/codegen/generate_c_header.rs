@@ -126,6 +126,10 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         header += "\n";
                     }
                     SharedTypeDeclaration::Enum(ty_enum) => {
+                        if ty_enum.already_declared {
+                            continue;
+                        }
+
                         let ffi_name = ty_enum.ffi_name_string();
                         let ffi_tag_name = ty_enum.ffi_tag_name_string();
                         let option_ffi_name = ty_enum.ffi_option_name_string();

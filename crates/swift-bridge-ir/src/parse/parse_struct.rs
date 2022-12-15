@@ -1,6 +1,7 @@
 use crate::bridged_type::{SharedStruct, StructFields, StructSwiftRepr};
 use crate::errors::{ParseError, ParseErrors};
-use proc_macro2::{Ident, TokenTree};
+use crate::parse::move_input_cursor_to_next_comma;
+use proc_macro2::Ident;
 use syn::parse::{Parse, ParseStream};
 use syn::{ItemStruct, LitStr, Token};
 
@@ -29,7 +30,6 @@ struct StructAttribs {
 }
 
 struct ParsedAttribs(Vec<StructAttr>);
-
 impl Parse for ParsedAttribs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         if input.is_empty() {
@@ -66,7 +66,6 @@ impl Parse for StructAttr {
             "already_declared" => StructAttr::AlreadyDeclared,
             _ => {
                 move_input_cursor_to_next_comma(input);
-
                 StructAttr::Error(StructAttrParseError::UnrecognizedAttribute(key))
             }
         };
@@ -141,27 +140,6 @@ impl<'a> SharedStructDeclarationParser<'a> {
         };
 
         Ok(shared_struct)
-    }
-}
-
-// Used to fast-forward our attribute parsing to the next attribute when we've run into an
-// issue parsing the current attribute.
-fn move_input_cursor_to_next_comma(input: ParseStream) {
-    if !input.peek(Token![,]) {
-        let _ = input.step(|cursor| {
-            let mut current_cursor = *cursor;
-
-            while let Some((tt, next)) = current_cursor.token_tree() {
-                match &tt {
-                    TokenTree::Punct(punct) if punct.as_char() == ',' => {
-                        return Ok(((), current_cursor));
-                    }
-                    _ => current_cursor = next,
-                }
-            }
-
-            Ok(((), current_cursor))
-        });
     }
 }
 

@@ -933,9 +933,14 @@ impl BridgedType {
                 prefixed_ty_name
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
-                let ffi_ty_name = shared_enum.ffi_name_tokens();
+                let ty_name = &shared_enum.name;
 
-                quote! { #ffi_ty_name }
+                if shared_enum.already_declared {
+                    quote! { <super:: #ty_name as #swift_bridge_path::SharedEnum>::FfiRepr }
+                } else {
+                    let ffi_ty_name = shared_enum.ffi_name_tokens();
+                    quote! { #ffi_ty_name }
+                }
             }
         };
 
