@@ -42,4 +42,27 @@ func create_bar_code(upc: Bool) -> BarCode {
 
 ### Enum Attributes
 
-... TODO
+#### #[swift_bridge::bridge(already_declared)]
+
+```rust
+#[swift_bridge::bridge]
+mod ffi_1 {
+    enum SomeTransparentEnum {
+        Variant
+    }
+}
+
+use ffi_1::SomeTransparentEnum;
+
+#[swift_bridge::bridge]
+mod ffi_2 {
+    // The `already_declared` indicates that instead of creating a new enum
+    // we should use super::SomeTransparentEnum;
+    #[swift_bridge(already_declared)]
+    enum SomeTransparentEnum;
+
+    extern "Rust" {
+        fn some_function() -> SomeTransparentEnum;
+    }
+}
+```
