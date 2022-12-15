@@ -187,7 +187,7 @@ func create_bar_code(upc: Bool) -&gt; BarCode {
 }
 </code></pre>
 <h3 id="enum-attributes"><a class="header" href="#enum-attributes">Enum Attributes</a></h3>
-<h4 id="swift_bridgebridgealready_declared"><a class="header" href="#swift_bridgebridgealready_declared">#[swift_bridge::bridge(already_declared)]</a></h4>
+<h4 id="swift_bridgealready_declared"><a class="header" href="#swift_bridgealready_declared">#[swift_bridge(already_declared)]</a></h4>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -209,6 +209,20 @@ mod ffi_2 {
 
     extern &quot;Rust&quot; {
         fn some_function() -&gt; SomeTransparentEnum;
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h4 id="swift_bridgeswift_name--"><a class="header" href="#swift_bridgeswift_name--">#[swift_bridge(swift_name = &quot;...&quot;)]</a></h4>
+<p>Set the name that is used when generating the enum on the Swift side.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    #[swift_bridge(swift_name = &quot;RenamedEnum&quot;)]
+    enum SomeTransparentEnum {
+        Variant
     }
 }
 <span class="boring">}
