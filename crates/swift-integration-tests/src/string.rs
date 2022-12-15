@@ -7,15 +7,14 @@ mod ffi {
     }
 
     extern "Swift" {
-        // TODO: Support Swift function returning String
-        // fn create_swift_string() -> String;
+        fn create_swift_string() -> String;
     }
 }
 
 fn run_string_tests() {
-    // let string = ffi::create_swift_string();
-    // assert_eq!(string.len(), 5);
-    // assert_eq!(&string, "hello");
+    let string = ffi::create_swift_string();
+    assert_eq!(string.len(), 5);
+    assert_eq!(&string, "hello");
 }
 
 fn create_string(str: &str) -> String {

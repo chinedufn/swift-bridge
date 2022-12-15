@@ -215,3 +215,50 @@ struct RustStr __swift_bridge__$some_function(void);
         .test();
     }
 }
+
+/// Test code generation for Swift function that returns an owned String argument.
+mod extern_swift_func_returns_string {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod foo {
+                extern "Swift" {
+                    fn some_function () -> String;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            pub fn some_function () -> String {
+                unsafe {
+                    Box::from_raw(unsafe { __swift_bridge__some_function() }).0
+                }
+            }
+        })
+    }
+
+    const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
+        r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function () -> UnsafeMutableRawPointer {
+    { let rustString = some_function().intoRustString(); rustString.isOwned = false; return rustString.ptr }()
+}
+"#,
+    );
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ExactAfterTrim(r#""#);
+
+    #[test]
+    fn extern_rust_fn_returns_string() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: EXPECTED_SWIFT_CODE,
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}

@@ -20,7 +20,13 @@ impl BridgeableType for BridgedString {
     fn to_swift_type(&self, type_pos: TypePosition, _types: &TypeDeclarations) -> String {
         match type_pos {
             TypePosition::FnArg(_func_host_lang, _) => "GenericIntoRustString".to_string(),
-            TypePosition::FnReturn(_func_host_lang) => "RustString".to_string(),
+            TypePosition::FnReturn(func_host_lang) => {
+                if func_host_lang.is_rust() {
+                    "RustString".to_string()
+                } else {
+                    "UnsafeMutableRawPointer".to_string()
+                }
+            }
             TypePosition::SharedStructField => "RustString".to_string(),
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                 "UnsafeMutableRawPointer?".to_string()
