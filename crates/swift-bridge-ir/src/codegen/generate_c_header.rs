@@ -148,7 +148,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         let maybe_vec_support = if ty_enum.has_one_or_more_variants_with_data() {
                             "".to_string()
                         } else {
-                            vec_transparent_enum_c_support(&ty_enum.name.to_string())
+                            vec_transparent_enum_c_support(&ty_enum.swift_name_string())
                         };
 
                         let enum_decl = format!(

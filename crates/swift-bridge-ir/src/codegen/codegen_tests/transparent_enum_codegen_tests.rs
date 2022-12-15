@@ -299,3 +299,50 @@ struct __swift_bridge__$Option$SomeEnum __swift_bridge__$some_function(struct __
         .test();
     }
 }
+
+/// Verify that the original name of the enum is not present in any of the generated Swift
+/// code when we use the `swift_name` attribute..
+/// Related: crates/swift-integration-tests/src/enum_attributes/swift_name.rs
+mod shared_enum_swift_name_attribute {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(swift_name = "EnumRename")]
+                enum EnumName {
+                    Variant
+                }
+
+
+                extern "Rust" {
+                    fn extern_rust_enum_rename(arg: EnumName) -> EnumName;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::SkipTest
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::DoesNotContainAfterTrim("EnumName")
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::DoesNotContainAfterTrim("EnumName")
+    }
+
+    #[test]
+    fn shared_enum_swift_name_attribute() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

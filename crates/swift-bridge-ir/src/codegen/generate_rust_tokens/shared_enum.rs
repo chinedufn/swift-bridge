@@ -76,7 +76,7 @@ impl SwiftBridgeModule {
             // Enums with variants that contain data are not yet supported.
             quote! {}
         } else {
-            generate_vec_of_transparent_enum_functions(&shared_enum.name)
+            generate_vec_of_transparent_enum_functions(&shared_enum)
         };
 
         let definition = quote! {

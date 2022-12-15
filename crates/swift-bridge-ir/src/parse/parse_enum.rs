@@ -3,7 +3,7 @@ use crate::errors::{ParseError, ParseErrors};
 use crate::parse::move_input_cursor_to_next_comma;
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseStream};
-use syn::ItemEnum;
+use syn::{ItemEnum, LitStr, Token};
 
 pub(crate) struct SharedEnumDeclarationParser<'a> {
     pub item_enum: ItemEnum,
@@ -15,6 +15,7 @@ pub(crate) struct SharedEnumDeclarationParser<'a> {
 enum EnumAttr {
     AlreadyDeclared,
     Error(EnumAttrParseError),
+    SwiftName(LitStr),
 }
 
 enum EnumAttrParseError {
@@ -24,6 +25,7 @@ enum EnumAttrParseError {
 #[derive(Default)]
 struct EnumAttribs {
     already_declared: bool,
+    swift_name: Option<LitStr>,
 }
 
 struct ParsedAttribs(Vec<EnumAttr>);
@@ -45,6 +47,12 @@ impl Parse for EnumAttr {
 
         let attr = match key.to_string().as_str() {
             "already_declared" => EnumAttr::AlreadyDeclared,
+            "swift_name" => {
+                input.parse::<Token![=]>()?;
+
+                let name = input.parse()?;
+                EnumAttr::SwiftName(name)
+            }
             _ => {
                 move_input_cursor_to_next_comma(input);
                 EnumAttr::Error(EnumAttrParseError::UnrecognizedAttribute(key))
@@ -76,6 +84,9 @@ impl<'a> SharedEnumDeclarationParser<'a> {
                                 .push(ParseError::EnumUnrecognizedAttribute { attribute });
                         }
                     },
+                    EnumAttr::SwiftName(name) => {
+                        attribs.swift_name = Some(name);
+                    }
                 }
             }
         }
@@ -92,6 +103,7 @@ impl<'a> SharedEnumDeclarationParser<'a> {
             name: item_enum.ident,
             variants,
             already_declared: attribs.already_declared,
+            swift_name: attribs.swift_name,
         };
 
         Ok(shared_enum)
@@ -171,6 +183,25 @@ mod tests {
             }
             _ => panic!(),
         }
+    }
+
+    /// Verify that we can parse the `#[swift_bridge(swift_name = "...")`] attribute.
+    #[test]
+    fn swift_name_attribute() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(swift_name = "FfiFoo")]
+                enum Foo {
+                    Variant1
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let ty = module.types.types()[0].unwrap_shared_enum();
+        assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
     }
 
     /// Verify that we can parse the `#[swift_bridge(already_declared)`] attribute.
