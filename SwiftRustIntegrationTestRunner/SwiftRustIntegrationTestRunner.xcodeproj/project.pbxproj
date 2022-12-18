@@ -50,6 +50,8 @@
 		22EE4E0B28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22EE4E0A28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift */; };
 		22FD1C542753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */; };
 		22FD1C562753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */; };
+		C926E4DE294F07AA0027E7E2 /* FunctionAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */; };
+		C926E4E0294F18C50027E7E2 /* FunctionAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -112,6 +114,8 @@
 		22EE4E0A28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueSwiftTypeTests.swift; sourceTree = "<group>"; };
 		22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustType.swift; sourceTree = "<group>"; };
 		22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustTypeTests.swift; sourceTree = "<group>"; };
+		C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FunctionAttributes.swift; sourceTree = "<group>"; };
+		C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FunctionAttributeTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -176,6 +180,7 @@
 				22C0625228CE699D007A6F67 /* Callbacks.swift */,
 				225908FD28DA0F9F0080C737 /* Result.swift */,
 				22BC4BBB294BA0EC0032B8A8 /* SharedEnumAttributes.swift */,
+				C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */,
 			);
 			path = SwiftRustIntegrationTestRunner;
 			sourceTree = "<group>";
@@ -213,6 +218,7 @@
 				22553323281DB5FC008A3121 /* GenericTests.rs.swift */,
 				22EE4E0A28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift */,
 				22C0625428CE6C9A007A6F67 /* CallbackTests.swift */,
+				C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */,
 			);
 			path = SwiftRustIntegrationTestRunnerTests;
 			sourceTree = "<group>";
@@ -381,6 +387,7 @@
 				222A81E928EB5BB100D4A412 /* Primitive.swift in Sources */,
 				228FE64627480E1D00805D9E /* SwiftBridgeCore.swift in Sources */,
 				228FE5D52740DB6A00805D9E /* SwiftRustIntegrationTestRunnerApp.swift in Sources */,
+				C926E4DE294F07AA0027E7E2 /* FunctionAttributes.swift in Sources */,
 				228FE64A274919C600805D9E /* swift-integration-tests.swift in Sources */,
 				22C0625328CE699D007A6F67 /* Callbacks.swift in Sources */,
 				22BC10F82799A3A000A0D046 /* SharedStructAttributes.swift in Sources */,
@@ -396,6 +403,7 @@
 				22043293274A8FDF00BAE645 /* VecTests.swift in Sources */,
 				221E16B62786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift in Sources */,
 				220432A7274C953E00BAE645 /* PointerTests.swift in Sources */,
+				C926E4E0294F18C50027E7E2 /* FunctionAttributeTests.swift in Sources */,
 				220432AF274E7BF800BAE645 /* SharedStructTests.swift in Sources */,
 				220432EC27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift in Sources */,
 				222A81EB28EB5DF800D4A412 /* PrimitiveTests.swift in Sources */,
