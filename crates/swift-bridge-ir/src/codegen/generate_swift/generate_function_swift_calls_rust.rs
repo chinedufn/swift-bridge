@@ -59,7 +59,11 @@ pub(super) fn gen_func_swift_calls_rust(
             "public convenience init".to_string()
         }
     } else {
-        format!("public func {}", fn_name.as_str())
+        if let Some(swift_name) = &function.swift_name_override {
+            format!("public func {}", swift_name.value())
+        } else {
+            format!("public func {}", fn_name.as_str())
+        }
     };
 
     let indentation = if function.associated_type.is_some() {

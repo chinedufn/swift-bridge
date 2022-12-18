@@ -394,3 +394,70 @@ mod get_with {
         .test();
     }
 }
+
+/// Tests that the swift_name function attribute generates the correct code
+/// when using extern "Rust" (calling Rust code from Swift) and when using
+/// extern "Swift" (calling Swift code from Rust).
+mod function_attribute_swift_name_extern_rust {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(swift_name = "callRustFromSwift")]
+                    fn call_rust_from_swift() -> String;
+                }
+                extern "Swift" {
+                    #[swift_bridge(swift_name = "callSwiftFromRust")]
+                    fn call_swift_from_rust() -> String;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$call_rust_from_swift"]
+            pub extern "C" fn __swift_bridge__call_rust_from_swift() -> * mut swift_bridge::string::RustString {
+                swift_bridge::string::RustString(super::call_rust_from_swift()).box_into_raw()
+            }
+            pub fn call_swift_from_rust() -> String {
+                unsafe { Box::from_raw(unsafe {__swift_bridge__call_swift_from_rust () }).0 }
+            }
+            extern "C" {
+                #[link_name = "__swift_bridge__$call_swift_from_rust"]
+                fn __swift_bridge__call_swift_from_rust() -> * mut swift_bridge::string::RustString;
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public func callRustFromSwift() -> RustString {
+    RustString(ptr: __swift_bridge__$call_rust_from_swift())
+}
+@_cdecl("__swift_bridge__$call_swift_from_rust")
+func __swift_bridge__call_swift_from_rust () -> UnsafeMutableRawPointer {
+    { let rustString = callSwiftFromRust().intoRustString(); rustString.isOwned = false; return rustString.ptr }()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn function_args_into_attribute() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
