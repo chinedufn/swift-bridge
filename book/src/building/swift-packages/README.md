@@ -155,7 +155,7 @@ First, install the CLI.
 
 ```bash
 cargo install -f swift-bridge-cli
-swift-bridge --help
+swift-bridge-cli --help
 ```
 
 Then, run the following to package up your generated bridges and your Rust libraries into a Swift Package.
