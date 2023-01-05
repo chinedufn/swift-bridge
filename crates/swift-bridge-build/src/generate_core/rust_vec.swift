@@ -5,30 +5,30 @@ public class RustVec<T: Vectorizable> {
     var ptr: UnsafeMutableRawPointer
     var isOwned: Bool = true
 
-    init(ptr: UnsafeMutableRawPointer) {
+    public init(ptr: UnsafeMutableRawPointer) {
         self.ptr = ptr
     }
 
-    init() {
+    public init() {
         ptr = T.vecOfSelfNew()
         isOwned = true
     }
 
-    func push (value: T) {
+    public func push (value: T) {
         T.vecOfSelfPush(vecPtr: ptr, value: value)
     }
 
-    func pop () -> Optional<T> {
+    public func pop () -> Optional<T> {
         T.vecOfSelfPop(vecPtr: ptr)
     }
 
-    func get(index: UInt) -> Optional<T.SelfRef> {
+    public func get(index: UInt) -> Optional<T.SelfRef> {
          T.vecOfSelfGet(vecPtr: ptr, index: index)
     }
 
     /// Rust returns a UInt, but we cast to an Int because many Swift APIs such as
     /// `ForEach(0..rustVec.len())` expect Int.
-    func len() -> Int {
+    public func len() -> Int {
         Int(T.vecOfSelfLen(vecPtr: ptr))
     }
 
