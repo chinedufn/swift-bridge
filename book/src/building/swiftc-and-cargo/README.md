@@ -60,6 +60,10 @@ run()
 
 ```swift
 // lib.swift
+func print_hello_swift() {
+    print("Hello from Swift")
+}
+
 func run() {
     print_hello_rust()
 }
@@ -124,6 +128,7 @@ swiftc -L target/x86_64-apple-darwin/debug/ -lswift_and_rust -import-objc-header
 ```
 
 ```sh
+chmod +x build-swiftc-links-rust.sh
 ./build-swiftc-links-rust.sh
 ./main
 # The output should be "Hello from Rust"
