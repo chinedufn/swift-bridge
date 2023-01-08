@@ -195,6 +195,10 @@ fn print_hello_rust() {
 run()
 </code></pre>
 <pre><code class="language-swift">// lib.swift
+func print_hello_swift() {
+    print(&quot;Hello from Swift&quot;)
+}
+
 func run() {
     print_hello_rust()
 }
@@ -245,7 +249,8 @@ cargo build --target x86_64-apple-darwin
 swiftc -L target/x86_64-apple-darwin/debug/ -lswift_and_rust -import-objc-header bridging-header.h \
   main.swift lib.swift ./generated/swift-and-rust/swift-and-rust.swift
 </code></pre>
-<pre><code class="language-sh">./build-swiftc-links-rust.sh
+<pre><code class="language-sh">chmod +x build-swiftc-links-rust.sh
+./build-swiftc-links-rust.sh
 ./main
 # The output should be &quot;Hello from Rust&quot;
 </code></pre>
