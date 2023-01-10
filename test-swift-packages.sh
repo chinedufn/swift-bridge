@@ -27,7 +27,7 @@ cp Cargo.toml $TEMP_DIR
 cd $TEMP_DIR/SwiftRustIntegrationTestRunner
 
 # Build Rust
-mkdir swift-package-rust-library-fixture/generated || true
+mkdir -p swift-package-rust-library-fixture/generated
 
 ./swift-package-rust-library-fixture/build.sh
 
