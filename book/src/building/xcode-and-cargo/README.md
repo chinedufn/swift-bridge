@@ -85,18 +85,28 @@ if [[ -n "${DEVELOPER_SDK_DIR:-}" ]]; then
   export LIBRARY_PATH="${DEVELOPER_SDK_DIR}/MacOSX.sdk/usr/lib:${LIBRARY_PATH:-}"
 fi
 
+if [[ $LLVM_TARGET_TRIPLE_SUFFIX == "-simulator" ]]; then
+    if [[ $NATIVE_ARCH == "arm64" ]]; then
+        export TARGETS="aarch64-apple-ios-sim"
+    else
+        export TARGETS="x86_64-apple-ios-sim"
+    fi
+else
+    export TARGETS="aarch64-apple-ios,x86_64-apple-ios"
+fi
+
 # if [ $ENABLE_PREVIEWS == "NO" ]; then
 
   if [[ $CONFIGURATION == "Release" ]]; then
-      echo "BUIlDING FOR RELEASE"
-      
-      cargo lipo --release --manifest-path ../Cargo.toml
-  else
-      echo "BUIlDING FOR DEBUG"
+      echo "BUIlDING FOR RELEASE ($TARGETS)"
 
-      cargo lipo --manifest-path ../Cargo.toml
+      cargo lipo --release --manifest-path ../Cargo.toml  --targets $TARGETS
+  else
+      echo "BUIlDING FOR DEBUG ($TARGETS)"
+
+      cargo lipo --manifest-path ../Cargo.toml  --targets $TARGETS
   fi
-  
+
 # else
 #   echo "Skipping the script because of preview mode"
 # fi
@@ -268,7 +278,6 @@ Pressing the `Run` button should now open up the iOS simulator with Xcode's defa
 
 ![iOS simulator hello world](./screenshots/simulator-hello-world.png)
 
-
 ## Rust
 
 Now that we've set up our project, it's time to write some code!
@@ -324,7 +333,7 @@ struct IosRustAnalyzerApp: App {
 
 class RustAppWrapper: ObservableObject {
     var rust: RustApp
-    
+
     init (rust: RustApp) {
         self.rust = rust
     }
@@ -342,10 +351,10 @@ import Combine
 
 struct ContentView: View {
     @EnvironmentObject var rustApp: RustAppWrapper
-    
+
     @State private var rustSource = initialSource
     @State private var rustHtml = ""
-    
+
     var body: some View {
         VStack {
             TextEditor(text: $rustSource)
@@ -354,21 +363,21 @@ struct ContentView: View {
                     let html = rustApp.rust.generate_html(sourceCode).toString()
                     rustHtml = html
                 })
-            
+
             WebView(text: $rustHtml)
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-            
+
         }
     }
 }
 
 struct WebView: UIViewRepresentable {
     @Binding var text: String
-    
+
     func makeUIView(context: Context) -> WKWebView {
         return WKWebView()
     }
-    
+
     func updateUIView(_ uiView: WKWebView, context: Context) {
         uiView.loadHTMLString(text, baseURL: nil)
     }
@@ -378,7 +387,7 @@ let initialSource = """
 
 fn main () {
     let stack: Stack<u8> = Stack::default();
-    
+
     for val in 0..100 {
         stack.push(val);
     }
@@ -398,7 +407,7 @@ impl<T> Stack<T> {
 }
 
 """
- 
+
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
