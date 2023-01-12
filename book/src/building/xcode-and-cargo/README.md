@@ -86,11 +86,7 @@ if [[ -n "${DEVELOPER_SDK_DIR:-}" ]]; then
 fi
 
 if [[ $LLVM_TARGET_TRIPLE_SUFFIX == "-simulator" ]]; then
-    if [[ $NATIVE_ARCH == "arm64" ]]; then
-        export TARGETS="aarch64-apple-ios-sim"
-    else
-        export TARGETS="x86_64-apple-ios-sim"
-    fi
+    export TARGETS="aarch64-apple-ios-sim,x86_64-apple-ios"
 else
     export TARGETS="aarch64-apple-ios,x86_64-apple-ios"
 fi
