@@ -176,7 +176,13 @@ We now have a Swift Package (in the `MySwiftPackage` directory) which we can inc
 
 ### Using the package in an Xcode project
 
-To add the package to an iOS app in XCode, go to the target's general panel, click the `+` button in the `Frameworks, Libraries, and Embedded Content` section. Then, click `Add Other` and choose `Add Package Dependency`.
+To add the package to an iOS app in Xcode, first open your project's `.xcworkspace` file.
+
+Next, go to the package dependencies panel, and click on `+` -> `Add Local` -> and select the `MySwiftPackage` directory.
+
+Next, go to the target's general panel and click the `+` button in the `Frameworks, Libraries, and Embedded Content` section.
+
+Select `Workspace -> MySwiftPackage -> MySwiftPackage`.
 
 Import and use it in the same way as the executable.
 
@@ -230,4 +236,3 @@ cd SwiftProject
 swift run
 # You should see "Hello from Rust!" in your terminal.
 ```
-
