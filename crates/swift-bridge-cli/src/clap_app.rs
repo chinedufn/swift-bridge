@@ -100,4 +100,16 @@ fn create_package_command() -> Command<'static> {
                 .required(true)
                 .help("The name for the Swift Package"),
         )
+        .arg(
+            Arg::new("resource")
+                .long("resource")
+                .takes_value(true)
+                .value_name("FROM_PATH:TO_PATH")
+                .multiple_values(true)
+                .help(
+                    "A resource to copy to the package. \
+                    Use colon-separated from and to paths. \
+                    Ex: --resource=./folder/myresource.txt:packagefolder/myresource.txt",
+                ),
+        )
 }

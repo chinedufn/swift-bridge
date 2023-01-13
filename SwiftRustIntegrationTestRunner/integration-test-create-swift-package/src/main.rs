@@ -15,5 +15,6 @@ fn main() {
         )]),
         out_dir: PathBuf::from("swift-package-rust-library-fixture/MySwiftPackage"),
         package_name: "MySwiftPackage".to_string(),
+        resources: vec![],
     });
 }

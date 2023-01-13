@@ -40,3 +40,4 @@ members = [
   "examples/codegen-visualizer",
   "examples/rust-binary-calls-swift-package",
 ]
+default-members = ["crates/swift-bridge-cli"]

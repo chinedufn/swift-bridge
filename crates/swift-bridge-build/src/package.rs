@@ -18,6 +18,8 @@ pub struct CreatePackageConfig {
     pub out_dir: PathBuf,
     /// The name for the Swift package
     pub package_name: String,
+    /// Additional resources to copy into the package, first PathBuf is source and second is destination
+    pub resources: Vec<(PathBuf, PathBuf)>,
 }
 
 impl CreatePackageConfig {
@@ -27,12 +29,14 @@ impl CreatePackageConfig {
         paths: HashMap<ApplePlatform, PathBuf>,
         out_dir: PathBuf,
         package_name: String,
+        resources: Vec<(PathBuf, PathBuf)>,
     ) -> Self {
         Self {
             bridge_dir,
             paths,
             out_dir,
             package_name,
+            resources,
         }
     }
 }
@@ -142,7 +146,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
         bridge_dir.join("SwiftBridgeCore.h"),
         &include_dir.join("SwiftBridgeCore.h"),
     )
-    .expect("Couldn't copy SwiftBirdgeCore header file");
+    .expect("Couldn't copy SwiftBridgeCore header file");
     let bridge_project_dir = fs::read_dir(&bridge_dir)
         .expect("Couldn't read generated directory")
         .find_map(|file| {
