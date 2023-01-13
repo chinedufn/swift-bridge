@@ -313,6 +313,18 @@ fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
     )
     .expect("Couldn't copy project's bridging swift file to the package");
 
+    // Copy resources
+    let mut resource_entries: Vec<String> = vec![];
+    for (from, to) in &config.resources {
+        resource_entries.push(format!("				.copy(\"{}\")", &to.display()));
+        let to = sources_dir.join(to);
+
+        if let Some(parent) = to.parent() {
+            fs::create_dir_all(parent).expect("Couldn't create directory for resource");
+        }
+        fs::copy(from, to).expect("Couldn't copy resource");
+    }
+
     // Generate Package.swift
     let package_name = &config.package_name;
     let package_swift = format!(
@@ -333,10 +345,15 @@ let package = Package(
 		),
 		.target(
 			name: "{package_name}",
-			dependencies: ["RustXcframework"])
+			dependencies: ["RustXcframework"],
+			resources: [
+{}
+			]
+		)
 	]
 )
-	"#
+	"#,
+        resource_entries.join(",\n")
     );
 
     fs::write(output_dir.join("Package.swift"), package_swift)
