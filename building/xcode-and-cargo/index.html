@@ -207,18 +207,24 @@ if [[ -n &quot;${DEVELOPER_SDK_DIR:-}&quot; ]]; then
   export LIBRARY_PATH=&quot;${DEVELOPER_SDK_DIR}/MacOSX.sdk/usr/lib:${LIBRARY_PATH:-}&quot;
 fi
 
+if [[ $LLVM_TARGET_TRIPLE_SUFFIX == &quot;-simulator&quot; ]]; then
+    TARGETS=&quot;aarch64-apple-ios-sim,x86_64-apple-ios&quot;
+else
+    TARGETS=&quot;aarch64-apple-ios,x86_64-apple-ios&quot;
+fi
+
 # if [ $ENABLE_PREVIEWS == &quot;NO&quot; ]; then
 
   if [[ $CONFIGURATION == &quot;Release&quot; ]]; then
-      echo &quot;BUIlDING FOR RELEASE&quot;
-      
-      cargo lipo --release --manifest-path ../Cargo.toml
-  else
-      echo &quot;BUIlDING FOR DEBUG&quot;
+      echo &quot;BUIlDING FOR RELEASE ($TARGETS)&quot;
 
-      cargo lipo --manifest-path ../Cargo.toml
+      cargo lipo --release --manifest-path ../Cargo.toml  --targets $TARGETS
+  else
+      echo &quot;BUIlDING FOR DEBUG ($TARGETS)&quot;
+
+      cargo lipo --manifest-path ../Cargo.toml  --targets $TARGETS
   fi
-  
+
 # else
 #   echo &quot;Skipping the script because of preview mode&quot;
 # fi
@@ -378,7 +384,7 @@ struct IosRustAnalyzerApp: App {
 
 class RustAppWrapper: ObservableObject {
     var rust: RustApp
-    
+
     init (rust: RustApp) {
         self.rust = rust
     }
@@ -392,10 +398,10 @@ import Combine
 
 struct ContentView: View {
     @EnvironmentObject var rustApp: RustAppWrapper
-    
+
     @State private var rustSource = initialSource
     @State private var rustHtml = &quot;&quot;
-    
+
     var body: some View {
         VStack {
             TextEditor(text: $rustSource)
@@ -404,21 +410,21 @@ struct ContentView: View {
                     let html = rustApp.rust.generate_html(sourceCode).toString()
                     rustHtml = html
                 })
-            
+
             WebView(text: $rustHtml)
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-            
+
         }
     }
 }
 
 struct WebView: UIViewRepresentable {
     @Binding var text: String
-    
+
     func makeUIView(context: Context) -&gt; WKWebView {
         return WKWebView()
     }
-    
+
     func updateUIView(_ uiView: WKWebView, context: Context) {
         uiView.loadHTMLString(text, baseURL: nil)
     }
@@ -428,7 +434,7 @@ let initialSource = &quot;&quot;&quot;
 
 fn main () {
     let stack: Stack&lt;u8&gt; = Stack::default();
-    
+
     for val in 0..100 {
         stack.push(val);
     }
@@ -448,7 +454,7 @@ impl&lt;T&gt; Stack&lt;T&gt; {
 }
 
 &quot;&quot;&quot;
- 
+
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
