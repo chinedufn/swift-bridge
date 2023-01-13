@@ -329,17 +329,7 @@ extension Bundle {{
     fs::write(bridge_path, bridge_content)
         .expect("Couldn't copy project's bridging swift file to the package");
 
-    // Copy resources
-    let mut resource_entries: Vec<String> = vec![];
-    for (from, to) in &config.resources {
-        resource_entries.push(format!("				.copy(\"{}\")", &to.display()));
-        let to = sources_dir.join(to);
-
-        if let Some(parent) = to.parent() {
-            fs::create_dir_all(parent).expect("Couldn't create directory for resource");
-        }
-        fs::copy(from, to).expect("Couldn't copy resource");
-    }
+    let resource_entries = copy_resources(&config.resources, &sources_dir);
 
     // Generate Package.swift
     let package_name = &config.package_name;
@@ -383,4 +373,18 @@ fn first_lowercased(name: &str) -> String {
         None => String::new(),
         Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
     }
+}
+
+fn copy_resources(resources: &[(PathBuf, PathBuf)], sources_dir: &Path) -> Vec<String> {
+    let mut resource_entries: Vec<String> = vec![];
+    for (from, to) in resources {
+        resource_entries.push(format!("				.copy(\"{}\")", &to.display()));
+        let to = sources_dir.join(to);
+
+        if let Some(parent) = to.parent() {
+            fs::create_dir_all(parent).expect("Couldn't create directory for resource");
+        }
+        fs::copy(from, to).expect("Couldn't copy resource");
+    }
+    resource_entries
 }
