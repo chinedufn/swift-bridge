@@ -303,15 +303,31 @@ fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
             }
         })
         .expect("Couldn't find project's bridging swift file");
-    fs::write(
-        sources_dir.join(&bridge_project_swift_dir.file_name().unwrap()),
+
+    let bridge_swift = fs::read_to_string(&bridge_project_swift_dir)
+        .expect("Couldn't read project's bridging swift file");
+
+    let bridge_content = if config.resources.is_empty() {
+        format!("import RustXcframework\n{bridge_swift}")
+    } else {
         format!(
-            "import RustXcframework\n{}",
-            fs::read_to_string(&bridge_project_swift_dir)
-                .expect("Couldn't read project's bridging swift file")
-        ),
-    )
-    .expect("Couldn't copy project's bridging swift file to the package");
+            r#"import RustXcframework
+import Foundation
+
+{bridge_swift}
+
+extension Bundle {{
+    public static var {}: Bundle = .module
+}} 
+"#,
+            first_lowercased(&config.package_name)
+        )
+    };
+
+    let bridge_path = sources_dir.join(&bridge_project_swift_dir.file_name().unwrap());
+
+    fs::write(bridge_path, bridge_content)
+        .expect("Couldn't copy project's bridging swift file to the package");
 
     // Copy resources
     let mut resource_entries: Vec<String> = vec![];
@@ -358,4 +374,13 @@ let package = Package(
 
     fs::write(output_dir.join("Package.swift"), package_swift)
         .expect("Couldn't write Package.swift file");
+}
+
+/// make first char lowercase
+fn first_lowercased(name: &str) -> String {
+    let mut c = name.chars();
+    match c.next() {
+        None => String::new(),
+        Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
+    }
 }
