@@ -381,10 +381,16 @@ fn copy_resources(resources: &[(PathBuf, PathBuf)], sources_dir: &Path) -> Vec<S
         resource_entries.push(format!("				.copy(\"{}\")", &to.display()));
         let to = sources_dir.join(to);
 
-        if let Some(parent) = to.parent() {
-            fs::create_dir_all(parent).expect("Couldn't create directory for resource");
+        if from.is_dir() {
+            copy_dir::copy_dir(from, &to).expect(&format!(
+                "Could not copy resource directory {from:?} to {to:?}"
+            ));
+        } else {
+            if let Some(parent) = to.parent() {
+                fs::create_dir_all(parent).expect("Couldn't create directory for resource");
+            }
+            fs::copy(from, to).expect("Couldn't copy resource");
         }
-        fs::copy(from, to).expect("Couldn't copy resource");
     }
     resource_entries
 }

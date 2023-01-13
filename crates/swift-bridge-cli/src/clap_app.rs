@@ -104,11 +104,11 @@ fn create_package_command() -> Command<'static> {
             Arg::new("resource")
                 .long("resource")
                 .takes_value(true)
-                .value_name("FROM_PATH:TO_PATH")
+                .value_name("SRC_PATH:DEST_PATH")
                 .multiple_values(true)
                 .help(
                     "A resource to copy to the package. \
-                    Use colon-separated from and to paths. \
+                    Use colon-separated source and destination paths. \
                     Ex: --resource=./folder/myresource.txt:packagefolder/myresource.txt",
                 ),
         )
