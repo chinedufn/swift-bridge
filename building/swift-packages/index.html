@@ -285,7 +285,10 @@ swift-bridge-cli --help
 <h2 id="using-the-swift-package"><a class="header" href="#using-the-swift-package">Using the Swift Package</a></h2>
 <p>We now have a Swift Package (in the <code>MySwiftPackage</code> directory) which we can include in other projects using the Swift Package Manager.</p>
 <h3 id="using-the-package-in-an-xcode-project"><a class="header" href="#using-the-package-in-an-xcode-project">Using the package in an Xcode project</a></h3>
-<p>To add the package to an iOS app in XCode, go to the target's general panel, click the <code>+</code> button in the <code>Frameworks, Libraries, and Embedded Content</code> section. Then, click <code>Add Other</code> and choose <code>Add Package Dependency</code>.</p>
+<p>To add the package to an iOS app in Xcode, first open your project's <code>.xcworkspace</code> file.</p>
+<p>Next, go to the package dependencies panel, and click on <code>+</code> -&gt; <code>Add Local</code> -&gt; and select the <code>MySwiftPackage</code> directory.</p>
+<p>Next, go to the target's general panel and click the <code>+</code> button in the <code>Frameworks, Libraries, and Embedded Content</code> section.</p>
+<p>Select <code>Workspace -&gt; MySwiftPackage -&gt; MySwiftPackage</code>.</p>
 <p>Import and use it in the same way as the executable.</p>
 <h3 id="using-the-package-in-an-executable-swift-project"><a class="header" href="#using-the-package-in-an-executable-swift-project">Using the package in an executable Swift project</a></h3>
 <p>Here is an example of an executable Swift project that depends on our newly created <code>MySwiftPackage</code>.</p>
