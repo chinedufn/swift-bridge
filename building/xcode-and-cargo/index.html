@@ -207,7 +207,8 @@ if [[ -n &quot;${DEVELOPER_SDK_DIR:-}&quot; ]]; then
   export LIBRARY_PATH=&quot;${DEVELOPER_SDK_DIR}/MacOSX.sdk/usr/lib:${LIBRARY_PATH:-}&quot;
 fi
 
-if [[ $LLVM_TARGET_TRIPLE_SUFFIX == &quot;-simulator&quot; ]]; then
+TARGETS=&quot;&quot;
+if [[ &quot;$PLATFORM_NAME&quot; = &quot;iphonesimulator&quot; ]]; then
     TARGETS=&quot;aarch64-apple-ios-sim,x86_64-apple-ios&quot;
 else
     TARGETS=&quot;aarch64-apple-ios,x86_64-apple-ios&quot;
