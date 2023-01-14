@@ -145,6 +145,10 @@ cd swift-bridge
 cargo test --all && ./test-integration.sh
 ```
 
+## Acknowledgements
+
+- [cxx](https://github.com/dtolnay/cxx) inspired the idea of using a bridge module to describe the FFI boundary.
+
 ---
 
 #### License
