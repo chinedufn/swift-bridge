@@ -104,6 +104,8 @@ fn create_package_command() -> Command<'static> {
             Arg::new("resource")
                 .long("resource")
                 .takes_value(true)
+                // TODO whenever clap supports array arguments we should switch to switch to using [PathBuf; 2] instead.
+                // See: https://github.com/clap-rs/clap/issues/1682
                 .value_name("SRC_PATH:DEST_PATH")
                 .multiple_values(true)
                 .help(
