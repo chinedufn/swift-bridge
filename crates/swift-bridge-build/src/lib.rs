@@ -5,6 +5,7 @@
 
 mod package;
 use crate::generate_core::write_core_swift_and_c;
+pub use crate::package::CopyBundleResourceDesc;
 pub use package::*;
 use std::path::Path;
 use swift_bridge_ir::{CodegenConfig, SwiftBridgeModule};

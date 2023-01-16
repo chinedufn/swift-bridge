@@ -394,7 +394,7 @@ fn first_lowercased(name: &str) -> String {
 /// # Examples
 ///
 /// ```
-/// # use crate::CopyBundleResourceDesc;
+/// # use swift_bridge_build::CopyBundleResourceDesc;
 ///
 /// // If you are creating a Swift Package called "MyLibrary", this descriptor will
 /// // lead to the package generator copying the `/path/to/images` directory to the
