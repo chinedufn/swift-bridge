@@ -310,6 +310,8 @@ fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
     let bridge_content = if config.resources.is_empty() {
         format!("import RustXcframework\n{bridge_swift}")
     } else {
+        // add a Bundle extension with a convenience accessor for the resources making
+        // them accessible from Swift with `Bundle.<package_name>`
         format!(
             r#"import RustXcframework
 import Foundation
