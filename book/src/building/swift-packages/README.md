@@ -235,3 +235,19 @@ cd SwiftProject
 swift run
 # You should see "Hello from Rust!" in your terminal.
 ```
+
+## Adding resources
+
+You can add resources to your Swift Package by specifying them when running the `swift-bridge-cli`
+with the `--resource` flag. Use colon-separated source and destination paths.
+Examples:
+
+- `--resource=source:destination`
+- `--resource=some_folder/some_file.txt:to_folder/some_file.txt`
+- `--resource=source_folder:destination_folder`.
+
+These resources will be accessible from your Swift Package's `Bundle` as a property.
+
+```swift
+Bundle.<camel cased cargo package name>
+```
