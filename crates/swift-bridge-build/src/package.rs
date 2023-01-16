@@ -19,7 +19,7 @@ pub struct CreatePackageConfig {
     /// The name for the Swift package
     pub package_name: String,
     /// Additional resources to copy into the package, first PathBuf is source and second is destination
-    pub resources: Vec<(PathBuf, PathBuf)>,
+    pub resources: Vec<CopyBundleResourceDesc>,
 }
 
 impl CreatePackageConfig {
@@ -29,7 +29,7 @@ impl CreatePackageConfig {
         paths: HashMap<ApplePlatform, PathBuf>,
         out_dir: PathBuf,
         package_name: String,
-        resources: Vec<(PathBuf, PathBuf)>,
+        resources: Vec<CopyBundleResourceDesc>,
     ) -> Self {
         Self {
             bridge_dir,
@@ -331,7 +331,15 @@ extension Bundle {{
     fs::write(bridge_path, bridge_content)
         .expect("Couldn't copy project's bridging swift file to the package");
 
-    let resource_entries = copy_resources(&config.resources, &sources_dir);
+    let resource_entries = config
+        .resources
+        .iter()
+        .map(|r| {
+            let name = r.copy(&sources_dir);
+            format!("				.copy(\"{name}\")")
+        })
+        .collect::<Vec<String>>()
+        .join("\n");
 
     // Generate Package.swift
     let package_name = &config.package_name;
@@ -355,13 +363,12 @@ let package = Package(
 			name: "{package_name}",
 			dependencies: ["RustXcframework"],
 			resources: [
-{}
+{resource_entries}
 			]
 		)
 	]
 )
-	"#,
-        resource_entries.join(",\n")
+	"#
     );
 
     fs::write(output_dir.join("Package.swift"), package_swift)
@@ -377,22 +384,82 @@ fn first_lowercased(name: &str) -> String {
     }
 }
 
-fn copy_resources(resources: &[(PathBuf, PathBuf)], sources_dir: &Path) -> Vec<String> {
-    let mut resource_entries: Vec<String> = vec![];
-    for (from, to) in resources {
-        resource_entries.push(format!("				.copy(\"{}\")", &to.display()));
-        let to = sources_dir.join(to);
+/// Describes a bundle resource to copy from some source path to some destination.
+///
+/// The source is a path to an existing file or directory that you wish to bundle.
+///
+/// The destination is a relative path that the resource will get copied to within the
+/// generated Swift package's `Sources/YourLibraryName` directory.
+///
+/// # Examples
+///
+/// ```
+/// # use crate::CopyBundleResourceDesc;
+///
+/// // If you are creating a Swift Package called "MyLibrary", this descriptor will
+/// // lead to the package generator copying the `/path/to/images` directory to the
+/// // the Swift package's `Sources/MyLibrary/assets/icons` directory.
+/// let resource = CopyBundleResourceDesc::new("/path/to/images", "assets/icons");
+/// ```
+pub struct CopyBundleResourceDesc {
+    source: PathBuf,
+    destination: PathBuf,
+}
 
-        if from.is_dir() {
-            copy_dir::copy_dir(from, &to).expect(&format!(
-                "Could not copy resource directory {from:?} to {to:?}"
+impl CopyBundleResourceDesc {
+    /// Parse a colon-separated pair of paths into a [`CopyBundleResourceDesc`].
+    ///
+    /// Examples: `source:destination`, `some_folder/some_file.txt:to_folder/some_file.txt`
+    /// or `source_folder:destination_folder`.
+    ///
+    /// # Panics
+    /// Panics if there is no colon in the pair.
+    pub fn from(pair: String) -> Self {
+        let mut split = pair.split(':');
+        let from = PathBuf::from(split.next().unwrap());
+        let to = PathBuf::from(
+            split
+                .next()
+                .expect(&format!("Invalid resource pair: {pair}")),
+        );
+        if !from.exists() {
+            panic!("Resource file does not exist: {from:?}");
+        }
+        if to.is_absolute() {
+            panic!("Resource destination must be relative: {to:?}");
+        }
+        Self {
+            source: from,
+            destination: to,
+        }
+    }
+    /// See [`CopyBundleResourceDesc`] for documentation.
+    ///
+    /// # Panics
+    /// Panics if the destination is an absolute path.
+    pub fn new(source: impl Into<PathBuf>, destination: impl Into<PathBuf>) -> Self {
+        let destination = destination.into();
+        assert!(destination.is_relative());
+        Self {
+            source: source.into(),
+            destination,
+        }
+    }
+
+    fn copy(&self, sources_dir: &Path) -> String {
+        let to = sources_dir.join(&self.destination);
+
+        if self.source.is_dir() {
+            copy_dir::copy_dir(&self.source, &to).expect(&format!(
+                "Could not copy resource directory {:?} to {to:?}",
+                self.source
             ));
         } else {
             if let Some(parent) = to.parent() {
                 fs::create_dir_all(parent).expect("Couldn't create directory for resource");
             }
-            fs::copy(from, to).expect("Couldn't copy resource");
+            fs::copy(&self.source, to).expect("Couldn't copy resource");
         }
+        self.destination.display().to_string()
     }
-    resource_entries
 }
