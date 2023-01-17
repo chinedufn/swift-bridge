@@ -81,6 +81,71 @@ void __swift_bridge__$SomeType$_free(void* self);
     }
 }
 
+/// Test code generation for an extern "Rust" type that implements Equatable.
+mod extern_rust_equatable_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(Equatable)]
+                    type EquatableType;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(
+            quote!{
+                #[export_name = "__swift_bridge__$EquatableType$_partial_eq"]
+                pub extern "C" fn __swift_bridge__EquatableType__partial_eq (
+                    lhs: *const super::EquatableType,
+                    rhs: *const super::EquatableType
+                ) -> bool {
+                    unsafe { &*lhs == &*rhs }
+                }
+            }
+        )
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+extension EquatableTypeRef: Equatable {
+    public static func == (lhs: EquatableTypeRef, rhs: EquatableTypeRef) -> Bool {
+        __swift_bridge__$EquatableType$_partial_eq(rhs.ptr, lhs.ptr)
+    }
+}
+"#
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+bool __swift_bridge__$EquatableType$_partial_eq(void* lhs, void* rhs);
+    "#,
+            r#"
+#include <stdint.h>
+#include <stdbool.h>
+"#,
+        ])
+    }
+
+    #[test]
+    fn extern_rust_equatable_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Test code generation for an extern "Rust" type that implements Copy.
 mod extern_rust_copy_type {
     use super::*;
