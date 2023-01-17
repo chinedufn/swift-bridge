@@ -179,7 +179,10 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                     }
                     if ty.attributes.equatable {
                         let ty_name = ty.ty_name_ident();
-                        let equal_ty = format!("bool __swift_bridge__${}$_partial_eq(void* lhs, void* rhs);", ty_name);
+                        let equal_ty = format!(
+                            "bool __swift_bridge__${}$_partial_eq(void* lhs, void* rhs);",
+                            ty_name
+                        );
                         bookkeeping.includes.insert("stdint.h");
                         bookkeeping.includes.insert("stdbool.h");
                         header += &equal_ty;

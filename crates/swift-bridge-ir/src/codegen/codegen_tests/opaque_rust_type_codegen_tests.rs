@@ -97,17 +97,15 @@ mod extern_rust_equatable_type {
     }
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
-        ExpectedRustTokens::Contains(
-            quote!{
-                #[export_name = "__swift_bridge__$EquatableType$_partial_eq"]
-                pub extern "C" fn __swift_bridge__EquatableType__partial_eq (
-                    lhs: *const super::EquatableType,
-                    rhs: *const super::EquatableType
-                ) -> bool {
-                    unsafe { &*lhs == &*rhs }
-                }
-            }
-        )
+        ExpectedRustTokens::Contains(quote! {
+        #[export_name = "__swift_bridge__$EquatableType$_partial_eq"]
+        pub extern "C" fn __swift_bridge__EquatableType__partial_eq (
+            lhs: *const super::EquatableType,
+            rhs: *const super::EquatableType
+        ) -> bool {
+            unsafe { &*lhs == &*rhs }
+        }
+        })
     }
 
     fn expected_swift_code() -> ExpectedSwiftCode {
@@ -118,7 +116,7 @@ extension EquatableTypeRef: Equatable {
         __swift_bridge__$EquatableType$_partial_eq(rhs.ptr, lhs.ptr)
     }
 }
-"#
+"#,
         )
     }
 

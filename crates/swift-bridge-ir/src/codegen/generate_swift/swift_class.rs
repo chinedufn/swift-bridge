@@ -209,7 +209,7 @@ extension {ty_name}Ref: Equatable {{
     }}
 }}"#,
             )
-        }else{
+        } else {
             "".to_string()
         }
     };

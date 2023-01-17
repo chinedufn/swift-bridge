@@ -19,7 +19,7 @@ impl RustEquatableType {
         RustEquatableType(0)
     }
 
-    fn set_value(&mut self, value: i32){
+    fn set_value(&mut self, value: i32) {
         self.0 = value;
     }
 }

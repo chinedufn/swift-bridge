@@ -28,7 +28,7 @@ pub(crate) struct OpaqueTypeSwiftBridgeAttributes {
     pub declare_generic: bool,
     /// `#[swift_bridge(Equatable)]`
     /// Used to determine if Equatable need to be implemented.
-    pub equatable: bool, 
+    pub equatable: bool,
 }
 
 impl OpaqueTypeAllAttributes {
@@ -72,7 +72,7 @@ impl OpaqueTypeSwiftBridgeAttributes {
             OpaqueTypeAttr::AlreadyDeclared => self.already_declared = true,
             OpaqueTypeAttr::Copy { size } => self.copy = Some(OpaqueCopy { size_bytes: size }),
             OpaqueTypeAttr::DeclareGeneric => self.declare_generic = true,
-            OpaqueTypeAttr::Equatable => self.equatable = true, 
+            OpaqueTypeAttr::Equatable => self.equatable = true,
         }
     }
 }
@@ -81,7 +81,7 @@ pub(crate) enum OpaqueTypeAttr {
     AlreadyDeclared,
     Copy { size: usize },
     DeclareGeneric,
-    Equatable, 
+    Equatable,
 }
 
 impl Parse for OpaqueTypeSwiftBridgeAttributes {

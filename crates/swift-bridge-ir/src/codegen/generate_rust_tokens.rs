@@ -94,9 +94,13 @@ impl ToTokens for SwiftBridgeModule {
                     match ty.host_lang {
                         HostLang::Rust => {
                             if ty.attributes.equatable {
-                                let export_name = format!("__swift_bridge__${}$_partial_eq", ty_name);
-                                let function_name = syn::Ident::new(&format!("__swift_bridge__{}__partial_eq", ty_name), ty.ty.span());
-                                let tokens = quote!{
+                                let export_name =
+                                    format!("__swift_bridge__${}$_partial_eq", ty_name);
+                                let function_name = syn::Ident::new(
+                                    &format!("__swift_bridge__{}__partial_eq", ty_name),
+                                    ty.ty.span(),
+                                );
+                                let tokens = quote! {
                                     #[export_name = #export_name]
                                     pub extern "C" fn #function_name (
                                         lhs: *const super::#ty_name,

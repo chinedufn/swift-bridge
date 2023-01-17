@@ -742,7 +742,7 @@ mod tests {
     /// Verify that we can parse the `equatable` attribute.
     #[test]
     fn parse_equatable_attribute() {
-        let tokens = quote!{
+        let tokens = quote! {
             mod foo {
                 extern "Rust" {
                     #[swift_bridge(Equatable)]
