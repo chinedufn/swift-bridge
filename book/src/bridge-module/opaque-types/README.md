@@ -201,3 +201,36 @@ mod ffi {
 The `16` indicates that a `UserId` has 16 bytes.
 
 `swift-bridge` will add a compile time assertion that confirms that the given size is correct.
+
+#### #[swift_bridge(Equatable)]
+
+You might want to make an opaque Rust type conform to ```Equatable```. If so, You don't need to implement manually ```Equatable``` for one. ```swift_bridge``` can do this automatically.
+
+Here's an example: 
+```rust
+//Rust side 
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        #[swift_bridge(Equatable)]
+        type RustEquatableType;
+
+        #[swift_bridge(init)]
+        fn new() -> RustEquatableType;
+    }
+}
+
+```
+
+If you have the above code passed to ```swift_bridge```, you can use something like this:
+```Swift
+//Swift side
+let  val1  =  RustEquatableType()
+let  val2  =  RustEquatableType()
+
+if val1 == val2 {
+    print("Equal")
+} else {
+    print("Not equal")
+}
+```
