@@ -204,29 +204,36 @@ The `16` indicates that a `UserId` has 16 bytes.
 
 #### #[swift_bridge(Equatable)]
 
-You might want to make an opaque Rust type conform to ```Equatable```. If so, You don't need to implement manually ```Equatable``` for one. ```swift_bridge``` can do this automatically.
+The `Equatable` attribute allows you to expose a Rust `PartialEq` implementation via Swift's
+`Equatable` protocol.
 
-Here's an example: 
 ```rust
-//Rust side 
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
         #[swift_bridge(Equatable)]
-        type RustEquatableType;
+        type RustPartialEqType;
 
         #[swift_bridge(init)]
-        fn new() -> RustEquatableType;
+        fn new(num: u32) -> RustEquatableType;
     }
 }
 
+#[derive(PartialEq)]
+struct RustPartialEqType(u32);
+
+impl RustPartialEqType {
+    fn new(num: u32) {
+        Self(num) 
+    }
+}
 ```
 
-If you have the above code passed to ```swift_bridge```, you can use something like this:
-```Swift
-//Swift side
-let  val1  =  RustEquatableType()
-let  val2  =  RustEquatableType()
+```swift
+// In Swift
+
+let val1 = RustPartialEqType(5)
+let val2 = RustPartialEqType(10)
 
 if val1 == val2 {
     print("Equal")
