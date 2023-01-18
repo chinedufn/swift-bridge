@@ -68,5 +68,26 @@ class OpaqueRustStructTests: XCTestCase {
         
         XCTAssert(val.eq(val2))
     }
+
+    func testOpaqueRustTypeImplEquatable() throws {
+        XCTContext.runActivity(named: "Should be equal"){
+            _ in
+            let val1 = RustEquatableType()
+            let val2 = RustEquatableType()
+
+            XCTAssertEqual(val1, val2)
+        }
+
+        XCTContext.runActivity(named: "Should not be equal"){
+            _ in
+            let val1 = RustEquatableType()
+            let val2 = RustEquatableType()
+
+            val1.set_value(11)
+            val2.set_value(22)
+
+            XCTAssertNotEqual(val1, val2)
+        }
+    }
 }
 

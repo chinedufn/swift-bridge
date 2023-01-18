@@ -739,6 +739,32 @@ mod tests {
         );
     }
 
+    /// Verify that we can parse the `equatable` attribute.
+    #[test]
+    fn parse_equatable_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(Equatable)]
+                    type SomeType;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        assert_eq!(
+            module
+                .types
+                .get("SomeType")
+                .unwrap()
+                .unwrap_opaque()
+                .attributes
+                .equatable,
+            true
+        );
+    }
+
     /// Verify that we can parse the `copy` attribute.
     #[test]
     fn parse_copy_attribute() {

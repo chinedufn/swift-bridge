@@ -198,10 +198,24 @@ where {swift_generic_bounds} {{
             free_func_name = ty.free_rust_opaque_type_ffi_name()
         );
     }
-
+    let equatable_method: String = {
+        if ty.attributes.equatable {
+            let ty_name = ty.ty_name_ident();
+            format!(
+                r#"
+extension {ty_name}Ref: Equatable {{
+    public static func == (lhs: {ty_name}Ref, rhs: {ty_name}Ref) -> Bool {{
+        __swift_bridge__${ty_name}$_partial_eq(rhs.ptr, lhs.ptr)
+    }}
+}}"#,
+            )
+        } else {
+            "".to_string()
+        }
+    };
     let class = format!(
         r#"
-{class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}{generic_freer}"#,
+{class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}{generic_freer}{equatable_method}"#,
         class_decl = class_decl,
         class_ref_decl = class_ref_mut_decl,
         class_ref_mut_decl = class_ref_decl,
@@ -209,7 +223,7 @@ where {swift_generic_bounds} {{
         owned_instance_methods = owned_instance_methods,
         ref_mut_instance_methods = ref_mut_instance_methods,
         ref_instance_methods = ref_instance_methods,
-        generic_freer = generic_freer
+        equatable_method = equatable_method
     );
 
     return class;
