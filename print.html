@@ -1398,34 +1398,41 @@ mod ffi {
 <p>The <code>16</code> indicates that a <code>UserId</code> has 16 bytes.</p>
 <p><code>swift-bridge</code> will add a compile time assertion that confirms that the given size is correct.</p>
 <h4 id="swift_bridgeequatable"><a class="header" href="#swift_bridgeequatable">#[swift_bridge(Equatable)]</a></h4>
-<p>You might want to make an opaque Rust type conform to <code>Equatable</code>. If so, You don't need to implement manually <code>Equatable</code> for one. <code>swift_bridge</code> can do this automatically.</p>
-<p>Here's an example: </p>
+<p>The <code>Equatable</code> attribute allows you to expose a Rust <code>PartialEq</code> implementation via Swift's
+<code>Equatable</code> protocol.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>//Rust side 
-#[swift_bridge::bridge]
+</span>#[swift_bridge::bridge]
 mod ffi {
     extern &quot;Rust&quot; {
         #[swift_bridge(Equatable)]
-        type RustEquatableType;
+        type RustPartialEqType;
 
         #[swift_bridge(init)]
-        fn new() -&gt; RustEquatableType;
+        fn new(num: u32) -&gt; RustEquatableType;
     }
 }
 
+#[derive(PartialEq)]
+struct RustPartialEqType(u32);
+
+impl RustPartialEqType {
+    fn new(num: u32) {
+        Self(num) 
+    }
+}
 <span class="boring">}
 </span></code></pre></pre>
-<p>If you have the above code passed to <code>swift_bridge</code>, you can use something like this:</p>
-<pre><code class="language-Swift">//Swift side
-let  val1  =  RustEquatableType()
-let  val2  =  RustEquatableType()
+<pre><code class="language-swift">// In Swift
+
+let val1 = RustPartialEqType(5)
+let val2 = RustPartialEqType(10)
 
 if val1 == val2 {
-    print(&quot;Equal&quot;)
+    print(&quot;Equal!&quot;)
 } else {
-    print(&quot;Not equal&quot;)
+    print(&quot;Not equal.&quot;)
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="transparent-types"><a class="header" href="#transparent-types">Transparent Types</a></h1>
