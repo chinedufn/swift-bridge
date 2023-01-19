@@ -1195,9 +1195,7 @@ mod some_module {
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use some_other_crate::Uuid;
-
-#[swift_bridge::bridge]
+</span>#[swift_bridge::bridge]
 mod ffi {
     extern &quot;Rust&quot; {
         #[swift_bridge(rust_name = &quot;another_function&quot;)]
@@ -1206,6 +1204,27 @@ mod ffi {
 }
 
 fn another_function() {
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h4 id="swift_bridgeswift_name--functionname"><a class="header" href="#swift_bridgeswift_name--functionname">#[swift_bridge(swift_name = &quot;functionName&quot;)]</a></h4>
+<p>Sets the function name that is used on the Swift side.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        // Exports `some_function` as `someFunction`.
+        #[swift_bridge(swift_name = &quot;someFunction&quot;)]
+        fn some_function();
+    }
+
+    extern &quot;Swift&quot; {
+        // Imports `anotherFunction` as `another_function`.
+        #[swift_bridge(swift_name = &quot;anotherFunction&quot;)]
+        fn another_function();
+    }
 }
 <span class="boring">}
 </span></code></pre></pre>
