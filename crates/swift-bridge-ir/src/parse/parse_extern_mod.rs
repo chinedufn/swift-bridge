@@ -345,7 +345,7 @@ mod tests {
     use crate::test_utils::{parse_errors, parse_ok};
     use crate::SwiftBridgeModule;
     use quote::{quote, ToTokens};
-    use syn::parse_quote;
+    use syn::{parse_quote, token};
 
     /// Verify that we can parse a SwiftBridgeModule from an empty module.
     #[test]
@@ -736,6 +736,32 @@ mod tests {
                 .unwrap_opaque()
                 .attributes
                 .already_declared
+        );
+    }
+
+    //Verify that we can parse the `hashable` attribute.
+    #[test]
+    fn parse_hashable_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(Hashable)]
+                    type SomeType;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        assert_eq!(
+            module
+                .types
+                .get("SomeType")
+                .unwrap()
+                .unwrap_opaque()
+                .attributes
+                .hashable,
+            true
         );
     }
 

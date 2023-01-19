@@ -177,6 +177,12 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                     if ty.attributes.declare_generic {
                         continue;
                     }
+                    if ty.attributes.hashable {
+                        let ty_name = ty.ty_name_ident();
+                        let hash_ty =
+                            format!("uint64_t __swift_bridge__${}$_hash(void* self);", ty_name);
+                        header += &hash_ty;
+                    }
                     if ty.attributes.equatable {
                         let ty_name = ty.ty_name_ident();
                         let equal_ty = format!(

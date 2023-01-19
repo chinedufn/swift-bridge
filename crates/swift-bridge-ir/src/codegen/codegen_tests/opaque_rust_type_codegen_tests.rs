@@ -81,6 +81,71 @@ void __swift_bridge__$SomeType$_free(void* self);
     }
 }
 
+/// Test code generation for an extern "Rust" type that implements Hashable.
+mod extern_rust_hashable_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(Hashable)]
+                    type HashableType;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+        use std::hash::Hash;
+        use std::hash::Hasher;
+        use std::collections::hash_map::DefaultHasher;
+        #[export_name = "__swift_bridge__$HashableType$_hash"]
+        pub extern "C" fn __swift_bridge__HashableType__hash (
+            this: *const super::HashableType,
+        ) -> u64 {
+            let mut s = DefaultHasher::new();
+            (unsafe {&*this}).hash(&mut s);
+            s.finish()
+        }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+extension HashableTypeRef: Hashable{
+    public func hash(into hasher: inout Hasher){
+        hasher.combine(__swift_bridge__$HashableType$_hash(self.ptr))
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+uint64_t __swift_bridge__$HashableType$_hash(void* self);  
+    "#,
+            r#"
+"#,
+        ])
+    }
+
+    #[test]
+    fn extern_rust_hashable_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Test code generation for an extern "Rust" type that implements Equatable.
 mod extern_rust_equatable_type {
     use super::*;
