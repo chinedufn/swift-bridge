@@ -236,7 +236,7 @@ if val1 == val2 {
 
 #### #[swift_bridge(Hashable)]
 
-The `Hashable` attribute allows you to expose Rust's `Hash` trait via Swift's
+The `Hashable` attribute allows you to expose a Rust `Hash` trait implementation via Swift's
 `Hashable` protocol.
 
 ```rust
