@@ -345,7 +345,7 @@ mod tests {
     use crate::test_utils::{parse_errors, parse_ok};
     use crate::SwiftBridgeModule;
     use quote::{quote, ToTokens};
-    use syn::{parse_quote};
+    use syn::parse_quote;
 
     /// Verify that we can parse a SwiftBridgeModule from an empty module.
     #[test]
