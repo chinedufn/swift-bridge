@@ -98,13 +98,13 @@ mod extern_rust_hashable_type {
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
-        use std::hash::Hash;
-        use std::hash::Hasher;
-        use std::collections::hash_map::DefaultHasher;
         #[export_name = "__swift_bridge__$HashableType$_hash"]
         pub extern "C" fn __swift_bridge__HashableType__hash (
             this: *const super::HashableType,
         ) -> u64 {
+            use std::hash::Hash;
+            use std::hash::Hasher;
+            use std::collections::hash_map::DefaultHasher;
             let mut s = DefaultHasher::new();
             (unsafe {&*this}).hash(&mut s);
             s.finish()
