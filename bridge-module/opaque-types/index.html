@@ -345,20 +345,12 @@ mod ffi {
     extern &quot;Rust&quot; {
         #[swift_bridge(Equatable)]
         type RustPartialEqType;
-
-        #[swift_bridge(init)]
-        fn new(num: u32) -&gt; RustEquatableType;
     }
 }
 
 #[derive(PartialEq)]
 struct RustPartialEqType(u32);
 
-impl RustPartialEqType {
-    fn new(num: u32) {
-        Self(num) 
-    }
-}
 <span class="boring">}
 </span></code></pre></pre>
 <pre><code class="language-swift">// In Swift
@@ -371,6 +363,36 @@ if val1 == val2 {
 } else {
     print(&quot;Not equal&quot;)
 }
+</code></pre>
+<h4 id="swift_bridgehashable"><a class="header" href="#swift_bridgehashable">#[swift_bridge(Hashable)]</a></h4>
+<p>The <code>Hashable</code> attribute allows you to expose a Rust <code>Hash</code> trait implementation via Swift's
+<code>Hashable</code> protocol.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        #[swift_bridge(Hashable)]
+        type RustHashType;
+    }
+}
+
+#[derive(Hash, PartialEq)]
+struct RustHashType(u32);
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// In Swift
+
+let val = RustHashType(10);
+
+let table: [RustHashType: String] = [:]
+
+table[val] = &quot;hello&quot;
+table[val] = &quot;world&quot;
+
+//Should print &quot;world&quot;
+print(table[val])
 </code></pre>
 
                     </main>
