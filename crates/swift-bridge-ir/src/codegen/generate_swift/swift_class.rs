@@ -213,9 +213,25 @@ extension {ty_name}Ref: Equatable {{
             "".to_string()
         }
     };
+    let hashable_method: String = {
+        if ty.attributes.hashable {
+            let ty_name = ty.ty_name_ident();
+            format!(
+                r#"
+extension {ty_name}Ref: Hashable{{
+    public func hash(into hasher: inout Hasher){{
+        hasher.combine(__swift_bridge__${ty_name}$_hash(self.ptr))
+    }}
+}}
+"#,
+            )
+        } else {
+            "".to_string()
+        }
+    };
     let class = format!(
         r#"
-{class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}{generic_freer}{equatable_method}"#,
+{class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}{generic_freer}{equatable_method}{hashable_method}"#,
         class_decl = class_decl,
         class_ref_decl = class_ref_mut_decl,
         class_ref_mut_decl = class_ref_decl,
@@ -223,7 +239,8 @@ extension {ty_name}Ref: Equatable {{
         owned_instance_methods = owned_instance_methods,
         ref_mut_instance_methods = ref_mut_instance_methods,
         ref_instance_methods = ref_instance_methods,
-        equatable_method = equatable_method
+        equatable_method = equatable_method,
+        hashable_method = hashable_method,
     );
 
     return class;
