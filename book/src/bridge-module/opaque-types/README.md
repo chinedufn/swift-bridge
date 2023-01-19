@@ -241,3 +241,44 @@ if val1 == val2 {
     print("Not equal")
 }
 ```
+
+#### #[swift_bridge(Hashable)]
+
+The `Hashable` attribute allows you to expose a Rust `Hash` trait via Swift's
+`Hashable` protocol.
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        #[swift_bridge(Hashable)]
+        type RustHashType;
+
+        #[swift_bridge(init)]
+        fn new(num: u32) -> RustHashType;
+    }
+}
+
+#[derive(Hash, PartialEq)]
+struct RustHashType(u32);
+
+impl RustHashType {
+    fn new(num: u32) {
+        Self(num) 
+    }
+}
+```
+
+```swift
+// In Swift
+
+let val = RustHashType(10)
+
+let table: [RustHashType: String] = [:]
+
+table[val] = "hello"
+table[val] = "world"
+
+//Should print "world"
+print(table[val])
+```
