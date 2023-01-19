@@ -268,8 +268,6 @@ mod some_module {
 Use the given `rust_name` to find the function's implementation.
 
 ```rust
-use some_other_crate::Uuid;
-
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
@@ -279,5 +277,26 @@ mod ffi {
 }
 
 fn another_function() {
+}
+```
+
+#### #[swift_bridge(swift_name = "functionName")]
+
+Sets the function name that is used on the Swift side.
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        // Exports `some_function` as `someFunction`.
+        #[swift_bridge(swift_name = "someFunction")]
+        fn some_function();
+    }
+
+    extern "Swift" {
+        // Imports `anotherFunction` as `another_function`.
+        #[swift_bridge(swift_name = "anotherFunction")]
+        fn another_function();
+    }
 }
 ```
