@@ -102,8 +102,7 @@ mod extern_rust_hashable_type {
         pub extern "C" fn __swift_bridge__HashableType__hash (
             this: *const super::HashableType,
         ) -> u64 {
-            use std::hash::Hash;
-            use std::hash::Hasher;
+            use std::hash::{Hash, Hasher};
             use std::collections::hash_map::DefaultHasher;
             let mut s = DefaultHasher::new();
             (unsafe {&*this}).hash(&mut s);

@@ -217,15 +217,15 @@ mod ffi {
 }
 
 #[derive(PartialEq)]
-struct RustPartialEqType;
+struct RustPartialEqType(u32);
 
 ```
 
 ```swift
 // In Swift
 
-let val1 = RustPartialEqType()
-let val2 = RustPartialEqType()
+let val1 = RustPartialEqType(5)
+let val2 = RustPartialEqType(10)
 
 if val1 == val2 {
     print("Equal")
@@ -249,13 +249,13 @@ mod ffi {
 }
 
 #[derive(Hash, PartialEq)]
-struct RustHashType;
+struct RustHashType(u32);
 ```
 
 ```swift
 // In Swift
 
-let val = RustHashType()
+let val = RustHashType(10);
 
 let table: [RustHashType: String] = [:]
 
