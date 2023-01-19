@@ -100,13 +100,12 @@ impl ToTokens for SwiftBridgeModule {
                                     ty.ty.span(),
                                 );
                                 let tokens = quote! {
-                                use std::hash::Hash;
-                                use std::hash::Hasher;
-                                use std::collections::hash_map::DefaultHasher;
                                 #[export_name = #export_name]
                                 pub extern "C" fn #function_name (
                                     this: *const super::#ty_name,
                                 ) -> u64 {
+                                    use std::hash::{Hash, Hasher};
+                                    use std::collections::hash_map::DefaultHasher;
                                     let mut s = DefaultHasher::new();
                                     (unsafe {&*this}).hash(&mut s);
                                     s.finish()
