@@ -9,6 +9,4 @@ mod ffi {
     }
 }
 
-pub struct SomeType;
-
 fn main() {}
