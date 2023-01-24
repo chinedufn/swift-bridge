@@ -5,8 +5,6 @@ set -e
 THISDIR=$(dirname $0)
 cd $THISDIR
 
-export SWIFT_BRIDGE_OUT_DIR="$(pwd)/generated"
-
 cargo build -p async-functions
 
 swiftc -L ../../target/debug \

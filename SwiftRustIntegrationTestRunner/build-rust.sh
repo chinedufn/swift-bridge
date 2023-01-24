@@ -9,8 +9,6 @@ fi
 
 export PATH="$HOME/.cargo/bin:$PATH"
 
-export SWIFT_BRIDGE_OUT_DIR="${PROJECT_DIR}/Generated"
-
 # Without this we can't compile on MacOS Big Sur
 # https://github.com/TimNN/cargo-lipo/issues/41#issuecomment-774793892
 if [[ -n "${DEVELOPER_SDK_DIR:-}" ]]; then

@@ -8,8 +8,6 @@ set -e
 
 export PATH="$HOME/.cargo/bin:$PATH"
 
-export SWIFT_BRIDGE_OUT_DIR="${PROJECT_DIR}/Generated"
-
 # if [ $ENABLE_PREVIEWS == "NO" ]; then
 
   if [[ $CONFIGURATION == "Release" ]]; then
