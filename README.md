@@ -145,6 +145,15 @@ cd swift-bridge
 cargo test --all && ./test-integration.sh
 ```
 
+## Contributing
+
+If you're interesting in contributing to `swift-bridge`, check out the [contributor's guide](https://chinedufn.github.io/swift-bridge/contributing/index.html).
+
+After getting familiar with the contribution process, try looking at some of the [good first issues](https://github.com/chinedufn/swift-bridge/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+to see if any peak your interest.
+
+These issues come with step-by-step instructions that should help guide you towards implementing your first patch.
+
 ## Acknowledgements
 
 - [cxx](https://github.com/dtolnay/cxx) inspired the idea of using a bridge module to describe the FFI boundary.
