@@ -244,8 +244,6 @@ cd $PROJECT_DIR
 
 export PATH=&quot;$HOME/.cargo/bin:$PATH&quot;
 
-export SWIFT_BRIDGE_OUT_DIR=&quot;${PROJECT_DIR}/Generated&quot;
-
 # Without this we can't compile on MacOS Big Sur
 # https://github.com/TimNN/cargo-lipo/issues/41#issuecomment-774793892
 if [[ -n &quot;${DEVELOPER_SDK_DIR:-}&quot; ]]; then
@@ -612,8 +610,6 @@ fn main() {
 #!/bin/bash
 set -e
 
-export SWIFT_BRIDGE_OUT_DIR=&quot;$(pwd)/generated&quot;
-
 cargo build --target x86_64-apple-darwin
 swiftc -L target/x86_64-apple-darwin/debug/ -lswift_and_rust -import-objc-header bridging-header.h \
   main.swift lib.swift ./generated/swift-and-rust/swift-and-rust.swift
@@ -737,7 +733,6 @@ set -e
 THISDIR=$(dirname $0)
 cd $THISDIR
 
-export SWIFT_BRIDGE_OUT_DIR=&quot;$(pwd)/generated&quot;
 # Build the project for the desired platforms:
 cargo build --target x86_64-apple-darwin
 cargo build --target aarch64-apple-darwin
