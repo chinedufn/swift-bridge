@@ -2,7 +2,7 @@ use crate::generate_core::boxed_fn_support::{
     C_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN, SWIFT_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN,
 };
 use crate::generate_core::result_support::{C_RESULT_SUPPORT, SWIFT_RUST_RESULT};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 const RUST_STRING_SWIFT: &'static str = include_str!("./generate_core/rust_string.swift");
 const RUST_STRING_C: &'static str = include_str!("./generate_core/rust_string.c.h");
@@ -42,16 +42,6 @@ fn core_swift() -> String {
 
     core_swift += STRING_SWIFT;
     core_swift += RUST_VEC_SWIFT;
-
-    for path in vec![
-        "src/std_bridge/string.swift",
-        "src/std_bridge/rust_vec.swift",
-    ] {
-        println!(
-            "cargo:rerun-if-changed={}",
-            PathBuf::from(path).to_str().unwrap()
-        )
-    }
 
     for (swift_ty, rust_ty) in vec![
         ("UInt8", "u8"),
