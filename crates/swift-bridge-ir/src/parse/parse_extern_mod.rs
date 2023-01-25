@@ -160,7 +160,6 @@ impl<'a> ForeignModParser<'a> {
                             ));
                         }
                     }
-
                     for arg in func.sig.inputs.iter() {
                         let is_mutable_ref = fn_arg_is_mutable_reference(arg);
 
@@ -180,7 +179,32 @@ impl<'a> ForeignModParser<'a> {
                                 .push(ParseError::ArgCopyAndRefMut { arg: arg.clone() });
                         }
                     }
-
+                    if let Some(ref args) = attributes.args_into {
+                        for arg in args.iter() {
+                            let mut count = 0;
+                            for func_arg in func.sig.inputs.iter() {
+                                match func_arg {
+                                    FnArg::Typed(pat_ty) => {
+                                        let func_arg_name =
+                                            pat_ty.pat.to_token_stream().to_string();
+                                        let arg_name = arg.to_token_stream().to_string();
+                                        if func_arg_name != arg_name {
+                                            count += 1;
+                                        }
+                                    }
+                                    _ => {
+                                        todo!("Add a test that hits this case")
+                                    }
+                                }
+                            }
+                            if count == func.sig.inputs.len() {
+                                self.errors.push(ParseError::ArgsIntoArgNotFound {
+                                    func: func.clone(),
+                                    missing_arg: arg.clone(),
+                                })
+                            }
+                        }
+                    }
                     let func = ParsedExternFn {
                         func,
                         associated_type,
@@ -864,6 +888,25 @@ mod tests {
                 .unwrap(),
             " Some comment"
         );
+    }
+
+    /// Verify that we push errors for unknown arguments
+    #[test]
+    fn error_args_into_arg_not_found() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(args_into = (foo, bar))]
+                    fn some_function(foo: u8);
+                }
+            }
+        };
+
+        let errors = parse_errors(tokens);
+
+        /// Only "bar" should be missing argument.
+        assert_eq!(errors.len(), 1);
     }
 
     /// Verify that we push errors for function arguments that are both mutable and opaque Copy.
