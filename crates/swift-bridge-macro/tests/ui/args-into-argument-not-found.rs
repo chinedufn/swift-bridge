@@ -7,10 +7,24 @@ mod ffi {
         #[swift_bridge(args_into = (arg, arg_typo))]
         fn some_function(arg: u8);
     }
+    extern "Rust" {
+        type SomeType;
+    
+        #[swift_bridge(args_into = (foo, bar))]
+        fn some_method(&self, foo: u8);
+    }
 }
 
 fn some_function(arg: u8){
 
+}
+
+struct SomeType;
+
+impl SomeType {
+    fn some_method(&self, foo: u8){
+
+    }
 }
 
 fn main() {

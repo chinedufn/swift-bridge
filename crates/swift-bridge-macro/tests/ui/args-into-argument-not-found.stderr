@@ -1,6 +1,11 @@
-error: arg_typo: Unknown argument
-       Could not find "arg_typo" in "fn some_function(arg : u8)".
+error: Argument "arg_typo" was not found in the "fn some_function(..)"
  --> tests/ui/args-into-argument-not-found.rs:7:42
   |
 7 |         #[swift_bridge(args_into = (arg, arg_typo))]
   |                                          ^^^^^^^^
+
+error: Argument "bar" was not found in the "fn some_method(..)"
+  --> tests/ui/args-into-argument-not-found.rs:13:42
+   |
+13 |         #[swift_bridge(args_into = (foo, bar))]
+   |                                          ^^^

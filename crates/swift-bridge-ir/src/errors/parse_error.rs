@@ -75,12 +75,9 @@ impl Into<syn::Error> for ParseError {
             ParseError::ArgsIntoArgNotFound { func, missing_arg } => Error::new_spanned(
                 missing_arg.clone(),
                 format!(
-                    r#"{}: Unknown argument
-Could not find "{}" in "{}".
-"#,
+                    r#"Argument "{}" was not found in the "fn {}(..)""#,
                     missing_arg,
-                    missing_arg,
-                    func.sig.to_token_stream().to_string()
+                    func.sig.ident.to_token_stream().to_string()
                 ),
             ),
             ParseError::AbiNameMissing {
