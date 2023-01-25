@@ -1,11 +1,15 @@
 use proc_macro2::Ident;
 use quote::ToTokens;
 use syn::{Error, FnArg, Item, Receiver};
-use syn::{ForeignItemType, LitStr};
+use syn::{ForeignItemFn, ForeignItemType, LitStr};
 use syn::{Token, Type};
 
 // <!-- ANCHOR: mdbook-parse-error-enum -->
 pub(crate) enum ParseError {
+    ArgsIntoArgNotFound {
+        func: ForeignItemFn,
+        missing_arg: Ident,
+    },
     /// `extern {}`
     AbiNameMissing {
         /// `extern {}`
@@ -71,6 +75,14 @@ pub(crate) enum IdentifiableParseError {
 impl Into<syn::Error> for ParseError {
     fn into(self) -> Error {
         match self {
+            ParseError::ArgsIntoArgNotFound { func, missing_arg } => Error::new_spanned(
+                missing_arg.clone(),
+                format!(
+                    r#"Argument "{}" was not found in the "fn {}(..)""#,
+                    missing_arg,
+                    func.sig.ident.to_token_stream().to_string()
+                ),
+            ),
             ParseError::AbiNameMissing {
                 extern_token: extern_ident,
             } => Error::new_spanned(

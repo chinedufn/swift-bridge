@@ -13,7 +13,7 @@ use crate::parsed_extern_fn::fn_arg_is_mutable_reference;
 use crate::ParsedExternFn;
 use quote::ToTokens;
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use syn::{FnArg, ForeignItem, ForeignItemFn, GenericParam, ItemForeignMod, Pat, ReturnType, Type};
 
@@ -160,7 +160,6 @@ impl<'a> ForeignModParser<'a> {
                             ));
                         }
                     }
-
                     for arg in func.sig.inputs.iter() {
                         let is_mutable_ref = fn_arg_is_mutable_reference(arg);
 
@@ -180,7 +179,29 @@ impl<'a> ForeignModParser<'a> {
                                 .push(ParseError::ArgCopyAndRefMut { arg: arg.clone() });
                         }
                     }
+                    if let Some(ref args) = attributes.args_into {
+                        let mut func_sig_args = HashSet::with_capacity(args.len());
+                        for fn_arg in func.sig.inputs.iter() {
+                            match fn_arg {
+                                FnArg::Receiver(_) => {}
+                                FnArg::Typed(pat_ty) => {
+                                    let fn_arg_name = pat_ty.pat.to_token_stream().to_string();
+                                    func_sig_args.insert(fn_arg_name);
+                                }
+                            }
+                        }
 
+                        for arg in args.iter() {
+                            let arg_name = arg.to_token_stream().to_string();
+
+                            if !func_sig_args.contains(&arg_name) {
+                                self.errors.push(ParseError::ArgsIntoArgNotFound {
+                                    func: func.clone(),
+                                    missing_arg: arg.clone(),
+                                })
+                            }
+                        }
+                    }
                     let func = ParsedExternFn {
                         func,
                         associated_type,
@@ -864,6 +885,34 @@ mod tests {
                 .unwrap(),
             " Some comment"
         );
+    }
+
+    /// Verify that we push errors for unknown arguments in a function
+    #[test]
+    fn error_args_into_arg_not_found_in_function() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(args_into = (foo, bar))]
+                    fn some_function(foo: u8);
+                }
+            }
+        };
+
+        let errors = parse_errors(tokens);
+
+        // Only "bar" should be missing argument.
+        assert_eq!(errors.len(), 1);
+        match &errors[0] {
+            ParseError::ArgsIntoArgNotFound {
+                func: _,
+                missing_arg,
+            } => {
+                assert_eq!(missing_arg, "bar")
+            }
+            _ => panic!(),
+        }
     }
 
     /// Verify that we push errors for function arguments that are both mutable and opaque Copy.
