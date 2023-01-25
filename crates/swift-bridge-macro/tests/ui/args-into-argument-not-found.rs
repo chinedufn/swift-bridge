@@ -15,18 +15,12 @@ mod ffi {
     }
 }
 
-fn some_function(arg: u8){
-
-}
+fn some_function(arg: u8) {}
 
 struct SomeType;
 
 impl SomeType {
-    fn some_method(&self, foo: u8){
-
-    }
+    fn some_method(&self, foo: u8) {}
 }
 
-fn main() {
-
-}
+fn main() {}

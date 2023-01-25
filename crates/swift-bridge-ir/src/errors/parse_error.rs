@@ -78,7 +78,7 @@ impl Into<syn::Error> for ParseError {
             ParseError::ArgsIntoArgNotFound { func, missing_arg } => Error::new_spanned(
                 missing_arg.clone(),
                 format!(
-                    r#"Argument "{}" was not found in the "fn {}(..)""#,
+                    r#"Argument "{}" was not found in "fn {}(..)""#,
                     missing_arg,
                     func.sig.ident.to_token_stream().to_string()
                 ),
