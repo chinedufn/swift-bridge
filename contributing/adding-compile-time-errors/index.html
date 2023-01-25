@@ -223,7 +223,7 @@ impl Into&lt;syn::Error&gt; for ParseError {
             ParseError::ArgsIntoArgNotFound { func, missing_arg } =&gt; Error::new_spanned(
                 missing_arg.clone(),
                 format!(
-                    r#&quot;Argument &quot;{}&quot; was not found in the &quot;fn {}(..)&quot;&quot;#,
+                    r#&quot;Argument &quot;{}&quot; was not found in &quot;fn {}(..)&quot;&quot;#,
                     missing_arg,
                     func.sig.ident.to_token_stream().to_string()
                 ),
