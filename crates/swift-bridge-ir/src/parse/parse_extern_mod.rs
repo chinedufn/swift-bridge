@@ -905,7 +905,7 @@ mod tests {
 
         let errors = parse_errors(tokens);
 
-        /// Only "bar" should be missing argument.
+        // Only "bar" should be missing argument.
         assert_eq!(errors.len(), 1);
     }
 
