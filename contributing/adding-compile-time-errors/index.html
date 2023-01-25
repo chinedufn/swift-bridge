@@ -183,6 +183,10 @@ pub struct SomeType;
 </span>// via: crates/swift-bridge-ir/src/errors/parse_error.rs
 
 pub(crate) enum ParseError {
+    ArgsIntoArgNotFound {
+        func: ForeignItemFn,
+        missing_arg: Ident,
+    },
     /// `extern {}`
     AbiNameMissing {
         /// `extern {}`
@@ -216,6 +220,14 @@ Here are a few examples:</p>
 impl Into&lt;syn::Error&gt; for ParseError {
     fn into(self) -&gt; Error {
         match self {
+            ParseError::ArgsIntoArgNotFound { func, missing_arg } =&gt; Error::new_spanned(
+                missing_arg.clone(),
+                format!(
+                    r#&quot;Argument &quot;{}&quot; was not found in the &quot;fn {}(..)&quot;&quot;#,
+                    missing_arg,
+                    func.sig.ident.to_token_stream().to_string()
+                ),
+            ),
             ParseError::AbiNameMissing {
                 extern_token: extern_ident,
             } =&gt; Error::new_spanned(
