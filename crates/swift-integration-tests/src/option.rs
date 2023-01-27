@@ -76,9 +76,10 @@ mod ffi {
         fn rust_reflect_option_bool(arg: Option<bool>) -> Option<bool>;
 
         fn rust_reflect_option_string(arg: Option<String>) -> Option<String>;
-
         fn rust_create_option_static_str() -> Option<&'static str>;
         fn rust_reflect_option_str(arg: Option<&str>) -> Option<&str>;
+
+        fn rust_reflect_option_vector_rust_type(arg: Option<Vec<u16>>) -> Option<Vec<u16>>;
 
         fn rust_reflect_option_opaque_rust_type(
             arg: Option<OptTestOpaqueRustType>,
@@ -189,6 +190,10 @@ fn rust_create_option_static_str() -> Option<&'static str> {
     Some("hello")
 }
 fn rust_reflect_option_str(arg: Option<&str>) -> Option<&str> {
+    arg
+}
+
+fn rust_reflect_option_vector_rust_type(arg: Option<Vec<u16>>) -> Option<Vec<u16>> {
     arg
 }
 

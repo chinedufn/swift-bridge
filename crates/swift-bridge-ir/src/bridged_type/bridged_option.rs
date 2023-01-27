@@ -90,7 +90,13 @@ impl BridgedOption {
                     }
                 }
                 StdLibType::Vec(_) => {
-                    todo!("Support Option<Vec<T>>")
+                    quote! {
+                        if let Some(value) = #expression {
+                            Box::into_raw(Box::new(value))
+                        } else {
+                            std::ptr::null_mut()
+                        }
+                    }
                 }
                 StdLibType::Option(_) => {
                     todo!("Support Option<Option<T>>")
@@ -154,7 +160,9 @@ impl BridgedOption {
                     }
                 }
                 StdLibType::Vec(_) => {
-                    todo!("Option<Vec<T>> is not yet supported")
+                    quote! {
+                        if #expression.is_null() { None } else { Some( unsafe { * Box::from_raw(#expression) } ) }
+                    }
                 }
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T>> is not yet supported")
@@ -214,7 +222,11 @@ impl BridgedOption {
                         )
                 }
                 StdLibType::Vec(_) => {
-                    todo!("Support Option<Vec<T>>")
+                    format!(
+                        "{{ let val = {expression}; if val != nil {{ return RustVec(ptr: val!) }} else {{ return nil }} }}()"
+                    ,
+                    expression = expression
+                    )
                 }
                 StdLibType::Option(_) => {
                     todo!("Support Option<Option<T>>")
@@ -280,7 +292,10 @@ impl BridgedOption {
                     format!("{expression}AsRustStr", expression = expression)
                 }
                 StdLibType::Vec(_) => {
-                    todo!("Option<Vec<T> is not yet supported")
+                    format!(
+                        "{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()"
+                    , expression = expression
+                    )
                 }
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T> is not yet supported")
@@ -340,9 +355,7 @@ impl BridgedOption {
                     todo!("Option<&[T]> is not yet supported")
                 }
                 StdLibType::Str => "struct RustStr".to_string(),
-                StdLibType::Vec(_) => {
-                    todo!("Option<Vec<T>> is not yet supported")
-                }
+                StdLibType::Vec(_) => "void*".to_string(),
                 StdLibType::Option(_) => {
                     todo!("Option<Option<T>> is not yet supported")
                 }
