@@ -94,6 +94,18 @@ class OptionTests: XCTestCase {
         XCTAssertNil(rust_reflect_option_str(none))
     }
     
+    func testSwiftCallRustWithOptionVecType() throws {
+        let vec = RustVec<UInt16>()
+        vec.push(value: 123)
+        vec.push(value: 321)
+        let refrelct = rust_reflect_option_vector_rust_type(vec)
+        XCTAssertEqual(vec.len(), 2)
+        XCTAssertEqual(vec.get(index: 0), 123)
+        XCTAssertEqual(vec.get(index: 1), 321)
+        
+        XCTAssertNil(rust_reflect_option_vector_rust_type(nil))
+    }
+    
     func testSwiftCallRustWithOptionOpaqueRustType() throws {
         let val = OptTestOpaqueRustType(123)
         let reflect = rust_reflect_option_opaque_rust_type(val)

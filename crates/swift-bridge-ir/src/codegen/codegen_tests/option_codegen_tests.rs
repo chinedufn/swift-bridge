@@ -4,6 +4,70 @@ use super::{CodegenTest, ExpectedCHeader, ExpectedRustTokens, ExpectedSwiftCode}
 use proc_macro2::TokenStream;
 use quote::quote;
 
+/// Test code generation for Rust function that accepts and returns an Option<Vec<T>> where T is a
+/// primitive.
+mod exterun_rust_fn_option_vector_primitive {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    fn some_function (arg: Option<Vec<i32>>) -> Option<Vec<u32>>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function(
+                arg: *mut Vec<i32>
+            ) -> *mut Vec<u32> {
+                if let Some(value) = super::some_function(
+                    if arg.is_null() {
+                        None
+                    } else {
+                        Some( unsafe { * Box::from_raw(arg) } )
+                    }
+                ) {
+                    Box::into_raw(Box::new(value))
+                } else {
+                    std::ptr::null_mut()
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public func some_function(_ arg: Optional<RustVec<Int32>>) -> Optional<RustVec<UInt32>> {
+    { let val = __swift_bridge__$some_function({ if let val = arg { val.isOwned = false; return val.ptr } else { return nil } }()); if val != nil { return RustVec(ptr: val!) } else { return nil } }()
+}
+"#,
+        )
+    }
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ExactAfterTrim(
+        r#"
+void* __swift_bridge__$some_function(void* arg);
+    "#,
+    );
+
+    #[test]
+    fn exterun_rust_fn_option_vector_primitive() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}
+
 /// Test code generation for Rust function that accepts and returns an Option<T> where T is a
 /// primitive.
 mod extern_rust_fn_option_primitive {

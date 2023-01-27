@@ -888,8 +888,9 @@ impl BridgedType {
                         StdLibType::Str => {
                             quote! { #swift_bridge_path::string::RustStr }
                         }
-                        StdLibType::Vec(_) => {
-                            todo!("Option<Vec<T>> is not yet supported")
+                        StdLibType::Vec(ty) => {
+                            let ty = ty.ty.to_rust_type_path();
+                            quote! { *mut Vec<#ty> }
                         }
                         StdLibType::Option(_) => {
                             todo!("Option<Option<T>> is not yet supported")
