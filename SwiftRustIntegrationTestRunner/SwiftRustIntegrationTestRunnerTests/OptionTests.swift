@@ -98,11 +98,12 @@ class OptionTests: XCTestCase {
         let vec = RustVec<UInt16>()
         vec.push(value: 123)
         vec.push(value: 321)
-        let reflected = rust_reflect_option_vector_rust_type(vec)
-        XCTAssertEqual(reflected!.len(), 2)
 
-        XCTAssertEqual(reflected!.get(index: 0), 123)
-        XCTAssertEqual(reflected!.get(index: 1), 321)
+        let reflected = rust_reflect_option_vector_rust_type(vec)!
+        XCTAssertEqual(reflected.len(), 2)
+
+        XCTAssertEqual(reflected.get(index: 0), 123)
+        XCTAssertEqual(reflected.get(index: 1), 321)
 
         XCTAssertNil(rust_reflect_option_vector_rust_type(nil))
     }
