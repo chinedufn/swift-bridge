@@ -22,3 +22,6 @@ public class ResultTestOpaqueSwiftType {
         self.num
     }
 }
+
+extension ResultTestOpaqueRustType: @unchecked Sendable {}
+extension ResultTestOpaqueRustType: Error {}

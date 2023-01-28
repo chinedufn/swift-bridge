@@ -1,4 +1,4 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType, TypePosition};
+use crate::bridged_type::{pat_type_pat_is_self, BridgeableType, BridgedType, TypePosition};
 use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
 use quote::ToTokens;
@@ -126,8 +126,11 @@ impl ParsedExternFn {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(built_in) = BridgedType::new_with_type(&ty, types) {
+                    let maybe_throws = if built_in.is_result() { "throws " } else { "" };
+
                     format!(
-                        " -> {}",
+                        " {}-> {}",
+                        maybe_throws,
                         built_in.to_swift_type(TypePosition::FnReturn(self.host_lang,), types)
                     )
                 } else {
