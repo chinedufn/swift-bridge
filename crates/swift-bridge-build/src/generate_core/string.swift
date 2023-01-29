@@ -27,7 +27,7 @@ extension RustStr: Identifiable {
 }
 extension RustStr: Equatable {
     public static func == (lhs: RustStr, rhs: RustStr) -> Bool {
-        return __swift_bridge__equality_operator_for_RustStr(lhs, rhs);
+        return __swift_bridge__$RustStr$partial_eq(lhs, rhs);
     }
 }
 

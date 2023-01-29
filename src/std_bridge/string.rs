@@ -1,3 +1,5 @@
+//! The corresponding C and Swift code can be found in
+//! crates/swift-bridge-build/src/generate_core/rust_string.{c.h,swift}
 pub use self::ffi::*;
 
 #[swift_bridge_macro::bridge(swift_bridge_path = crate)]
@@ -77,6 +79,17 @@ impl RustStr {
         RustStr {
             start: str.as_ptr(),
             len: str.len(),
+        }
+    }
+
+    pub fn partial_eq(
+        lhs: Self,
+        rhs: Self,
+    ) -> bool {
+    
+        unsafe { 
+            std::slice::from_raw_parts(lhs.start, lhs.len) ==
+            std::slice::from_raw_parts(rhs.start, rhs.len)
         }
     }
 }

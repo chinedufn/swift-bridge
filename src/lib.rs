@@ -94,23 +94,3 @@ pub extern "C" fn __swift_bridge__null_pointer() -> *const std::ffi::c_void {
 
 #[doc(hidden)]
 pub fn assert_copy<T: Copy>() {}
-
-#[no_mangle]
-#[doc(hidden)]
-pub extern "C" fn __swift_bridge__equality_operator_for_RustStr(
-    lhs: string::RustStr,
-    rhs: string::RustStr,
-) -> bool {
-    if lhs.len != rhs.len {
-        return false;
-    }
-
-    unsafe {
-        for i in 0..lhs.len {
-            if *lhs.start.offset(i as isize) != *rhs.start.offset(i as isize) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
