@@ -16,3 +16,4 @@ void* __swift_bridge__$RustString$new_with_str(struct RustStr str);
 uintptr_t __swift_bridge__$RustString$len(void* self);
 struct RustStr __swift_bridge__$RustString$as_str(void* self);
 struct RustStr __swift_bridge__$RustString$trim(void* self);
+bool __swift_bridge__$RustStr$partial_eq(struct RustStr lhs, struct RustStr rhs);
