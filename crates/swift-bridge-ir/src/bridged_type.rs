@@ -51,6 +51,9 @@ pub(crate) trait BridgeableType: Debug {
         !self.is_built_in_type()
     }
 
+    /// Whether or not this is a `Result<T,E>`.
+    fn is_result(&self) -> bool;
+
     /// Get the Rust representation of this type.
     /// For a string this might be `std::string::String`.
     fn to_rust_type_path(&self) -> TokenStream;
@@ -273,7 +276,7 @@ pub(crate) fn bridgeable_type_from_fn_arg(
     }
 }
 
-// TODO: We're replacing this with `Box<dyn BridgeableType>`.
+// TODO: We're gradually replacing `BridgedType` with `Box<dyn BridgeableType>`.
 //  So continue to move more functionality into that trait.
 #[derive(Debug)]
 pub(crate) enum BridgedType {
@@ -384,6 +387,14 @@ impl BridgeableType for BridgedType {
         !self.is_custom_type()
     }
 
+    fn is_result(&self) -> bool {
+        match self {
+            BridgedType::StdLib(StdLibType::Result(_)) => true,
+            BridgedType::Bridgeable(ty) => ty.is_result(),
+            _ => false,
+        }
+    }
+
     fn to_rust_type_path(&self) -> TokenStream {
         self.to_rust_type_path()
     }
@@ -430,11 +441,11 @@ impl BridgeableType for BridgedType {
 
     fn convert_rust_expression_to_ffi_type(
         &self,
-        _expression: &TokenStream,
-        _swift_bridge_path: &Path,
-        _types: &TypeDeclarations,
+        expression: &TokenStream,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
     ) -> TokenStream {
-        todo!()
+        self.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types)
     }
 
     fn convert_option_rust_expression_to_ffi_type(
@@ -1225,8 +1236,8 @@ impl BridgedType {
                 StdLibType::Option(opt) => {
                     opt.convert_rust_expression_to_ffi_type(expression, swift_bridge_path)
                 }
-                StdLibType::Result(_) => {
-                    todo!("Result<T, E> is not yet supported")
+                StdLibType::Result(result) => {
+                    result.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types)
                 }
                 StdLibType::BoxedFnOnce(fn_once) => {
                     fn_once.convert_rust_value_to_ffi_compatible_value(expression)
@@ -1391,8 +1402,8 @@ impl BridgedType {
                     format!("RustVec(ptr: {})", expression)
                 }
                 StdLibType::Option(opt) => opt.convert_ffi_expression_to_swift_type(expression),
-                StdLibType::Result(_) => {
-                    todo!("Result<T, E> is not yet supported")
+                StdLibType::Result(result) => {
+                    result.convert_ffi_value_to_swift_value(expression, type_pos, types)
                 }
                 StdLibType::BoxedFnOnce(fn_once) => {
                     fn_once.convert_ffi_value_to_swift_value(type_pos)

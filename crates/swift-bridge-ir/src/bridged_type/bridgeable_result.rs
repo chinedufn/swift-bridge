@@ -33,6 +33,42 @@ impl BuiltInResult {
         }
     }
 
+    pub(super) fn convert_rust_expression_to_ffi_type(
+        &self,
+        expression: &TokenStream,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
+        let convert_ok = self.ok_ty.convert_rust_expression_to_ffi_type(
+            &quote! { ok },
+            swift_bridge_path,
+            types,
+        );
+
+        let convert_err = self.err_ty.convert_rust_expression_to_ffi_type(
+            &quote! { err },
+            swift_bridge_path,
+            types,
+        );
+
+        quote! {
+            match #expression {
+                Ok(ok) => {
+                    #swift_bridge_path::result::ResultPtrAndPtr {
+                        is_ok: true,
+                        ok_or_err: #convert_ok as *mut std::ffi::c_void
+                    }
+                }
+                Err(err) => {
+                    #swift_bridge_path::result::ResultPtrAndPtr {
+                        is_ok: false,
+                        ok_or_err: #convert_err as *mut std::ffi::c_void
+                    }
+                }
+            }
+        }
+    }
+
     pub(super) fn convert_ffi_value_to_rust_value(
         &self,
         expression: &TokenStream,
@@ -69,10 +105,38 @@ impl BuiltInResult {
     }
 
     pub fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+        match type_pos {
+            TypePosition::FnReturn(_) => self.ok_ty.to_swift_type(type_pos, types),
+            TypePosition::FnArg(_, _)
+            | TypePosition::SharedStructField
+            | TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                format!(
+                    "RustResult<{}, {}>",
+                    self.ok_ty.to_swift_type(type_pos, types),
+                    self.err_ty.to_swift_type(type_pos, types),
+                )
+            }
+        }
+    }
+
+    pub fn convert_ffi_value_to_swift_value(
+        &self,
+        expression: &str,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+    ) -> String {
+        let convert_ok =
+            self.ok_ty
+                .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+        let convert_err =
+            self.err_ty
+                .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+
         format!(
-            "RustResult<{}, {}>",
-            self.ok_ty.to_swift_type(type_pos, types),
-            self.err_ty.to_swift_type(type_pos, types),
+            "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
+            expression = expression,
+            ok = convert_ok,
+            err = convert_err
         )
     }
 
