@@ -2,10 +2,10 @@
 
 > `swift-bridge` facilitates Rust and Swift interop.
 
-`swift-bridge` is a library that lets you pass and share high-level types such as `Option<T>`, `String`,
-`Structs` and `Classes` between Rust and Swift.
+`swift-bridge` is a library that helps you pass and share high-level types such as `Option<T>`, `String`,
+`struct` and `Class` between Rust and Swift.
 
-It also lets you bridge higher level language features between Rust and Swift, such as async functions and generics.
+It also helps you bridge higher level language features between Rust and Swift, such as async functions and generics.
 
 ## Installation
 
@@ -36,52 +36,50 @@ Here's a quick peek at how you might describe an FFI boundary between Swift and 
 
 <!-- ANCHOR: bridge-module-example -->
 ```rust
-// Use the `swift_bridge::bridge` macro to declare a bridge module that
-// `swift-bridge-build` will parse at build time in order to generate
-// the necessary Swift and C FFI glue code.
+// We use the `swift_bridge::bridge` macro to declare a bridge module.
+// Then at build time the `swift-bridge-build` crate is used to generate
+// the corresponding Swift and C FFI glue code.
 #[swift_bridge::bridge]
 mod ffi {
-    // Create shared structs where both Rust and Swift can directly access the fields.
+    // Create "transparent" structs where both Rust and Swift can directly access the fields.
     struct AppConfig {
         file_manager: CustomFileManager,
     }
 
-    // Shared enums are also supported
+    // Transparent enums are also supported.
     enum UserLookup {
         ById(UserId),
         ByName(String),
     }
 
-    // Export Rust types, functions and methods for Swift to use.
+    // Export opaque Rust types, functions and methods for Swift to use.
     extern "Rust" {
         type RustApp;
 
         #[swift_bridge(init)]
-        fn new(config: AppConfig);
+        fn new(config: AppConfig) -> RustApp;
         
-        fn insert_user(&mut self, user_id: UserId, user: User);
         fn get_user(&self, lookup: UserLookup) -> Option<&User>;
     }
 
     extern "Rust" {
         type User;
+        type MessageBoard;
 
-        #[swift_bridge(Copy(4))]
-        type UserId;
-
-        #[swift_bridge(init)]
-        fn new(user_id: UserId, name: String, email: Option<String>) -> User;
+        #[swift_bridge(get(&nickname))]
+        fn informal_name(self: &User) -> &str;
     }
 
-    // Import Swift classes and functions for Rust to use.
+    // Import opaque Swift classes and functions for Rust to use.
     extern "Swift" {
         type CustomFileManager;
         fn save_file(&self, name: &str, contents: &[u8]);
     }
 }
 
-#[derive(Copy)]
-struct UserId(u32);
+struct User {
+    nickname: String
+}
 ```
 <!-- ANCHOR_END: bridge-module-example -->
 
