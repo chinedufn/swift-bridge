@@ -56,12 +56,12 @@ class StringTests: XCTestCase {
         }
         XCTContext.runActivity(named: "Should not be equal"){
             _ in
-            //Equal length
+            //Not equal length
             let hi    = create_string("hi")
             let hello = create_string("hello")
             XCTAssertNotEqual(hi.as_str(), hello.as_str())
-                               
-            //Not equal length
+                
+            //Equal length
             let foo  = create_string("foo")
             let bar = create_string("bar")
             XCTAssertNotEqual(foo.as_str(), bar.as_str())

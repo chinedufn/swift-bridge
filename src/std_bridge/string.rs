@@ -81,15 +81,19 @@ impl RustStr {
             len: str.len(),
         }
     }
+}
 
-    pub fn partial_eq(
-        lhs: Self,
-        rhs: Self,
-    ) -> bool {
-    
-        unsafe { 
-            std::slice::from_raw_parts(lhs.start, lhs.len) ==
-            std::slice::from_raw_parts(rhs.start, rhs.len)
+impl PartialEq for RustStr {
+    fn eq(&self, other: &Self) -> bool {
+        unsafe {
+            std::slice::from_raw_parts(self.start, self.len)
+                == std::slice::from_raw_parts(other.start, other.len)
         }
     }
+}
+
+#[export_name = "__swift_bridge__$RustStr$partial_eq"]
+#[allow(non_snake_case)]
+pub extern "C" fn __swift_bridge__RustStr_partial_eq(lhs: RustStr, rhs: RustStr) -> bool {
+    lhs == rhs
 }
