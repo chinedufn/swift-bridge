@@ -92,6 +92,9 @@ pub extern "C" fn __swift_bridge__null_pointer() -> *const std::ffi::c_void {
     std::ptr::null()
 }
 
+#[doc(hidden)]
+pub fn assert_copy<T: Copy>() {}
+
 #[no_mangle]
 #[doc(hidden)]
 pub extern "C" fn __swift_bridge__equality_operator_for_RustStr(
@@ -111,6 +114,3 @@ pub extern "C" fn __swift_bridge__equality_operator_for_RustStr(
     }
     return true;
 }
-
-#[doc(hidden)]
-pub fn assert_copy<T: Copy>() {}
