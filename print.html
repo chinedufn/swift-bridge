@@ -1908,14 +1908,16 @@ mod ffi {
 <tr><td>SwiftArray&lt;T&gt;</td><td>Array&lt;T&gt;</td><td>Not yet implemented</td></tr>
 <tr><td>&amp;[T]</td><td></td><td>Not yet implemented</td></tr>
 <tr><td>&amp;mut [T]</td><td></td><td>Not yet implemented</td></tr>
-<tr><td>Box<T></td><td></td><td>Not yet implemented</td></tr>
+<tr><td>Box&lt;T&gt;</td><td></td><td>Not yet implemented</td></tr>
 <tr><td>Box&lt;dyn FnOnce(A,B,C) -&gt; D&gt;</td><td>(A, B, C) -&gt; D</td><td>Passing from Rust to Swift is supported, but Swift to Rust is not yet implemented.</td></tr>
 <tr><td>Box&lt;dyn Fn(A,B,C) -&gt; D&gt;</td><td>(A, B, C) -&gt; D</td><td>Not yet implemented</td></tr>
+<tr><td>Arc&lt;T&gt;</td><td></td><td>Not yet implemented</td></tr>
 <tr><td>[T; N]</td><td></td><td>Not yet implemented</td></tr>
 <tr><td>*const T</td><td>UnsafePointer&lt;T&gt;</td><td></td></tr>
 <tr><td>*mut T</td><td>UnsafeMutablePointer&lt;T&gt;</td><td></td></tr>
 <tr><td>Option&lt;T&gt;</td><td>Optional&lt;T&gt;</td><td></td></tr>
-<tr><td>Result&lt;T, E&gt;</td><td>RustResult&lt;T, E&gt;</td><td></td></tr>
+<tr><td>fn x() -&gt; Result&lt;T, E&gt;</td><td>func x() throws -&gt; T</td><td></td></tr>
+<tr><td>fn x(arg: Result&lt;T, E&gt;)</td><td>func x(arg: RustResult&lt;T, E&gt;)</td><td></td></tr>
 <tr><td>Have a Rust standard library type in mind?<br /> Open an issue!</td><td></td><td></td></tr>
 <tr><td></td><td>Have a Swift standard library type in mind?<br /> Open an issue!</td><td></td></tr>
 </tbody></table>
@@ -2085,8 +2087,29 @@ func make_swift_optional() -&gt; Bool? {
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="result"><a class="header" href="#result">Result</a></h1>
-<p>Rust's <code>Result</code> is seen on the Swift side as a <code>RustResult</code>.</p>
-<h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
+<h2 id="returning-result-from-rust---swift"><a class="header" href="#returning-result-from-rust---swift">Returning Result from Rust -&gt; Swift</a></h2>
+<pre><pre class="playground"><code class="language-rust no_run">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        type SomeRustType;
+
+        fn run() -&gt; Result&lt;SomeRustType, String&gt;;
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// Swift
+
+func run() throws -&gt; SomeRustType {
+    // ...
+}
+</code></pre>
+<h2 id="swift-function-that-takes-a-callback"><a class="header" href="#swift-function-that-takes-a-callback">Swift function that takes a callback</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2103,9 +2126,12 @@ mod ffi {
     extern &quot;Rust&quot; {
         type SomeRustType;
     }
+}
 <span class="boring">}
 </span></code></pre></pre>
-<pre><code class="language-swift">func run(arg: (RustResult&lt;SomeRustType, String&gt;) -&gt; ()) {
+<pre><code class="language-swift">// Swift
+
+func run(arg: (RustResult&lt;SomeRustType, String&gt;) -&gt; ()) {
     arg(.Err(&quot;Something went wrong&quot;))
 }
 </code></pre>

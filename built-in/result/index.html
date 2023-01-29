@@ -147,8 +147,29 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="result"><a class="header" href="#result">Result</a></h1>
-<p>Rust's <code>Result</code> is seen on the Swift side as a <code>RustResult</code>.</p>
-<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<h2 id="returning-result-from-rust---swift"><a class="header" href="#returning-result-from-rust---swift">Returning Result from Rust -&gt; Swift</a></h2>
+<pre><pre class="playground"><code class="language-rust no_run">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        type SomeRustType;
+
+        fn run() -&gt; Result&lt;SomeRustType, String&gt;;
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// Swift
+
+func run() throws -&gt; SomeRustType {
+    // ...
+}
+</code></pre>
+<h2 id="swift-function-that-takes-a-callback"><a class="header" href="#swift-function-that-takes-a-callback">Swift function that takes a callback</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -165,9 +186,12 @@ mod ffi {
     extern &quot;Rust&quot; {
         type SomeRustType;
     }
+}
 <span class="boring">}
 </span></code></pre></pre>
-<pre><code class="language-swift">func run(arg: (RustResult&lt;SomeRustType, String&gt;) -&gt; ()) {
+<pre><code class="language-swift">// Swift
+
+func run(arg: (RustResult&lt;SomeRustType, String&gt;) -&gt; ()) {
     arg(.Err(&quot;Something went wrong&quot;))
 }
 </code></pre>
