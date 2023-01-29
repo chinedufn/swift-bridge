@@ -882,52 +882,50 @@ connect Rust and Swift.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Use the `swift_bridge::bridge` macro to declare a bridge module that
-// `swift-bridge-build` will parse at build time in order to generate
-// the necessary Swift and C FFI glue code.
+</span>// We use the `swift_bridge::bridge` macro to declare a bridge module.
+// Then at build time the `swift-bridge-build` crate is used to generate
+// the corresponding Swift and C FFI glue code.
 #[swift_bridge::bridge]
 mod ffi {
-    // Create shared structs where both Rust and Swift can directly access the fields.
+    // Create &quot;transparent&quot; structs where both Rust and Swift can directly access the fields.
     struct AppConfig {
         file_manager: CustomFileManager,
     }
 
-    // Shared enums are also supported
+    // Transparent enums are also supported.
     enum UserLookup {
         ById(UserId),
         ByName(String),
     }
 
-    // Export Rust types, functions and methods for Swift to use.
+    // Export opaque Rust types, functions and methods for Swift to use.
     extern &quot;Rust&quot; {
         type RustApp;
 
         #[swift_bridge(init)]
-        fn new(config: AppConfig);
+        fn new(config: AppConfig) -&gt; RustApp;
         
-        fn insert_user(&amp;mut self, user_id: UserId, user: User);
         fn get_user(&amp;self, lookup: UserLookup) -&gt; Option&lt;&amp;User&gt;;
     }
 
     extern &quot;Rust&quot; {
         type User;
+        type MessageBoard;
 
-        #[swift_bridge(Copy(4))]
-        type UserId;
-
-        #[swift_bridge(init)]
-        fn new(user_id: UserId, name: String, email: Option&lt;String&gt;) -&gt; User;
+        #[swift_bridge(get(&amp;nickname))]
+        fn informal_name(self: &amp;User) -&gt; &amp;str;
     }
 
-    // Import Swift classes and functions for Rust to use.
+    // Import opaque Swift classes and functions for Rust to use.
     extern &quot;Swift&quot; {
         type CustomFileManager;
         fn save_file(&amp;self, name: &amp;str, contents: &amp;[u8]);
     }
 }
 
-#[derive(Copy)]
-struct UserId(u32);
+struct User {
+    nickname: String
+}
 <span class="boring">}
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="functions"><a class="header" href="#functions">Functions</a></h1>
