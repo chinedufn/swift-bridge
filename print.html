@@ -2193,9 +2193,9 @@ name.toString()
 </code></pre>
 <p>It isn't possible for <code>swift-bridge</code> to mitigate this, so you just have to be careful with references.</p>
 <h4 id="using-an-owned-value-after-free"><a class="header" href="#using-an-owned-value-after-free">Using an owned value after free</a></h4>
-<p>If you pass an owned value from <code>Swift</code> -&gt; <code>Rust</code> Rust now owns that value.</p>
-<p><code>Swift</code> doesn't have a way to statically enforce ownership so it's possible to attempt to use the type
-after passing ownedship to <code>Rust</code>, which leads to undefined behavior.</p>
+<p>Today, it is possible to pass ownership of a value from <code>Swift</code> to <code>Rust</code> and then
+try to use the value from <code>Swift</code>.</p>
+<p>This mean that a user can accidentally trigger undefined behavior.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2216,9 +2216,8 @@ drop(myOwnedType)
 // Undefined behavior since we no longer own this value.
 drop(myOwnedType)
 </code></pre>
-<p>We plan to add a runtime check to catch use after frees like this and immediately panic.</p>
-<p>This check will be a simple <code>if</code> statement with essentially zero runtime overhead for almost all practical
-applications, but we'll expose a feature flag to disable it for the most unusually performance sensitive use cases.</p>
+<p>After Swift introduces the <a href="https://github.com/apple/swift-evolution/blob/main/proposals/0366-move-function.md">consume operator</a> we will
+be able to prevent this issue by enforcing ownership at compile time.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="contributing-to-swift-bridge"><a class="header" href="#contributing-to-swift-bridge">Contributing to swift-bridge</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="design-of-swift-bridge"><a class="header" href="#design-of-swift-bridge">Design of <code>swift-bridge</code></a></h1>
 <p>This chapter explores how <code>swift-bridge</code> works internally.</p>
