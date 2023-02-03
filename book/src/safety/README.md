@@ -47,11 +47,10 @@ It isn't possible for `swift-bridge` to mitigate this, so you just have to be ca
 
 #### Using an owned value after free
 
-If you pass an owned value from `Swift` -> `Rust` Rust now owns that value.
+Today, it is possible to pass ownership of a value from `Swift` to `Rust` and then
+try to use the value from `Swift`.
 
-`Swift` doesn't have a way to statically enforce ownership so it's possible to attempt to use the type
-after passing ownedship to `Rust`, which leads to undefined behavior.
-
+This mean that a user can accidentally trigger undefined behavior.
 
 ```rust
 #[swift_bridge::bridge]
@@ -73,7 +72,5 @@ drop(myOwnedType)
 drop(myOwnedType)
 ```
 
-We plan to add a runtime check to catch use after frees like this and immediately panic.
-
-This check will be a simple `if` statement with essentially zero runtime overhead for almost all practical
-applications, but we'll expose a feature flag to disable it for the most unusually performance sensitive use cases.
+After Swift introduces the [consume operator](https://github.com/apple/swift-evolution/blob/main/proposals/0366-move-function.md) we will
+be able to prevent this issue by enforcing ownership at compile time.
