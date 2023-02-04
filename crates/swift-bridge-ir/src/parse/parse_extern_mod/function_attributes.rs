@@ -177,6 +177,8 @@ mod tests {
 
                     #[swift_bridge(return_into)]
                     fn some_function () -> Foo;
+
+                    fn print_hello_world();
                 }
             }
         };
@@ -184,6 +186,8 @@ mod tests {
         let module = parse_ok(tokens);
 
         assert!(module.functions[0].return_into);
+        assert_eq!(module.functions.len(), 2);
+        assert_eq!(module.functions[0].args_into, None);
     }
 
     /// Verify that we can parse the return_with attribute from extern "Rust" blocks.

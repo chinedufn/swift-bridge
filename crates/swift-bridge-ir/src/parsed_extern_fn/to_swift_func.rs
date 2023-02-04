@@ -1,7 +1,7 @@
 use crate::bridged_type::{pat_type_pat_is_self, BridgeableType, BridgedType, TypePosition};
 use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
-use quote::ToTokens;
+use quote::{ToTokens, format_ident};
 use std::ops::Deref;
 use syn::{FnArg, Path, ReturnType, Type};
 
@@ -14,7 +14,7 @@ impl ParsedExternFn {
         let mut params: Vec<String> = vec![];
 
         for (arg_idx, arg) in self.func.sig.inputs.iter().enumerate() {
-            let param = match arg {
+            match arg {
                 FnArg::Receiver(_receiver) => {
                     if include_receiver_if_present {
                         params.push(format!("_ this: UnsafeMutableRawPointer"));
@@ -39,11 +39,35 @@ impl ParsedExternFn {
                         todo!("Push to ParsedErrors")
                     };
 
-                    format!("{}: {}", arg_name, ty)
+                    if let Some(argument_labels) = &self.argument_labels {
+                        let mut flg = true;
+                        /***
+                        if argument_labels.contains(arg_name) {
+                            params.push(format!("{} {}: {}", argument_label.to_string(), arg_name, ty))
+                        } else {
+                            let signature = format!("{}: {}", arg_name, ty);
+                            params.push(format!("_ {}",signature))
+                        }
+                        **/
+                        for (parameter_name, argument_label) in argument_labels.iter() {
+                            if parameter_name.pat.to_token_stream().to_string() == arg_name {
+                                let argument_label = argument_label.value();
+                                let argument_label = argument_label.as_str();
+                                let argument_label = format_ident!("{}", argument_label);
+                                flg = false;
+                                params.push(format!("{} {}: {}", argument_label.to_string(), arg_name, ty))
+                            }
+                        }
+                        if flg {
+                            let signature = format!("{}: {}", arg_name, ty);
+                            params.push(format!("_ {}",signature))
+                        }
+                    }else{
+                        let signature = format!("{}: {}", arg_name, ty);
+                        params.push(format!("_ {}",signature))
+                    }
                 }
             };
-
-            params.push(format!("_ {}", param))
         }
 
         params.join(", ")
@@ -106,7 +130,6 @@ impl ParsedExternFn {
                         } else {
                             todo!("Push to ParsedErrors")
                         };
-
                     let arg = if include_var_name {
                         format!("{}: {}", arg_name, arg)
                     } else {
@@ -117,7 +140,6 @@ impl ParsedExternFn {
                 }
             };
         }
-
         args.join(", ")
     }
 

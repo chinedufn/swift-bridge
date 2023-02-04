@@ -134,7 +134,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
         } else {
             return Err(syn::Error::new_spanned(
                 input.to_string(),
-                "Only modules are supported.",
+                input.to_string()+": Only modules are supported.",
             ));
         }
     }

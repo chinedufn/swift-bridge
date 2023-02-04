@@ -7,7 +7,7 @@ use quote::{quote, quote_spanned, ToTokens};
 use std::collections::HashSet;
 use std::ops::Deref;
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItemFn, Lifetime, Path, ReturnType, Token, Type};
+use syn::{FnArg, ForeignItemFn, Lifetime, Path, ReturnType, Token, Type, LitStr, PatType};
 
 mod to_extern_c_fn;
 mod to_extern_c_param_names_and_types;
@@ -92,6 +92,7 @@ pub(crate) struct ParsedExternFn {
     pub args_into: Option<Vec<Ident>>,
     /// Get one of the associated type's fields
     pub get_field: Option<GetField>,
+    pub argument_labels: Option<Vec<(PatType, LitStr)>>,
 }
 
 pub(crate) enum GetField {

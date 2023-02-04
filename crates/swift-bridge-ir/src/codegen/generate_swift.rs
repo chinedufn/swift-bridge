@@ -73,10 +73,10 @@ impl SwiftBridgeModule {
                     continue;
                 }
             }
-
             let func_definition = match function.host_lang {
                 HostLang::Rust => {
-                    gen_func_swift_calls_rust(function, &self.types, &self.swift_bridge_path)
+                    let result = gen_func_swift_calls_rust(function, &self.types, &self.swift_bridge_path);
+                    result
                 }
                 HostLang::Swift => gen_function_exposes_swift_to_rust(
                     function,
@@ -84,7 +84,6 @@ impl SwiftBridgeModule {
                     &self.swift_bridge_path,
                 ),
             };
-
             swift += &func_definition;
             swift += "\n";
         }
@@ -205,7 +204,6 @@ fn gen_function_exposes_swift_to_rust(
 
     let args = func.to_swift_call_args(false, true, types, swift_bridge_path);
     let mut call_fn = format!("{}({})", fn_name, args);
-
     if let Some(built_in) = BridgedType::new_with_return_type(&func.sig.output, types) {
         if let Some(associated_type) = func.associated_type.as_ref() {
             let ty_name = match associated_type {
