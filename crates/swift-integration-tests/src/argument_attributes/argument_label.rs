@@ -2,7 +2,7 @@
 mod ffi {
     extern "Rust" {
         fn test_argument_label(
-            #[swift_bridge(label = "someArg")] some_arg: i32, 
+            #[swift_bridge(label = "someArg")] some_arg: i32,
             another_arg: i32,
         ) -> i32;
     }

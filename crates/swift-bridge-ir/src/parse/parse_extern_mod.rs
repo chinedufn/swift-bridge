@@ -12,11 +12,14 @@ use crate::parse::type_declarations::{
 use crate::parse::{HostLang, OpaqueRustTypeGenerics};
 use crate::parsed_extern_fn::fn_arg_is_mutable_reference;
 use crate::ParsedExternFn;
-use quote::ToTokens;
+use proc_macro2::Ident;
+use quote::{format_ident, ToTokens};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
-use syn::{FnArg, ForeignItem, ForeignItemFn, GenericParam, ItemForeignMod, Pat, ReturnType, Type, LitStr, PatType};
+use syn::{
+    FnArg, ForeignItem, ForeignItemFn, GenericParam, ItemForeignMod, LitStr, Pat, ReturnType, Type,
+};
 
 mod argument_attributes;
 mod function_attributes;
@@ -162,7 +165,7 @@ impl<'a> ForeignModParser<'a> {
                             ));
                         }
                     }
-                    let mut argument_labels: Vec<(PatType, LitStr)> = vec![];
+                    let mut argument_labels: HashMap<Ident, LitStr> = HashMap::new();
                     for arg in func.sig.inputs.iter() {
                         let is_mutable_ref = fn_arg_is_mutable_reference(arg);
 
@@ -186,10 +189,16 @@ impl<'a> ForeignModParser<'a> {
                                 for attr in ty.attrs.iter() {
                                     let attribute: ArgumentAttributes = attr.parse_args()?;
                                     if let Some(label) = attribute.label {
-                                        argument_labels.push((ty.clone(), label.1));
+                                        argument_labels.insert(
+                                            format_ident!(
+                                                "{}",
+                                                ty.pat.to_token_stream().to_string()
+                                            ),
+                                            label,
+                                        );
                                     }
                                 }
-                            },
+                            }
                             _ => {}
                         }
                     }

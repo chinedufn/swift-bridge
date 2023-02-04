@@ -4,24 +4,25 @@ use syn::{LitStr, Token};
 
 #[derive(Default)]
 pub(super) struct ArgumentAttributes {
-    /// Ident: parameter_name, LitStr: argument_name
-    pub label: Option<(Ident, LitStr)>,
+    /// LitStr: argument_name
+    pub label: Option<LitStr>,
 }
 
 enum ArgumentAttr {
-    /// Ident: parameter_name, LitStr: argument_name
-    ArgumentLabel((Ident, LitStr)),
+    /// LitStr: argument_name
+    ArgumentLabel(LitStr),
 }
 
 impl Parse for ArgumentAttributes {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut attributes = ArgumentAttributes::default();
-        let punctuated = syn::punctuated::Punctuated::<ArgumentAttr, syn::Token![,]>::parse_terminated(input)?;
+        let punctuated =
+            syn::punctuated::Punctuated::<ArgumentAttr, syn::Token![,]>::parse_terminated(input)?;
         for attr in punctuated.into_iter() {
             match attr {
-                ArgumentAttr::ArgumentLabel(label)=>{
+                ArgumentAttr::ArgumentLabel(label) => {
                     attributes.label = Some(label);
-                },
+                }
             }
         }
         Ok(attributes)
@@ -35,8 +36,8 @@ impl Parse for ArgumentAttr {
             "label" => {
                 input.parse::<Token![=]>()?;
                 let value: LitStr = input.parse()?;
-                ArgumentAttr::ArgumentLabel((key, value))
-            },
+                ArgumentAttr::ArgumentLabel(value)
+            }
             _ => {
                 let attrib = key.to_string();
                 Err(syn::Error::new_spanned(
@@ -51,9 +52,10 @@ impl Parse for ArgumentAttr {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::{parse_ok};
-    use quote::{quote, ToTokens};
+    use crate::test_utils::parse_ok;
+    use quote::{format_ident, quote};
 
+    /// Verify that we can parse a function that has a argument label.
     #[test]
     fn parse_extern_rust_argument_attributes() {
         let tokens = quote! {
@@ -72,7 +74,12 @@ mod tests {
         assert!(module.functions[0].argument_labels.is_some());
         if let Some(argument_labels) = &module.functions[0].argument_labels {
             assert_eq!(argument_labels.len(), 1);
-            assert_eq!(argument_labels[0].0.pat.to_token_stream().to_string(), "parameter_name1");
+            let argument_label = argument_labels
+                .get(&format_ident!("parameter_name1"))
+                .unwrap();
+            assert_eq!(argument_label.value().to_string(), "argumentLabel1");
+        } else {
+            panic!();
         }
     }
 }

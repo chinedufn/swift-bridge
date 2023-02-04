@@ -4,10 +4,10 @@ use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclara
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use syn::spanned::Spanned;
-use syn::{FnArg, ForeignItemFn, Lifetime, Path, ReturnType, Token, Type, LitStr, PatType};
+use syn::{FnArg, ForeignItemFn, Lifetime, LitStr, Path, ReturnType, Token, Type};
 
 mod to_extern_c_fn;
 mod to_extern_c_param_names_and_types;
@@ -92,7 +92,7 @@ pub(crate) struct ParsedExternFn {
     pub args_into: Option<Vec<Ident>>,
     /// Get one of the associated type's fields
     pub get_field: Option<GetField>,
-    pub argument_labels: Option<Vec<(PatType, LitStr)>>,
+    pub argument_labels: Option<HashMap<Ident, LitStr>>,
 }
 
 pub(crate) enum GetField {

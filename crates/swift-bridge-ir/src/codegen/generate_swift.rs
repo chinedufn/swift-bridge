@@ -75,7 +75,8 @@ impl SwiftBridgeModule {
             }
             let func_definition = match function.host_lang {
                 HostLang::Rust => {
-                    let result = gen_func_swift_calls_rust(function, &self.types, &self.swift_bridge_path);
+                    let result =
+                        gen_func_swift_calls_rust(function, &self.types, &self.swift_bridge_path);
                     result
                 }
                 HostLang::Swift => gen_function_exposes_swift_to_rust(

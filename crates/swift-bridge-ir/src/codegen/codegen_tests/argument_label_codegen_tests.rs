@@ -2,7 +2,7 @@ use super::{CodegenTest, ExpectedCHeader, ExpectedRustTokens, ExpectedSwiftCode}
 use proc_macro2::TokenStream;
 use quote::quote;
 
-/// Verify that we can add argument labels.
+/// Verify that we can properly handle `#[swift_bridge(label = "...")]` attributes.
 mod argument_label {
     use super::*;
 
@@ -49,7 +49,6 @@ void __swift_bridge__$some_function(int32_t parameter_name1, uint32_t parameter_
 
     #[test]
     fn argument_label() {
-
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -60,7 +59,7 @@ void __swift_bridge__$some_function(int32_t parameter_name1, uint32_t parameter_
     }
 }
 
-/// Verify that we can add argument labels.
+/// Verify that we can properly handle a `#[swift_bridge(label = "...")]` attribute with only one argument corresponding.
 mod argument_one_label {
     use super::*;
 
@@ -107,7 +106,6 @@ void __swift_bridge__$some_function(int32_t parameter_name1, uint32_t parameter_
 
     #[test]
     fn argument_label() {
-
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
