@@ -82,9 +82,9 @@ impl Into<UniqueId> for ffi::FfiUniqueId {
 }
 ```
 
-#### #[swift_bridge(label = ("argument_label_name"))]
+#### #[swift_bridge(label = "argName")]
 
-Allows you to add Swift's `Argument-Label`.
+Used to set the Swift argument label.
 
 ```rust
 // Rust
@@ -92,20 +92,22 @@ Allows you to add Swift's `Argument-Label`.
 mod ffi {
     extern "Rust" {
         fn add(
-            #[swift_bridge(label = "someArg")] some_arg: i32,
-            another_arg: i32,
+            #[swift_bridge(label = "leftHand")] 
+            left_hand: i32,
+            right_hand: i32,
         ) -> i32;
     }
 }
 
-fn add(some_arg: i32, another_arg: i32) -> i32 {
-    some_arg + another_arg
+fn add(left_hand: i32, right_hand: i32) -> i32 {
+    left_hand + right_hand
 }
 ```
 
 ```Swift
 // Swift
-XCTAssertEqual(test_argument_label(someArg: 10, 100), 110)
+
+let sum = add(leftHand: 10, 20)
 ```
 
 #### #[swift_bridge(associated_to = SomeType)]
