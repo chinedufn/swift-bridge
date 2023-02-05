@@ -82,34 +82,6 @@ impl Into<UniqueId> for ffi::FfiUniqueId {
 }
 ```
 
-#### #[swift_bridge(label = "argName")]
-
-Used to set the Swift argument label.
-
-```rust
-// Rust
-#[swift_bridge::bridge]
-mod ffi {
-    extern "Rust" {
-        fn add(
-            #[swift_bridge(label = "leftHand")] 
-            left_hand: i32,
-            right_hand: i32,
-        ) -> i32;
-    }
-}
-
-fn add(left_hand: i32, right_hand: i32) -> i32 {
-    left_hand + right_hand
-}
-```
-
-```Swift
-// Swift
-
-let sum = add(leftHand: 10, 20)
-```
-
 #### #[swift_bridge(associated_to = SomeType)]
 
 Indicates that we are exposing an associated function for a type.
@@ -226,6 +198,34 @@ fn u8_to_i16 (num: u8) -> i16 {
 fn string_to_u32(string: &str) -> u32 {
     string.parse().unwrap()
 }
+```
+
+#### #[swift_bridge(label = "argName")]
+
+Used to set the Swift argument label.
+
+```rust
+// Rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        fn add(
+            #[swift_bridge(label = "leftHand")] 
+            left_hand: i32,
+            right_hand: i32,
+        ) -> i32;
+    }
+}
+
+fn add(left_hand: i32, right_hand: i32) -> i32 {
+    left_hand + right_hand
+}
+```
+
+```Swift
+// Swift
+
+let sum = add(leftHand: 10, 20)
 ```
 
 #### #[swift_bridge(return_into)]
