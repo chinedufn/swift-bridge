@@ -71,15 +71,11 @@ mod tests {
 
         let module = parse_ok(tokens);
         assert!(module.functions.len() == 1);
-        assert!(module.functions[0].argument_labels.is_some());
-        if let Some(argument_labels) = &module.functions[0].argument_labels {
-            assert_eq!(argument_labels.len(), 1);
-            let argument_label = argument_labels
-                .get(&format_ident!("parameter_name1"))
-                .unwrap();
-            assert_eq!(argument_label.value().to_string(), "argumentLabel1");
-        } else {
-            panic!();
-        }
+        assert_eq!(module.functions[0].argument_labels.len(), 1);
+        let argument_label = module.functions[0]
+            .argument_labels
+            .get(&format_ident!("parameter_name1"))
+            .unwrap();
+        assert_eq!(argument_label.value().to_string(), "argumentLabel1");
     }
 }

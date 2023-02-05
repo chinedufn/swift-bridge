@@ -92,7 +92,7 @@ pub(crate) struct ParsedExternFn {
     pub args_into: Option<Vec<Ident>>,
     /// Get one of the associated type's fields
     pub get_field: Option<GetField>,
-    pub argument_labels: Option<HashMap<Ident, LitStr>>,
+    pub argument_labels: HashMap<Ident, LitStr>,
 }
 
 pub(crate) enum GetField {

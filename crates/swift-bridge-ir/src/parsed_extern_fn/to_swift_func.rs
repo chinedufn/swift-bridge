@@ -14,7 +14,7 @@ impl ParsedExternFn {
         let mut params: Vec<String> = vec![];
 
         for (arg_idx, arg) in self.func.sig.inputs.iter().enumerate() {
-            match arg {
+            let param = match arg {
                 FnArg::Receiver(_receiver) => {
                     if include_receiver_if_present {
                         params.push(format!("_ this: UnsafeMutableRawPointer"));
@@ -39,26 +39,16 @@ impl ParsedExternFn {
                         todo!("Push to ParsedErrors")
                     };
 
-                    if let Some(argument_labels) = &self.argument_labels {
-                        if let Some(argument_label) =
-                            argument_labels.get(&format_ident!("{}", arg_name))
-                        {
-                            params.push(format!(
-                                "{} {}: {}",
-                                argument_label.value().as_str(),
-                                arg_name,
-                                ty
-                            ))
-                        } else {
-                            let param = format!("{}: {}", arg_name, ty);
-                            params.push(format!("_ {}", param))
-                        }
+                    if let Some(argument_label) =
+                        self.argument_labels.get(&format_ident!("{}", arg_name))
+                    {
+                        format!("{} {}: {}", argument_label.value().as_str(), arg_name, ty)
                     } else {
-                        let param = format!("{}: {}", arg_name, ty);
-                        params.push(format!("_ {}", param))
+                        format!("_ {}: {}", arg_name, ty)
                     }
                 }
             };
+            params.push(param)
         }
 
         params.join(", ")

@@ -225,11 +225,6 @@ impl<'a> ForeignModParser<'a> {
                             }
                         }
                     }
-                    let argument_labels = if argument_labels.len() == 0 {
-                        None
-                    } else {
-                        Some(argument_labels)
-                    };
                     let func = ParsedExternFn {
                         func,
                         associated_type,
