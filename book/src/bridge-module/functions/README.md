@@ -82,6 +82,32 @@ impl Into<UniqueId> for ffi::FfiUniqueId {
 }
 ```
 
+#### #[swift_bridge(label = ("argument_label_name"))]
+
+Allows you to add Swift's `Argument-Label`.
+
+```rust
+// Rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        fn add(
+            #[swift_bridge(label = "someArg")] some_arg: i32,
+            another_arg: i32,
+        ) -> i32;
+    }
+}
+
+fn add(some_arg: i32, another_arg: i32) -> i32 {
+    some_arg + another_arg
+}
+```
+
+```Swift
+// Swift
+XCTAssertEqual(test_argument_label(someArg: 10, 100), 110)
+```
+
 #### #[swift_bridge(associated_to = SomeType)]
 
 Indicates that we are exposing an associated function for a type.
