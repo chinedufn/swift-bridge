@@ -1,3 +1,4 @@
+use self::argument_attributes::ArgumentAttributes;
 pub(crate) use self::opaque_type_attributes::OpaqueTypeAllAttributes;
 use crate::bridged_type::{
     bridgeable_type_from_fn_arg, pat_type_pat_is_self, BridgeableType, BridgedType,
@@ -11,12 +12,16 @@ use crate::parse::type_declarations::{
 use crate::parse::{HostLang, OpaqueRustTypeGenerics};
 use crate::parsed_extern_fn::fn_arg_is_mutable_reference;
 use crate::ParsedExternFn;
-use quote::ToTokens;
+use proc_macro2::Ident;
+use quote::{format_ident, ToTokens};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
-use syn::{FnArg, ForeignItem, ForeignItemFn, GenericParam, ItemForeignMod, Pat, ReturnType, Type};
+use syn::{
+    FnArg, ForeignItem, ForeignItemFn, GenericParam, ItemForeignMod, LitStr, Pat, ReturnType, Type,
+};
 
+mod argument_attributes;
 mod function_attributes;
 mod generics;
 mod opaque_type_attributes;
@@ -160,6 +165,7 @@ impl<'a> ForeignModParser<'a> {
                             ));
                         }
                     }
+                    let mut argument_labels: HashMap<Ident, LitStr> = HashMap::new();
                     for arg in func.sig.inputs.iter() {
                         let is_mutable_ref = fn_arg_is_mutable_reference(arg);
 
@@ -177,6 +183,23 @@ impl<'a> ForeignModParser<'a> {
                         if is_mutable_ref && is_copy_opaque_type {
                             self.errors
                                 .push(ParseError::ArgCopyAndRefMut { arg: arg.clone() });
+                        }
+                        match arg {
+                            syn::FnArg::Typed(ty) => {
+                                for attr in ty.attrs.iter() {
+                                    let attribute: ArgumentAttributes = attr.parse_args()?;
+                                    if let Some(label) = attribute.label {
+                                        argument_labels.insert(
+                                            format_ident!(
+                                                "{}",
+                                                ty.pat.to_token_stream().to_string()
+                                            ),
+                                            label,
+                                        );
+                                    }
+                                }
+                            }
+                            _ => {}
                         }
                     }
                     if let Some(ref args) = attributes.args_into {
@@ -214,6 +237,7 @@ impl<'a> ForeignModParser<'a> {
                         return_with: attributes.return_with,
                         args_into: attributes.args_into,
                         get_field: attributes.get_field,
+                        argument_labels: argument_labels,
                     };
                     self.functions.push(func);
                 }

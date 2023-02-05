@@ -13,7 +13,6 @@ pub(super) fn gen_func_swift_calls_rust(
     let fn_name = function.sig.ident.to_string();
     let params = function.to_swift_param_names_and_types(false, types);
     let call_args = function.to_swift_call_args(true, false, types, swift_bridge_path);
-
     let call_fn = if function.sig.asyncness.is_some() {
         let maybe_args = if function.sig.inputs.is_empty() {
             "".to_string()
@@ -128,7 +127,6 @@ pub(super) fn gen_func_swift_calls_rust(
             }
         }
     };
-
     let returns_null = BridgedType::new_with_return_type(&function.func.sig.output, types)
         .map(|b| b.is_null())
         .unwrap_or(false);
@@ -289,6 +287,5 @@ return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust
             call_rust = call_rust,
         )
     };
-
     func_definition
 }
