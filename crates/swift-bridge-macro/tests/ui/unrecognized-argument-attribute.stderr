@@ -1,0 +1,5 @@
+error: Unrecognized attribute "InvalidArgumentAttribute".
+ --> tests/ui/unrecognized-argument-attribute.rs:8:28
+  |
+8 |             #[swift_bridge(InvalidArgumentAttribute)] some_value: isize
+  |                            ^^^^^^^^^^^^^^^^^^^^^^^^
