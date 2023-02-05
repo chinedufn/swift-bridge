@@ -162,7 +162,7 @@ mod ffi {
 	extern &quot;Rust&quot; {
 	    type Water;
 
-        #[swift_bridge(associated_to = &quot;Water&quot;)]
+        #[swift_bridge(associated_to = Water)]
 	    fn new() -&gt; Water;
 
 	    fn is_wet(&amp;self) -&gt; bool;

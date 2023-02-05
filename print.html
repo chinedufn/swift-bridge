@@ -1006,32 +1006,6 @@ impl Into&lt;UniqueId&gt; for ffi::FfiUniqueId {
 }
 <span class="boring">}
 </span></code></pre></pre>
-<h4 id="swift_bridgelabel--argname"><a class="header" href="#swift_bridgelabel--argname">#[swift_bridge(label = &quot;argName&quot;)]</a></h4>
-<p>Used to set the Swift argument label.</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Rust
-#[swift_bridge::bridge]
-mod ffi {
-    extern &quot;Rust&quot; {
-        fn add(
-            #[swift_bridge(label = &quot;leftHand&quot;)] 
-            left_hand: i32,
-            right_hand: i32,
-        ) -&gt; i32;
-    }
-}
-
-fn add(left_hand: i32, right_hand: i32) -&gt; i32 {
-    left_hand + right_hand
-}
-<span class="boring">}
-</span></code></pre></pre>
-<pre><code class="language-Swift">// Swift
-
-let sum = add(leftHand: 10, 20)
-</code></pre>
 <h4 id="swift_bridgeassociated_to--sometype"><a class="header" href="#swift_bridgeassociated_to--sometype">#[swift_bridge(associated_to = SomeType)]</a></h4>
 <p>Indicates that we are exposing an associated function for a type.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -1146,6 +1120,32 @@ fn string_to_u32(string: &amp;str) -&gt; u32 {
 }
 <span class="boring">}
 </span></code></pre></pre>
+<h4 id="swift_bridgelabel--argname"><a class="header" href="#swift_bridgelabel--argname">#[swift_bridge(label = &quot;argName&quot;)]</a></h4>
+<p>Used to set the Swift argument label.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        fn add(
+            #[swift_bridge(label = &quot;leftHand&quot;)] 
+            left_hand: i32,
+            right_hand: i32,
+        ) -&gt; i32;
+    }
+}
+
+fn add(left_hand: i32, right_hand: i32) -&gt; i32 {
+    left_hand + right_hand
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-Swift">// Swift
+
+let sum = add(leftHand: 10, 20)
+</code></pre>
 <h4 id="swift_bridgereturn_into"><a class="header" href="#swift_bridgereturn_into">#[swift_bridge(return_into)]</a></h4>
 <p>Allows a swift-bridge definition of <code>fn foo() -&gt; T</code> to work for any <code>fn foo() -&gt; impl Into&lt;T&gt;</code>.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -1263,7 +1263,7 @@ mod ffi {
 	extern &quot;Rust&quot; {
 	    type Water;
 
-        #[swift_bridge(associated_to = &quot;Water&quot;)]
+        #[swift_bridge(associated_to = Water)]
 	    fn new() -&gt; Water;
 
 	    fn is_wet(&amp;self) -&gt; bool;
