@@ -224,6 +224,30 @@ impl Into&lt;UniqueId&gt; for ffi::FfiUniqueId {
 }
 <span class="boring">}
 </span></code></pre></pre>
+<h4 id="swift_bridgelabel--argument_label_name"><a class="header" href="#swift_bridgelabel--argument_label_name">#[swift_bridge(label = (&quot;argument_label_name&quot;))]</a></h4>
+<p>Allows you to add Swift's <code>Argument-Label</code>.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        fn add(
+            #[swift_bridge(label = &quot;someArg&quot;)] some_arg: i32,
+            another_arg: i32,
+        ) -&gt; i32;
+    }
+}
+
+fn add(some_arg: i32, another_arg: i32) -&gt; i32 {
+    some_arg + another_arg
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-Swift">// Swift
+XCTAssertEqual(test_argument_label(someArg: 10, 100), 110)
+</code></pre>
 <h4 id="swift_bridgeassociated_to--sometype"><a class="header" href="#swift_bridgeassociated_to--sometype">#[swift_bridge(associated_to = SomeType)]</a></h4>
 <p>Indicates that we are exposing an associated function for a type.</p>
 <pre><pre class="playground"><code class="language-rust">
