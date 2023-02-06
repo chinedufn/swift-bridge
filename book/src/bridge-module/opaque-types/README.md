@@ -16,7 +16,7 @@ mod ffi {
 	extern "Rust" {
 	    type Water;
 
-        #[swift_bridge(associated_to = "Water")]
+        #[swift_bridge(associated_to = Water)]
 	    fn new() -> Water;
 
 	    fn is_wet(&self) -> bool;
@@ -201,3 +201,67 @@ mod ffi {
 The `16` indicates that a `UserId` has 16 bytes.
 
 `swift-bridge` will add a compile time assertion that confirms that the given size is correct.
+
+#### #[swift_bridge(Equatable)]
+
+The `Equatable` attribute allows you to expose a Rust `PartialEq` implementation via Swift's
+`Equatable` protocol.
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        #[swift_bridge(Equatable)]
+        type RustPartialEqType;
+    }
+}
+
+#[derive(PartialEq)]
+struct RustPartialEqType(u32);
+
+```
+
+```swift
+// In Swift
+
+let val1 = RustPartialEqType(5)
+let val2 = RustPartialEqType(10)
+
+if val1 == val2 {
+    print("Equal")
+} else {
+    print("Not equal")
+}
+```
+
+#### #[swift_bridge(Hashable)]
+
+The `Hashable` attribute allows you to expose a Rust `Hash` trait implementation via Swift's
+`Hashable` protocol.
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        #[swift_bridge(Hashable)]
+        type RustHashType;
+    }
+}
+
+#[derive(Hash, PartialEq)]
+struct RustHashType(u32);
+```
+
+```swift
+// In Swift
+
+let val = RustHashType(10);
+
+let table: [RustHashType: String] = [:]
+
+table[val] = "hello"
+table[val] = "world"
+
+//Should print "world"
+print(table[val])
+```

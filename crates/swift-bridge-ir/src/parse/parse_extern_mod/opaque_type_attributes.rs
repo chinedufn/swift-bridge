@@ -26,6 +26,12 @@ pub(crate) struct OpaqueTypeSwiftBridgeAttributes {
     /// `#[swift_bridge(declare_generic)]`
     /// Used to declare a generic type.
     pub declare_generic: bool,
+    /// `#[swift_bridge(Equatable)]`
+    /// Used to determine if Equatable need to be implemented.
+    pub equatable: bool,
+    /// `#[swift_bridge(Hashable)]`
+    /// Used to determine if Hashable need to be implemented.
+    pub hashable: bool,
 }
 
 impl OpaqueTypeAllAttributes {
@@ -69,6 +75,8 @@ impl OpaqueTypeSwiftBridgeAttributes {
             OpaqueTypeAttr::AlreadyDeclared => self.already_declared = true,
             OpaqueTypeAttr::Copy { size } => self.copy = Some(OpaqueCopy { size_bytes: size }),
             OpaqueTypeAttr::DeclareGeneric => self.declare_generic = true,
+            OpaqueTypeAttr::Equatable => self.equatable = true,
+            OpaqueTypeAttr::Hashable => self.hashable = true,
         }
     }
 }
@@ -77,6 +85,8 @@ pub(crate) enum OpaqueTypeAttr {
     AlreadyDeclared,
     Copy { size: usize },
     DeclareGeneric,
+    Equatable,
+    Hashable,
 }
 
 impl Parse for OpaqueTypeSwiftBridgeAttributes {
@@ -112,6 +122,8 @@ impl Parse for OpaqueTypeAttr {
                 }
             }
             "declare_generic" => OpaqueTypeAttr::DeclareGeneric,
+            "Equatable" => OpaqueTypeAttr::Equatable,
+            "Hashable" => OpaqueTypeAttr::Hashable,
             _ => {
                 let attrib = key.to_string();
                 Err(syn::Error::new_spanned(

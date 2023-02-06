@@ -9,7 +9,6 @@ mod ffi {
 
         #[swift_bridge(Copy(10))]
         type IncorrectCopySize;
-
     }
 }
 

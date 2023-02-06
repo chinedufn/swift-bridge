@@ -5,7 +5,7 @@ use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use tempfile::tempdir;
 
 /// Config for generating Swift packages
@@ -230,6 +230,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     let output = Command::new("xcodebuild")
         .current_dir(&tmp_framework_path)
         .args(args)
+        .stdout(Stdio::piped())
         .spawn()
         .expect("Failed to spawn xcodebuild")
         .wait_with_output()

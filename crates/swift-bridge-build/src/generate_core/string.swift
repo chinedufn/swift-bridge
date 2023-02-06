@@ -27,10 +27,7 @@ extension RustStr: Identifiable {
 }
 extension RustStr: Equatable {
     public static func == (lhs: RustStr, rhs: RustStr) -> Bool {
-        // TODO: Rather than compare Strings, we can avoid allocating by calling a function
-        // on the Rust side that compares the underlying byte slices.
-        return
-            lhs.toString() == rhs.toString()
+        return __swift_bridge__$RustStr$partial_eq(lhs, rhs);
     }
 }
 

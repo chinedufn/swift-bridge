@@ -93,6 +93,44 @@ impl ToTokens for SwiftBridgeModule {
 
                     match ty.host_lang {
                         HostLang::Rust => {
+                            if ty.attributes.hashable {
+                                let export_name = format!("__swift_bridge__${}$_hash", ty_name);
+                                let function_name = syn::Ident::new(
+                                    &format!("__swift_bridge__{}__hash", ty_name),
+                                    ty.ty.span(),
+                                );
+                                let tokens = quote! {
+                                #[export_name = #export_name]
+                                pub extern "C" fn #function_name (
+                                    this: *const super::#ty_name,
+                                ) -> u64 {
+                                    use std::hash::{Hash, Hasher};
+                                    use std::collections::hash_map::DefaultHasher;
+                                    let mut s = DefaultHasher::new();
+                                    (unsafe {&*this}).hash(&mut s);
+                                    s.finish()
+                                }
+                                };
+                                extern_rust_fn_tokens.push(tokens);
+                            }
+                            if ty.attributes.equatable {
+                                let export_name =
+                                    format!("__swift_bridge__${}$_partial_eq", ty_name);
+                                let function_name = syn::Ident::new(
+                                    &format!("__swift_bridge__{}__partial_eq", ty_name),
+                                    ty.ty.span(),
+                                );
+                                let tokens = quote! {
+                                    #[export_name = #export_name]
+                                    pub extern "C" fn #function_name (
+                                        lhs: *const super::#ty_name,
+                                        rhs: *const super::#ty_name
+                                    ) -> bool {
+                                        unsafe { &*lhs == &*rhs }
+                                    }
+                                };
+                                extern_rust_fn_tokens.push(tokens);
+                            }
                             if let Some(copy) = ty.attributes.copy {
                                 let size = copy.size_bytes;
 

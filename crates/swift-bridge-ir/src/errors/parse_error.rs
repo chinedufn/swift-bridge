@@ -1,10 +1,15 @@
 use proc_macro2::Ident;
 use quote::ToTokens;
 use syn::{Error, FnArg, Item, Receiver};
-use syn::{ForeignItemType, LitStr};
+use syn::{ForeignItemFn, ForeignItemType, LitStr};
 use syn::{Token, Type};
 
+// <!-- ANCHOR: mdbook-parse-error-enum -->
 pub(crate) enum ParseError {
+    ArgsIntoArgNotFound {
+        func: ForeignItemFn,
+        missing_arg: Ident,
+    },
     /// `extern {}`
     AbiNameMissing {
         /// `extern {}`
@@ -23,6 +28,7 @@ pub(crate) enum ParseError {
     /// fn foo (bar: &Bar);
     /// If Bar wasn't declared using a `type Bar` declaration.
     UndeclaredType { ty: Type },
+    // <!-- ANCHOR_END: mdbook-parse-error-enum -->
     /// Declared a type that we already support.
     /// Example: `type u32`
     DeclaredBuiltInType { ty: ForeignItemType },
@@ -65,9 +71,18 @@ pub(crate) enum IdentifiableParseError {
     MissingReturnType { fn_ident: Ident },
 }
 
+// <!-- ANCHOR: mdbook-parse-error-message -->
 impl Into<syn::Error> for ParseError {
     fn into(self) -> Error {
         match self {
+            ParseError::ArgsIntoArgNotFound { func, missing_arg } => Error::new_spanned(
+                missing_arg.clone(),
+                format!(
+                    r#"Argument "{}" was not found in "fn {}(..)""#,
+                    missing_arg,
+                    func.sig.ident.to_token_stream().to_string()
+                ),
+            ),
             ParseError::AbiNameMissing {
                 extern_token: extern_ident,
             } => Error::new_spanned(
@@ -105,6 +120,7 @@ self: &mut SomeType
                 );
                 Error::new_spanned(ty, message)
             }
+            // <!-- ANCHOR_END: mdbook-parse-error-message -->
             ParseError::DeclaredBuiltInType { ty } => {
                 let message = format!(
                     r#"Type {} is already supported

@@ -1,6 +1,7 @@
 //! # To Run
 //! cargo test -p swift-bridge-macro -- ui trybuild=unrecognized-opaque-type-attribute.rs
 
+// <!-- ANCHOR: mdbook-ui-test-example -->
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
@@ -10,5 +11,6 @@ mod ffi {
 }
 
 pub struct SomeType;
+// <!-- ANCHOR_END: mdbook-ui-test-example -->
 
 fn main() {}

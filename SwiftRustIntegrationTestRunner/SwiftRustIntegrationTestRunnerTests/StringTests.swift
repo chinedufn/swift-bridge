@@ -46,5 +46,26 @@ class StringTests: XCTestCase {
             "hi"
         )
     }
+
+    func testRustStrEqualityOperator() throws {
+        XCTContext.runActivity(named: "Should be equal"){
+            _ in
+            let hello1 = create_string("hello")
+            let hello2 = create_string("hello")
+            XCTAssertEqual(hello1.as_str(), hello2.as_str())
+        }
+        XCTContext.runActivity(named: "Should not be equal"){
+            _ in
+            //Not equal length
+            let hi    = create_string("hi")
+            let hello = create_string("hello")
+            XCTAssertNotEqual(hi.as_str(), hello.as_str())
+                
+            //Equal length
+            let foo  = create_string("foo")
+            let bar = create_string("bar")
+            XCTAssertNotEqual(foo.as_str(), bar.as_str())
+        }
+    }
 }
 

@@ -28,6 +28,7 @@ use crate::test_utils::{
 };
 
 mod already_declared_attribute_codegen_tests;
+mod argument_label_codegen_tests;
 mod async_function_codegen_tests;
 mod boxed_fnonce_codegen_tests;
 mod conditional_compilation_codegen_tests;

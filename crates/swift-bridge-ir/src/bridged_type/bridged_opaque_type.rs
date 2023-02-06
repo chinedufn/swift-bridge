@@ -22,6 +22,10 @@ impl BridgeableType for OpaqueForeignType {
         false
     }
 
+    fn is_result(&self) -> bool {
+        false
+    }
+
     fn to_rust_type_path(&self) -> TokenStream {
         let ty_name = &self.ty;
 

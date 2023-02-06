@@ -23,3 +23,5 @@ mod opaque_type_attributes;
 mod struct_attributes;
 
 mod futures_experiment;
+
+mod argument_attributes;

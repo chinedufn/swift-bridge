@@ -1,7 +1,7 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType, TypePosition};
+use crate::bridged_type::{pat_type_pat_is_self, BridgeableType, BridgedType, TypePosition};
 use crate::parse::TypeDeclarations;
 use crate::parsed_extern_fn::ParsedExternFn;
-use quote::ToTokens;
+use quote::{format_ident, ToTokens};
 use std::ops::Deref;
 use syn::{FnArg, Path, ReturnType, Type};
 
@@ -39,11 +39,16 @@ impl ParsedExternFn {
                         todo!("Push to ParsedErrors")
                     };
 
-                    format!("{}: {}", arg_name, ty)
+                    if let Some(argument_label) =
+                        self.argument_labels.get(&format_ident!("{}", arg_name))
+                    {
+                        format!("{} {}: {}", argument_label.value().as_str(), arg_name, ty)
+                    } else {
+                        format!("_ {}: {}", arg_name, ty)
+                    }
                 }
             };
-
-            params.push(format!("_ {}", param))
+            params.push(param)
         }
 
         params.join(", ")
@@ -106,7 +111,6 @@ impl ParsedExternFn {
                         } else {
                             todo!("Push to ParsedErrors")
                         };
-
                     let arg = if include_var_name {
                         format!("{}: {}", arg_name, arg)
                     } else {
@@ -117,7 +121,6 @@ impl ParsedExternFn {
                 }
             };
         }
-
         args.join(", ")
     }
 
@@ -126,8 +129,11 @@ impl ParsedExternFn {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(built_in) = BridgedType::new_with_type(&ty, types) {
+                    let maybe_throws = if built_in.is_result() { "throws " } else { "" };
+
                     format!(
-                        " -> {}",
+                        " {}-> {}",
+                        maybe_throws,
                         built_in.to_swift_type(TypePosition::FnReturn(self.host_lang,), types)
                     )
                 } else {

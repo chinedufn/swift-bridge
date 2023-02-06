@@ -64,9 +64,9 @@ void __swift_bridge__$some_function(struct __private__ResultPtrAndPtr arg);
     }
 }
 
-/// Test code generation for Rust function that accepts and returns a Result<T, E>
-/// where T and E are opaque Rust types.
-mod extern_rust_fn_result_opaque_rust {
+/// Test code generation for Rust function that accepts a Result<T, E> where T and E are
+/// opaque Rust types.
+mod extern_rust_fn_arg_result_opaque_rust {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -115,7 +115,74 @@ void __swift_bridge__$some_function(struct __private__ResultPtrAndPtr arg);
     );
 
     #[test]
-    fn extern_rust_fn_result_opaque_rust() {
+    fn extern_rust_fn_arg_result_opaque_rust() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that accepts a Result<T, E> where T and E are
+/// opaque Rust types.
+mod extern_rust_fn_return_result_opaque_rust {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+
+                    fn some_function () -> Result<SomeType, SomeType>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function() -> swift_bridge::result::ResultPtrAndPtr {
+                match super::some_function() {
+                    Ok(ok) => {
+                        swift_bridge::result::ResultPtrAndPtr {
+                            is_ok: true,
+                            ok_or_err: Box::into_raw(Box::new(ok)) as *mut super::SomeType as *mut std::ffi::c_void
+                        }
+                    }
+                    Err(err) => {
+                        swift_bridge::result::ResultPtrAndPtr {
+                            is_ok: false,
+                            ok_or_err: Box::into_raw(Box::new(err)) as *mut super::SomeType as *mut std::ffi::c_void
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public func some_function() throws -> SomeType {
+    try { let val = __swift_bridge__$some_function(); if val.is_ok { return SomeType(ptr: val.ok_or_err!) } else { throw SomeType(ptr: val.ok_or_err!) } }()
+}
+"#,
+        )
+    }
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ContainsAfterTrim(
+        r#"
+struct __private__ResultPtrAndPtr __swift_bridge__$some_function(void);
+    "#,
+    );
+
+    #[test]
+    fn extern_rust_fn_return_result_opaque_rust() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

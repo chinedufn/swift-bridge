@@ -2,10 +2,10 @@
 
 > `swift-bridge` facilitates Rust and Swift interop.
 
-`swift-bridge` is a library that lets you pass and share high-level types such as `Option<T>`, `String`,
-`Structs` and `Classes` between Rust and Swift.
+`swift-bridge` is a library that helps you pass and share high-level types such as `Option<T>`, `String`,
+`struct` and `Class` between Rust and Swift.
 
-It also lets you bridge higher level language features between Rust and Swift, such as async functions and generics.
+It also helps you bridge higher level language features between Rust and Swift, such as async functions and generics.
 
 ## Installation
 
@@ -36,52 +36,50 @@ Here's a quick peek at how you might describe an FFI boundary between Swift and 
 
 <!-- ANCHOR: bridge-module-example -->
 ```rust
-// Use the `swift_bridge::bridge` macro to declare a bridge module that
-// `swift-bridge-build` will parse at build time in order to generate
-// the necessary Swift and C FFI glue code.
+// We use the `swift_bridge::bridge` macro to declare a bridge module.
+// Then at build time the `swift-bridge-build` crate is used to generate
+// the corresponding Swift and C FFI glue code.
 #[swift_bridge::bridge]
 mod ffi {
-    // Create shared structs where both Rust and Swift can directly access the fields.
+    // Create "transparent" structs where both Rust and Swift can directly access the fields.
     struct AppConfig {
         file_manager: CustomFileManager,
     }
 
-    // Shared enums are also supported
+    // Transparent enums are also supported.
     enum UserLookup {
         ById(UserId),
         ByName(String),
     }
 
-    // Export Rust types, functions and methods for Swift to use.
+    // Export opaque Rust types, functions and methods for Swift to use.
     extern "Rust" {
         type RustApp;
 
         #[swift_bridge(init)]
-        fn new(config: AppConfig);
+        fn new(config: AppConfig) -> RustApp;
         
-        fn insert_user(&mut self, user_id: UserId, user: User);
         fn get_user(&self, lookup: UserLookup) -> Option<&User>;
     }
 
     extern "Rust" {
         type User;
+        type MessageBoard;
 
-        #[swift_bridge(Copy(4))]
-        type UserId;
-
-        #[swift_bridge(init)]
-        fn new(user_id: UserId, name: String, email: Option<String>) -> User;
+        #[swift_bridge(get(&nickname))]
+        fn informal_name(self: &User) -> &str;
     }
 
-    // Import Swift classes and functions for Rust to use.
+    // Import opaque Swift classes and functions for Rust to use.
     extern "Swift" {
         type CustomFileManager;
         fn save_file(&self, name: &str, contents: &[u8]);
     }
 }
 
-#[derive(Copy)]
-struct UserId(u32);
+struct User {
+    nickname: String
+}
 ```
 <!-- ANCHOR_END: bridge-module-example -->
 
@@ -120,14 +118,16 @@ In addition to allowing you to share your own custom structs, enums and classes 
 | SwiftArray\<T>                                                  | Array\<T>                                                        | Not yet implemented                                                                |
 | &[T]                                                            |                                                                  | Not yet implemented                                                                |
 | &mut [T]                                                        |                                                                  | Not yet implemented                                                                |
-| Box<T>                                                          |                                                                  | Not yet implemented                                                                |
+| Box\<T>                                                         |                                                                  | Not yet implemented                                                                |
 | Box<dyn FnOnce(A,B,C) -> D>                                     | (A, B, C) -> D                                                   | Passing from Rust to Swift is supported, but Swift to Rust is not yet implemented. |
 | Box<dyn Fn(A,B,C) -> D>                                         | (A, B, C) -> D                                                   | Not yet implemented                                                                |
+| Arc\<T>                                                         |                                                                  | Not yet implemented                                                                |
 | [T; N]                                                          |                                                                  | Not yet implemented                                                                |
 | *const T                                                        | UnsafePointer\<T>                                                |                                                                                    |
 | *mut T                                                          | UnsafeMutablePointer\<T>                                         |                                                                                    |
 | Option\<T>                                                      | Optional\<T>                                                     |                                                                                    |
-| Result\<T, E>                                                   | RustResult\<T, E>                                                |                                                                                    |
+| fn x() -> Result\<T, E>                                         | func x() throws -> T                                             |                                                                                    |
+| fn x(arg: Result\<T, E>)                                        | func x(arg: RustResult\<T, E>)                                   |                                                                                    |
 | Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                                                                                    |
 |                                                                 | Have a Swift standard library type in mind?<br /> Open an issue! |                                                                                    |
 <!-- ANCHOR_END: built-in-types-table -->
@@ -144,6 +144,19 @@ cd swift-bridge
 # Run tests
 cargo test --all && ./test-integration.sh
 ```
+
+## Contributing
+
+If you're interesting in contributing to `swift-bridge`, check out the [contributor's guide](https://chinedufn.github.io/swift-bridge/contributing/index.html).
+
+After getting familiar with the contribution process, try looking at some of the [good first issues](https://github.com/chinedufn/swift-bridge/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+to see if any peak your interest.
+
+These issues come with step-by-step instructions that should help guide you towards implementing your first patch.
+
+## Acknowledgements
+
+- [cxx](https://github.com/dtolnay/cxx) inspired the idea of using a bridge module to describe the FFI boundary.
 
 ---
 
