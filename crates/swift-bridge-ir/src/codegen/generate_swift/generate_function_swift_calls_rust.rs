@@ -197,13 +197,9 @@ pub(super) fn gen_func_swift_calls_rust(
         let (maybe_on_complete_sig_ret_val, on_complete_ret_val) = if func_ret_ty.is_null() {
             ("".to_string(), "()".to_string())
         } else {
- 
             if func_ret_ty.is_result() {
-
                 (
-                    format!(
-                        ", rustFnRetVal: __private__ResultPtrAndPtr"
-                    ),
+                    format!(", rustFnRetVal: __private__ResultPtrAndPtr"),
                     func_ret_ty.convert_ffi_value_to_swift_value(
                         "rustFnRetVal",
                         TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
@@ -214,8 +210,10 @@ pub(super) fn gen_func_swift_calls_rust(
                 (
                     format!(
                         ", rustFnRetVal: {}",
-                        func_ret_ty
-                            .to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy, types)
+                        func_ret_ty.to_swift_type(
+                            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
+                            types
+                        )
                     ),
                     func_ret_ty.convert_ffi_value_to_swift_value(
                         "rustFnRetVal",
@@ -226,30 +224,30 @@ pub(super) fn gen_func_swift_calls_rust(
             }
         };
         let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
-        let error = if func_ret_ty.is_result() {
-            "Error".to_string()
-        } else {
-            "Never".to_string()
-        };
-        let maybe_try = if func_ret_ty.is_result() {
-            " try ".to_string()
-        } else {
-            " ".to_string()
-        };
-        let with_checked_continuation_function_name = if func_ret_ty.is_result() {
-            "withCheckedThrowingContinuation".to_string()
-        } else {
-            "withCheckedContinuation".to_string()
-        };
-        let run_wrapper_cb = if let Some((ok, err)) = func_ret_ty.extract_swift_result_variants(TypePosition::FnReturn(HostLang::Rust), types) {
-            format!(r#"if rustFnRetVal.is_ok {{
+        let (run_wrapper_cb, error, maybe_try, with_checked_continuation_function_name) =
+            if let Some((ok, err)) = func_ret_ty
+                .extract_swift_result_variants(TypePosition::FnReturn(HostLang::Rust), types)
+            {
+                (
+                    format!(
+                        r#"if rustFnRetVal.is_ok {{
         wrapper.cb(.success({ok}(ptr: rustFnRetVal.ok_or_err!)))
     }} else {{
         wrapper.cb(.failure({err}(ptr: rustFnRetVal.ok_or_err!)))
-    }}"#)
-        } else {
-            format!(r#"wrapper.cb(.success({on_complete_ret_val}))"#)
-        };
+    }}"#
+                    ),
+                    "Error".to_string(),
+                    " try ".to_string(),
+                    "withCheckedThrowingContinuation".to_string(),
+                )
+            } else {
+                (
+                    format!(r#"wrapper.cb(.success({on_complete_ret_val}))"#),
+                    "Never".to_string(),
+                    " ".to_string(),
+                    "withCheckedContinuation".to_string(),
+                )
+            };
         let callback_wrapper = format!(
             r#"{indentation}class {cb_wrapper_ty} {{
 {indentation}    var cb: (Result<{rust_fn_ret_ty}, {error}>) -> ()

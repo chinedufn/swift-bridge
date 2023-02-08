@@ -54,7 +54,12 @@ pub(crate) trait BridgeableType: Debug {
     /// Whether or not this is a `Result<T,E>`.
     fn is_result(&self) -> bool;
 
-    fn extract_swift_result_variants(&self, type_pos: TypePosition, types: &TypeDeclarations) -> Option<(String, String)>;
+    /// Extract the Swift representation of each variant from Rust's Result<T,E>.
+    fn extract_swift_result_variants(
+        &self,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+    ) -> Option<(String, String)>;
 
     /// Get the Rust representation of this type.
     /// For a string this might be `std::string::String`.
@@ -397,9 +402,16 @@ impl BridgeableType for BridgedType {
         }
     }
 
-    fn extract_swift_result_variants(&self, type_pos: TypePosition, types: &TypeDeclarations) -> Option<(String, String)> {
+    fn extract_swift_result_variants(
+        &self,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+    ) -> Option<(String, String)> {
         match self {
-            BridgedType::StdLib(StdLibType::Result(result)) => Some((result.ok_ty.to_swift_type(type_pos, types), result.err_ty.to_swift_type(type_pos, types))),
+            BridgedType::StdLib(StdLibType::Result(result)) => Some((
+                result.ok_ty.to_swift_type(type_pos, types),
+                result.err_ty.to_swift_type(type_pos, types),
+            )),
             BridgedType::Bridgeable(ty) => ty.extract_swift_result_variants(type_pos, types),
             _ => None,
         }

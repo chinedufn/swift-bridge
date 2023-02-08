@@ -16,7 +16,11 @@ impl BridgeableType for BridgedString {
         false
     }
 
-    fn extract_swift_result_variants(&self, _: TypePosition, _: &TypeDeclarations) -> Option<(String, String)> {
+    fn extract_swift_result_variants(
+        &self,
+        _: TypePosition,
+        _: &TypeDeclarations,
+    ) -> Option<(String, String)> {
         None
     }
 

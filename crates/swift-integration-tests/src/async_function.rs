@@ -35,7 +35,6 @@ mod ffi {
         fn new(val: u32) -> AsyncResultOpaqueRustType2;
         fn val(&self) -> u32;
     }
-
 }
 
 async fn rust_async_return_null() {}
@@ -64,7 +63,6 @@ impl TestRustAsyncSelf {
     }
 }
 
-
 pub struct AsyncResultOpaqueRustType1(u32);
 
 impl AsyncResultOpaqueRustType1 {
@@ -72,7 +70,7 @@ impl AsyncResultOpaqueRustType1 {
         Self(val)
     }
 
-    fn val(&self) -> u32{
+    fn val(&self) -> u32 {
         self.0
     }
 }
@@ -84,7 +82,7 @@ impl AsyncResultOpaqueRustType2 {
         Self(val)
     }
 
-    fn val(&self) -> u32{
+    fn val(&self) -> u32 {
         self.0
     }
 }
@@ -96,7 +94,7 @@ async fn rust_async_func_reflect_result_opaque_rust(
         Ok(ok) => {
             assert_eq!(ok.0, 10);
             Ok(ok)
-        },
+        }
         Err(err) => {
             assert_eq!(err.0, 100);
             Err(err)
