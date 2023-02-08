@@ -26,6 +26,10 @@ impl BridgeableType for OpaqueForeignType {
         false
     }
 
+    fn extract_swift_result_variants(&self,_: TypePosition, _: &TypeDeclarations) -> Option<(String, String)> {
+        None
+    }
+
     fn to_rust_type_path(&self) -> TokenStream {
         let ty_name = &self.ty;
 

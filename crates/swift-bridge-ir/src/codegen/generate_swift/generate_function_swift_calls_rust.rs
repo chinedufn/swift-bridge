@@ -225,93 +225,50 @@ pub(super) fn gen_func_swift_calls_rust(
                 )
             }
         };
-
-        if func_ret_ty.is_result() {
-            let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
-            let (success, error) = match &func_ret_ty {
-                BridgedType::StdLib(ty) => {
-                    match ty {
-                        StdLibType::Result(result) => (result.ok_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types), result.err_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types)),
-                        _ => todo!(),
-                    }
-                },
-                _ => {todo!()}       
-            };
-            let fn_body = format!(
-r#"func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?{maybe_on_complete_sig_ret_val}) {{
-    let wrapper = Unmanaged<{cb_wrapper_ty}>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
-    if rustFnRetVal.is_ok {{
-        wrapper.cb(.success({success}(ptr: rustFnRetVal.ok_or_err!)))
+        let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
+        let error = if func_ret_ty.is_result() {
+            "Error".to_string()
+        } else {
+            "Never".to_string()
+        };
+        let maybe_try = if func_ret_ty.is_result() {
+            " try ".to_string()
+        } else {
+            " ".to_string()
+        };
+        let with_checked_continuation_function_name = if func_ret_ty.is_result() {
+            "withCheckedThrowingContinuation".to_string()
+        } else {
+            "withCheckedContinuation".to_string()
+        };
+        let run_wrapper_cb = if let Some((ok, err)) = func_ret_ty.extract_swift_result_variants(TypePosition::FnReturn(HostLang::Rust), types) {
+            format!(r#"if rustFnRetVal.is_ok {{
+        wrapper.cb(.success({ok}(ptr: rustFnRetVal.ok_or_err!)))
     }} else {{
-        wrapper.cb(.failure({error}(ptr: rustFnRetVal.ok_or_err!)))
-    }}
-}}
-
-return try await withCheckedThrowingContinuation({{ (continuation: CheckedContinuation<{rust_fn_ret_ty}, Error>) in
-    let callback = {{ rustFnRetVal in
-        continuation.resume(with: rustFnRetVal)
-    }}
-
-    let wrapper = {cb_wrapper_ty}(cb: callback)
-    let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
-
-    {call_rust}
-}})"#,
-                rust_fn_ret_ty = rust_fn_ret_ty,
-                maybe_on_complete_sig_ret_val = maybe_on_complete_sig_ret_val,
-                success = success,
-                error   = error,
-                cb_wrapper_ty = callback_wrapper_ty,
-                call_rust = call_rust,
-            );
-    
-            let mut fn_body_indented = "".to_string();
-            for line in fn_body.lines() {
-                if line.len() > 0 {
-                    fn_body_indented += &format!("{}    {}\n", indentation, line);
-                } else {
-                    fn_body_indented += "\n"
-                }
-            }
-            let fn_body_indented = fn_body_indented.trim_end();
-    
-            let callback_wrapper = format!(
+        wrapper.cb(.failure({err}(ptr: rustFnRetVal.ok_or_err!)))
+    }}"#)
+        } else {
+            format!(r#"wrapper.cb(.success({on_complete_ret_val}))"#)
+        };
+        let callback_wrapper = format!(
             r#"{indentation}class {cb_wrapper_ty} {{
-{indentation}    var cb: (Result<{rust_fn_ret_ty}, Error>) -> ()
+{indentation}    var cb: (Result<{rust_fn_ret_ty}, {error}>) -> ()
 {indentation}
-{indentation}    public init(cb: @escaping (Result<{rust_fn_ret_ty}, Error>) -> ()) {{
+{indentation}    public init(cb: @escaping (Result<{rust_fn_ret_ty}, {error}>) -> ()) {{
 {indentation}        self.cb = cb
 {indentation}    }}
 {indentation}}}"#,
             indentation = indentation,
             cb_wrapper_ty = callback_wrapper_ty
-            );
-    
-            return format!(
-            r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}) async{maybe_ret} {{
-{fn_body_indented}
-{indentation}}}
-{callback_wrapper}"#,
-            indentation = indentation,
-            maybe_static_class_func = maybe_static_class_func,
-            swift_class_func_name = public_func_fn_name,
-            maybe_generics = maybe_generics,
-            params = params,
-            maybe_ret = maybe_return,
-            fn_body_indented = fn_body_indented,
-            callback_wrapper = callback_wrapper
-            )
-        } 
-
-        let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
+        );
 
         let fn_body = format!(
             r#"func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?{maybe_on_complete_sig_ret_val}) {{
     let wrapper = Unmanaged<{cb_wrapper_ty}>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
-    wrapper.cb(.success({on_complete_ret_val}))
+    {run_wrapper_cb}
 }}
 
-return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust_fn_ret_ty}, Never>) in
+return{maybe_try}await {with_checked_continuation_function_name}({{ (continuation: CheckedContinuation<{rust_fn_ret_ty}, {error}>) in
     let callback = {{ rustFnRetVal in
         continuation.resume(with: rustFnRetVal)
     }}
@@ -322,8 +279,8 @@ return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust
     {call_rust}
 }})"#,
             rust_fn_ret_ty = rust_fn_ret_ty,
+            error = error,
             maybe_on_complete_sig_ret_val = maybe_on_complete_sig_ret_val,
-            on_complete_ret_val = on_complete_ret_val,
             cb_wrapper_ty = callback_wrapper_ty,
             call_rust = call_rust,
         );
@@ -337,18 +294,6 @@ return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust
             }
         }
         let fn_body_indented = fn_body_indented.trim_end();
-
-        let callback_wrapper = format!(
-            r#"{indentation}class {cb_wrapper_ty} {{
-{indentation}    var cb: (Result<{rust_fn_ret_ty}, Never>) -> ()
-{indentation}
-{indentation}    public init(cb: @escaping (Result<{rust_fn_ret_ty}, Never>) -> ()) {{
-{indentation}        self.cb = cb
-{indentation}    }}
-{indentation}}}"#,
-            indentation = indentation,
-            cb_wrapper_ty = callback_wrapper_ty
-        );
 
         format!(
             r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}) async{maybe_ret} {{

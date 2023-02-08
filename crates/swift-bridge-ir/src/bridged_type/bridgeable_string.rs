@@ -16,6 +16,10 @@ impl BridgeableType for BridgedString {
         false
     }
 
+    fn extract_swift_result_variants(&self, _: TypePosition, _: &TypeDeclarations) -> Option<(String, String)> {
+        None
+    }
+
     fn to_rust_type_path(&self) -> TokenStream {
         // FIXME: Change to `::std::string::String`
         quote! { String }
