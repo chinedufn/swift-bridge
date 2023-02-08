@@ -26,11 +26,7 @@ impl BridgeableType for OpaqueForeignType {
         false
     }
 
-    fn extract_swift_result_variants(
-        &self,
-        _: TypePosition,
-        _: &TypeDeclarations,
-    ) -> Option<(String, String)> {
+    fn as_result(&self) -> Option<&super::bridgeable_result::BuiltInResult> {
         None
     }
 
