@@ -108,13 +108,15 @@ impl BuiltInResult {
         match type_pos {
             TypePosition::FnReturn(_) => self.ok_ty.to_swift_type(type_pos, types),
             TypePosition::FnArg(_, _)
-            | TypePosition::SharedStructField
-            | TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+            | TypePosition::SharedStructField => {
                 format!(
                     "RustResult<{}, {}>",
                     self.ok_ty.to_swift_type(type_pos, types),
                     self.err_ty.to_swift_type(type_pos, types),
                 )
+            }
+            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                "__private__ResultPtrAndPtr".to_string()
             }
         }
     }

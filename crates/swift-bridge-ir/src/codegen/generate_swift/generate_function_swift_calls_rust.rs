@@ -199,7 +199,7 @@ pub(super) fn gen_func_swift_calls_rust(
         } else {
             if func_ret_ty.is_result() {
                 (
-                    format!(", rustFnRetVal: __private__ResultPtrAndPtr"),
+                    format!(", rustFnRetVal: {}", func_ret_ty.to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy, types)),
                     func_ret_ty.convert_ffi_value_to_swift_value(
                         "rustFnRetVal",
                         TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
