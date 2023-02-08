@@ -30,7 +30,7 @@ mod ffi {
     extern "Rust" {
         type OpaqueType1;
         type OpaqueType2;
-        async fn rust_async_func_reflect_result_opaque_rust() -> Result<OpaqueType1, OpaqueType2>;
+        async fn some_function() -> Result<OpaqueType1, OpaqueType2>;
     }
 }
 ```
