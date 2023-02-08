@@ -194,23 +194,114 @@ pub(super) fn gen_func_swift_calls_rust(
         let func_ret_ty = function.return_ty_built_in(types).unwrap();
         let rust_fn_ret_ty =
             func_ret_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
-
         let (maybe_on_complete_sig_ret_val, on_complete_ret_val) = if func_ret_ty.is_null() {
             ("".to_string(), "()".to_string())
         } else {
-            (
-                format!(
-                    ", rustFnRetVal: {}",
-                    func_ret_ty
-                        .to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy, types)
-                ),
-                func_ret_ty.convert_ffi_value_to_swift_value(
-                    "rustFnRetVal",
-                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
-                    types,
-                ),
-            )
+ 
+            if func_ret_ty.is_result() {
+
+                (
+                    format!(
+                        ", rustFnRetVal: __private__ResultPtrAndPtr"
+                    ),
+                    func_ret_ty.convert_ffi_value_to_swift_value(
+                        "rustFnRetVal",
+                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
+                        types,
+                    ),
+                )
+            } else {
+                (
+                    format!(
+                        ", rustFnRetVal: {}",
+                        func_ret_ty
+                            .to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy, types)
+                    ),
+                    func_ret_ty.convert_ffi_value_to_swift_value(
+                        "rustFnRetVal",
+                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
+                        types,
+                    ),
+                )
+            }
         };
+
+        if func_ret_ty.is_result() {
+            let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
+            let (success, error) = match &func_ret_ty {
+                BridgedType::StdLib(ty) => {
+                    match ty {
+                        StdLibType::Result(result) => (result.ok_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types), result.err_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types)),
+                        _ => todo!(),
+                    }
+                },
+                _ => {todo!()}       
+            };
+            let fn_body = format!(
+r#"func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?{maybe_on_complete_sig_ret_val}) {{
+    let wrapper = Unmanaged<{cb_wrapper_ty}>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+    if rustFnRetVal.is_ok {{
+        wrapper.cb(.success({success}(ptr: rustFnRetVal.ok_or_err!)))
+    }} else {{
+        wrapper.cb(.failure({error}(ptr: rustFnRetVal.ok_or_err!)))
+    }}
+}}
+
+return try await withCheckedThrowingContinuation({{ (continuation: CheckedContinuation<{rust_fn_ret_ty}, Error>) in
+    let callback = {{ rustFnRetVal in
+        continuation.resume(with: rustFnRetVal)
+    }}
+
+    let wrapper = {cb_wrapper_ty}(cb: callback)
+    let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
+
+    {call_rust}
+}})"#,
+                rust_fn_ret_ty = rust_fn_ret_ty,
+                maybe_on_complete_sig_ret_val = maybe_on_complete_sig_ret_val,
+                success = success,
+                error   = error,
+                cb_wrapper_ty = callback_wrapper_ty,
+                call_rust = call_rust,
+            );
+    
+            let mut fn_body_indented = "".to_string();
+            for line in fn_body.lines() {
+                if line.len() > 0 {
+                    fn_body_indented += &format!("{}    {}\n", indentation, line);
+                } else {
+                    fn_body_indented += "\n"
+                }
+            }
+            let fn_body_indented = fn_body_indented.trim_end();
+    
+            let callback_wrapper = format!(
+            r#"{indentation}class {cb_wrapper_ty} {{
+{indentation}    var cb: (Result<{rust_fn_ret_ty}, Error>) -> ()
+{indentation}
+{indentation}    public init(cb: @escaping (Result<{rust_fn_ret_ty}, Error>) -> ()) {{
+{indentation}        self.cb = cb
+{indentation}    }}
+{indentation}}}"#,
+            indentation = indentation,
+            cb_wrapper_ty = callback_wrapper_ty
+            );
+    
+            return format!(
+            r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}) async{maybe_ret} {{
+{fn_body_indented}
+{indentation}}}
+{callback_wrapper}"#,
+            indentation = indentation,
+            maybe_static_class_func = maybe_static_class_func,
+            swift_class_func_name = public_func_fn_name,
+            maybe_generics = maybe_generics,
+            params = params,
+            maybe_ret = maybe_return,
+            fn_body_indented = fn_body_indented,
+            callback_wrapper = callback_wrapper
+            )
+        } 
 
         let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
 

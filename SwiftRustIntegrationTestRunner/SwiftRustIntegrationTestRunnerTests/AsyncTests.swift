@@ -41,6 +41,25 @@ class AsyncTests: XCTestCase {
     }
 
     
+    /// Verify that we can pass and return a Result<OpaqueRust, OpaqueRust> to an async Rust function
+    func testSwiftCallsRustAsyncFnReflectResultOpaqueRust() async throws {
+        
+        //Should return an AsyncResultOpaqueRustType1 type.
+        do {
+            let result = try await rust_async_func_reflect_result_opaque_rust(.Ok(AsyncResultOpaqueRustType1(10)))
+        } catch {
+            XCTFail()
+        }
+        
+        //Should return an AsyncResultOpaqueRustType2 type.
+        do {
+            let result = try await rust_async_func_reflect_result_opaque_rust(.Err(AsyncResultOpaqueRustType2(100)))
+            XCTFail()
+        } catch let error as AsyncResultOpaqueRustType2 {
+            XCTAssertEqual(error.val(), 100)
+        }
+    }
+    
     func testSwiftCallsRustAsyncFnRetStruct() async throws {
         let _: AsyncRustFnReturnStruct = await rust_async_return_struct()
     }
