@@ -194,7 +194,6 @@ pub(super) fn gen_func_swift_calls_rust(
         let func_ret_ty = function.return_ty_built_in(types).unwrap();
         let rust_fn_ret_ty =
             func_ret_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
-
         let (maybe_on_complete_sig_ret_val, on_complete_ret_val) = if func_ret_ty.is_null() {
             ("".to_string(), "()".to_string())
         } else {
@@ -211,16 +210,54 @@ pub(super) fn gen_func_swift_calls_rust(
                 ),
             )
         };
-
         let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
+        let (run_wrapper_cb, error, maybe_try, with_checked_continuation_function_name) =
+            if let Some(result) = func_ret_ty.as_result() {
+                let ok = result
+                    .ok_ty
+                    .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
+                let err = result
+                    .err_ty
+                    .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
+                (
+                    format!(
+                        r#"if rustFnRetVal.is_ok {{
+        wrapper.cb(.success({ok}(ptr: rustFnRetVal.ok_or_err!)))
+    }} else {{
+        wrapper.cb(.failure({err}(ptr: rustFnRetVal.ok_or_err!)))
+    }}"#
+                    ),
+                    "Error".to_string(),
+                    " try ".to_string(),
+                    "withCheckedThrowingContinuation".to_string(),
+                )
+            } else {
+                (
+                    format!(r#"wrapper.cb(.success({on_complete_ret_val}))"#),
+                    "Never".to_string(),
+                    " ".to_string(),
+                    "withCheckedContinuation".to_string(),
+                )
+            };
+        let callback_wrapper = format!(
+            r#"{indentation}class {cb_wrapper_ty} {{
+{indentation}    var cb: (Result<{rust_fn_ret_ty}, {error}>) -> ()
+{indentation}
+{indentation}    public init(cb: @escaping (Result<{rust_fn_ret_ty}, {error}>) -> ()) {{
+{indentation}        self.cb = cb
+{indentation}    }}
+{indentation}}}"#,
+            indentation = indentation,
+            cb_wrapper_ty = callback_wrapper_ty
+        );
 
         let fn_body = format!(
             r#"func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?{maybe_on_complete_sig_ret_val}) {{
     let wrapper = Unmanaged<{cb_wrapper_ty}>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
-    wrapper.cb(.success({on_complete_ret_val}))
+    {run_wrapper_cb}
 }}
 
-return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust_fn_ret_ty}, Never>) in
+return{maybe_try}await {with_checked_continuation_function_name}({{ (continuation: CheckedContinuation<{rust_fn_ret_ty}, {error}>) in
     let callback = {{ rustFnRetVal in
         continuation.resume(with: rustFnRetVal)
     }}
@@ -231,8 +268,8 @@ return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust
     {call_rust}
 }})"#,
             rust_fn_ret_ty = rust_fn_ret_ty,
+            error = error,
             maybe_on_complete_sig_ret_val = maybe_on_complete_sig_ret_val,
-            on_complete_ret_val = on_complete_ret_val,
             cb_wrapper_ty = callback_wrapper_ty,
             call_rust = call_rust,
         );
@@ -246,18 +283,6 @@ return await withCheckedContinuation({{ (continuation: CheckedContinuation<{rust
             }
         }
         let fn_body_indented = fn_body_indented.trim_end();
-
-        let callback_wrapper = format!(
-            r#"{indentation}class {cb_wrapper_ty} {{
-{indentation}    var cb: (Result<{rust_fn_ret_ty}, Never>) -> ()
-{indentation}
-{indentation}    public init(cb: @escaping (Result<{rust_fn_ret_ty}, Never>) -> ()) {{
-{indentation}        self.cb = cb
-{indentation}    }}
-{indentation}}}"#,
-            indentation = indentation,
-            cb_wrapper_ty = callback_wrapper_ty
-        );
 
         format!(
             r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}) async{maybe_ret} {{

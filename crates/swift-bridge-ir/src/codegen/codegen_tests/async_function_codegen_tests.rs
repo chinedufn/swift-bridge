@@ -533,3 +533,112 @@ void __swift_bridge__$SomeType$some_method(void* callback_wrapper, void __swift_
         .test();
     }
 }
+
+/// Verify that we generate the correct code for extern "Rust" async functions that returns a Result<OpaqueRustType, OpaqueRustType>.
+mod extern_rust_async_function_returns_result_opaque {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type OkType;
+                    type ErrorType;
+                    async fn some_function() -> Result<OkType, ErrorType>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+             pub extern "C" fn __swift_bridge__some_function(
+                callback_wrapper: *mut std::ffi::c_void,
+                callback: extern "C" fn(*mut std::ffi::c_void, swift_bridge :: result :: ResultPtrAndPtr) -> (),
+            ) {
+                let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
+                let fut = super::some_function();
+                let task = async move {
+                let val = match fut.await {
+                    Ok(ok) => {
+                        swift_bridge::result::ResultPtrAndPtr {
+                            is_ok: true,
+                            ok_or_err: Box::into_raw(Box::new(ok)) as *mut super::OkType as *mut std::ffi::c_void
+                        }
+                    }
+                    Err(err) => {
+                        swift_bridge::result::ResultPtrAndPtr {
+                            is_ok: false,
+                            ok_or_err: Box::into_raw(Box::new(err)) as *mut super::ErrorType as *mut std::ffi::c_void
+                        }
+                    }
+                };
+                    let callback_wrapper = callback_wrapper;
+                    let callback_wrapper = callback_wrapper.0;
+
+                    (callback)(callback_wrapper, val)
+                };
+                swift_bridge::async_support::ASYNC_RUNTIME.spawn_task(Box::pin(task))
+            }
+        })
+    }
+
+    // TODO: Replace `Error` with the concrete error type `ErrorType`.
+    // As of Feb 2023 using the concrete error type leads to a compile time error.
+    // This seems like a bug in the Swift compiler.
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public func some_function() async throws -> OkType {
+    func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: __private__ResultPtrAndPtr) {
+        let wrapper = Unmanaged<CbWrapper$some_function>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+        if rustFnRetVal.is_ok {
+            wrapper.cb(.success(OkType(ptr: rustFnRetVal.ok_or_err!)))
+        } else {
+            wrapper.cb(.failure(ErrorType(ptr: rustFnRetVal.ok_or_err!)))
+        }
+    }
+
+    return try await withCheckedThrowingContinuation({ (continuation: CheckedContinuation<OkType, Error>) in
+        let callback = { rustFnRetVal in
+            continuation.resume(with: rustFnRetVal)
+        }
+
+        let wrapper = CbWrapper$some_function(cb: callback)
+        let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
+
+        __swift_bridge__$some_function(wrapperPtr, onComplete)
+    })
+}
+class CbWrapper$some_function {
+    var cb: (Result<OkType, Error>) -> ()
+
+    public init(cb: @escaping (Result<OkType, Error>) -> ()) {
+        self.cb = cb
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge__$some_function$async(void* callback_wrapper, struct __private__ResultPtrAndPtr ret));
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_async_function_returns_result_opaque() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

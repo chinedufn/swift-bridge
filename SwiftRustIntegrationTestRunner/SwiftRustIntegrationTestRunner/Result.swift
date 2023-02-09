@@ -25,3 +25,6 @@ public class ResultTestOpaqueSwiftType {
 
 extension ResultTestOpaqueRustType: @unchecked Sendable {}
 extension ResultTestOpaqueRustType: Error {}
+
+extension AsyncResultOpaqueRustType2: @unchecked Sendable {}
+extension AsyncResultOpaqueRustType2: Error {}
