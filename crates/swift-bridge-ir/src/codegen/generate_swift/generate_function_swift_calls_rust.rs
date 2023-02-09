@@ -200,10 +200,8 @@ pub(super) fn gen_func_swift_calls_rust(
             (
                 format!(
                     ", rustFnRetVal: {}",
-                    func_ret_ty.to_swift_type(
-                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
-                        types
-                    )
+                    func_ret_ty
+                        .to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy, types)
                 ),
                 func_ret_ty.convert_ffi_value_to_swift_value(
                     "rustFnRetVal",
