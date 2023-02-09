@@ -147,53 +147,6 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="async-functions"><a class="header" href="#async-functions">Async Functions</a></h1>
-<p><code>swift-bridge</code> supports async/await between Swift and Rust.</p>
-<h2 id="async-rust-functions"><a class="header" href="#async-rust-functions">Async Rust Functions</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[swift_bridge::bridge]
-mod ffi {
-    struct MyStruct;
-    
-    extern &quot;Rust&quot; {
-        async fn some_async_function(list: Vec&lt;u8&gt;) -&gt; MyStruct;
-    }
-}
-
-async fn some_async_function(list: Vec&lt;u8&gt;) -&gt; ffi::MyStruct {
-    ffi::MyStruct
-}
-<span class="boring">}
-</span></code></pre></pre>
-<h2 id="return-resultopaquetype-opaquetype-from-async-functions"><a class="header" href="#return-resultopaquetype-opaquetype-from-async-functions">Return <code>Result&lt;OpaqueType, OpaqueType&gt;</code> from async functions</a></h2>
-<p><code>swift-bridge</code> allows async functions to return <code>Result&lt;OpaqueType, OpaqueType&gt;</code>.</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span>
-<span class="boring">fn main() {
-</span>#[swift_bridge::bridge]
-mod ffi {    
-    extern &quot;Rust&quot; {
-        type User;
-        type ApiError;
-
-        async fn user_count() -&gt; u32;
-        async fn load_user(url: &amp;str) -&gt; Result&lt;User, ApiError&gt;;
-    }
-}
-<span class="boring">}
-</span></code></pre></pre>
-<pre><code>// Swift
-
-let totalUsers = await user_count()
-
-do {
-    let user = try await load_user(&quot;https://example.com/users/5&quot;)
-} catch let error as ApiError {
-    // ... error handling ...
-}
-</code></pre>
 
                     </main>
 
