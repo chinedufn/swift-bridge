@@ -1,6 +1,67 @@
 # Functions
 
-... TODO OVERVIEW ...
+`swift-bridge` allows you to export Rust functions for Swift to use and import Swift
+functions for Rust to use.
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {    
+    extern "Rust" {
+        #[swift_name = "printGreeting"]
+        fn print_greeting(name: &str);
+    }
+
+    extern "Swift" {
+        fn add(lhs: usize, rhs: usize) -> usize;
+    }
+}
+
+fn print_greeting(name: &str) {
+    let sum = ffi::add(1, 2);
+    println!("Hello {name}. 1 + 2 = {sum}!")
+}
+```
+
+```swift
+// Swift
+
+printGreeting("Tolu")
+
+func add(lhs: UInt, rhs: UInt) -> UInt {
+    lhs + rhs
+}
+```
+
+## Async Rust Functions
+
+`swift-bridge` supports async/await between Swift and Rust.
+
+_Calling an async Rust function from Swift is supported. Calling an async Swift function from Rust is not yet supported._
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {    
+    extern "Rust" {
+        type User;
+        type ApiError;
+
+        async fn user_count() -> u32;
+        async fn load_user(url: &str) -> Result<User, ApiError>;
+    }
+}
+```
+
+```swift
+// Swift
+
+let totalUsers = await user_count()
+
+do {
+    let user = try await load_user("https://example.com/users/5")
+} catch let error as ApiError {
+    // ... error handling ...
+}
+```
 
 ## Function Attributes
 
