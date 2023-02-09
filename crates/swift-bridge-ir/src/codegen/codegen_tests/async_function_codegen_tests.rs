@@ -534,6 +534,7 @@ void __swift_bridge__$SomeType$some_method(void* callback_wrapper, void __swift_
     }
 }
 
+/// Verify that we generate the correct code for extern "Rust" async functions that returns a Result<OpaqueRustType, OpaqueRustType>.
 mod extern_rust_async_function_returns_result_opaque {
     use super::*;
 
@@ -583,6 +584,10 @@ mod extern_rust_async_function_returns_result_opaque {
         })
     }
 
+    // TODO: Replace `Error` with the concrete error type `SomeType2`. 
+    // As of Feb 2023 using the concrete error type leads to a compile time error.
+    // This seems like a bug in the Swift compiler.
+    
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
@@ -596,7 +601,7 @@ public func some_function() async throws -> SomeType1 {
         }
     }
 
-    return try await withCheckedThrowingContinuation({ (continuation: CheckedContinuation<SomeType1, Error>) in
+    return try await withCheckedThrowingContinuation({ (continuation: CheckedContinuation<SomeType1, SomeType2>) in
         let callback = { rustFnRetVal in
             continuation.resume(with: rustFnRetVal)
         }
@@ -608,9 +613,9 @@ public func some_function() async throws -> SomeType1 {
     })
 }
 class CbWrapper$some_function {
-    var cb: (Result<SomeType1, Error>) -> ()
+    var cb: (Result<SomeType1, SomeType2>) -> ()
 
-    public init(cb: @escaping (Result<SomeType1, Error>) -> ()) {
+    public init(cb: @escaping (Result<SomeType1, SomeType2>) -> ()) {
         self.cb = cb
     }
 }

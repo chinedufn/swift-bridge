@@ -237,7 +237,7 @@ pub(super) fn gen_func_swift_calls_rust(
         wrapper.cb(.failure({err}(ptr: rustFnRetVal.ok_or_err!)))
     }}"#
                     ),
-                    "Error".to_string(),
+                    err,
                     " try ".to_string(),
                     "withCheckedThrowingContinuation".to_string(),
                 )
