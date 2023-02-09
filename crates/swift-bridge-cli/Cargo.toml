@@ -1,6 +1,6 @@
 [package]
 name = "swift-bridge-cli"
-version = "0.1.48"
+version = "0.1.49"
 edition = "2021"
 keywords = ["swift", "ffi", "bindings", "ios", "mac"]
 description = "Parse Rust files for swift-bridge modules and generate the corresponding Swift and C code for them."
@@ -9,4 +9,4 @@ license = "Apache-2.0/MIT"
 
 [dependencies]
 clap = "3"
-swift-bridge-build = { version = "0.1.48", path = "../swift-bridge-build" }
+swift-bridge-build = { version = "0.1.49", path = "../swift-bridge-build" }
