@@ -197,37 +197,20 @@ pub(super) fn gen_func_swift_calls_rust(
         let (maybe_on_complete_sig_ret_val, on_complete_ret_val) = if func_ret_ty.is_null() {
             ("".to_string(), "()".to_string())
         } else {
-            if func_ret_ty.is_result() {
-                (
-                    format!(
-                        ", rustFnRetVal: {}",
-                        func_ret_ty.to_swift_type(
-                            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
-                            types
-                        )
-                    ),
-                    func_ret_ty.convert_ffi_value_to_swift_value(
-                        "rustFnRetVal",
+            (
+                format!(
+                    ", rustFnRetVal: {}",
+                    func_ret_ty.to_swift_type(
                         TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
-                        types,
-                    ),
-                )
-            } else {
-                (
-                    format!(
-                        ", rustFnRetVal: {}",
-                        func_ret_ty.to_swift_type(
-                            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
-                            types
-                        )
-                    ),
-                    func_ret_ty.convert_ffi_value_to_swift_value(
-                        "rustFnRetVal",
-                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
-                        types,
-                    ),
-                )
-            }
+                        types
+                    )
+                ),
+                func_ret_ty.convert_ffi_value_to_swift_value(
+                    "rustFnRetVal",
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
+                    types,
+                ),
+            )
         };
         let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
         let (run_wrapper_cb, error, maybe_try, with_checked_continuation_function_name) =
