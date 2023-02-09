@@ -107,8 +107,7 @@ impl BuiltInResult {
     pub fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
         match type_pos {
             TypePosition::FnReturn(_) => self.ok_ty.to_swift_type(type_pos, types),
-            TypePosition::FnArg(_, _)
-            | TypePosition::SharedStructField => {
+            TypePosition::FnArg(_, _) | TypePosition::SharedStructField => {
                 format!(
                     "RustResult<{}, {}>",
                     self.ok_ty.to_swift_type(type_pos, types),

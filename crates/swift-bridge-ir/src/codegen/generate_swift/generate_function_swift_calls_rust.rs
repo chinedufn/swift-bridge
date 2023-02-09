@@ -199,7 +199,13 @@ pub(super) fn gen_func_swift_calls_rust(
         } else {
             if func_ret_ty.is_result() {
                 (
-                    format!(", rustFnRetVal: {}", func_ret_ty.to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy, types)),
+                    format!(
+                        ", rustFnRetVal: {}",
+                        func_ret_ty.to_swift_type(
+                            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
+                            types
+                        )
+                    ),
                     func_ret_ty.convert_ffi_value_to_swift_value(
                         "rustFnRetVal",
                         TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
@@ -225,10 +231,13 @@ pub(super) fn gen_func_swift_calls_rust(
         };
         let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
         let (run_wrapper_cb, error, maybe_try, with_checked_continuation_function_name) =
-            if let Some(result) = func_ret_ty.as_result()
-            {
-                let ok  = result.ok_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
-                let err = result.err_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
+            if let Some(result) = func_ret_ty.as_result() {
+                let ok = result
+                    .ok_ty
+                    .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
+                let err = result
+                    .err_ty
+                    .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
                 (
                     format!(
                         r#"if rustFnRetVal.is_ok {{
@@ -237,7 +246,7 @@ pub(super) fn gen_func_swift_calls_rust(
         wrapper.cb(.failure({err}(ptr: rustFnRetVal.ok_or_err!)))
     }}"#
                     ),
-                    err,
+                    "Error".to_string(),
                     " try ".to_string(),
                     "withCheckedThrowingContinuation".to_string(),
                 )

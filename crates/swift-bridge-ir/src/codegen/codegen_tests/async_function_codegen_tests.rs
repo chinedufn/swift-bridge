@@ -543,9 +543,9 @@ mod extern_rust_async_function_returns_result_opaque {
             #[swift_bridge::bridge]
             mod ffi {
                 extern "Rust" {
-                    type SomeType1;
-                    type SomeType2;
-                    async fn some_function() -> Result<SomeType1, SomeType2>;
+                    type OkType;
+                    type ErrorType;
+                    async fn some_function() -> Result<OkType, ErrorType>;
                 }
             }
         }
@@ -564,13 +564,13 @@ mod extern_rust_async_function_returns_result_opaque {
                     Ok(ok) => {
                         swift_bridge::result::ResultPtrAndPtr {
                             is_ok: true,
-                            ok_or_err: Box::into_raw(Box::new(ok)) as *mut super::SomeType1 as *mut std::ffi::c_void
+                            ok_or_err: Box::into_raw(Box::new(ok)) as *mut super::OkType as *mut std::ffi::c_void
                         }
                     }
                     Err(err) => {
                         swift_bridge::result::ResultPtrAndPtr {
                             is_ok: false,
-                            ok_or_err: Box::into_raw(Box::new(err)) as *mut super::SomeType2 as *mut std::ffi::c_void
+                            ok_or_err: Box::into_raw(Box::new(err)) as *mut super::ErrorType as *mut std::ffi::c_void
                         }
                     }
                 };
@@ -584,24 +584,24 @@ mod extern_rust_async_function_returns_result_opaque {
         })
     }
 
-    // TODO: Replace `Error` with the concrete error type `SomeType2`. 
+    // TODO: Replace `Error` with the concrete error type `ErrorType`.
     // As of Feb 2023 using the concrete error type leads to a compile time error.
     // This seems like a bug in the Swift compiler.
-    
+
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
-public func some_function() async throws -> SomeType1 {
+public func some_function() async throws -> OkType {
     func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: __private__ResultPtrAndPtr) {
         let wrapper = Unmanaged<CbWrapper$some_function>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
         if rustFnRetVal.is_ok {
-            wrapper.cb(.success(SomeType1(ptr: rustFnRetVal.ok_or_err!)))
+            wrapper.cb(.success(OkType(ptr: rustFnRetVal.ok_or_err!)))
         } else {
-            wrapper.cb(.failure(SomeType2(ptr: rustFnRetVal.ok_or_err!)))
+            wrapper.cb(.failure(ErrorType(ptr: rustFnRetVal.ok_or_err!)))
         }
     }
 
-    return try await withCheckedThrowingContinuation({ (continuation: CheckedContinuation<SomeType1, SomeType2>) in
+    return try await withCheckedThrowingContinuation({ (continuation: CheckedContinuation<OkType, Error>) in
         let callback = { rustFnRetVal in
             continuation.resume(with: rustFnRetVal)
         }
@@ -613,9 +613,9 @@ public func some_function() async throws -> SomeType1 {
     })
 }
 class CbWrapper$some_function {
-    var cb: (Result<SomeType1, SomeType2>) -> ()
+    var cb: (Result<OkType, Error>) -> ()
 
-    public init(cb: @escaping (Result<SomeType1, SomeType2>) -> ()) {
+    public init(cb: @escaping (Result<OkType, Error>) -> ()) {
         self.cb = cb
     }
 }

@@ -15,7 +15,7 @@ impl BridgeableType for BridgedString {
     fn is_result(&self) -> bool {
         false
     }
-     
+
     fn as_result(&self) -> Option<&super::bridgeable_result::BuiltInResult> {
         None
     }
