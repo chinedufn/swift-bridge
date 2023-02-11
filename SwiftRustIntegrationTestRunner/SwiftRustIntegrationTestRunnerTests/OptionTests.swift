@@ -198,7 +198,7 @@ class OptionTests: XCTestCase {
         case .Variant2:
             break;
         default:
-            fatalError()
+            XCTFail()
         }
         
         XCTAssertNil(reflectedNone)

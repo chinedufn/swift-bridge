@@ -25,7 +25,7 @@ class ResultTests: XCTestCase {
             let _ = try rust_func_reflect_result_opaque_rust(
                 .Err(ResultTestOpaqueRustType(222))
             )
-            fatalError("The function should have returned an error.")
+            XCTFail("The function should have returned an error.")
         } catch let error as ResultTestOpaqueRustType {
             XCTAssertEqual(error.val(), 222)
         }

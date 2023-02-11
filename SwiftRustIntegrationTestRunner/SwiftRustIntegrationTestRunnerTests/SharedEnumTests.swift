@@ -28,7 +28,7 @@ class SharedEnumTests: XCTestCase {
         case (.Variant1, .Variant2):
             break;
         default:
-            fatalError()
+            XCTFail()
         }
     }
 }
