@@ -48,6 +48,10 @@ impl<T> FfiSlice<T> {
 
 // The code generation automatically implements this for all shared structs.
 // This trait is private and should not be used outside of swift-bridge.
+//
+// The main use case is for structs that use the `#[swift_bridge(already_declared)]`
+// attribute, where we use `<SomeStruct as SharedStruct::FfiRepr>` to get the
+// struct's FFI representation.
 #[doc(hidden)]
 pub trait SharedStruct {
     /// The FFI friendly representation of this struct.
@@ -67,6 +71,10 @@ pub trait SharedStruct {
 
 // The code generation automatically implements this for all shared enum.
 // This trait is private and should not be used outside of swift-bridge.
+//
+// The main use case is for enums that use the `#[swift_bridge(already_declared)]`
+// attribute, where we use `<SomeEnum as SharedEnum::FfiRepr>` to get the
+// enum's FFI representation.
 #[doc(hidden)]
 pub trait SharedEnum {
     /// The FFI friendly representation of this enum.
