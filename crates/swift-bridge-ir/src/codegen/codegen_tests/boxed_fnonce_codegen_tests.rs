@@ -411,7 +411,10 @@ mod test_swift_takes_callback_return_opaque_rust_type {
             quote! {
                 #[export_name = "__swift_bridge__$some_function$param0"]
                 pub extern "C" fn some_function_param0(some_function_callback: *mut Box<dyn FnOnce() -> super::ARustType>) -> *mut super::ARustType {
-                    Box::into_raw(Box::new(unsafe { Box::from_raw(some_function_callback)() })) as *mut super::ARustType
+                    Box::into_raw(Box::new({
+                        let val: super::ARustType = unsafe { Box::from_raw(some_function_callback)() };
+                        val
+                    })) as *mut super::ARustType
                 }
 
                 #[export_name = "__swift_bridge__$some_function$_free$param0"]

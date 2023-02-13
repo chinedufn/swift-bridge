@@ -151,13 +151,19 @@ mod extern_rust_fn_return_result_opaque_rust {
                     Ok(ok) => {
                         swift_bridge::result::ResultPtrAndPtr {
                             is_ok: true,
-                            ok_or_err: Box::into_raw(Box::new(ok)) as *mut super::SomeType as *mut std::ffi::c_void
+                            ok_or_err: Box::into_raw(Box::new({
+                                let val: super::SomeType = ok;
+                                val
+                            })) as *mut super::SomeType as *mut std::ffi::c_void
                         }
                     }
                     Err(err) => {
                         swift_bridge::result::ResultPtrAndPtr {
                             is_ok: false,
-                            ok_or_err: Box::into_raw(Box::new(err)) as *mut super::SomeType as *mut std::ffi::c_void
+                            ok_or_err: Box::into_raw(Box::new({
+                                let val: super::SomeType = err;
+                                val
+                            })) as *mut super::SomeType as *mut std::ffi::c_void
                         }
                     }
                 }

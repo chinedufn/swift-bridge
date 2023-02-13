@@ -1,0 +1,23 @@
+error[E0308]: mismatched types
+ --> tests/ui/incorrect-return-type.rs:6:1
+  |
+6 | #[swift_bridge::bridge]
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | expected struct `SomeType`, found `&SomeType`
+  | expected due to this
+  |
+  = note: this error originates in the attribute macro `swift_bridge::bridge` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+ --> tests/ui/incorrect-return-type.rs:6:1
+  |
+6 | #[swift_bridge::bridge]
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | expected struct `SomeType`, found enum `Option`
+  | expected due to this
+  |
+  = note: expected struct `SomeType`
+               found enum `Option<SomeType>`
+  = note: this error originates in the attribute macro `swift_bridge::bridge` (in Nightly builds, run with -Z macro-backtrace for more info)

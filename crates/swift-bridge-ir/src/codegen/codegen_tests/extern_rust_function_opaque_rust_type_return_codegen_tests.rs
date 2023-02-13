@@ -23,7 +23,10 @@ mod test_extern_rust_function_owned_opaque_rust_type_return {
         ExpectedRustTokens::Contains(quote! {
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function () -> *mut super::SomeType {
-                Box::into_raw(Box::new(super::some_function())) as *mut super::SomeType
+                Box::into_raw(Box::new({
+                    let val: super::SomeType = super::some_function();
+                    val
+                })) as *mut super::SomeType
             }
         })
     }
