@@ -211,7 +211,10 @@ impl BridgeableType for OpaqueForeignType {
                     .generics
                     .angle_bracketed_concrete_generics_tokens(types);
                 quote! {
-                    Box::into_raw(Box::new(#expression)) as *mut super::#ty_name #generics
+                    Box::into_raw(Box::new({
+                        let val: super::#ty_name #generics = #expression;
+                        val
+                    })) as *mut super::#ty_name #generics
                 }
             }
         } else {
