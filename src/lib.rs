@@ -16,6 +16,9 @@ pub mod async_support;
 pub mod boxed_fn_support;
 
 #[doc(hidden)]
+pub mod copy_support;
+
+#[doc(hidden)]
 #[repr(C)]
 pub struct FfiSlice<T> {
     pub start: *const T,
@@ -99,6 +102,3 @@ pub trait SharedEnum {
 pub extern "C" fn __swift_bridge__null_pointer() -> *const std::ffi::c_void {
     std::ptr::null()
 }
-
-#[doc(hidden)]
-pub fn assert_copy<T: Copy>() {}

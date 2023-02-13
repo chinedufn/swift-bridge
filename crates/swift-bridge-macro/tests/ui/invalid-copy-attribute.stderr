@@ -28,17 +28,17 @@ error[E0512]: cannot transmute between types of different sizes, or dependently-
   = note: this error originates in the attribute macro `swift_bridge::bridge` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `DoesNotImplementCopy: Copy` is not satisfied
-  --> tests/ui/invalid-copy-attribute.rs:8:14
-   |
-8  |         type DoesNotImplementCopy;
-   |              ^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `DoesNotImplementCopy`
-   |
+ --> tests/ui/invalid-copy-attribute.rs:8:14
+  |
+8 |         type DoesNotImplementCopy;
+  |              ^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `DoesNotImplementCopy`
+  |
 note: required by a bound in `assert_copy`
-  --> $WORKSPACE/src/lib.rs
-   |
-   | pub fn assert_copy<T: Copy>() {}
-   |                       ^^^^ required by this bound in `assert_copy`
+ --> $WORKSPACE/src/copy_support.rs
+  |
+  | pub fn assert_copy<T: Copy>() {}
+  |                       ^^^^ required by this bound in `assert_copy`
 help: consider annotating `DoesNotImplementCopy` with `#[derive(Copy)]`
-   |
-15 | #[derive(Copy)]
-   |
+  |
+15| #[derive(Copy)]
+  |

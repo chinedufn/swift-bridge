@@ -235,7 +235,7 @@ mod extern_rust_copy_type {
                     const _: () = {
                         let _: [u8; std::mem::size_of::<super::SomeType>()] = [0; 32usize];
                         fn _assert_copy() {
-                            swift_bridge::assert_copy::<super::SomeType>();
+                            swift_bridge::copy_support::assert_copy::<super::SomeType>();
                         }
                     };
                 },

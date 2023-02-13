@@ -275,7 +275,7 @@ mod generic_opaque_rust_type_copy {
                     const _ : () = {
                         let _ : [u8 ; std :: mem :: size_of :: < super :: SomeType<u32, u16> > ()] = [0 ; 6usize] ;
                         fn _assert_copy () {
-                            swift_bridge :: assert_copy :: < super :: SomeType<u32,u16> > () ;
+                            swift_bridge::copy_support::assert_copy::<super::SomeType<u32,u16>>();
                         }
                     }
                 },

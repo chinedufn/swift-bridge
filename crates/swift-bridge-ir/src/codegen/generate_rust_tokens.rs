@@ -148,7 +148,7 @@ impl ToTokens for SwiftBridgeModule {
                                     const _: () = {
                                         let _: [u8; std::mem::size_of::<super::#ty_name #generics>()] = [0; #size];
                                         fn _assert_copy() {
-                                            #swift_bridge_path::assert_copy::<super::#ty_name #generics>();
+                                            #swift_bridge_path::copy_support::assert_copy::<super::#ty_name #generics>();
                                         }
                                     };
                                 };
