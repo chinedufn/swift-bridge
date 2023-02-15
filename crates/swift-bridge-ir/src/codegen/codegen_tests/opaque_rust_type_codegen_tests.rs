@@ -126,7 +126,7 @@ extension HashableTypeRef: Hashable{
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-uint64_t __swift_bridge__$HashableType$_hash(void* self);  
+uint64_t __swift_bridge__$HashableType$_hash(void* self);
     "#,
             r#"
 "#,
@@ -416,7 +416,10 @@ mod extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg {
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             pub fn some_function (arg: super::MyType) {
-                unsafe { __swift_bridge__some_function( Box::into_raw(Box::new(arg)) as *mut super::MyType ) }
+                unsafe { __swift_bridge__some_function( Box::into_raw(Box::new({
+                    let val: super::MyType = arg;
+                    val
+                })) as *mut super::MyType ) }
             }
 
             extern "C" {

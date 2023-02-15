@@ -507,7 +507,10 @@ mod tests {
         let expected_func = quote! {
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function () -> *mut super::Foo {
-                Box::into_raw(Box::new(super::another_function())) as *mut super::Foo
+                Box::into_raw(Box::new({
+                    let val: super::Foo = super::another_function();
+                    val
+                })) as *mut super::Foo
             }
         };
 
@@ -531,7 +534,10 @@ mod tests {
         let expected_func = quote! {
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function () -> *mut super::Foo {
-                Box::into_raw(Box::new(super::some_function().into())) as *mut super::Foo
+                Box::into_raw(Box::new({
+                    let val: super::Foo = super::some_function().into();
+                    val
+                })) as *mut super::Foo
             }
         };
 
@@ -630,7 +636,10 @@ mod tests {
         let expected = quote! {
             #[export_name = "__swift_bridge__$SomeType$new"]
             pub extern "C" fn __swift_bridge__SomeType_new () -> *mut super::SomeType {
-                Box::into_raw(Box::new(super::SomeType::new())) as *mut super::SomeType
+                Box::into_raw(Box::new({
+                    let val: super::SomeType = super::SomeType::new();
+                    val
+                })) as *mut super::SomeType
             }
         };
 
