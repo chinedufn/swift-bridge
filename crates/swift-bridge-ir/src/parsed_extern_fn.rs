@@ -2,7 +2,7 @@ use crate::bridged_type::boxed_fn::BridgeableBoxedFnOnce;
 use crate::bridged_type::{pat_type_pat_is_self, BridgedType, StdLibType};
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
@@ -290,6 +290,8 @@ impl ParsedExternFn {
                                 &arg,
                                 swift_bridge_path,
                                 types,
+                                // TODO: Add a UI test and then add a better span
+                                Span::call_site(),
                             );
                         };
                     } else {

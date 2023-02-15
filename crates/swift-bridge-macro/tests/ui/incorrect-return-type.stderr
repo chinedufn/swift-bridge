@@ -1,23 +1,33 @@
 error[E0308]: mismatched types
- --> tests/ui/incorrect-return-type.rs:6:1
-  |
-6 | #[swift_bridge::bridge]
-  | ^^^^^^^^^^^^^^^^^^^^^^^
-  | |
-  | expected struct `SomeType`, found `&SomeType`
-  | expected due to this
-  |
-  = note: this error originates in the attribute macro `swift_bridge::bridge` (in Nightly builds, run with -Z macro-backtrace for more info)
+  --> tests/ui/incorrect-return-type.rs:6:1
+   |
+6  |   #[swift_bridge::bridge]
+   |   ^^^^^^^^^^^^^^^^^^^^^^^ expected struct `SomeType`, found `&SomeType`
+...
+9  |           type SomeType;
+   |  ______________-
+10 | |
+11 | |         #[swift_bridge(rust_name = "some_function")]
+12 | |         fn fn1() -> SomeType;
+   | |_____________________________- expected due to this
+   |
+   = note: this error originates in the attribute macro `swift_bridge::bridge` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
- --> tests/ui/incorrect-return-type.rs:6:1
-  |
-6 | #[swift_bridge::bridge]
-  | ^^^^^^^^^^^^^^^^^^^^^^^
-  | |
-  | expected struct `SomeType`, found enum `Option`
-  | expected due to this
-  |
-  = note: expected struct `SomeType`
-               found enum `Option<SomeType>`
-  = note: this error originates in the attribute macro `swift_bridge::bridge` (in Nightly builds, run with -Z macro-backtrace for more info)
+  --> tests/ui/incorrect-return-type.rs:6:1
+   |
+6  |   #[swift_bridge::bridge]
+   |   ^^^^^^^^^^^^^^^^^^^^^^^ expected struct `SomeType`, found enum `Option`
+...
+9  |           type SomeType;
+   |  ______________-
+10 | |
+11 | |         #[swift_bridge(rust_name = "some_function")]
+12 | |         fn fn1() -> SomeType;
+13 | |         #[swift_bridge(rust_name = "another_function")]
+14 | |         fn fn2() -> SomeType;
+   | |_____________________________- expected due to this
+   |
+   = note: expected struct `SomeType`
+                found enum `Option<SomeType>`
+   = note: this error originates in the attribute macro `swift_bridge::bridge` (in Nightly builds, run with -Z macro-backtrace for more info)

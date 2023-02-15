@@ -83,6 +83,7 @@ impl BridgeableType for BridgedString {
         expression: &TokenStream,
         swift_bridge_path: &Path,
         _types: &TypeDeclarations,
+        _span: Span,
     ) -> TokenStream {
         quote! {
             #swift_bridge_path::string::RustString( #expression ).box_into_raw()

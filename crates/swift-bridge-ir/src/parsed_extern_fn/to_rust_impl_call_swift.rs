@@ -1,7 +1,7 @@
 use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, quote_spanned};
 use std::ops::Deref;
 use syn::spanned::Spanned;
@@ -151,6 +151,8 @@ impl ParsedExternFn {
                 &call_boxed_fn,
                 swift_bridge_path,
                 types,
+                // TODO: Add a UI test and then add a better span
+                Span::call_site()
             );
             let call_boxed_fn = quote! {
                 #[export_name = #call_boxed_fn_link_name]

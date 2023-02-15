@@ -187,6 +187,7 @@ impl BridgeableType for OpaqueForeignType {
         expression: &TokenStream,
         _swift_bridge_path: &Path,
         types: &TypeDeclarations,
+        span: Span,
     ) -> TokenStream {
         let ty_name = &self.ty;
 
@@ -210,7 +211,7 @@ impl BridgeableType for OpaqueForeignType {
                 let generics = self
                     .generics
                     .angle_bracketed_concrete_generics_tokens(types);
-                quote! {
+                quote_spanned! {span=>
                     Box::into_raw(Box::new({
                         let val: super::#ty_name #generics = #expression;
                         val

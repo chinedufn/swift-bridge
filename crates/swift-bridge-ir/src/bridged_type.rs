@@ -105,6 +105,7 @@ pub(crate) trait BridgeableType: Debug {
         expression: &TokenStream,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
+        span: Span,
     ) -> TokenStream;
 
     /// Convert a an `Option<Self>` Rust expression to an FFI compatible type.
@@ -471,8 +472,9 @@ impl BridgeableType for BridgedType {
         expression: &TokenStream,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
+        span: Span,
     ) -> TokenStream {
-        self.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types)
+        self.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types, span)
     }
 
     fn convert_option_rust_expression_to_ffi_type(
@@ -1220,10 +1222,11 @@ impl BridgedType {
         expression: &TokenStream,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
+        span: Span,
     ) -> TokenStream {
         match self {
             BridgedType::Bridgeable(b) => {
-                b.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types)
+                b.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types, span)
             }
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::Null
@@ -1264,7 +1267,7 @@ impl BridgedType {
                     opt.convert_rust_expression_to_ffi_type(expression, swift_bridge_path)
                 }
                 StdLibType::Result(result) => {
-                    result.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types)
+                    result.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types,span)
                 }
                 StdLibType::BoxedFnOnce(fn_once) => {
                     fn_once.convert_rust_value_to_ffi_compatible_value(expression)

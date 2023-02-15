@@ -38,17 +38,20 @@ impl BuiltInResult {
         expression: &TokenStream,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
+        span: Span,
     ) -> TokenStream {
         let convert_ok = self.ok_ty.convert_rust_expression_to_ffi_type(
             &quote! { ok },
             swift_bridge_path,
             types,
+            span,
         );
 
         let convert_err = self.err_ty.convert_rust_expression_to_ffi_type(
             &quote! { err },
             swift_bridge_path,
             types,
+            span,
         );
 
         quote! {

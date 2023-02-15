@@ -1,7 +1,7 @@
 use crate::bridged_type::{BridgedType, TypePosition};
 use crate::parse::TypeDeclarations;
 use crate::SWIFT_BRIDGE_PREFIX;
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use std::fmt::{Debug, Formatter};
 use syn::spanned::Spanned;
@@ -115,6 +115,7 @@ impl SharedStruct {
         expression: &TokenStream,
         types: &TypeDeclarations,
         swift_bridge_path: &Path,
+        span: Span,
     ) -> TokenStream {
         let converted_fields: Vec<TokenStream> = self
             .fields
@@ -125,8 +126,12 @@ impl SharedStruct {
                 let access_field = norm_field.append_field_accessor(&quote! {val});
 
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-                let converted_field =
-                    ty.convert_rust_expression_to_ffi_type(&access_field, swift_bridge_path, types);
+                let converted_field = ty.convert_rust_expression_to_ffi_type(
+                    &access_field,
+                    swift_bridge_path,
+                    types,
+                    span,
+                );
 
                 quote! {
                     #maybe_name_and_colon #converted_field

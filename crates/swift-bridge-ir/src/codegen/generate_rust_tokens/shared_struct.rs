@@ -3,7 +3,7 @@
 
 use crate::bridged_type::{BridgedType, SharedStruct};
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
 
@@ -64,6 +64,8 @@ impl SwiftBridgeModule {
             &quote! { self },
             &self.types,
             &self.swift_bridge_path,
+            // TODO: Add a UI test and then add a better span
+            Span::call_site(),
         );
         let convert_ffi_to_rust = shared_struct.convert_ffi_repr_to_rust(
             &quote! { self },

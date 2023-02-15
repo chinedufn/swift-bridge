@@ -1,8 +1,9 @@
 use crate::bridged_type::BridgedType;
 use crate::parse::{HostLang, OpaqueCopy, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::{GetField, GetFieldDirect, GetFieldWith, ParsedExternFn};
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
+use syn::spanned::Spanned;
 use syn::Path;
 
 impl ParsedExternFn {
@@ -57,6 +58,8 @@ impl ParsedExternFn {
                             &quote! {fut.await},
                             swift_bridge_path,
                             types,
+                            // TODO: Add a UI test and then add a better span.
+                            Span::call_site(),
                         );
 
                         (
@@ -149,8 +152,13 @@ impl ParsedExternFn {
 
         // Async functions get this conversion done after awaiting the returned future.
         if self.sig.asyncness.is_none() {
-            call_fn =
-                return_ty.convert_rust_expression_to_ffi_type(&call_fn, swift_bridge_path, types);
+            let fn_span = self.func.span();
+            call_fn = return_ty.convert_rust_expression_to_ffi_type(
+                &call_fn,
+                swift_bridge_path,
+                types,
+                fn_span,
+            );
         }
 
         call_fn
