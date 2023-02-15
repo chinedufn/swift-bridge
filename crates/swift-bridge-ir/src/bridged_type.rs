@@ -1266,9 +1266,12 @@ impl BridgedType {
                 StdLibType::Option(opt) => {
                     opt.convert_rust_expression_to_ffi_type(expression, swift_bridge_path)
                 }
-                StdLibType::Result(result) => {
-                    result.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types,span)
-                }
+                StdLibType::Result(result) => result.convert_rust_expression_to_ffi_type(
+                    expression,
+                    swift_bridge_path,
+                    types,
+                    span,
+                ),
                 StdLibType::BoxedFnOnce(fn_once) => {
                     fn_once.convert_rust_value_to_ffi_compatible_value(expression)
                 }

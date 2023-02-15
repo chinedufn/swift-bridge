@@ -152,7 +152,7 @@ impl ParsedExternFn {
                 swift_bridge_path,
                 types,
                 // TODO: Add a UI test and then add a better span
-                Span::call_site()
+                Span::call_site(),
             );
             let call_boxed_fn = quote! {
                 #[export_name = #call_boxed_fn_link_name]
