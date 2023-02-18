@@ -53,6 +53,24 @@ impl SharedEnum {
         quote! { #name }
     }
 
+    pub fn ffi_union_name_string(&self) -> String {
+        format!("{}Fields", self.ffi_name_string())
+    }
+
+    pub fn ffi_union_field_names_string(&self) -> String {
+        let mut union_fields = "{".to_string();
+        for variant in self.variants.iter() {
+            let union_field = format!(
+                " {} {};",
+                variant.union_name_string(&self.ffi_name_string()),
+                variant.name
+            );
+            union_fields += &union_field;
+        }
+        union_fields += "}";
+        union_fields
+    }
+
     /// __swift_bridge__$Option$SomeEnum
     pub fn ffi_option_name_string(&self) -> String {
         format!(

@@ -133,6 +133,8 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         let ffi_name = ty_enum.ffi_name_string();
                         let ffi_tag_name = ty_enum.ffi_tag_name_string();
                         let option_ffi_name = ty_enum.ffi_option_name_string();
+                        let ffi_union_name = ty_enum.ffi_union_name_string();
+                        let ffi_union_field_names = ty_enum.ffi_union_field_names_string();
 
                         // Used for `Option<T>` ...
                         // typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; ...
@@ -141,8 +143,8 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         let mut variants = "".to_string();
 
                         for variant in ty_enum.variants.iter() {
-                            let v = format!("{}${}, ", ffi_name, variant.name);
-                            variants += &v;
+                            let variant = format!("{}${}, ", ffi_name, variant.name);
+                            variants += &variant;
                         }
 
                         let maybe_vec_support = if ty_enum.has_one_or_more_variants_with_data() {
@@ -150,15 +152,52 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         } else {
                             vec_transparent_enum_c_support(&ty_enum.swift_name_string())
                         };
-
+                        let mut variant_fields = "".to_string();
+                        for variant in ty_enum.variants.iter() {
+                            match &variant.fields {
+                                StructFields::Named(_) => {
+                                    todo!();
+                                }
+                                StructFields::Unnamed(unnamed_fields) => {
+                                    let mut params = vec![];
+                                    for unnamed_field in unnamed_fields.iter() {
+                                        let variant_field = BridgedType::new_with_type(
+                                            &unnamed_field.ty,
+                                            &self.types,
+                                        )
+                                        .unwrap();
+                                        let variant_field = variant_field.to_c();
+                                        params.push(format!(
+                                            "{} _{};",
+                                            variant_field, unnamed_field.idx
+                                        ));
+                                    }
+                                    let params = params.join(" ");
+                                    let variant_field = format!("typedef struct {ffi_name}$FieldOf{variant_name} {{{params}}} {ffi_name}$FieldOf{variant_name};", ffi_name = ffi_name, variant_name = variant.name, params = params);
+                                    variant_fields += &variant_field;
+                                    variant_fields += "\n";
+                                }
+                                StructFields::Unit => {
+                                    let variant_field = format!("typedef struct {ffi_name}$FieldOf{variant_name} {{uint8_t _private;}} {ffi_name}$FieldOf{variant_name};", ffi_name = ffi_name, variant_name = variant.name);
+                                    variant_fields += &variant_field;
+                                    variant_fields += "\n";
+                                }
+                            }
+                        }
                         let enum_decl = format!(
-                            r#"typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
-typedef struct {ffi_name} {{ {ffi_tag_name} tag; }} {ffi_name};
+                            r#"#include <stdint.h>
+{variant_fields}
+union {ffi_union_name} {union_fields};
+typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
+typedef struct {ffi_name} {{ {ffi_tag_name} tag; union {ffi_union_name} payload;}} {ffi_name};
 typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{maybe_vec_support}"#,
+                            union_fields = ffi_union_field_names,
+                            variant_fields = variant_fields,
                             ffi_name = ffi_name,
                             ffi_tag_name = ffi_tag_name,
                             option_ffi_name = option_ffi_name,
-                            variants = variants
+                            variants = variants,
+                            ffi_union_name = ffi_union_name,
                         );
 
                         header += &enum_decl;

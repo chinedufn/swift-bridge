@@ -1,4 +1,4 @@
-use crate::bridged_type::SharedEnum;
+use crate::bridged_type::{BridgedType, SharedEnum, StructFields, TypePosition};
 use crate::SwiftBridgeModule;
 
 impl SwiftBridgeModule {
@@ -13,15 +13,38 @@ impl SwiftBridgeModule {
         let option_ffi_name = shared_enum.ffi_option_name_string();
 
         let mut variants = "".to_string();
-        let mut convert_swift_to_ffi_repr = "".to_string();
-        let mut convert_ffi_repr_to_swift = "".to_string();
+        let mut convert_swift_to_ffi_repr = "\n".to_string();
+        let mut convert_ffi_repr_to_swift = "\n".to_string();
 
         for variant in shared_enum.variants.iter() {
-            let v = format!(
-                r#"
+            let v = match &variant.fields {
+                StructFields::Named(_) => {
+                    todo!();
+                }
+                StructFields::Unnamed(unnamed_fields) => {
+                    let mut params = vec![];
+                    for unnamed_field in unnamed_fields {
+                        let ty = BridgedType::new_with_type(&unnamed_field.ty, &self.types)
+                            .unwrap()
+                            .to_swift_type(TypePosition::SharedStructField, &self.types);
+                        params.push(ty);
+                    }
+                    let params = params.join(", ");
+                    format!(
+                        r#"
+    case {name}({params})"#,
+                        name = variant.name,
+                        params = params,
+                    )
+                }
+                StructFields::Unit => {
+                    format!(
+                        r#"
     case {name}"#,
-                name = variant.name
-            );
+                        name = variant.name
+                    )
+                }
+            };
             variants += &v;
         }
         if variants.len() > 0 {
@@ -29,35 +52,25 @@ impl SwiftBridgeModule {
         }
 
         for variant in shared_enum.variants.iter() {
-            let case = format!(
-                r#"
-            case {enum_name}.{variant_name}:
-                return {enum_ffi_name}(tag: {enum_ffi_name}${variant_name})"#,
-                enum_name = enum_name,
-                enum_ffi_name = enum_ffi_name,
-                variant_name = variant.name
+            let convert_swift_variant_to_ffi_repr = variant.convert_swift_to_ffi_repr(
+                &self.types,
+                format!("{}", enum_name),
+                format!("{}", enum_ffi_name),
             );
-            convert_swift_to_ffi_repr += &case;
+            convert_swift_to_ffi_repr += &convert_swift_variant_to_ffi_repr;
         }
         if convert_swift_to_ffi_repr.len() > 0 {
-            convert_swift_to_ffi_repr += "\n        ";
+            convert_swift_to_ffi_repr += "        ";
         }
 
         for variant in shared_enum.variants.iter() {
-            let case = format!(
-                r#"
-            case {enum_ffi_name}${variant_name}:
-                return {enum_name}.{variant_name}"#,
-                enum_name = enum_name,
-                enum_ffi_name = enum_ffi_name,
-                variant_name = variant.name
-            );
-            convert_ffi_repr_to_swift += &case;
+            let convert_ffi_variant_to_swift =
+                variant.convert_ffi_expression_to_swift(&self.types, format!("{}", enum_name));
+            convert_ffi_repr_to_swift += &convert_ffi_variant_to_swift;
         }
         if convert_ffi_repr_to_swift.len() > 0 {
             convert_ffi_repr_to_swift += &format!(
-                r#"
-            default:
+                r#"            default:
                 fatalError("Unreachable")
         "#
             );
