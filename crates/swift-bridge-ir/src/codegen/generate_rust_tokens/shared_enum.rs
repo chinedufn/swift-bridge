@@ -74,7 +74,7 @@ impl SwiftBridgeModule {
                 }
                 StructFields::Unit => {
                     quote! {
-                        #variant_name (u8)
+                        #variant_name
                     }
                 }
             };

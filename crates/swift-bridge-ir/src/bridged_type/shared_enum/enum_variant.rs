@@ -52,10 +52,10 @@ impl EnumVariant {
 
         let rust_fields = self.wrap_fields(&rust_fields);
         let converted_fields = self.wrap_fields(&converted_fields);
-
+        
         if self.fields.is_empty() {
             quote! {
-                #enum_name :: #variant_name => #ffi_enum_name :: #variant_name (123)
+                #enum_name :: #variant_name => #ffi_enum_name :: #variant_name
             }
         } else {
             quote! {
@@ -104,7 +104,7 @@ impl EnumVariant {
 
         if converted_fields.is_empty() {
             quote! {
-                #ffi_enum_name :: #variant_name (_) => #enum_name :: #variant_name
+                #ffi_enum_name :: #variant_name => #enum_name :: #variant_name
             }
         } else {
             quote! {
@@ -117,6 +117,7 @@ impl EnumVariant {
         types: &TypeDeclarations,
         enum_name: String,
     ) -> String {
+
         let converted_fields: Vec<String> = self
             .fields
             .normalized_fields()
@@ -137,7 +138,7 @@ impl EnumVariant {
             })
             .collect();
         let converted_fields = converted_fields.join(", ");
-
+        
         if self.fields.is_empty() {
             format!(
                 "            case __swift_bridge__${enum_name}${variant_name}:
@@ -161,7 +162,12 @@ impl EnumVariant {
         types: &TypeDeclarations,
         enum_name: String,
         ffi_enum_name: String,
+        is_enum_has_variants_with_no_data: bool,
     ) -> String {
+        if is_enum_has_variants_with_no_data {
+            return format!("            case {enum_name}.{variant_name}:
+                return {ffi_enum_name}(tag: {ffi_enum_name}${variant_name})\n", enum_name = enum_name, variant_name = self.name, ffi_enum_name = ffi_enum_name)
+        }
         let converted_fields: Vec<String> = self
             .fields
             .normalized_fields()
@@ -195,7 +201,7 @@ impl EnumVariant {
 
         if self.fields.is_empty() {
             format!("            case {enum_name}.{variant_name}:
-                return {ffi_enum_name}(tag: {ffi_enum_name}${variant_name}, payload: {ffi_enum_name}Fields({variant_name}: {ffi_enum_name}$FieldOf{variant_name}(_private: 123)))\n", enum_name = enum_name, variant_name = self.name, ffi_enum_name = ffi_enum_name)
+                return {{var val = {ffi_enum_name}(); val.tag = {ffi_enum_name}${variant_name}; return val }}()\n", enum_name = enum_name, variant_name = self.name, ffi_enum_name = ffi_enum_name)
         } else {
             format!("            case {enum_name}.{variant_name}({associated_values}):
                 return {ffi_enum_name}(tag: {ffi_enum_name}${variant_name}, payload: {ffi_enum_name}Fields({variant_name}: {ffi_enum_name}$FieldOf{variant_name}({converted_fields})))\n", ffi_enum_name = ffi_enum_name, associated_values = associated_values, enum_name = enum_name, variant_name = self.name, converted_fields = converted_fields)

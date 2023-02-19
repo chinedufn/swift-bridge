@@ -30,8 +30,8 @@ mod generates_enum_to_and_from_ffi_conversions_no_data {
             #[repr(C)]
             #[doc(hidden)]
             pub enum __swift_bridge__SomeEnum {
-                Variant1(u8),
-                Variant2(u8)
+                Variant1,
+                Variant2
             }
 
             impl swift_bridge::SharedEnum for SomeEnum {
@@ -43,8 +43,8 @@ mod generates_enum_to_and_from_ffi_conversions_no_data {
                 #[inline(always)]
                 pub fn into_ffi_repr(self) -> __swift_bridge__SomeEnum {
                     match self {
-                        SomeEnum::Variant1 => __swift_bridge__SomeEnum::Variant1(123),
-                        SomeEnum::Variant2 => __swift_bridge__SomeEnum::Variant2(123)
+                        SomeEnum::Variant1 => __swift_bridge__SomeEnum::Variant1,
+                        SomeEnum::Variant2 => __swift_bridge__SomeEnum::Variant2
                     }
                 }
             }
@@ -54,8 +54,8 @@ mod generates_enum_to_and_from_ffi_conversions_no_data {
                 #[inline(always)]
                 pub fn into_rust_repr(self) -> SomeEnum {
                     match self {
-                        __swift_bridge__SomeEnum::Variant1(_) => SomeEnum::Variant1,
-                        __swift_bridge__SomeEnum::Variant2(_) => SomeEnum::Variant2
+                        __swift_bridge__SomeEnum::Variant1 => SomeEnum::Variant1,
+                        __swift_bridge__SomeEnum::Variant2 => SomeEnum::Variant2
                     }
                 }
             }
@@ -73,9 +73,9 @@ extension SomeEnum {
     func intoFfiRepr() -> __swift_bridge__$SomeEnum {
         switch self {
             case SomeEnum.Variant1:
-                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$Variant1, payload: __swift_bridge__$SomeEnumFields(Variant1: __swift_bridge__$SomeEnum$FieldOfVariant1(_private: 123)))
+                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$Variant1)
             case SomeEnum.Variant2:
-                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$Variant2, payload: __swift_bridge__$SomeEnumFields(Variant2: __swift_bridge__$SomeEnum$FieldOfVariant2(_private: 123)))
+                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$Variant2)
         }
     }
 }
@@ -98,14 +98,9 @@ extension __swift_bridge__$SomeEnum {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsAfterTrim(
             r#"
-#include <stdint.h>
 #include <stdbool.h>
-typedef struct __swift_bridge__$SomeEnum$FieldOfVariant1 {uint8_t _private;} __swift_bridge__$SomeEnum$FieldOfVariant1;
-typedef struct __swift_bridge__$SomeEnum$FieldOfVariant2 {uint8_t _private;} __swift_bridge__$SomeEnum$FieldOfVariant2;
-
-union __swift_bridge__$SomeEnumFields { __swift_bridge__$SomeEnum$FieldOfVariant1 Variant1; __swift_bridge__$SomeEnum$FieldOfVariant2 Variant2;};
 typedef enum __swift_bridge__$SomeEnumTag { __swift_bridge__$SomeEnum$Variant1, __swift_bridge__$SomeEnum$Variant2, } __swift_bridge__$SomeEnumTag;
-typedef struct __swift_bridge__$SomeEnum { __swift_bridge__$SomeEnumTag tag; union __swift_bridge__$SomeEnumFields payload;} __swift_bridge__$SomeEnum;
+typedef struct __swift_bridge__$SomeEnum { __swift_bridge__$SomeEnumTag tag; } __swift_bridge__$SomeEnum;
 typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; __swift_bridge__$SomeEnum val; } __swift_bridge__$Option$SomeEnum;
 "#,
         )
@@ -260,7 +255,6 @@ extension __swift_bridge__$Option$SomeEnum {
             return nil
         }
     }
-
     @inline(__always)
     static func fromSwiftRepr(_ val: Optional<SomeEnum>) -> __swift_bridge__$Option$SomeEnum {
         if let v = val {
@@ -282,14 +276,9 @@ func some_function(_ arg: Optional<SomeEnum>) -> Optional<SomeEnum> {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-#include <stdint.h>
 #include <stdbool.h>
-typedef struct __swift_bridge__$SomeEnum$FieldOfVariant1 {uint8_t _private;} __swift_bridge__$SomeEnum$FieldOfVariant1;
-typedef struct __swift_bridge__$SomeEnum$FieldOfVariant2 {uint8_t _private;} __swift_bridge__$SomeEnum$FieldOfVariant2;
-
-union __swift_bridge__$SomeEnumFields { __swift_bridge__$SomeEnum$FieldOfVariant1 Variant1; __swift_bridge__$SomeEnum$FieldOfVariant2 Variant2;};
 typedef enum __swift_bridge__$SomeEnumTag { __swift_bridge__$SomeEnum$Variant1, __swift_bridge__$SomeEnum$Variant2, } __swift_bridge__$SomeEnumTag;
-typedef struct __swift_bridge__$SomeEnum { __swift_bridge__$SomeEnumTag tag; union __swift_bridge__$SomeEnumFields payload;} __swift_bridge__$SomeEnum;
+typedef struct __swift_bridge__$SomeEnum { __swift_bridge__$SomeEnumTag tag; } __swift_bridge__$SomeEnum;
 typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; __swift_bridge__$SomeEnum val; } __swift_bridge__$Option$SomeEnum;
 "#,
             r#"
@@ -385,7 +374,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_unnamed_data_and_no_fields {
             #[doc(hidden)]
             pub enum __swift_bridge__SomeEnum {
                 Variant1(i32),
-                Variant2(u8)
+                Variant2
             }
 
             impl swift_bridge::SharedEnum for SomeEnum {
@@ -398,7 +387,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_unnamed_data_and_no_fields {
                 pub fn into_ffi_repr(self) -> __swift_bridge__SomeEnum {
                     match self {
                         SomeEnum::Variant1(value_0) => __swift_bridge__SomeEnum::Variant1(value_0),
-                        SomeEnum::Variant2 => __swift_bridge__SomeEnum::Variant2(123)
+                        SomeEnum::Variant2 => __swift_bridge__SomeEnum::Variant2
                     }
                 }
             }
@@ -409,7 +398,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_unnamed_data_and_no_fields {
                 pub fn into_rust_repr(self) -> SomeEnum {
                     match self {
                         __swift_bridge__SomeEnum::Variant1(value_0) => SomeEnum::Variant1(value_0),
-                        __swift_bridge__SomeEnum::Variant2(_) => SomeEnum::Variant2
+                        __swift_bridge__SomeEnum::Variant2 => SomeEnum::Variant2
                     }
                 }
             }
@@ -429,7 +418,7 @@ extension SomeEnum {
             case SomeEnum.Variant1(let value_0):
                 return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$Variant1, payload: __swift_bridge__$SomeEnumFields(Variant1: __swift_bridge__$SomeEnum$FieldOfVariant1(_0: value_0)))
             case SomeEnum.Variant2:
-                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$Variant2, payload: __swift_bridge__$SomeEnumFields(Variant2: __swift_bridge__$SomeEnum$FieldOfVariant2(_private: 123)))
+                return {var val = __swift_bridge__$SomeEnum(); val.tag = __swift_bridge__$SomeEnum$Variant2; return val }()
         }
     }
 }
@@ -455,9 +444,8 @@ extension __swift_bridge__$SomeEnum {
 #include <stdint.h>
 #include <stdbool.h>
 typedef struct __swift_bridge__$SomeEnum$FieldOfVariant1 {int32_t _0;} __swift_bridge__$SomeEnum$FieldOfVariant1;
-typedef struct __swift_bridge__$SomeEnum$FieldOfVariant2 {uint8_t _private;} __swift_bridge__$SomeEnum$FieldOfVariant2;
 
-union __swift_bridge__$SomeEnumFields { __swift_bridge__$SomeEnum$FieldOfVariant1 Variant1; __swift_bridge__$SomeEnum$FieldOfVariant2 Variant2;};
+union __swift_bridge__$SomeEnumFields { __swift_bridge__$SomeEnum$FieldOfVariant1;};
 typedef enum __swift_bridge__$SomeEnumTag { __swift_bridge__$SomeEnum$Variant1, __swift_bridge__$SomeEnum$Variant2, } __swift_bridge__$SomeEnumTag;
 typedef struct __swift_bridge__$SomeEnum { __swift_bridge__$SomeEnumTag tag; union __swift_bridge__$SomeEnumFields payload;} __swift_bridge__$SomeEnum;
 typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; __swift_bridge__$SomeEnum val; } __swift_bridge__$Option$SomeEnum;

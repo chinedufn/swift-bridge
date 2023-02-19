@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgedType, SharedEnum, StructFields, TypePosition};
+use crate::bridged_type::{BridgedType, SharedEnum, StructFields, TypePosition, EnumVariant};
 use crate::SwiftBridgeModule;
 
 impl SwiftBridgeModule {
@@ -15,7 +15,13 @@ impl SwiftBridgeModule {
         let mut variants = "".to_string();
         let mut convert_swift_to_ffi_repr = "\n".to_string();
         let mut convert_ffi_repr_to_swift = "\n".to_string();
-
+        let is_enum_has_variants_with_no_data: bool = shared_enum.variants.iter().map(|variant|{
+            match &variant.fields {
+                StructFields::Named(_) => 0, 
+                StructFields::Unnamed(_) => 0,
+                StructFields::Unit => 1,
+            }
+        }).fold(0, |sum, x|sum+x) == shared_enum.variants.len();
         for variant in shared_enum.variants.iter() {
             let v = match &variant.fields {
                 StructFields::Named(_) => {
@@ -56,6 +62,7 @@ impl SwiftBridgeModule {
                 &self.types,
                 format!("{}", enum_name),
                 format!("{}", enum_ffi_name),
+                is_enum_has_variants_with_no_data,
             );
             convert_swift_to_ffi_repr += &convert_swift_variant_to_ffi_repr;
         }
