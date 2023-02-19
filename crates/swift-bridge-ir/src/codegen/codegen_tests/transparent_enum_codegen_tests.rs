@@ -98,8 +98,8 @@ extension __swift_bridge__$SomeEnum {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsAfterTrim(
             r#"
-#include <stdbool.h>
 #include <stdint.h>
+#include <stdbool.h>
 typedef struct __swift_bridge__$SomeEnum$FieldOfVariant1 {uint8_t _private;} __swift_bridge__$SomeEnum$FieldOfVariant1;
 typedef struct __swift_bridge__$SomeEnum$FieldOfVariant2 {uint8_t _private;} __swift_bridge__$SomeEnum$FieldOfVariant2;
 
@@ -282,8 +282,8 @@ func some_function(_ arg: Optional<SomeEnum>) -> Optional<SomeEnum> {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-#include <stdbool.h>
 #include <stdint.h>
+#include <stdbool.h>
 typedef struct __swift_bridge__$SomeEnum$FieldOfVariant1 {uint8_t _private;} __swift_bridge__$SomeEnum$FieldOfVariant1;
 typedef struct __swift_bridge__$SomeEnum$FieldOfVariant2 {uint8_t _private;} __swift_bridge__$SomeEnum$FieldOfVariant2;
 
@@ -452,8 +452,8 @@ extension __swift_bridge__$SomeEnum {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsAfterTrim(
             r#"
-#include <stdbool.h>
 #include <stdint.h>
+#include <stdbool.h>
 typedef struct __swift_bridge__$SomeEnum$FieldOfVariant1 {int32_t _0;} __swift_bridge__$SomeEnum$FieldOfVariant1;
 typedef struct __swift_bridge__$SomeEnum$FieldOfVariant2 {uint8_t _private;} __swift_bridge__$SomeEnum$FieldOfVariant2;
 
@@ -572,8 +572,8 @@ extension __swift_bridge__$SomeEnum {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsAfterTrim(
             r#"
-#include <stdbool.h>
 #include <stdint.h>
+#include <stdbool.h>
 typedef struct __swift_bridge__$SomeEnum$FieldOfA {int32_t _0; uint32_t _1;} __swift_bridge__$SomeEnum$FieldOfA;
 typedef struct __swift_bridge__$SomeEnum$FieldOfB {void* _0;} __swift_bridge__$SomeEnum$FieldOfB;
 

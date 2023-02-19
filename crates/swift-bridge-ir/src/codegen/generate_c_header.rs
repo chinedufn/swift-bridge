@@ -166,6 +166,9 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                             &self.types,
                                         )
                                         .unwrap();
+                                        if let Some(include) = variant_field.to_c_include() {
+                                            bookkeeping.includes.insert(include);
+                                        }
                                         let variant_field = variant_field.to_c();
                                         params.push(format!(
                                             "{} _{};",
@@ -178,6 +181,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                     variant_fields += "\n";
                                 }
                                 StructFields::Unit => {
+                                    bookkeeping.includes.insert("stdint.h");
                                     let variant_field = format!("typedef struct {ffi_name}$FieldOf{variant_name} {{uint8_t _private;}} {ffi_name}$FieldOf{variant_name};", ffi_name = ffi_name, variant_name = variant.name);
                                     variant_fields += &variant_field;
                                     variant_fields += "\n";
@@ -185,8 +189,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                             }
                         }
                         let enum_decl = format!(
-                            r#"#include <stdint.h>
-{variant_fields}
+                            r#"{variant_fields}
 union {ffi_union_name} {union_fields};
 typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
 typedef struct {ffi_name} {{ {ffi_tag_name} tag; union {ffi_union_name} payload;}} {ffi_name};
