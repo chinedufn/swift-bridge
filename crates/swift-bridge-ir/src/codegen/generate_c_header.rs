@@ -129,16 +129,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         if ty_enum.already_declared {
                             continue;
                         }
-                        let is_enum_has_variants_with_no_data: bool = ty_enum
-                            .variants
-                            .iter()
-                            .map(|variant| match &variant.fields {
-                                StructFields::Named(_) => 0,
-                                StructFields::Unnamed(_) => 0,
-                                StructFields::Unit => 1,
-                            })
-                            .fold(0, |sum, x| sum + x)
-                            == ty_enum.variants.len();
+                        let all_variants_empty = ty_enum.all_variants_empty();
 
                         let ffi_name = ty_enum.ffi_name_string();
                         let ffi_tag_name = ty_enum.ffi_tag_name_string();
@@ -163,7 +154,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                             vec_transparent_enum_c_support(&ty_enum.swift_name_string())
                         };
                         let mut variant_fields = "".to_string();
-                        if is_enum_has_variants_with_no_data {
+                        if all_variants_empty {
                             let enum_decl = format!(
                                 r#"typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
 typedef struct {ffi_name} {{ {ffi_tag_name} tag; }} {ffi_name};

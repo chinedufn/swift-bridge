@@ -161,9 +161,9 @@ impl EnumVariant {
         types: &TypeDeclarations,
         enum_name: String,
         ffi_enum_name: String,
-        is_enum_has_variants_with_no_data: bool,
+        all_variants_empty: bool,
     ) -> String {
-        if is_enum_has_variants_with_no_data {
+        if all_variants_empty {
             return format!(
                 "            case {enum_name}.{variant_name}:
                 return {ffi_enum_name}(tag: {ffi_enum_name}${variant_name})\n",

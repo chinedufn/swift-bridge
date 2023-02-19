@@ -8,6 +8,7 @@ pub(crate) use self::normalized_field::*;
 
 mod normalized_field;
 
+
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum StructFields {
     Named(Vec<NamedStructField>),
