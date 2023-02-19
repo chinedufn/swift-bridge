@@ -7,6 +7,8 @@ use syn::LitStr;
 mod enum_variant;
 pub(crate) use self::enum_variant::EnumVariant;
 
+use super::{shared_struct::StructField, StructFields};
+
 #[derive(Clone)]
 pub(crate) struct SharedEnum {
     pub name: Ident,
@@ -53,13 +55,18 @@ impl SharedEnum {
         quote! { #name }
     }
 
+    /// __swift_bridge__$SomeEnumFields
     pub fn ffi_union_name_string(&self) -> String {
         format!("{}Fields", self.ffi_name_string())
     }
 
+    /// { __swift_bridge__$SomeEnum$FieldOfVariant1 Variant1; __swift_bridge__$SomeEnum$FieldOfVariant2 Variant2;}
     pub fn ffi_union_field_names_string(&self) -> String {
         let mut union_fields = "{".to_string();
         for variant in self.variants.iter() {
+            if let StructFields::Unit = variant.fields {
+                continue;
+            }
             let union_field = format!(
                 " {} {};",
                 variant.union_name_string(&self.ffi_name_string()),

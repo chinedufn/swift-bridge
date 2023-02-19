@@ -129,6 +129,13 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         if ty_enum.already_declared {
                             continue;
                         }
+                        let is_enum_has_variants_with_no_data: bool = ty_enum.variants.iter().map(|variant|{
+                            match &variant.fields {
+                                StructFields::Named(_) => 0, 
+                                StructFields::Unnamed(_) => 0,
+                                StructFields::Unit => 1,
+                            }
+                        }).fold(0, |sum, x|sum+x) == ty_enum.variants.len();
 
                         let ffi_name = ty_enum.ffi_name_string();
                         let ffi_tag_name = ty_enum.ffi_tag_name_string();
@@ -153,40 +160,50 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                             vec_transparent_enum_c_support(&ty_enum.swift_name_string())
                         };
                         let mut variant_fields = "".to_string();
-                        for variant in ty_enum.variants.iter() {
-                            match &variant.fields {
-                                StructFields::Named(_) => {
-                                    todo!();
-                                }
-                                StructFields::Unnamed(unnamed_fields) => {
-                                    let mut params = vec![];
-                                    for unnamed_field in unnamed_fields.iter() {
-                                        let variant_field = BridgedType::new_with_type(
-                                            &unnamed_field.ty,
-                                            &self.types,
-                                        )
-                                        .unwrap();
-                                        if let Some(include) = variant_field.to_c_include() {
-                                            bookkeeping.includes.insert(include);
-                                        }
-                                        let variant_field = variant_field.to_c();
-                                        params.push(format!(
-                                            "{} _{};",
-                                            variant_field, unnamed_field.idx
-                                        ));
+                        if !is_enum_has_variants_with_no_data {
+                            for variant in ty_enum.variants.iter() {
+                                match &variant.fields {
+                                    StructFields::Named(_) => {
+                                        todo!();
                                     }
-                                    let params = params.join(" ");
-                                    let variant_field = format!("typedef struct {ffi_name}$FieldOf{variant_name} {{{params}}} {ffi_name}$FieldOf{variant_name};", ffi_name = ffi_name, variant_name = variant.name, params = params);
-                                    variant_fields += &variant_field;
-                                    variant_fields += "\n";
-                                }
-                                StructFields::Unit => {
-                                    bookkeeping.includes.insert("stdint.h");
-                                    let variant_field = format!("typedef struct {ffi_name}$FieldOf{variant_name} {{uint8_t _private;}} {ffi_name}$FieldOf{variant_name};", ffi_name = ffi_name, variant_name = variant.name);
-                                    variant_fields += &variant_field;
-                                    variant_fields += "\n";
+                                    StructFields::Unnamed(unnamed_fields) => {
+                                        let mut params = vec![];
+                                        for unnamed_field in unnamed_fields.iter() {
+                                            let variant_field = BridgedType::new_with_type(
+                                                &unnamed_field.ty,
+                                                &self.types,
+                                            )
+                                            .unwrap();
+                                            if let Some(include) = variant_field.to_c_include() {
+                                                bookkeeping.includes.insert(include);
+                                            }
+                                            let variant_field = variant_field.to_c();
+                                            params.push(format!(
+                                                "{} _{};",
+                                                variant_field, unnamed_field.idx
+                                            ));
+                                        }
+                                        let params = params.join(" ");
+                                        let variant_field = format!("typedef struct {ffi_name}$FieldOf{variant_name} {{{params}}} {ffi_name}$FieldOf{variant_name};", ffi_name = ffi_name, variant_name = variant.name, params = params);
+                                        variant_fields += &variant_field;
+                                        variant_fields += "\n";
+                                    }
+                                    StructFields::Unit => {},
                                 }
                             }
+                        } else {
+                            let enum_decl = format!(
+                            r#"typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
+typedef struct {ffi_name} {{ {ffi_tag_name} tag; }} {ffi_name};
+typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{maybe_vec_support}"#,
+                                ffi_name = ffi_name,
+                                ffi_tag_name = ffi_tag_name,
+                                option_ffi_name = option_ffi_name,
+                                variants = variants
+                            );
+                            header += &enum_decl;
+                            header += "\n";
+                            continue;
                         }
                         let enum_decl = format!(
                             r#"{variant_fields}

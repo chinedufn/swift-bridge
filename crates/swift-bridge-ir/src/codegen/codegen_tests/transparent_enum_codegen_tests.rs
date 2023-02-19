@@ -255,6 +255,7 @@ extension __swift_bridge__$Option$SomeEnum {
             return nil
         }
     }
+
     @inline(__always)
     static func fromSwiftRepr(_ val: Optional<SomeEnum>) -> __swift_bridge__$Option$SomeEnum {
         if let v = val {
@@ -445,7 +446,7 @@ extension __swift_bridge__$SomeEnum {
 #include <stdbool.h>
 typedef struct __swift_bridge__$SomeEnum$FieldOfVariant1 {int32_t _0;} __swift_bridge__$SomeEnum$FieldOfVariant1;
 
-union __swift_bridge__$SomeEnumFields { __swift_bridge__$SomeEnum$FieldOfVariant1;};
+union __swift_bridge__$SomeEnumFields { __swift_bridge__$SomeEnum$FieldOfVariant1 Variant1;};
 typedef enum __swift_bridge__$SomeEnumTag { __swift_bridge__$SomeEnum$Variant1, __swift_bridge__$SomeEnum$Variant2, } __swift_bridge__$SomeEnumTag;
 typedef struct __swift_bridge__$SomeEnum { __swift_bridge__$SomeEnumTag tag; union __swift_bridge__$SomeEnumFields payload;} __swift_bridge__$SomeEnum;
 typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; __swift_bridge__$SomeEnum val; } __swift_bridge__$Option$SomeEnum;
