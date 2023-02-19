@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgedType, SharedEnum, StructFields, TypePosition, EnumVariant};
+use crate::bridged_type::{BridgedType, SharedEnum, StructFields, TypePosition};
 use crate::SwiftBridgeModule;
 
 impl SwiftBridgeModule {

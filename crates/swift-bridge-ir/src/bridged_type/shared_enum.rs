@@ -7,7 +7,7 @@ use syn::LitStr;
 mod enum_variant;
 pub(crate) use self::enum_variant::EnumVariant;
 
-use super::{shared_struct::StructField, StructFields};
+use super::StructFields;
 
 #[derive(Clone)]
 pub(crate) struct SharedEnum {
