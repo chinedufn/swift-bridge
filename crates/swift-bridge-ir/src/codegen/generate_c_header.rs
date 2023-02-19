@@ -160,7 +160,20 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                             vec_transparent_enum_c_support(&ty_enum.swift_name_string())
                         };
                         let mut variant_fields = "".to_string();
-                        if !is_enum_has_variants_with_no_data {
+                        if is_enum_has_variants_with_no_data {
+                            let enum_decl = format!(
+                            r#"typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
+typedef struct {ffi_name} {{ {ffi_tag_name} tag; }} {ffi_name};
+typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{maybe_vec_support}"#,
+                                    ffi_name = ffi_name,
+                                    ffi_tag_name = ffi_tag_name,
+                                    option_ffi_name = option_ffi_name,
+                                    variants = variants
+                                );
+                                header += &enum_decl;
+                                header += "\n";
+
+                        } else {
                             for variant in ty_enum.variants.iter() {
                                 match &variant.fields {
                                     StructFields::Named(_) => {
@@ -191,37 +204,24 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                     StructFields::Unit => {},
                                 }
                             }
-                        } else {
                             let enum_decl = format!(
-                            r#"typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
-typedef struct {ffi_name} {{ {ffi_tag_name} tag; }} {ffi_name};
-typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{maybe_vec_support}"#,
-                                ffi_name = ffi_name,
-                                ffi_tag_name = ffi_tag_name,
-                                option_ffi_name = option_ffi_name,
-                                variants = variants
-                            );
-                            header += &enum_decl;
-                            header += "\n";
-                            continue;
-                        }
-                        let enum_decl = format!(
                             r#"{variant_fields}
 union {ffi_union_name} {union_fields};
 typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
 typedef struct {ffi_name} {{ {ffi_tag_name} tag; union {ffi_union_name} payload;}} {ffi_name};
 typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{maybe_vec_support}"#,
-                            union_fields = ffi_union_field_names,
-                            variant_fields = variant_fields,
-                            ffi_name = ffi_name,
-                            ffi_tag_name = ffi_tag_name,
-                            option_ffi_name = option_ffi_name,
-                            variants = variants,
-                            ffi_union_name = ffi_union_name,
-                        );
-
-                        header += &enum_decl;
-                        header += "\n";
+                                union_fields = ffi_union_field_names,
+                                variant_fields = variant_fields,
+                                ffi_name = ffi_name,
+                                ffi_tag_name = ffi_tag_name,
+                                option_ffi_name = option_ffi_name,
+                                variants = variants,
+                                ffi_union_name = ffi_union_name,
+                            );
+    
+                            header += &enum_decl;
+                            header += "\n";
+                        }
                     }
                 },
                 TypeDeclaration::Opaque(ty) => {
