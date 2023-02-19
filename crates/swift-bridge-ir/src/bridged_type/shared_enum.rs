@@ -97,9 +97,9 @@ impl SharedEnum {
     pub fn has_one_or_more_variants_with_data(&self) -> bool {
         self.variants.iter().any(|v| !v.fields.is_empty())
     }
-    
+
     /// Returns true if None of the variants are data-carrying.
-    /// 
+    ///
     /// `enum { VariantA, VariantB }` would return true.
     /// `enum { VariantA(u8), VariantB }` would return false.
     pub fn all_variants_empty(&self) -> bool {
