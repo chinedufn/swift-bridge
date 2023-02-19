@@ -219,7 +219,6 @@ impl EnumVariant {
                 }
             }
             StructFields::Unit => {
-                debug_assert_eq!(fields.len(), 0);
                 quote! {}
             }
         }
