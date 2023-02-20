@@ -38,6 +38,20 @@ impl NormalizedStructField {
         }
     }
 
+    /// Used when we want to avoid putting spaces at all between the field name and the colon.
+    /// // Example:
+    /// description: String // no spaces between "description" and the colon.
+    pub fn maybe_name_and_colon_string(&self) -> String {
+        match &self.accessor {
+            NormalizedStructFieldAccessor::Named(name) => {
+                format!("{}: ", name.to_string())
+            }
+            NormalizedStructFieldAccessor::Unnamed(_idx) => {
+                format!("")
+            }
+        }
+    }
+
     /// Access a struct's field
     ///
     /// // Example named field access
@@ -58,8 +72,8 @@ impl NormalizedStructField {
 
     pub fn to_enum_field(&self, expression: &TokenStream) -> TokenStream {
         match &self.accessor {
-            NormalizedStructFieldAccessor::Named(_) => {
-                todo!()
+            NormalizedStructFieldAccessor::Named(named) => {
+                quote!{ #named }
             }
             NormalizedStructFieldAccessor::Unnamed(idx) => {
                 let idx = TokenStream::from_str(&idx.to_string()).unwrap();

@@ -18,8 +18,19 @@ impl SwiftBridgeModule {
         let all_variants_empty = shared_enum.all_variants_empty();
         for variant in shared_enum.variants.iter() {
             let v = match &variant.fields {
-                StructFields::Named(_) => {
-                    todo!();
+                StructFields::Named(named_fields) => {
+                    let mut params = vec![];
+                    for named_field in named_fields {
+                        let ty = BridgedType::new_with_type(&named_field.ty, &self.types).unwrap().to_swift_type(TypePosition::SharedStructField, &self.types);
+                        params.push(format!("{}: {}", named_field.name, ty))
+                    }
+                    let params = params.join(", ");
+                    format!(
+                        r#"
+    case {name}({params})"#,
+                        name = variant.name,
+                        params = params,
+                    )
                 }
                 StructFields::Unnamed(unnamed_fields) => {
                     let mut params = vec![];

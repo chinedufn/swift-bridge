@@ -43,10 +43,10 @@ impl EnumVariant {
                     types,
                     norm_field.ty.span(),
                 );
-
-                quote! {
+                let tokens = quote! {
                     #maybe_name_and_colon #converted_field
-                }
+                };
+                tokens
             })
             .collect();
 
@@ -123,9 +123,10 @@ impl EnumVariant {
             .iter()
             .map(|norm_field| {
                 let field_name = norm_field.ffi_field_name();
+                let maybe_name_and_colon = norm_field.maybe_name_and_colon_string();
 
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-                ty.convert_ffi_value_to_swift_value(
+                let field = ty.convert_ffi_value_to_swift_value(
                     &format!(
                         "self.payload.{variant_name}.{field_name}",
                         variant_name = self.name,
@@ -133,7 +134,8 @@ impl EnumVariant {
                     ),
                     TypePosition::SharedStructField,
                     types,
-                )
+                );
+                format!("{}{}", maybe_name_and_colon, field)
             })
             .collect();
         let converted_fields = converted_fields.join(", ");
@@ -177,12 +179,14 @@ impl EnumVariant {
             .normalized_fields()
             .iter()
             .map(|norm_field| {
-                let field_name = norm_field.ffi_field_name();
+                let field_name = norm_field.to_enum_field(&quote!{value}).to_string();
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
+                
                 let enum_field = ty.convert_swift_expression_to_ffi_type(
-                    &format!("value{field_name}", field_name = field_name),
+                    &format!("{field_name}", field_name = field_name),
                     TypePosition::SharedStructField,
                 );
+                let field_name = norm_field.ffi_field_name();
                 format!(
                     "{field_name}: {enum_field}",
                     field_name = field_name,
@@ -197,8 +201,8 @@ impl EnumVariant {
             .normalized_fields()
             .iter()
             .map(|norm_field| {
-                let ffi_field_name = norm_field.ffi_field_name();
-                format!("let value{ffi_field_name}", ffi_field_name = ffi_field_name)
+                let field_name = norm_field.to_enum_field(&quote!(value)).to_string();
+                format!("let {field_name}", field_name = field_name)
             })
             .collect();
         let associated_values = associated_values.join(", ");
@@ -215,7 +219,9 @@ impl EnumVariant {
     fn wrap_fields(&self, fields: &[TokenStream]) -> TokenStream {
         match &self.fields {
             StructFields::Named(_) => {
-                todo!();
+                quote! {
+                    { #(#fields),* }
+                }
             }
             StructFields::Unnamed(_) => {
                 quote! {
