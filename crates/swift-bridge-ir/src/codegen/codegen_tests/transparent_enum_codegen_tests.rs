@@ -587,7 +587,7 @@ typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; __swift_bridge__
 }
 
 /// Verify that we generate an enum type that has a variant with one named field and one with two named fields.
-mod generates_enum_to_and_from_ffi_conversions_named_data_and_two_named_data {
+mod generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -710,7 +710,7 @@ typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; __swift_bridge__
     }
 
     #[test]
-    fn generates_enum_to_and_from_ffi_conversions_unnamed_data_and_two_unnamed_data() {
+    fn generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
