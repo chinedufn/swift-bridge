@@ -387,7 +387,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_unnamed_data_and_no_fields {
                 #[inline(always)]
                 pub fn into_ffi_repr(self) -> __swift_bridge__SomeEnum {
                     match self {
-                        SomeEnum::Variant1(value_0) => __swift_bridge__SomeEnum::Variant1(value_0),
+                        SomeEnum::Variant1(_0) => __swift_bridge__SomeEnum::Variant1(_0),
                         SomeEnum::Variant2 => __swift_bridge__SomeEnum::Variant2
                     }
                 }
@@ -398,7 +398,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_unnamed_data_and_no_fields {
                 #[inline(always)]
                 pub fn into_rust_repr(self) -> SomeEnum {
                     match self {
-                        __swift_bridge__SomeEnum::Variant1(value_0) => SomeEnum::Variant1(value_0),
+                        __swift_bridge__SomeEnum::Variant1(_0) => SomeEnum::Variant1(_0),
                         __swift_bridge__SomeEnum::Variant2 => SomeEnum::Variant2
                     }
                 }
@@ -416,8 +416,8 @@ public enum SomeEnum {
 extension SomeEnum {
     func intoFfiRepr() -> __swift_bridge__$SomeEnum {
         switch self {
-            case SomeEnum.Variant1(let value_0):
-                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$Variant1, payload: __swift_bridge__$SomeEnumFields(Variant1: __swift_bridge__$SomeEnum$FieldOfVariant1(_0: value_0)))
+            case SomeEnum.Variant1(let _0):
+                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$Variant1, payload: __swift_bridge__$SomeEnumFields(Variant1: __swift_bridge__$SomeEnum$FieldOfVariant1(_0: _0)))
             case SomeEnum.Variant2:
                 return {var val = __swift_bridge__$SomeEnum(); val.tag = __swift_bridge__$SomeEnum$Variant2; return val }()
         }
@@ -506,8 +506,8 @@ mod generates_enum_to_and_from_ffi_conversions_unnamed_data_and_two_unnamed_data
                 #[inline(always)]
                 pub fn into_ffi_repr(self) -> __swift_bridge__SomeEnum {
                     match self {
-                        SomeEnum::A(value_0, value_1) => __swift_bridge__SomeEnum::A(value_0, value_1),
-                        SomeEnum::B(value_0) => __swift_bridge__SomeEnum::B(swift_bridge::string::RustString(value_0).box_into_raw())
+                        SomeEnum::A(_0, _1) => __swift_bridge__SomeEnum::A(_0, _1),
+                        SomeEnum::B(_0) => __swift_bridge__SomeEnum::B(swift_bridge::string::RustString(_0).box_into_raw())
                     }
                 }
             }
@@ -517,8 +517,8 @@ mod generates_enum_to_and_from_ffi_conversions_unnamed_data_and_two_unnamed_data
                 #[inline(always)]
                 pub fn into_rust_repr(self) -> SomeEnum {
                     match self {
-                        __swift_bridge__SomeEnum::A(value_0, value_1) => SomeEnum::A(value_0, value_1),
-                        __swift_bridge__SomeEnum::B(value_0) => SomeEnum::B(unsafe { Box::from_raw(value_0).0 })
+                        __swift_bridge__SomeEnum::A(_0, _1) => SomeEnum::A(_0, _1),
+                        __swift_bridge__SomeEnum::B(_0) => SomeEnum::B(unsafe { Box::from_raw(_0).0 })
                     }
                 }
             }
@@ -535,10 +535,10 @@ public enum SomeEnum {
 extension SomeEnum {
     func intoFfiRepr() -> __swift_bridge__$SomeEnum {
         switch self {
-            case SomeEnum.A(let value_0, let value_1):
-                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$A, payload: __swift_bridge__$SomeEnumFields(A: __swift_bridge__$SomeEnum$FieldOfA(_0: value_0, _1: value_1)))
-            case SomeEnum.B(let value_0):
-                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$B, payload: __swift_bridge__$SomeEnumFields(B: __swift_bridge__$SomeEnum$FieldOfB(_0: { let rustString = value_0.intoRustString(); rustString.isOwned = false; return rustString.ptr }())))
+            case SomeEnum.A(let _0, let _1):
+                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$A, payload: __swift_bridge__$SomeEnumFields(A: __swift_bridge__$SomeEnum$FieldOfA(_0: _0, _1: _1)))
+            case SomeEnum.B(let _0):
+                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$B, payload: __swift_bridge__$SomeEnumFields(B: __swift_bridge__$SomeEnum$FieldOfB(_0: { let rustString = _0.intoRustString(); rustString.isOwned = false; return rustString.ptr }())))
         }
     }
 }

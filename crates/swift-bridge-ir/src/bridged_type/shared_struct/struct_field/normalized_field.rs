@@ -1,5 +1,5 @@
 use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote};
+use quote::quote;
 use std::str::FromStr;
 use syn::Type;
 
@@ -66,19 +66,6 @@ impl NormalizedStructField {
             NormalizedStructFieldAccessor::Unnamed(idx) => {
                 let idx = TokenStream::from_str(&idx.to_string()).unwrap();
                 quote! { #expression.#idx }
-            }
-        }
-    }
-
-    pub fn to_enum_field(&self, expression: &TokenStream) -> TokenStream {
-        match &self.accessor {
-            NormalizedStructFieldAccessor::Named(named) => {
-                quote!{ #named }
-            }
-            NormalizedStructFieldAccessor::Unnamed(idx) => {
-                let idx = TokenStream::from_str(&idx.to_string()).unwrap();
-                let expression = format_ident!("{}_{}", expression.to_string(), idx.to_string());
-                quote! { #expression }
             }
         }
     }
