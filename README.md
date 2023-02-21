@@ -142,7 +142,7 @@ git clone git@github.com:chinedufn/swift-bridge.git
 cd swift-bridge
 
 # Run tests
-cargo test --all && ./test-integration.sh
+cargo test --all && ./test-swift-rust-integration.sh && ./test-swift-packages.sh 
 ```
 
 ## Contributing
