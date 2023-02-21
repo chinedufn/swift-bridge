@@ -38,16 +38,32 @@ impl NormalizedStructField {
         }
     }
 
-    /// Used when we want to avoid putting spaces at all between the field name and the colon.
-    /// // Example:
-    /// description: String // no spaces between "description" and the colon.
-    pub fn maybe_name_and_colon_string(&self) -> String {
+    /// Create a string for setting the value of a struct's field.
+    ///
+    /// Example if named field -> "field_name: someValue".
+    /// Example if unnamed field -> "someValue".
+    pub fn struct_field_setter_string(&self, value: String) -> String {
         match &self.accessor {
             NormalizedStructFieldAccessor::Named(name) => {
-                format!("{}: ", name.to_string())
+                format!("{}: {}", name.to_string(), value)
             }
-            NormalizedStructFieldAccessor::Unnamed(_idx) => {
-                format!("")
+            NormalizedStructFieldAccessor::Unnamed(_) => {
+                format!("{}", value)
+            }
+        }
+    }
+
+    /// Create a string for setting the value of a struct's ffi field.
+    ///
+    /// Example if named field -> "field_name: someValue".
+    /// Example if unnamed field -> "_0: someValue".
+    pub fn struct_ffi_field_setter_string(&self, value: String) -> String {
+        match &self.accessor {
+            NormalizedStructFieldAccessor::Named(name) => {
+                format!("{}: {}", name.to_string(), value)
+            }
+            NormalizedStructFieldAccessor::Unnamed(idx) => {
+                format!("_{}: {}", idx, value)
             }
         }
     }

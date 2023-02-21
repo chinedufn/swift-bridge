@@ -127,8 +127,6 @@ impl EnumVariant {
             .iter()
             .map(|norm_field| {
                 let field_name = norm_field.ffi_field_name();
-                let maybe_name_and_colon = norm_field.maybe_name_and_colon_string();
-
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
                 let field = ty.convert_ffi_value_to_swift_value(
                     &format!(
@@ -139,7 +137,7 @@ impl EnumVariant {
                     TypePosition::SharedStructField,
                     types,
                 );
-                format!("{}{}", maybe_name_and_colon, field)
+                norm_field.struct_field_setter_string(field)
             })
             .collect();
         let converted_fields = converted_fields.join(", ");
@@ -185,17 +183,11 @@ impl EnumVariant {
             .map(|norm_field| {
                 let ffi_field_name = norm_field.ffi_field_name();
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-
-                let enum_field = ty.convert_swift_expression_to_ffi_type(
+                let variant_field = ty.convert_swift_expression_to_ffi_type(
                     &format!("{}", ffi_field_name),
                     TypePosition::SharedStructField,
                 );
-                let field_name = norm_field.ffi_field_name();
-                format!(
-                    "{field_name}: {enum_field}",
-                    field_name = field_name,
-                    enum_field = enum_field
-                )
+                norm_field.struct_ffi_field_setter_string(variant_field)
             })
             .collect();
         let converted_fields = converted_fields.join(", ");
