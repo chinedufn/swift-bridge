@@ -21,7 +21,9 @@ impl SwiftBridgeModule {
                 StructFields::Named(named_fields) => {
                     let mut params = vec![];
                     for named_field in named_fields {
-                        let ty = BridgedType::new_with_type(&named_field.ty, &self.types).unwrap().to_swift_type(TypePosition::SharedStructField, &self.types);
+                        let ty = BridgedType::new_with_type(&named_field.ty, &self.types)
+                            .unwrap()
+                            .to_swift_type(TypePosition::SharedStructField, &self.types);
                         params.push(format!("{}: {}", named_field.name, ty))
                     }
                     let params = params.join(", ");

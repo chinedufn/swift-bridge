@@ -20,13 +20,8 @@ mod ffi {
     }
 
     enum EnumWithNamedData {
-        Variant1{
-            hello: String, 
-            data_u8: u8,
-        },
-        Variant2{
-            data_i32: i32,
-        },
+        Variant1 { hello: String, data_u8: u8 },
+        Variant2 { data_i32: i32 },
         Variant3,
     }
 

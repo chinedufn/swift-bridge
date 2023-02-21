@@ -596,7 +596,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data
             mod ffi {
                 enum SomeEnum {
                     A{
-                        data1: i32, 
+                        data1: i32,
                         data2: u32
                     },
                     B{
@@ -612,7 +612,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data
             #[derive ()]
             pub enum SomeEnum {
                 A {
-                    data1: i32, 
+                    data1: i32,
                     data2: u32
                 },
                 B {
@@ -624,7 +624,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data
             #[doc(hidden)]
             pub enum __swift_bridge__SomeEnum {
                 A {
-                    data1: i32, 
+                    data1: i32,
                     data2: u32
                 },
                 B {

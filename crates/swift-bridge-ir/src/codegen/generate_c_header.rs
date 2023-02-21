@@ -181,11 +181,8 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                                 bookkeeping.includes.insert(include);
                                             }
                                             let ty = ty.to_c();
-                                            let field_name = named_field.name.to_string(); 
-                                            params.push(format!(
-                                                "{} {};",
-                                                ty, field_name
-                                            ));
+                                            let field_name = named_field.name.to_string();
+                                            params.push(format!("{} {};", ty, field_name));
                                         }
                                         let params = params.join(" ");
                                         let variant_field = format!("typedef struct {ffi_name}$FieldOf{variant_name} {{{params}}} {ffi_name}$FieldOf{variant_name};", ffi_name = ffi_name, variant_name = variant.name, params = params);
@@ -204,10 +201,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                                 bookkeeping.includes.insert(include);
                                             }
                                             let ty = ty.to_c();
-                                            params.push(format!(
-                                                "{} _{};",
-                                                ty, unnamed_field.idx
-                                            ));
+                                            params.push(format!("{} _{};", ty, unnamed_field.idx));
                                         }
                                         let params = params.join(" ");
                                         let variant_field = format!("typedef struct {ffi_name}$FieldOf{variant_name} {{{params}}} {ffi_name}$FieldOf{variant_name};", ffi_name = ffi_name, variant_name = variant.name, params = params);
