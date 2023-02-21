@@ -172,19 +172,19 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                     StructFields::Named(named_fields) => {
                                         let mut params = vec![];
                                         for named_field in named_fields.iter() {
-                                            let variant_field = BridgedType::new_with_type(
+                                            let ty = BridgedType::new_with_type(
                                                 &named_field.ty,
                                                 &self.types,
                                             )
                                             .unwrap();
-                                            if let Some(include) = variant_field.to_c_include() {
+                                            if let Some(include) = ty.to_c_include() {
                                                 bookkeeping.includes.insert(include);
                                             }
-                                            let variant_field = variant_field.to_c();
+                                            let ty = ty.to_c();
                                             let field_name = named_field.name.to_string(); 
                                             params.push(format!(
                                                 "{} {};",
-                                                variant_field, field_name
+                                                ty, field_name
                                             ));
                                         }
                                         let params = params.join(" ");
@@ -195,18 +195,18 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                     StructFields::Unnamed(unnamed_fields) => {
                                         let mut params = vec![];
                                         for unnamed_field in unnamed_fields.iter() {
-                                            let variant_field = BridgedType::new_with_type(
+                                            let ty = BridgedType::new_with_type(
                                                 &unnamed_field.ty,
                                                 &self.types,
                                             )
                                             .unwrap();
-                                            if let Some(include) = variant_field.to_c_include() {
+                                            if let Some(include) = ty.to_c_include() {
                                                 bookkeeping.includes.insert(include);
                                             }
-                                            let variant_field = variant_field.to_c();
+                                            let ty = ty.to_c();
                                             params.push(format!(
                                                 "{} _{};",
-                                                variant_field, unnamed_field.idx
+                                                ty, unnamed_field.idx
                                             ));
                                         }
                                         let params = params.join(" ");
