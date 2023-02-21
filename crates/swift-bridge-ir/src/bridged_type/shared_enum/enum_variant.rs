@@ -2,7 +2,7 @@ use crate::bridged_type::{BridgedType, StructFields, TypePosition};
 use crate::parse::TypeDeclarations;
 use proc_macro2::Ident;
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use std::fmt::{Debug, Formatter};
 use syn::spanned::Spanned;
 use syn::Path;
@@ -27,7 +27,9 @@ impl EnumVariant {
             .fields
             .normalized_fields()
             .iter()
-            .map(|norm_field| norm_field.to_enum_field(&quote! {value}))
+            .map(|norm_field| norm_field.ffi_field_name())
+            .map(|norm_field| format_ident!("{}", norm_field))
+            .map(|norm_field| quote! {#norm_field})
             .collect();
         let converted_fields: Vec<TokenStream> = self
             .fields
@@ -35,7 +37,8 @@ impl EnumVariant {
             .iter()
             .map(|norm_field| {
                 let maybe_name_and_colon = norm_field.maybe_name_and_colon();
-                let access_field = norm_field.to_enum_field(&quote! {value});
+                let access_field = format_ident!("{}", norm_field.ffi_field_name());
+                let access_field = quote! {#access_field};
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
                 let converted_field = ty.convert_rust_expression_to_ffi_type(
                     &access_field,
@@ -43,10 +46,10 @@ impl EnumVariant {
                     types,
                     norm_field.ty.span(),
                 );
-
-                quote! {
+                let tokens = quote! {
                     #maybe_name_and_colon #converted_field
-                }
+                };
+                tokens
             })
             .collect();
 
@@ -75,7 +78,8 @@ impl EnumVariant {
             .fields
             .normalized_fields()
             .iter()
-            .map(|norm_field| norm_field.to_enum_field(&quote! {value}))
+            .map(|norm_field| format_ident!("{}", norm_field.ffi_field_name()))
+            .map(|norm_field| quote! {#norm_field})
             .collect();
         let converted_fields: Vec<TokenStream> = self
             .fields
@@ -83,8 +87,8 @@ impl EnumVariant {
             .iter()
             .map(|norm_field| {
                 let maybe_name_and_colon = norm_field.maybe_name_and_colon();
-                let access_field = norm_field.to_enum_field(&quote!(value));
-
+                let access_field = format_ident!("{}", norm_field.ffi_field_name());
+                let access_field = quote! {#access_field};
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
                 let converted_field = ty.convert_ffi_expression_to_rust_type(
                     &access_field,
@@ -123,9 +127,8 @@ impl EnumVariant {
             .iter()
             .map(|norm_field| {
                 let field_name = norm_field.ffi_field_name();
-
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-                ty.convert_ffi_value_to_swift_value(
+                let field = ty.convert_ffi_value_to_swift_value(
                     &format!(
                         "self.payload.{variant_name}.{field_name}",
                         variant_name = self.name,
@@ -133,7 +136,8 @@ impl EnumVariant {
                     ),
                     TypePosition::SharedStructField,
                     types,
-                )
+                );
+                norm_field.struct_field_setter_string(field)
             })
             .collect();
         let converted_fields = converted_fields.join(", ");
@@ -177,17 +181,13 @@ impl EnumVariant {
             .normalized_fields()
             .iter()
             .map(|norm_field| {
-                let field_name = norm_field.ffi_field_name();
+                let ffi_field_name = norm_field.ffi_field_name();
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-                let enum_field = ty.convert_swift_expression_to_ffi_type(
-                    &format!("value{field_name}", field_name = field_name),
+                let variant_field = ty.convert_swift_expression_to_ffi_type(
+                    &format!("{}", ffi_field_name),
                     TypePosition::SharedStructField,
                 );
-                format!(
-                    "{field_name}: {enum_field}",
-                    field_name = field_name,
-                    enum_field = enum_field
-                )
+                norm_field.struct_ffi_field_setter_string(variant_field)
             })
             .collect();
         let converted_fields = converted_fields.join(", ");
@@ -197,8 +197,8 @@ impl EnumVariant {
             .normalized_fields()
             .iter()
             .map(|norm_field| {
-                let ffi_field_name = norm_field.ffi_field_name();
-                format!("let value{ffi_field_name}", ffi_field_name = ffi_field_name)
+                let field_name = norm_field.ffi_field_name();
+                format!("let {field_name}", field_name = field_name)
             })
             .collect();
         let associated_values = associated_values.join(", ");
@@ -215,7 +215,9 @@ impl EnumVariant {
     fn wrap_fields(&self, fields: &[TokenStream]) -> TokenStream {
         match &self.fields {
             StructFields::Named(_) => {
-                todo!();
+                quote! {
+                    { #(#fields),* }
+                }
             }
             StructFields::Unnamed(_) => {
                 quote! {

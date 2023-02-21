@@ -58,6 +58,33 @@ class SharedEnumTests: XCTestCase {
         default:
             XCTFail()
         }
+    }
+    
+    func testEnumWithNamedData() {
+        let enumWithNamedData1 = EnumWithNamedData.Variant1(hello: create_string("hello"), data_u8: 123)
+        switch reflect_enum_with_named_data(enumWithNamedData1) {
+        case .Variant1(let hello, let dataU8):
+            XCTAssertEqual(hello.toString(), "hello")
+            XCTAssertEqual(dataU8, 123)
+        default:
+            XCTFail()
+        }
+        
+        let enumWithNamedData2 = EnumWithNamedData.Variant2(data_i32: -123)
+        switch reflect_enum_with_named_data(enumWithNamedData2) {
+        case .Variant2(let dataI32):
+            XCTAssertEqual(dataI32, -123)
+        default:
+            XCTFail()
+        }
+
+        let enumWithNamedData3 = EnumWithNamedData.Variant3
+        switch reflect_enum_with_named_data(enumWithNamedData3) {
+        case .Variant3:
+            break
+        default:
+            XCTFail()
+        }
 
     }
 }

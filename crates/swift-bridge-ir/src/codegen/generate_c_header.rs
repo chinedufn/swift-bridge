@@ -169,25 +169,39 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         } else {
                             for variant in ty_enum.variants.iter() {
                                 match &variant.fields {
-                                    StructFields::Named(_) => {
-                                        todo!();
+                                    StructFields::Named(named_fields) => {
+                                        let mut params = vec![];
+                                        for named_field in named_fields.iter() {
+                                            let ty = BridgedType::new_with_type(
+                                                &named_field.ty,
+                                                &self.types,
+                                            )
+                                            .unwrap();
+                                            if let Some(include) = ty.to_c_include() {
+                                                bookkeeping.includes.insert(include);
+                                            }
+                                            let ty = ty.to_c();
+                                            let field_name = named_field.name.to_string();
+                                            params.push(format!("{} {};", ty, field_name));
+                                        }
+                                        let params = params.join(" ");
+                                        let variant_field = format!("typedef struct {ffi_name}$FieldOf{variant_name} {{{params}}} {ffi_name}$FieldOf{variant_name};", ffi_name = ffi_name, variant_name = variant.name, params = params);
+                                        variant_fields += &variant_field;
+                                        variant_fields += "\n";
                                     }
                                     StructFields::Unnamed(unnamed_fields) => {
                                         let mut params = vec![];
                                         for unnamed_field in unnamed_fields.iter() {
-                                            let variant_field = BridgedType::new_with_type(
+                                            let ty = BridgedType::new_with_type(
                                                 &unnamed_field.ty,
                                                 &self.types,
                                             )
                                             .unwrap();
-                                            if let Some(include) = variant_field.to_c_include() {
+                                            if let Some(include) = ty.to_c_include() {
                                                 bookkeeping.includes.insert(include);
                                             }
-                                            let variant_field = variant_field.to_c();
-                                            params.push(format!(
-                                                "{} _{};",
-                                                variant_field, unnamed_field.idx
-                                            ));
+                                            let ty = ty.to_c();
+                                            params.push(format!("{} _{};", ty, unnamed_field.idx));
                                         }
                                         let params = params.join(" ");
                                         let variant_field = format!("typedef struct {ffi_name}$FieldOf{variant_name} {{{params}}} {ffi_name}$FieldOf{variant_name};", ffi_name = ffi_name, variant_name = variant.name, params = params);

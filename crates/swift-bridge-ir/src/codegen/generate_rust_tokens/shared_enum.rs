@@ -32,8 +32,17 @@ impl SwiftBridgeModule {
         for variant in shared_enum.variants.iter() {
             let variant_name = &variant.name;
             let enum_variant = match &variant.fields {
-                StructFields::Named(_) => {
-                    todo!();
+                StructFields::Named(named_fields) => {
+                    let mut names = vec![];
+                    for named_field in named_fields {
+                        let field_name = &named_field.name;
+                        let ty = named_field.ty.to_token_stream();
+                        let field = quote! {#field_name : #ty};
+                        names.push(field);
+                    }
+                    quote! {
+                        #variant_name {#(#names),*}
+                    }
                 }
                 StructFields::Unnamed(unamed_fields) => {
                     let mut names = vec![];
@@ -56,8 +65,19 @@ impl SwiftBridgeModule {
         for variant in shared_enum.variants.iter() {
             let variant_name = &variant.name;
             let enum_ffi_variant = match &variant.fields {
-                StructFields::Named(_) => {
-                    todo!();
+                StructFields::Named(named_fields) => {
+                    let mut names = vec![];
+                    for named_field in named_fields {
+                        let field_name = &named_field.name;
+                        let ty = BridgedType::new_with_type(&named_field.ty, &self.types)
+                            .unwrap()
+                            .to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
+                        let field = quote! {#field_name : #ty};
+                        names.push(field);
+                    }
+                    quote! {
+                        #variant_name {#(#names),*}
+                    }
                 }
                 StructFields::Unnamed(unamed_fields) => {
                     let mut names = vec![];

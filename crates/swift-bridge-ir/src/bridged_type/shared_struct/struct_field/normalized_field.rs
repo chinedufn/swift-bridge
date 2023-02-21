@@ -1,5 +1,5 @@
 use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote};
+use quote::quote;
 use std::str::FromStr;
 use syn::Type;
 
@@ -38,6 +38,36 @@ impl NormalizedStructField {
         }
     }
 
+    /// Create a string for setting the value of a struct's field.
+    ///
+    /// Example if named field -> "field_name: someValue".
+    /// Example if unnamed field -> "someValue".
+    pub fn struct_field_setter_string(&self, value: String) -> String {
+        match &self.accessor {
+            NormalizedStructFieldAccessor::Named(name) => {
+                format!("{}: {}", name.to_string(), value)
+            }
+            NormalizedStructFieldAccessor::Unnamed(_) => {
+                format!("{}", value)
+            }
+        }
+    }
+
+    /// Create a string for setting the value of a struct's ffi field.
+    ///
+    /// Example if named field -> "field_name: someValue".
+    /// Example if unnamed field -> "_0: someValue".
+    pub fn struct_ffi_field_setter_string(&self, value: String) -> String {
+        match &self.accessor {
+            NormalizedStructFieldAccessor::Named(name) => {
+                format!("{}: {}", name.to_string(), value)
+            }
+            NormalizedStructFieldAccessor::Unnamed(idx) => {
+                format!("_{}: {}", idx, value)
+            }
+        }
+    }
+
     /// Access a struct's field
     ///
     /// // Example named field access
@@ -52,19 +82,6 @@ impl NormalizedStructField {
             NormalizedStructFieldAccessor::Unnamed(idx) => {
                 let idx = TokenStream::from_str(&idx.to_string()).unwrap();
                 quote! { #expression.#idx }
-            }
-        }
-    }
-
-    pub fn to_enum_field(&self, expression: &TokenStream) -> TokenStream {
-        match &self.accessor {
-            NormalizedStructFieldAccessor::Named(_) => {
-                todo!()
-            }
-            NormalizedStructFieldAccessor::Unnamed(idx) => {
-                let idx = TokenStream::from_str(&idx.to_string()).unwrap();
-                let expression = format_ident!("{}_{}", expression.to_string(), idx.to_string());
-                quote! { #expression }
             }
         }
     }
