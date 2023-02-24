@@ -66,7 +66,7 @@ impl BuiltInResult {
                     Ok(ok) => {
                         #swift_bridge_path::result::ResultVoidAndPtr {
                             is_ok: true,
-                            err: 0 as *mut std::ffi::c_void
+                            err: std::ptr::null_mut::<std::ffi::c_void>()
                         }
                     }
                     Err(err) => {

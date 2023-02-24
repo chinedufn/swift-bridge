@@ -289,7 +289,7 @@ mod extern_rust_fn_return_result_null_and_opaque_rust {
                     Ok(ok) => {
                         swift_bridge::result::ResultVoidAndPtr {
                             is_ok: true,
-                            err: 0 as *mut std::ffi::c_void
+                            err: std::ptr::null_mut::<std::ffi::c_void>()
                         }
                     }
                     Err(err) => {
