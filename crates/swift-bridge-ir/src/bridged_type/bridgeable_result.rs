@@ -24,8 +24,14 @@ impl BuiltInResult {
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
-        let result_kind = quote! {
-            ResultPtrAndPtr
+        let result_kind = if self.ok_ty.is_null() {
+            quote! {
+                ResultVoidAndPtr
+            }
+        } else {
+            quote! {
+                ResultPtrAndPtr
+            }
         };
 
         quote! {
@@ -54,18 +60,37 @@ impl BuiltInResult {
             span,
         );
 
-        quote! {
-            match #expression {
-                Ok(ok) => {
-                    #swift_bridge_path::result::ResultPtrAndPtr {
-                        is_ok: true,
-                        ok_or_err: #convert_ok as *mut std::ffi::c_void
+        if self.ok_ty.is_null() {
+            quote! {
+                match #expression {
+                    Ok(ok) => {
+                        #swift_bridge_path::result::ResultVoidAndPtr {
+                            is_ok: true,
+                            err: 0 as *mut std::ffi::c_void
+                        }
+                    }
+                    Err(err) => {
+                        #swift_bridge_path::result::ResultVoidAndPtr {
+                            is_ok: false,
+                            err: #convert_err as *mut std::ffi::c_void
+                        }
                     }
                 }
-                Err(err) => {
-                    #swift_bridge_path::result::ResultPtrAndPtr {
-                        is_ok: false,
-                        ok_or_err: #convert_err as *mut std::ffi::c_void
+            }
+        } else {
+            quote! {
+                match #expression {
+                    Ok(ok) => {
+                        #swift_bridge_path::result::ResultPtrAndPtr {
+                            is_ok: true,
+                            ok_or_err: #convert_ok as *mut std::ffi::c_void
+                        }
+                    }
+                    Err(err) => {
+                        #swift_bridge_path::result::ResultPtrAndPtr {
+                            is_ok: false,
+                            ok_or_err: #convert_err as *mut std::ffi::c_void
+                        }
                     }
                 }
             }
@@ -129,19 +154,31 @@ impl BuiltInResult {
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
-        let convert_ok =
-            self.ok_ty
-                .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
-        let convert_err =
-            self.err_ty
-                .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+        if self.ok_ty.is_null() {
+            let convert_err = self
+                .err_ty
+                .convert_ffi_expression_to_swift_type("val.err!", type_pos, types);
 
-        format!(
-            "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
-            expression = expression,
-            ok = convert_ok,
-            err = convert_err
-        )
+            format!(
+                "try {{ let val = {expression}; if val.is_ok {{ return }} else {{ throw {err} }} }}()",
+                expression = expression,
+                err = convert_err
+            )
+        } else {
+            let convert_ok =
+                self.ok_ty
+                    .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+            let convert_err =
+                self.err_ty
+                    .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+
+            format!(
+                "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
+                expression = expression,
+                ok = convert_ok,
+                err = convert_err
+            )
+        }
     }
 
     pub fn convert_swift_expression_to_ffi_compatible(
@@ -156,17 +193,28 @@ impl BuiltInResult {
             .err_ty
             .convert_swift_expression_to_ffi_type("err", type_pos);
 
-        format!(
-            "{{ switch {val} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()",
-            val = expression
-        )
+        if self.ok_ty.is_null() {
+            format!(
+                "{{ switch {val} {{ case .Ok(let ok): return __private__ResultVoidAndPtr(is_ok: true, err: nil) case .Err(let err): return __private__ResultVoidAndPtr(is_ok: false, err: {convert_err}) }} }}()",
+                val = expression
+            )
+        } else {
+            format!(
+                "{{ switch {val} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()",
+                val = expression
+            )
+        }
     }
 
     pub fn to_c(&self) -> &'static str {
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
-        "struct __private__ResultPtrAndPtr"
+        if self.ok_ty.is_null() {
+            "struct __private__ResultVoidAndPtr"
+        } else {
+            "struct __private__ResultPtrAndPtr"
+        }
     }
 }
 

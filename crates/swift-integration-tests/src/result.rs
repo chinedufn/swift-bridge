@@ -12,6 +12,9 @@ mod ffi {
             arg: Result<ResultTestOpaqueSwiftType, ResultTestOpaqueSwiftType>,
         );
 
+        fn rust_func_return_result_null_opaque_rust(
+            succeed: bool,
+        ) -> Result<(), ResultTestOpaqueRustType>;
     }
 
     extern "Rust" {
@@ -65,6 +68,14 @@ fn rust_func_takes_result_opaque_swift(
         Err(err) => {
             assert_eq!(err.val(), 666)
         }
+    }
+}
+
+fn rust_func_return_result_null_opaque_rust(succeed: bool) -> Result<(), ResultTestOpaqueRustType> {
+    if succeed {
+        Ok(())
+    } else {
+        Err(ResultTestOpaqueRustType { val: 222 })
     }
 }
 

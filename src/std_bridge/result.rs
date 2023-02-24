@@ -44,3 +44,12 @@ pub struct ResultPtrAndPtr {
     pub is_ok: bool,
     pub ok_or_err: *mut std::ffi::c_void,
 }
+
+// Bridges `Result<(), E>` where `E` is able to be encoded
+// as a pointer.
+#[repr(C)]
+#[doc(hidden)]
+pub struct ResultVoidAndPtr {
+    pub is_ok: bool,
+    pub err: *mut std::ffi::c_void,
+}
