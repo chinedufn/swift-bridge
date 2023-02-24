@@ -11,6 +11,7 @@ mod primitive;
 mod result;
 mod rust_function_uses_opaque_swift_type;
 mod shared_types;
+mod single_representation_type_elision;
 mod slice;
 mod string;
 mod swift_function_uses_opaque_rust_type;

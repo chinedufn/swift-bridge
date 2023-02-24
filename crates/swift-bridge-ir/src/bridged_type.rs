@@ -30,6 +30,13 @@ mod bridged_option;
 mod shared_enum;
 pub(crate) mod shared_struct;
 
+/// Used for types that have only one possible Rust form and Swift form,
+/// such as `()`, `struct UnitStruct;` and `enum SingleVariantEnum { Variant }`.
+pub(crate) struct OnlyEncoding {
+    pub swift: String,
+    pub rust: TokenStream,
+}
+
 /// Represents a type that can be passed between Rust and Swift.
 // TODO: Move away from `BridgedType` and instead use `Box<dyn BridgeableType>`.
 //  Our patterns have more or less stabilized and every type ends up implementing the same methods
@@ -50,6 +57,18 @@ pub(crate) trait BridgeableType: Debug {
     fn is_custom_type(&self) -> bool {
         !self.is_built_in_type()
     }
+
+    /// Whether or not this type can be encoded to exactly one representation.
+    /// For example `()` and `struct Foo;` can have exactly one representation,
+    /// but `u8` cannot since there are 255 possible `u8`s.
+    fn has_exactly_one_encoding(&self) -> bool {
+        self.only_encoding().is_some()
+    }
+
+    /// Some if this type can be encoded to exactly one representation.
+    /// For example `()` and `struct Foo;` can have exactly one representation,
+    /// but `u8` does not since there are 255 possible `u8`s.
+    fn only_encoding(&self) -> Option<OnlyEncoding>;
 
     /// Whether or not this is a `Result<T,E>`.
     fn is_result(&self) -> bool;
@@ -388,6 +407,20 @@ pub(crate) fn fn_arg_name(fn_arg: &FnArg) -> Option<&Ident> {
 impl BridgeableType for BridgedType {
     fn is_built_in_type(&self) -> bool {
         !self.is_custom_type()
+    }
+
+    fn only_encoding(&self) -> Option<OnlyEncoding> {
+        match self {
+            BridgedType::StdLib(StdLibType::Null) => Some(OnlyEncoding {
+                swift: "()".to_string(),
+                rust: quote! {()},
+            }),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(s))) => {
+                s.only_encoding()
+            }
+            BridgedType::Bridgeable(ty) => ty.only_encoding(),
+            _ => None,
+        }
     }
 
     fn is_result(&self) -> bool {
@@ -1276,7 +1309,11 @@ impl BridgedType {
                     fn_once.convert_rust_value_to_ffi_compatible_value(expression)
                 }
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                if let Some(_only) = shared_struct.only_encoding() {
+                    return quote! { {#expression;} };
+                }
+
                 quote! {
                     #expression.into_ffi_repr()
                 }
@@ -1302,6 +1339,14 @@ impl BridgedType {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
+        if !self.is_null() {
+            if let Some(repr) = self.only_encoding() {
+                let repr = repr.rust;
+
+                return quote_spanned! {span=> { #value; #repr } };
+            }
+        }
+
         match self {
             BridgedType::Bridgeable(b) => {
                 b.convert_ffi_expression_to_rust_type(value, span, swift_bridge_path, types)
@@ -1442,7 +1487,11 @@ impl BridgedType {
                     fn_once.convert_ffi_value_to_swift_value(type_pos)
                 }
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                if let Some(only) = shared_struct.only_encoding() {
+                    return format!("{{ let _ = {}; return {} }}()", expression, only.swift);
+                }
+
                 format!("{}.intoSwiftRepr()", expression)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
@@ -1536,7 +1585,11 @@ impl BridgedType {
                     todo!("Support Box<dyn FnOnce(A, B) -> C>")
                 }
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                if let Some(_only) = shared_struct.only_encoding() {
+                    return format!("{{ let _ = {}; }}()", expression);
+                }
+
                 format!("{}.intoFfiRepr()", expression)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {

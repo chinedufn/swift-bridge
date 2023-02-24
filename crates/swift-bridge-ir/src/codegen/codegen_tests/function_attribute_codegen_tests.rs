@@ -10,7 +10,9 @@ mod function_args_into_attribute {
         quote! {
             mod ffi {
                 #[swift_bridge(swift_name = "SomeStruct")]
-                struct FfiSomeStruct;
+                struct FfiSomeStruct {
+                    field: u16
+                }
 
                 #[swift_bridge(swift_name = "AnotherStruct")]
                 struct FfiAnotherStruct(u8);
@@ -73,7 +75,9 @@ mod return_into_attribute_for_shared_struct {
             #[swift_bridge::bridge]
             mod ffi {
                 #[swift_bridge(swift_name = "StructRename1")]
-                struct StructName1;
+                struct StructName1 {
+                    field: u8
+                }
 
                 extern "Rust" {
                     #[swift_bridge(return_into)]

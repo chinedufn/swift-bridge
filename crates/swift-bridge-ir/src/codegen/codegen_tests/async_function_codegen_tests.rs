@@ -362,7 +362,9 @@ mod extern_rust_async_function_returns_struct {
         quote! {
             #[swift_bridge::bridge]
             mod ffi {
-                struct SomeStruct;
+                struct SomeStruct {
+                    field: u8
+                }
 
                 extern "Rust" {
                     async fn some_function() -> SomeStruct;

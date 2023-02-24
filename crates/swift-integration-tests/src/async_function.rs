@@ -1,6 +1,9 @@
 #[swift_bridge::bridge]
 mod ffi {
-    struct AsyncRustFnReturnStruct;
+    #[swift_bridge(swift_repr = "struct")]
+    struct AsyncRustFnReturnStruct {
+        field: u8,
+    }
 
     extern "Rust" {
         async fn rust_async_return_null();
@@ -48,7 +51,7 @@ async fn rust_async_reflect_string(string: String) -> String {
 }
 
 async fn rust_async_return_struct() -> ffi::AsyncRustFnReturnStruct {
-    ffi::AsyncRustFnReturnStruct
+    ffi::AsyncRustFnReturnStruct { field: 123 }
 }
 
 pub struct TestRustAsyncSelf;
