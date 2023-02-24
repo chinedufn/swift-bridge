@@ -63,6 +63,25 @@ impl StructFields {
         }
     }
 
+    /// Given the struct name "SomeStruct".
+    ///
+    /// Unit -> ""
+    /// Named -> "{ }"
+    /// Unnamed -> "()"
+    pub fn empty_field_wrapper(&self) -> TokenStream {
+        match self {
+            StructFields::Named(_) => {
+                quote! { {} }
+            }
+            StructFields::Unnamed(_) => {
+                quote! { () }
+            }
+            StructFields::Unit => {
+                quote! {}
+            }
+        }
+    }
+
     pub fn from_syn_fields(fields: Fields) -> Self {
         match fields {
             Fields::Named(f) => {

@@ -46,14 +46,14 @@ class AsyncTests: XCTestCase {
         
         // Should return an AsyncResultOpaqueRustType1 type.
         do {
-            let result = try await rust_async_func_reflect_result_opaque_rust(.Ok(AsyncResultOpaqueRustType1(10)))
+            let _ = try await rust_async_func_reflect_result_opaque_rust(.Ok(AsyncResultOpaqueRustType1(10)))
         } catch {
             XCTFail()
         }
         
         // Should throw an AsyncResultOpaqueRustType2 type that conforms to Error protocol.
         do {
-            let result = try await rust_async_func_reflect_result_opaque_rust(.Err(AsyncResultOpaqueRustType2(100)))
+            let _ = try await rust_async_func_reflect_result_opaque_rust(.Err(AsyncResultOpaqueRustType2(100)))
             XCTFail()
         } catch let error as AsyncResultOpaqueRustType2 {
             XCTAssertEqual(error.val(), 100)

@@ -34,6 +34,12 @@ impl ParsedExternFn {
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
                     let ty = if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
+                        if self.host_lang.is_swift() {
+                            if built_in.has_exactly_one_encoding() {
+                                continue;
+                            }
+                        }
+
                         built_in.to_swift_type(TypePosition::FnArg(self.host_lang, arg_idx), types)
                     } else {
                         todo!("Push to ParsedErrors")
@@ -97,16 +103,24 @@ impl ParsedExternFn {
                     let arg =
                         if let Some(bridged_ty) = BridgedType::new_with_type(&pat_ty.ty, types) {
                             if self.host_lang.is_rust() {
+                                if bridged_ty.has_exactly_one_encoding() {
+                                    continue;
+                                }
+
                                 bridged_ty.convert_swift_expression_to_ffi_type(
                                     &arg,
                                     TypePosition::FnArg(self.host_lang, arg_idx),
                                 )
                             } else {
-                                bridged_ty.convert_ffi_value_to_swift_value(
-                                    &arg,
-                                    TypePosition::FnArg(self.host_lang, arg_idx),
-                                    types,
-                                )
+                                if let Some(only) = bridged_ty.only_encoding() {
+                                    only.swift
+                                } else {
+                                    bridged_ty.convert_ffi_value_to_swift_value(
+                                        &arg,
+                                        TypePosition::FnArg(self.host_lang, arg_idx),
+                                        types,
+                                    )
+                                }
                             }
                         } else {
                             todo!("Push to ParsedErrors")
@@ -129,6 +143,12 @@ impl ParsedExternFn {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(built_in) = BridgedType::new_with_type(&ty, types) {
+                    if self.host_lang.is_swift() {
+                        if built_in.has_exactly_one_encoding() {
+                            return "".to_string();
+                        }
+                    }
+
                     let maybe_throws = if built_in.is_result() { "throws " } else { "" };
 
                     format!(
