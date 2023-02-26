@@ -310,7 +310,7 @@ mod extern_rust_fn_return_result_null_and_opaque_rust {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 public func some_function() throws -> () {
-    try { let val = __swift_bridge__$some_function(); if val.is_ok { return () } else { throw SomeType(ptr: val.err!) } }()
+    try { let val = __swift_bridge__$some_function(); if val.is_ok { return  } else { throw SomeType(ptr: val.err!) } }()
 }
 "#,
         )

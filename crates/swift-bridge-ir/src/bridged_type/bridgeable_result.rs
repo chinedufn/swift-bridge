@@ -154,7 +154,7 @@ impl BuiltInResult {
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
-        let (ok, err) = if let Some(zero_byte_encoding) = self.ok_ty.only_encoding() {
+        let (mut ok, err) = if let Some(zero_byte_encoding) = self.ok_ty.only_encoding() {
             let ok = zero_byte_encoding.swift;
             let convert_err = self
                 .err_ty
@@ -171,6 +171,22 @@ impl BuiltInResult {
 
             (convert_ok, convert_err)
         };
+
+        // There is a Swift compiler bug in Xcode 13 where using an explicit `()` here somehow leads
+        // the Swift compiler to a compile time error:
+        // "Unable to infer complex closure return type; add explicit type to disambiguate"
+        //
+        // It's asking us to add a `{ () -> () in .. }` explicit type to the beginning of our closure.
+        //
+        // To solve this bug we can either add that explicit closure type, or remove the explicit
+        // `return ()` in favor of a `return`.. Not sure why making the return type less explicit
+        //  solves the compile time error.. But it does..
+        //
+        // As mentioned, this doesn't seem to happen in Xcode 14.
+        // So, we can remove this if statement whenever we stop supporting Xcode 13.
+        if self.ok_ty.is_null() {
+            ok = "".to_string();
+        }
 
         format!(
             "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
