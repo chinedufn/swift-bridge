@@ -58,7 +58,7 @@ pub(crate) trait BridgeableType: Debug {
         !self.is_built_in_type()
     }
 
-    /// Whether or not this type can be encoded to exactly one representation,;
+    /// Whether or not this type can be encoded to exactly one representation,
     /// and therefore can be encoded with zero bytes.
     /// For example `()` and `struct Foo;` can have exactly one representation,
     /// but `u8` cannot since there are 255 possible `u8`s.
