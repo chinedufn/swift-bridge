@@ -33,11 +33,11 @@ class SharedEnumTests: XCTestCase {
     }
 
     func testEnumWithUnnamedData() {
-        let enumWithUnnamedData1 = EnumWithUnnamedData.Variant1(create_string("hello"), 0)
+        let enumWithUnnamedData1 = EnumWithUnnamedData.Variant1(create_string("hello"), Foo.new())
         switch reflect_enum_with_unnamed_data(enumWithUnnamedData1) {
-        case .Variant1(let rustString, let valueUInt32):
+        case .Variant1(let rustString, let foo):
             XCTAssertEqual(rustString.toString(), "hello")
-            XCTAssertEqual(valueUInt32, 0)
+            XCTAssertEqual(foo, Foo.new())
         default:
             XCTFail()
         }
@@ -78,9 +78,10 @@ class SharedEnumTests: XCTestCase {
             XCTFail()
         }
 
-        let enumWithNamedData3 = EnumWithNamedData.Variant3
+        let enumWithNamedData3 = EnumWithNamedData.Variant3(foo: Foo.new())
         switch reflect_enum_with_named_data(enumWithNamedData3) {
-        case .Variant3:
+        case .Variant3(let foo):
+            XCTAssertEqual(foo, Foo.new())
             break
         default:
             XCTFail()

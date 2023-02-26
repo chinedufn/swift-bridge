@@ -745,11 +745,11 @@ mod generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data
             #[swift_bridge::bridge]
             mod ffi {
                 extern "Rust" {
-                    type SomeType<i32, u32>;
+                    type SomeType;
                 }
                 enum SomeEnum {
                     A{
-                        data1: SomeType<i32, u32>,
+                        data1: SomeType,
                         data2: u32
                     },
                     B{
@@ -765,7 +765,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data
             #[derive ()]
             pub enum SomeEnum {
                 A {
-                    data1: super::SomeType<i32, u32>,
+                    data1: super::SomeType,
                     data2: u32
                 },
                 B {
@@ -777,7 +777,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data
             #[doc(hidden)]
             pub enum __swift_bridge__SomeEnum {
                 A {
-                    data1: *mut super::SomeType<i32, u32>,
+                    data1: *mut super::SomeType,
                     data2: u32
                 },
                 B {
@@ -868,7 +868,7 @@ typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; __swift_bridge__
     }
 
     #[test]
-    fn generics() {
+    fn generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
