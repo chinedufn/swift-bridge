@@ -32,7 +32,6 @@ impl BridgeableType for OpaqueForeignType {
 
     fn to_rust_type_path(&self) -> TokenStream {
         let ty_name = &self.ty;
-
         if self.host_lang.is_rust() {
             quote! {
                 super:: #ty_name
@@ -72,8 +71,20 @@ impl BridgeableType for OpaqueForeignType {
                     }
                 }
                 TypePosition::SharedStructField => {
-                    //
-                    unimplemented!()
+                    let class_name = self.ty.to_string();
+                    if !self.has_swift_bridge_copy_annotation {
+                        if self.mutable || self.reference {
+                            todo!();
+                        }
+                    }
+
+                    format!(
+                        "{}{}",
+                        class_name,
+                        self.generics
+                            .angle_bracketed_generic_concrete_swift_types_string(types)
+                    )
+                    
                 }
                 TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                     unimplemented!()
@@ -121,7 +132,7 @@ impl BridgeableType for OpaqueForeignType {
         types: &TypeDeclarations,
     ) -> TokenStream {
         let ty_name = &self.ty;
-
+        
         if self.has_swift_bridge_copy_annotation {
             let ty = self.copy_rust_repr_type();
             quote! { #ty }
@@ -284,7 +295,10 @@ impl BridgeableType for OpaqueForeignType {
                         }
                     }
                     TypePosition::SharedStructField => {
-                        todo!("Opaque types in shared struct fields are not yet supported")
+                        format!(
+                            "{{{}.isOwned = false; return {}.ptr;}}()",
+                            expression, expression
+                        )
                     }
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         unimplemented!()

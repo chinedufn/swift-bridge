@@ -19,9 +19,13 @@ mod ffi {
         fn reflect_enum_with_unnamed_data(arg: EnumWithUnnamedData) -> EnumWithUnnamedData;
     }
 
+    extern "Rust" {
+        type SomeType<i32, u32>;
+    }
+
     enum EnumWithNamedData {
         Variant1 { hello: String, data_u8: u8 },
-        Variant2 { data_i32: i32 },
+        Variant2 { data_i32: SomeType<i32, u32> },
         Variant3,
     }
 
@@ -41,3 +45,5 @@ fn reflect_enum_with_unnamed_data(arg: ffi::EnumWithUnnamedData) -> ffi::EnumWit
 fn reflect_enum_with_named_data(arg: ffi::EnumWithNamedData) -> ffi::EnumWithNamedData {
     arg
 }
+
+pub struct SomeType<T, U>(T, U);
