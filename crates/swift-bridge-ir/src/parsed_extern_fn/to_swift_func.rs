@@ -35,7 +35,7 @@ impl ParsedExternFn {
 
                     let ty = if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                         if self.host_lang.is_swift() {
-                            if built_in.has_exactly_one_encoding() {
+                            if built_in.can_be_encoded_with_zero_bytes() {
                                 continue;
                             }
                         }
@@ -103,7 +103,7 @@ impl ParsedExternFn {
                     let arg =
                         if let Some(bridged_ty) = BridgedType::new_with_type(&pat_ty.ty, types) {
                             if self.host_lang.is_rust() {
-                                if bridged_ty.has_exactly_one_encoding() {
+                                if bridged_ty.can_be_encoded_with_zero_bytes() {
                                     continue;
                                 }
 
@@ -144,7 +144,7 @@ impl ParsedExternFn {
             ReturnType::Type(_, ty) => {
                 if let Some(built_in) = BridgedType::new_with_type(&ty, types) {
                     if self.host_lang.is_swift() {
-                        if built_in.has_exactly_one_encoding() {
+                        if built_in.can_be_encoded_with_zero_bytes() {
                             return "".to_string();
                         }
                     }
