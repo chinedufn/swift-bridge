@@ -154,17 +154,13 @@ impl BuiltInResult {
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
-        if let Some(zero_byte_encoding) = self.ok_ty.only_encoding() {
+        let (ok, err) = if let Some(zero_byte_encoding) = self.ok_ty.only_encoding() {
             let ok = zero_byte_encoding.swift;
             let convert_err = self
                 .err_ty
                 .convert_ffi_expression_to_swift_type("val.err!", type_pos, types);
 
-            format!(
-                "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
-                expression = expression,
-                err = convert_err
-            )
+            (ok, convert_err)
         } else {
             let convert_ok =
                 self.ok_ty
@@ -173,13 +169,14 @@ impl BuiltInResult {
                 self.err_ty
                     .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
 
-            format!(
-                "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
-                expression = expression,
-                ok = convert_ok,
-                err = convert_err
-            )
-        }
+            (convert_ok, convert_err)
+        };
+
+        format!(
+            "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
+            expression = expression,
+            err = err
+        )
     }
 
     pub fn convert_swift_expression_to_ffi_compatible(

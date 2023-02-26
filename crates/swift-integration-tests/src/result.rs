@@ -89,7 +89,7 @@ fn rust_func_return_result_unit_struct_opaque_rust(
     succeed: bool,
 ) -> Result<ffi::UnitStruct, ResultTestOpaqueRustType> {
     if succeed {
-        Ok(ffi::UnitStruct {})
+        Ok(ffi::UnitStruct)
     } else {
         Err(ResultTestOpaqueRustType { val: 222 })
     }
