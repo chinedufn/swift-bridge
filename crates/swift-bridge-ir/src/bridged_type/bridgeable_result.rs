@@ -24,8 +24,14 @@ impl BuiltInResult {
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
-        let result_kind = quote! {
-            ResultPtrAndPtr
+        let result_kind = if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            quote! {
+                ResultVoidAndPtr
+            }
+        } else {
+            quote! {
+                ResultPtrAndPtr
+            }
         };
 
         quote! {
@@ -54,18 +60,37 @@ impl BuiltInResult {
             span,
         );
 
-        quote! {
-            match #expression {
-                Ok(ok) => {
-                    #swift_bridge_path::result::ResultPtrAndPtr {
-                        is_ok: true,
-                        ok_or_err: #convert_ok as *mut std::ffi::c_void
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            quote! {
+                match #expression {
+                    Ok(ok) => {
+                        #swift_bridge_path::result::ResultVoidAndPtr {
+                            is_ok: true,
+                            err: std::ptr::null_mut::<std::ffi::c_void>()
+                        }
+                    }
+                    Err(err) => {
+                        #swift_bridge_path::result::ResultVoidAndPtr {
+                            is_ok: false,
+                            err: #convert_err as *mut std::ffi::c_void
+                        }
                     }
                 }
-                Err(err) => {
-                    #swift_bridge_path::result::ResultPtrAndPtr {
-                        is_ok: false,
-                        ok_or_err: #convert_err as *mut std::ffi::c_void
+            }
+        } else {
+            quote! {
+                match #expression {
+                    Ok(ok) => {
+                        #swift_bridge_path::result::ResultPtrAndPtr {
+                            is_ok: true,
+                            ok_or_err: #convert_ok as *mut std::ffi::c_void
+                        }
+                    }
+                    Err(err) => {
+                        #swift_bridge_path::result::ResultPtrAndPtr {
+                            is_ok: false,
+                            ok_or_err: #convert_err as *mut std::ffi::c_void
+                        }
                     }
                 }
             }
@@ -129,18 +154,44 @@ impl BuiltInResult {
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
-        let convert_ok =
-            self.ok_ty
-                .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
-        let convert_err =
-            self.err_ty
-                .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+        let (mut ok, err) = if let Some(zero_byte_encoding) = self.ok_ty.only_encoding() {
+            let ok = zero_byte_encoding.swift;
+            let convert_err = self
+                .err_ty
+                .convert_ffi_expression_to_swift_type("val.err!", type_pos, types);
+
+            (ok, convert_err)
+        } else {
+            let convert_ok =
+                self.ok_ty
+                    .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+            let convert_err =
+                self.err_ty
+                    .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+
+            (convert_ok, convert_err)
+        };
+
+        // There is a Swift compiler bug in Xcode 13 where using an explicit `()` here somehow leads
+        // the Swift compiler to a compile time error:
+        // "Unable to infer complex closure return type; add explicit type to disambiguate"
+        //
+        // It's asking us to add a `{ () -> () in .. }` explicit type to the beginning of our closure.
+        //
+        // To solve this bug we can either add that explicit closure type, or remove the explicit
+        // `return ()` in favor of a `return`.. Not sure why making the return type less explicit
+        //  solves the compile time error.. But it does..
+        //
+        // As mentioned, this doesn't seem to happen in Xcode 14.
+        // So, we can remove this if statement whenever we stop supporting Xcode 13.
+        if self.ok_ty.is_null() {
+            ok = "".to_string();
+        }
 
         format!(
             "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
             expression = expression,
-            ok = convert_ok,
-            err = convert_err
+            err = err
         )
     }
 
@@ -156,17 +207,28 @@ impl BuiltInResult {
             .err_ty
             .convert_swift_expression_to_ffi_type("err", type_pos);
 
-        format!(
-            "{{ switch {val} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()",
-            val = expression
-        )
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            format!(
+                "{{ switch {val} {{ case .Ok(let ok): return __private__ResultVoidAndPtr(is_ok: true, err: nil) case .Err(let err): return __private__ResultVoidAndPtr(is_ok: false, err: {convert_err}) }} }}()",
+                val = expression
+            )
+        } else {
+            format!(
+                "{{ switch {val} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()",
+                val = expression
+            )
+        }
     }
 
     pub fn to_c(&self) -> &'static str {
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
-        "struct __private__ResultPtrAndPtr"
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            "struct __private__ResultVoidAndPtr"
+        } else {
+            "struct __private__ResultPtrAndPtr"
+        }
     }
 }
 

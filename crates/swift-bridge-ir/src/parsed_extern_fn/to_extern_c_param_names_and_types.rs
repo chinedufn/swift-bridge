@@ -41,7 +41,7 @@ impl ParsedExternFn {
 
                     if !pat_ty_is_self {
                         if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
-                            if built_in.has_exactly_one_encoding() {
+                            if built_in.can_be_encoded_with_zero_bytes() {
                                 continue;
                             }
 

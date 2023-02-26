@@ -163,7 +163,7 @@ impl ParsedExternFn {
         let sig = &self.func.sig;
 
         if let Some(ret) = BridgedType::new_with_return_type(&sig.output, types) {
-            if ret.has_exactly_one_encoding() {
+            if ret.can_be_encoded_with_zero_bytes() {
                 return quote! {};
             }
 
@@ -290,7 +290,7 @@ impl ParsedExternFn {
                                 };
                             }
                         } else {
-                            if built_in.has_exactly_one_encoding() {
+                            if built_in.can_be_encoded_with_zero_bytes() {
                                 continue;
                             }
 
@@ -335,7 +335,7 @@ impl ParsedExternFn {
                     } else {
                         let built_in = BridgedType::new_with_type(&pat_ty.ty, types).unwrap();
 
-                        if built_in.has_exactly_one_encoding() {
+                        if built_in.can_be_encoded_with_zero_bytes() {
                             continue;
                         }
 
@@ -360,7 +360,7 @@ impl ParsedExternFn {
             ReturnType::Default => "void".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(ty) = BridgedType::new_with_type(&ty, types) {
-                    if ty.has_exactly_one_encoding() {
+                    if ty.can_be_encoded_with_zero_bytes() {
                         return "void".to_string();
                     }
 

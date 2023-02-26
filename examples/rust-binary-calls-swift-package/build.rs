@@ -24,8 +24,20 @@ fn main() {
     // ld: warning: Could not find or use auto-linked library 'swiftCompatibility50'
     // ld: warning: Could not find or use auto-linked library 'swiftCompatibilityDynamicReplacements'
     // ld: warning: Could not find or use auto-linked library 'swiftCompatibilityConcurrency'
-    println!("cargo:rustc-link-search={}",
-        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx/"
+    let xcode_path = if let Ok(output) = std::process::Command::new("xcode-select")
+        .arg("--print-path")
+        .output()
+    {
+        String::from_utf8(output.stdout.as_slice().into())
+            .unwrap()
+            .trim()
+            .to_string()
+    } else {
+        "/Applications/Xcode.app/Contents/Developer".to_string()
+    };
+    println!(
+        "cargo:rustc-link-search={}/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx/",
+        &xcode_path
     );
     println!("cargo:rustc-link-search={}", "/usr/lib/swift");
 }
