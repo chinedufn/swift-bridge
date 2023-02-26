@@ -52,4 +52,16 @@ class ResultTests: XCTestCase {
             XCTAssertEqual(error.val(), 222)
         }
     }
+
+    /// Verify that we can receive a Result<UnitStruct, OpaqueRust> from Rust
+    func testSwiftCallRustResultUnitStructOpaqueRust() throws {
+        try! rust_func_return_result_unit_struct_opaque_rust(true)
+
+        do {
+            try rust_func_return_result_unit_struct_opaque_rust(false)
+            XCTFail("The function should have returned an error.")
+        } catch let error as ResultTestOpaqueRustType {
+            XCTAssertEqual(error.val(), 222)
+        }
+    }
 }

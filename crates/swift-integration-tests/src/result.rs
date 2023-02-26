@@ -2,6 +2,8 @@
 
 #[swift_bridge::bridge]
 mod ffi {
+    struct UnitStruct;
+
     extern "Rust" {
         fn rust_func_reflect_result_opaque_rust(
             arg: Result<ResultTestOpaqueRustType, ResultTestOpaqueRustType>,
@@ -15,6 +17,10 @@ mod ffi {
         fn rust_func_return_result_null_opaque_rust(
             succeed: bool,
         ) -> Result<(), ResultTestOpaqueRustType>;
+
+        fn rust_func_return_result_unit_struct_opaque_rust(
+            succeed: bool,
+        ) -> Result<UnitStruct, ResultTestOpaqueRustType>;
     }
 
     extern "Rust" {
@@ -74,6 +80,16 @@ fn rust_func_takes_result_opaque_swift(
 fn rust_func_return_result_null_opaque_rust(succeed: bool) -> Result<(), ResultTestOpaqueRustType> {
     if succeed {
         Ok(())
+    } else {
+        Err(ResultTestOpaqueRustType { val: 222 })
+    }
+}
+
+fn rust_func_return_result_unit_struct_opaque_rust(
+    succeed: bool,
+) -> Result<ffi::UnitStruct, ResultTestOpaqueRustType> {
+    if succeed {
+        Ok(ffi::UnitStruct {})
     } else {
         Err(ResultTestOpaqueRustType { val: 222 })
     }

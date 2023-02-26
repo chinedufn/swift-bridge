@@ -24,7 +24,7 @@ impl BuiltInResult {
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
-        let result_kind = if self.ok_ty.is_null() {
+        let result_kind = if self.ok_ty.can_be_encoded_with_zero_bytes() {
             quote! {
                 ResultVoidAndPtr
             }
@@ -60,7 +60,7 @@ impl BuiltInResult {
             span,
         );
 
-        if self.ok_ty.is_null() {
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
             quote! {
                 match #expression {
                     Ok(ok) => {
@@ -154,13 +154,14 @@ impl BuiltInResult {
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
-        if self.ok_ty.is_null() {
+        if let Some(zero_byte_encoding) = self.ok_ty.only_encoding() {
+            let ok = zero_byte_encoding.swift;
             let convert_err = self
                 .err_ty
                 .convert_ffi_expression_to_swift_type("val.err!", type_pos, types);
 
             format!(
-                "try {{ let val = {expression}; if val.is_ok {{ return }} else {{ throw {err} }} }}()",
+                "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
                 expression = expression,
                 err = convert_err
             )
@@ -193,7 +194,7 @@ impl BuiltInResult {
             .err_ty
             .convert_swift_expression_to_ffi_type("err", type_pos);
 
-        if self.ok_ty.is_null() {
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
             format!(
                 "{{ switch {val} {{ case .Ok(let ok): return __private__ResultVoidAndPtr(is_ok: true, err: nil) case .Err(let err): return __private__ResultVoidAndPtr(is_ok: false, err: {convert_err}) }} }}()",
                 val = expression
@@ -210,7 +211,7 @@ impl BuiltInResult {
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
-        if self.ok_ty.is_null() {
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
             "struct __private__ResultVoidAndPtr"
         } else {
             "struct __private__ResultPtrAndPtr"
