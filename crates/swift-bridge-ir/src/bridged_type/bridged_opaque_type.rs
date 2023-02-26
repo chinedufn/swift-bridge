@@ -84,7 +84,6 @@ impl BridgeableType for OpaqueForeignType {
                         self.generics
                             .angle_bracketed_generic_concrete_swift_types_string(types)
                     )
-                    
                 }
                 TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                     unimplemented!()
@@ -132,7 +131,7 @@ impl BridgeableType for OpaqueForeignType {
         types: &TypeDeclarations,
     ) -> TokenStream {
         let ty_name = &self.ty;
-        
+
         if self.has_swift_bridge_copy_annotation {
             let ty = self.copy_rust_repr_type();
             quote! { #ty }
