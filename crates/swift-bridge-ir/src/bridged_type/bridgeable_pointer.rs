@@ -40,7 +40,57 @@ impl BridgeableType for BuiltInPointer {
     }
 
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
-        todo!()
+        /***
+        let ptr_kind = &ptr.kind;
+
+        match &ptr.pointee {
+            Pointee::BuiltIn(ty) => {
+                let ty = ty.to_rust_type_path(types);
+                quote! { #ptr_kind #ty}
+            }
+            Pointee::Void(_ty) => {
+                // quote! { * #ptr_kind #ty };
+                panic!("Add a test case that hits this branch, then make it pass")
+            }
+        }
+
+    pub fn maybe_convert_pointer_to_super_pointer(&self,
+        types: &TypeDeclarations) -> TokenStream {
+        match self {
+            BridgedType::StdLib(stdlib_type) => {
+                match stdlib_type {
+                    StdLibType::Pointer(pointer) => match &pointer.pointee {
+                        Pointee::BuiltIn(_built_in) => {
+                            self.to_rust_type_path(types)
+                        }
+                        Pointee::Void(_) => {
+                            todo!();
+                            let pointer_kind = &pointer.kind;
+                            let pointee = &pointer.pointee;
+
+                            quote! { #pointer_kind super:: #pointee }
+                        }
+                    },
+                    _ => self.to_rust_type_path(types),
+                }
+            }
+            _ => self.to_rust_type_path(types),
+        }
+        }
+        ***/
+        match &self.pointee {
+            Pointee::BuiltIn(ty) => {
+                let pointer_kind = &self.kind;
+                let ty = ty.to_rust_type_path(types);
+                quote! { #pointer_kind #ty}
+            }
+            Pointee::Void(_ty) => {
+                let pointer_kind = &self.kind;
+                let pointee = &self.pointee;
+
+                quote! { #pointer_kind super:: #pointee }
+            }
+        }
     }
 
     fn to_swift_type(&self, _type_pos: TypePosition, _types: &TypeDeclarations) -> String {

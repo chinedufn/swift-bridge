@@ -754,18 +754,7 @@ impl BridgedType {
                     StdLibType::F64 => quote! { f64 },
                     StdLibType::Bool => quote! { bool },
                     StdLibType::Pointer(ptr) => {
-                        let ptr_kind = &ptr.kind;
-
-                        match &ptr.pointee {
-                            Pointee::BuiltIn(ty) => {
-                                let ty = ty.to_rust_type_path(types);
-                                quote! { #ptr_kind #ty}
-                            }
-                            Pointee::Void(_ty) => {
-                                // quote! { * #ptr_kind #ty };
-                                panic!("Add a test case that hits this branch, then make it pass")
-                            }
-                        }
+                        ptr.to_rust_type_path(types)
                     }
                     StdLibType::RefSlice(ref_slice) => {
                         let ty = ref_slice.ty.to_rust_type_path(types);
@@ -826,6 +815,8 @@ impl BridgedType {
                 StdLibType::Isize => quote! { isize },
                 StdLibType::Bool => quote! { bool },
                 StdLibType::Pointer(ptr) => {
+                    ptr.to_ffi_compatible_rust_type(swift_bridge_path, types)
+                    /***
                     let kind = ptr.kind.to_token_stream();
 
                     let ty = match &ptr.pointee {
@@ -838,6 +829,7 @@ impl BridgedType {
                     };
 
                     quote! { #kind #ty}
+                    ***/
                 }
                 StdLibType::RefSlice(slice) => {
                     let ty = slice
@@ -1179,20 +1171,7 @@ impl BridgedType {
         match self {
             BridgedType::StdLib(stdlib_type) => {
                 match stdlib_type {
-                    StdLibType::Pointer(pointer) => match &pointer.pointee {
-                        Pointee::BuiltIn(_built_in) => {
-                            //
-                            todo!();
-                            self.to_rust_type_path(types)
-                        }
-                        Pointee::Void(_) => {
-                            todo!();
-                            let pointer_kind = &pointer.kind;
-                            let pointee = &pointer.pointee;
-
-                            quote! { #pointer_kind super:: #pointee }
-                        }
-                    },
+                    StdLibType::Pointer(pointer) => pointer.to_rust_type_path(types),
                     _ => self.to_rust_type_path(types),
                 }
             }
