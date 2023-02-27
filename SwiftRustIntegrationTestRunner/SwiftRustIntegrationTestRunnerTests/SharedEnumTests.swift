@@ -33,27 +33,26 @@ class SharedEnumTests: XCTestCase {
     }
 
     func testEnumWithUnnamedData() {
-        let enumWithUnnamedData1 = EnumWithUnnamedData.Variant1(create_string("hello"), OpaqueRustForEnumTest())
+        let enumWithUnnamedData1 = EnumWithUnnamedData.TwoFields(create_string("hello"), OpaqueRustForEnumTest())
         switch reflect_enum_with_unnamed_data(enumWithUnnamedData1) {
-        case .Variant1(let rustString, let opaqueRustForEnumTest):
+        case .TwoFields(let rustString, let opaqueRustForEnumTest):
             XCTAssertEqual(rustString.toString(), "hello")
             XCTAssertEqual(opaqueRustForEnumTest, OpaqueRustForEnumTest())
         default:
             XCTFail()
         }
         
-        let enumWithUnnamedData2 = EnumWithUnnamedData.Variant2(1000, 10)
+        let enumWithUnnamedData2 = EnumWithUnnamedData.OneField(1000)
         switch reflect_enum_with_unnamed_data(enumWithUnnamedData2) {
-        case .Variant2(let valueInt32, let valueUInt8):
+        case .OneField(let valueInt32):
             XCTAssertEqual(valueInt32, 1000)
-            XCTAssertEqual(valueUInt8, 10)
         default:
             XCTFail()
         }
 
-        let enumWithUnnamedData3 = EnumWithUnnamedData.Variant3
+        let enumWithUnnamedData3 = EnumWithUnnamedData.NoFields
         switch reflect_enum_with_unnamed_data(enumWithUnnamedData3) {
-        case .Variant3:
+        case .NoFields:
             break
         default:
             XCTFail()
@@ -61,26 +60,26 @@ class SharedEnumTests: XCTestCase {
     }
     
     func testEnumWithNamedData() {
-        let enumWithNamedData1 = EnumWithNamedData.Variant1(hello: create_string("hello"), data_u8: 123)
+        let enumWithNamedData1 = EnumWithNamedData.TwoFields(hello: create_string("hello"), data_u8: 123)
         switch reflect_enum_with_named_data(enumWithNamedData1) {
-        case .Variant1(let hello, let dataU8):
+        case .TwoFields(let hello, let dataU8):
             XCTAssertEqual(hello.toString(), "hello")
             XCTAssertEqual(dataU8, 123)
         default:
             XCTFail()
         }
         
-        let enumWithNamedData2 = EnumWithNamedData.Variant2(data_i32: -123)
+        let enumWithNamedData2 = EnumWithNamedData.OneField(data_i32: -123)
         switch reflect_enum_with_named_data(enumWithNamedData2) {
-        case .Variant2(let dataI32):
+        case .OneField(let dataI32):
             XCTAssertEqual(dataI32, -123)
         default:
             XCTFail()
         }
 
-        let enumWithNamedData3 = EnumWithNamedData.Variant3
+        let enumWithNamedData3 = EnumWithNamedData.NoFields
         switch reflect_enum_with_named_data(enumWithNamedData3) {
-        case .Variant3:
+        case .NoFields:
             break
         default:
             XCTFail()

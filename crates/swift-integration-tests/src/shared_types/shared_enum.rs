@@ -18,9 +18,9 @@ mod ffi {
     }
 
     enum EnumWithUnnamedData {
-        Variant1(String, OpaqueRustForEnumTest),
-        Variant2(i32, u8),
-        Variant3,
+        TwoFields(String, OpaqueRustForEnumTest),
+        OneField(i32),
+        NoFields,
     }
 
     extern "Rust" {
@@ -28,9 +28,9 @@ mod ffi {
     }
 
     enum EnumWithNamedData {
-        Variant1 { hello: String, data_u8: u8 },
-        Variant2 { data_i32: i32 },
-        Variant3,
+        TwoFields { hello: String, data_u8: u8 },
+        OneField { data_i32: i32 },
+        NoFields,
     }
 
     extern "Rust" {
