@@ -229,6 +229,10 @@ impl BridgeableType for BuiltInPointer {
     fn has_swift_bridge_copy_annotation(&self) -> bool {
         todo!()
     }
+
+    fn only_encoding(&self) -> Option<super::OnlyEncoding> {
+        todo!()
+    }
 }
 
 impl PointerKind {
