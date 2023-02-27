@@ -78,10 +78,9 @@ class SharedEnumTests: XCTestCase {
             XCTFail()
         }
 
-        let enumWithNamedData3 = EnumWithNamedData.Variant3(foo: OpaqueRustForEnumTest())
+        let enumWithNamedData3 = EnumWithNamedData.Variant3
         switch reflect_enum_with_named_data(enumWithNamedData3) {
-        case .Variant3(let opaqueRustForEnumTest):
-            XCTAssertEqual(opaqueRustForEnumTest, OpaqueRustForEnumTest())
+        case .Variant3:
             break
         default:
             XCTFail()
