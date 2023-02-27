@@ -108,7 +108,9 @@ class SharedEnumTests: XCTestCase {
         let named = EnumWithGenericOpaqueRust.Named(data: new_generic_opaque_rust_for_enum_test())
         switch reflect_enum_with_generic_opaque_type(named) {
         case .Named(_):
-            //TODO: call several methods on GenericOpaqueRustForEnumTest<Int32>
+            // TODO: call a method on GenericOpaqueRustForEnumTest<Int32>
+            // after we add support for methods on generic opaque Rust Types.
+            // See https://github.com/chinedufn/swift-bridge/issues/44#issuecomment-1114198605
             break
         case .Unnamed(_):
             XCTFail()
@@ -119,7 +121,9 @@ class SharedEnumTests: XCTestCase {
         case .Named(_):
             XCTFail()
         case .Unnamed(_):
-            //TODO: call several methods on GenericOpaqueRustForEnumTest<Int32>
+            // TODO: call a method on GenericOpaqueRustForEnumTest<Int32>
+            // after we add support for methods on generic opaque Rust Types.
+            // See https://github.com/chinedufn/swift-bridge/issues/44#issuecomment-1114198605
             break
         }
     }
