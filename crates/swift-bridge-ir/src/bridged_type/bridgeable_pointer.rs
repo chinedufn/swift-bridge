@@ -2,7 +2,7 @@ use crate::bridged_type::{BridgedType, BridgeableType, TypePosition, BuiltInResu
 use crate::parse::TypeDeclarations;
 use crate::Path;
 use proc_macro2::{TokenStream, Span};
-use quote::{quote, ToTokens};
+use quote::{quote, ToTokens, format_ident};
 use std::fmt::{Debug, Formatter};
 use syn::{Type};
 
@@ -42,13 +42,13 @@ impl BridgeableType for BuiltInPointer {
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
         match &self.pointee {
             Pointee::BuiltIn(ty) => {
-                let pointer_kind = &self.kind;
+                let pointer_kind = self.kind.to_ffi_compatible_rust_type();
                 let ty = ty.to_rust_type_path(types);
                 quote! { #pointer_kind #ty}
             }
             Pointee::Void(_ty) => {
-                let pointer_kind = &self.kind;
-                let pointee = &self.pointee;
+                let pointer_kind = self.kind.to_ffi_compatible_rust_type();
+                let pointee = self.pointee.to_rust_type_path(types);
 
                 quote! { #pointer_kind super:: #pointee }
             }
@@ -72,7 +72,7 @@ impl BridgeableType for BuiltInPointer {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
-        let kind = self.kind.to_token_stream();
+        let kind = self.kind.to_ffi_compatible_rust_type();
 
         let ty = match &self.pointee {
             Pointee::BuiltIn(ty) => {
@@ -231,31 +231,29 @@ impl BridgeableType for BuiltInPointer {
     }
 }
 
-impl ToTokens for PointerKind {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
+impl PointerKind {
+    fn to_ffi_compatible_rust_type(&self) -> TokenStream {
         match self {
             PointerKind::Const => {
-                let t = quote! { *const };
-                t.to_tokens(tokens);
+                quote! { *const }
             }
             PointerKind::Mut => {
-                let t = quote! { *mut };
-                t.to_tokens(tokens);
+                quote! { *mut }
             }
         }
     }
 }
 
-impl ToTokens for Pointee {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
+impl Pointee {
+    fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
         match self {
             Pointee::BuiltIn(built_in) => {
-                //built_in.to_rust_type_path().to_tokens(tokens);
+                built_in.to_rust_type_path(types)
             }
             Pointee::Void(ty) => {
-                ty.to_tokens(tokens);
+                ty.to_token_stream()
             }
-        };
+        }
     }
 }
 
