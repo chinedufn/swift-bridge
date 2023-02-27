@@ -716,3 +716,134 @@ typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; __swift_bridge__
         .test();
     }
 }
+
+/// Verify that we generate an enum type that has each variant with a opaque type.
+mod generates_enum_with_opaque_rust_data {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+                }
+                enum SomeEnum {
+                    Unnamed(SomeType),
+                    Named {data: SomeType}
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[derive ()]
+            pub enum SomeEnum {
+                Unnamed(super::SomeType),
+                Named {data: super::SomeType}
+            }
+
+            #[repr(C)]
+            #[doc(hidden)]
+            pub enum __swift_bridge__SomeEnum {
+                Unnamed (*mut super::SomeType),
+                Named {
+                    data: *mut super::SomeType
+                }
+            }
+
+            impl swift_bridge::SharedEnum for SomeEnum {
+                type FfiRepr = __swift_bridge__SomeEnum;
+            }
+
+            impl SomeEnum {
+                #[doc(hidden)]
+                #[inline(always)]
+                pub fn into_ffi_repr(self) -> __swift_bridge__SomeEnum {
+                    match self {
+                        SomeEnum::Unnamed(_0) => __swift_bridge__SomeEnum::Unnamed(Box::into_raw(Box::new({
+                            let val: super::SomeType = _0;
+                            val
+                        })) as *mut super::SomeType),
+                        SomeEnum::Named{data} => __swift_bridge__SomeEnum::Named{data: Box::into_raw(Box::new({
+                            let val: super::SomeType = data;
+                            val
+                        })) as *mut super::SomeType}
+                    }
+                }
+            }
+
+            impl __swift_bridge__SomeEnum {
+                #[doc(hidden)]
+                #[inline(always)]
+                pub fn into_rust_repr(self) -> SomeEnum {
+                    match self {
+                        __swift_bridge__SomeEnum::Unnamed(_0) => SomeEnum::Unnamed(unsafe { * Box::from_raw(_0) }),
+                        __swift_bridge__SomeEnum::Named{data} => SomeEnum::Named{data: unsafe { * Box::from_raw(data) }}
+                    }
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public enum SomeEnum {
+    case Unnamed(SomeType)
+    case Named(data: SomeType)
+}
+extension SomeEnum {
+    func intoFfiRepr() -> __swift_bridge__$SomeEnum {
+        switch self {
+            case SomeEnum.Unnamed(let _0):
+                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$Unnamed, payload: __swift_bridge__$SomeEnumFields(Unnamed: __swift_bridge__$SomeEnum$FieldOfUnnamed(_0: {_0.isOwned = false; return _0.ptr;}())))
+            case SomeEnum.Named(let data):
+                return __swift_bridge__$SomeEnum(tag: __swift_bridge__$SomeEnum$Named, payload: __swift_bridge__$SomeEnumFields(Named: __swift_bridge__$SomeEnum$FieldOfNamed(data: {data.isOwned = false; return data.ptr;}())))
+        }
+    }
+}
+extension __swift_bridge__$SomeEnum {
+    func intoSwiftRepr() -> SomeEnum {
+        switch self.tag {
+            case __swift_bridge__$SomeEnum$Unnamed:
+                return SomeEnum.Unnamed(SomeType(ptr: self.payload.Unnamed._0))
+            case __swift_bridge__$SomeEnum$Named:
+                return SomeEnum.Named(data: SomeType(ptr: self.payload.Named.data))
+            default:
+                fatalError("Unreachable")
+        }
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+#include <stdbool.h>
+"#,
+r#"
+typedef struct __swift_bridge__$SomeEnum$FieldOfUnnamed {void* _0;} __swift_bridge__$SomeEnum$FieldOfUnnamed;
+typedef struct __swift_bridge__$SomeEnum$FieldOfNamed {void* data;} __swift_bridge__$SomeEnum$FieldOfNamed;
+union __swift_bridge__$SomeEnumFields { __swift_bridge__$SomeEnum$FieldOfUnnamed Unnamed; __swift_bridge__$SomeEnum$FieldOfNamed Named;};
+typedef enum __swift_bridge__$SomeEnumTag { __swift_bridge__$SomeEnum$Unnamed, __swift_bridge__$SomeEnum$Named, } __swift_bridge__$SomeEnumTag;
+typedef struct __swift_bridge__$SomeEnum { __swift_bridge__$SomeEnumTag tag; union __swift_bridge__$SomeEnumFields payload;} __swift_bridge__$SomeEnum;
+typedef struct __swift_bridge__$Option$SomeEnum { bool is_some; __swift_bridge__$SomeEnum val; } __swift_bridge__$Option$SomeEnum;
+"#,
+        ])
+    }
+
+    #[test]
+    fn generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
