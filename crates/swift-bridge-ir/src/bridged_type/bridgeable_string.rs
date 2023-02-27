@@ -20,7 +20,7 @@ impl BridgeableType for BridgedString {
         None
     }
 
-    fn to_rust_type_path(&self) -> TokenStream {
+    fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
         // FIXME: Change to `::std::string::String`
         quote! { String }
     }

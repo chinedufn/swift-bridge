@@ -1,8 +1,10 @@
-use crate::bridged_type::BridgedType;
-use proc_macro2::TokenStream;
+use crate::bridged_type::{BridgedType, BridgeableType, TypePosition, BuiltInResult, UnusedOptionNoneValue};
+use crate::parse::TypeDeclarations;
+use crate::Path;
+use proc_macro2::{TokenStream, Span};
 use quote::{quote, ToTokens};
 use std::fmt::{Debug, Formatter};
-use syn::Type;
+use syn::{Type};
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct BuiltInPointer {
@@ -24,6 +26,188 @@ pub(crate) enum Pointee {
     Void(Type),
 }
 
+impl BridgeableType for BuiltInPointer {
+    fn is_built_in_type(&self) -> bool {
+        todo!()
+    }
+
+    fn is_result(&self) -> bool {
+        todo!()
+    }
+
+    fn as_result(&self) -> Option<&BuiltInResult> {
+        todo!()
+    }
+
+    fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
+        todo!()
+    }
+
+    fn to_swift_type(&self, _type_pos: TypePosition, _types: &TypeDeclarations) -> String {
+        todo!()
+    }
+
+    fn to_c_type(&self) -> String {
+        todo!()
+    }
+
+    fn to_c_include(&self) -> Option<&'static str> {
+        todo!()
+    }
+
+    fn to_ffi_compatible_rust_type(
+        &self,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+    ) -> TokenStream {
+        todo!()
+    }
+
+    fn to_ffi_compatible_option_rust_type(
+        &self,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+    ) -> TokenStream {
+        todo!()
+    }
+
+    fn to_ffi_compatible_option_swift_type(
+        &self,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+    ) -> String {
+        todo!()
+    }
+
+    fn to_ffi_compatible_option_c_type(&self) -> String {
+        todo!()
+    }
+
+    fn convert_rust_expression_to_ffi_type(
+        &self,
+        _expression: &TokenStream,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+        _span: Span,
+    ) -> TokenStream {
+        todo!()
+    }
+
+    fn convert_option_rust_expression_to_ffi_type(
+        &self,
+        _expression: &TokenStream,
+        _swift_bridge_path: &Path,
+    ) -> TokenStream {
+        todo!()
+    }
+
+    fn convert_swift_expression_to_ffi_type(
+        &self,
+        _expression: &str,
+        _type_pos: TypePosition,
+    ) -> String {
+        todo!()
+    }
+
+    fn convert_option_swift_expression_to_ffi_type(
+        &self,
+        _expression: &str,
+        _type_pos: TypePosition,
+    ) -> String {
+        todo!()
+    }
+
+    fn convert_ffi_expression_to_rust_type(
+        &self,
+        _expression: &TokenStream,
+        _span: Span,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+    ) -> TokenStream {
+        todo!()
+    }
+
+    fn convert_ffi_option_expression_to_rust_type(&self, _expression: &TokenStream) -> TokenStream {
+        todo!()
+    }
+
+    fn convert_ffi_expression_to_swift_type(
+        &self,
+        _expression: &str,
+        _type_pos: TypePosition,
+        _types: &TypeDeclarations,
+    ) -> String {
+        todo!()
+    }
+
+    fn convert_ffi_option_expression_to_swift_type(&self, _expression: &str) -> String {
+        todo!()
+    }
+
+    fn convert_ffi_result_ok_value_to_rust_value(
+        &self,
+        _ok_ffi_value: &TokenStream,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+    ) -> TokenStream {
+        todo!()
+    }
+
+    fn convert_ffi_result_err_value_to_rust_value(
+        &self,
+        _err_ffi_value: &TokenStream,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+    ) -> TokenStream {
+        todo!()
+    }
+
+    fn unused_option_none_val(&self, _swift_bridge_path: &Path) -> UnusedOptionNoneValue {
+        todo!()
+    }
+
+    fn can_parse_token_stream_str(_tokens: &str) -> bool
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+
+    fn from_type(_ty: &Type, _types: &TypeDeclarations) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+
+    fn parse_token_stream_str(_tokens: &str, _types: &TypeDeclarations) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+
+    fn is_null(&self) -> bool {
+        todo!()
+    }
+
+    fn is_str(&self) -> bool {
+        todo!()
+    }
+
+    fn contains_owned_string_recursive(&self) -> bool {
+        todo!()
+    }
+
+    fn contains_ref_string_recursive(&self) -> bool {
+        todo!()
+    }
+
+    fn has_swift_bridge_copy_annotation(&self) -> bool {
+        todo!()
+    }
+}
+
 impl ToTokens for PointerKind {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
@@ -43,7 +227,7 @@ impl ToTokens for Pointee {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
             Pointee::BuiltIn(built_in) => {
-                built_in.to_rust_type_path().to_tokens(tokens);
+                //built_in.to_rust_type_path().to_tokens(tokens);
             }
             Pointee::Void(ty) => {
                 ty.to_tokens(tokens);

@@ -105,7 +105,7 @@ impl OpaqueRustTypeGenerics {
             .iter()
             .map(|g| {
                 let ty = BridgedType::new_with_str(&g.ident.to_string(), types).unwrap();
-                let path = ty.to_rust_type_path();
+                let path = ty.to_rust_type_path(types);
                 quote! { #path }
             })
             .collect();

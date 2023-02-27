@@ -45,7 +45,7 @@ impl ParsedExternFn {
             }
             ReturnType::Type(arrow, _ty) => {
                 if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
-                    let ty = built_in.maybe_convert_pointer_to_super_pointer();
+                    let ty = built_in.maybe_convert_pointer_to_super_pointer(types);
                     let return_ty_span = sig.output.span();
 
                     quote_spanned! {return_ty_span=> #arrow #ty}
@@ -113,7 +113,7 @@ impl ParsedExternFn {
             let boxed_fn_name = format!("{}{}_param{idx}", maybe_associated_ty, fn_name);
             let boxed_fn_name = Ident::new(&boxed_fn_name, fn_name.span());
 
-            let boxed_fn_ffi_repr = boxed_fn.to_ffi_compatible_rust_type();
+            let boxed_fn_ffi_repr = boxed_fn.to_ffi_compatible_rust_type(types);
 
             let free_boxed_fn_name = format!("free_{}{}_param{idx}", maybe_associated_ty, fn_name);
             let free_boxed_fn_name = Ident::new(&free_boxed_fn_name, fn_name.span());
@@ -204,7 +204,7 @@ impl ParsedExternFn {
                             let pat = &pat_ty.pat;
 
                             if let Some(built_in) = BridgedType::new_with_fn_arg(fn_arg, types) {
-                                let ty = built_in.maybe_convert_pointer_to_super_pointer();
+                                let ty = built_in.maybe_convert_pointer_to_super_pointer(types);
 
                                 quote! { #pat: #ty}
                             } else {

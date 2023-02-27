@@ -77,7 +77,7 @@ impl ToTokens for SwiftBridgeModule {
                     }
                 }
                 TypeDeclaration::Shared(SharedTypeDeclaration::Enum(shared_enum)) => {
-                    if let Some(definition) = self.generate_shared_enum_tokens(shared_enum) {
+                    if let Some(definition) = self.generate_shared_enum_tokens(shared_enum, &self.types) {
                         shared_enum_definitions.push(definition);
                     }
                 }
