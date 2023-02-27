@@ -2,7 +2,7 @@ use crate::bridged_type::{BridgedType, BridgeableType, TypePosition, BuiltInResu
 use crate::parse::TypeDeclarations;
 use crate::Path;
 use proc_macro2::{TokenStream, Span};
-use quote::{quote, ToTokens, format_ident};
+use quote::{quote, ToTokens};
 use std::fmt::{Debug, Formatter};
 use syn::{Type};
 
