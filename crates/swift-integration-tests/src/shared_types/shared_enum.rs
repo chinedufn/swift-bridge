@@ -12,7 +12,8 @@ mod ffi {
     extern "Rust" {
         #[swift_bridge(Equatable)]
         type Foo;
-        #[swift_bridge(associated_to = Foo)]
+        
+        #[swift_bridge(init)]
         fn new() -> Foo;
     }
 
