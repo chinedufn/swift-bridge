@@ -33,8 +33,8 @@ impl BridgeableType for OpaqueForeignType {
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
         let ty_name = &self.ty;
         let generics = self
-        .generics
-        .angle_bracketed_concrete_generics_tokens(types);
+            .generics
+            .angle_bracketed_concrete_generics_tokens(types);
 
         if self.host_lang.is_rust() {
             quote! {

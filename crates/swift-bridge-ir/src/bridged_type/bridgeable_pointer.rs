@@ -1,10 +1,12 @@
-use crate::bridged_type::{BridgedType, BridgeableType, TypePosition, BuiltInResult, UnusedOptionNoneValue};
+use crate::bridged_type::{
+    BridgeableType, BridgedType, BuiltInResult, TypePosition, UnusedOptionNoneValue,
+};
 use crate::parse::TypeDeclarations;
 use crate::Path;
-use proc_macro2::{TokenStream, Span};
+use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::fmt::{Debug, Formatter};
-use syn::{Type};
+use syn::Type;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct BuiltInPointer {
@@ -75,9 +77,7 @@ impl BridgeableType for BuiltInPointer {
         let kind = self.kind.to_ffi_compatible_rust_type();
 
         let ty = match &self.pointee {
-            Pointee::BuiltIn(ty) => {
-                ty.to_ffi_compatible_rust_type(swift_bridge_path, types)
-            }
+            Pointee::BuiltIn(ty) => ty.to_ffi_compatible_rust_type(swift_bridge_path, types),
             Pointee::Void(ty) => {
                 quote! { super::#ty }
             }
@@ -247,12 +247,8 @@ impl PointerKind {
 impl Pointee {
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
         match self {
-            Pointee::BuiltIn(built_in) => {
-                built_in.to_rust_type_path(types)
-            }
-            Pointee::Void(ty) => {
-                ty.to_token_stream()
-            }
+            Pointee::BuiltIn(built_in) => built_in.to_rust_type_path(types),
+            Pointee::Void(ty) => ty.to_token_stream(),
         }
     }
 }

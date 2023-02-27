@@ -825,7 +825,7 @@ extension __swift_bridge__$SomeEnum {
             r#"
 #include <stdbool.h>
 "#,
-r#"
+            r#"
 typedef struct __swift_bridge__$SomeEnum$FieldOfUnnamed {void* _0;} __swift_bridge__$SomeEnum$FieldOfUnnamed;
 typedef struct __swift_bridge__$SomeEnum$FieldOfNamed {void* data;} __swift_bridge__$SomeEnum$FieldOfNamed;
 union __swift_bridge__$SomeEnumFields { __swift_bridge__$SomeEnum$FieldOfUnnamed Unnamed; __swift_bridge__$SomeEnum$FieldOfNamed Named;};

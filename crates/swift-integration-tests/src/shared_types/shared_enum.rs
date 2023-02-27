@@ -12,7 +12,7 @@ mod ffi {
     extern "Rust" {
         #[swift_bridge(Equatable)]
         type OpaqueRustForEnumTest;
-        
+
         #[swift_bridge(init)]
         fn new() -> OpaqueRustForEnumTest;
     }
@@ -39,7 +39,7 @@ mod ffi {
 
     enum EnumWithOpaqueRust {
         Named { data: OpaqueRustForEnumTest },
-        Unnamed(OpaqueRustForEnumTest)
+        Unnamed(OpaqueRustForEnumTest),
     }
 
     extern "Rust" {
@@ -55,14 +55,17 @@ mod ffi {
     }
 
     enum EnumWithGenericOpaqueRust {
-        Named { data: GenericOpaqueRustForEnumTest<i32> },
-        Unnamed(GenericOpaqueRustForEnumTest<i32>)
+        Named {
+            data: GenericOpaqueRustForEnumTest<i32>,
+        },
+        Unnamed(GenericOpaqueRustForEnumTest<i32>),
     }
 
     extern "Rust" {
-        fn reflect_enum_with_generic_opaque_type(arg: EnumWithGenericOpaqueRust) -> EnumWithGenericOpaqueRust;
+        fn reflect_enum_with_generic_opaque_type(
+            arg: EnumWithGenericOpaqueRust,
+        ) -> EnumWithGenericOpaqueRust;
     }
-
 }
 
 fn reflect_enum_with_no_data(arg: ffi::EnumWithNoData) -> ffi::EnumWithNoData {
@@ -90,17 +93,17 @@ impl OpaqueRustForEnumTest {
     }
 }
 
-pub struct GenericOpaqueRustForEnumTest<T>{
+pub struct GenericOpaqueRustForEnumTest<T> {
     #[allow(unused)]
     field: T,
 }
 
-fn new_generic_opaque_rust_for_enum_test() -> GenericOpaqueRustForEnumTest<i32>{
-    GenericOpaqueRustForEnumTest{
-        field: 123
-    }
+fn new_generic_opaque_rust_for_enum_test() -> GenericOpaqueRustForEnumTest<i32> {
+    GenericOpaqueRustForEnumTest { field: 123 }
 }
 
-fn reflect_enum_with_generic_opaque_type(arg: ffi::EnumWithGenericOpaqueRust) -> ffi::EnumWithGenericOpaqueRust {
+fn reflect_enum_with_generic_opaque_type(
+    arg: ffi::EnumWithGenericOpaqueRust,
+) -> ffi::EnumWithGenericOpaqueRust {
     arg
 }

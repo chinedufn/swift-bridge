@@ -735,44 +735,40 @@ impl BridgedType {
     pub(crate) fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
         match self {
             BridgedType::Bridgeable(b) => b.to_rust_type_path(types),
-            BridgedType::StdLib(stdlib_type) => {
-                match stdlib_type {
-                    StdLibType::Null => {
-                        quote! {()}
-                    }
-                    StdLibType::U8 => quote! { u8 },
-                    StdLibType::I8 => quote! { i8 },
-                    StdLibType::U16 => quote! { u16},
-                    StdLibType::I16 => quote! { i16},
-                    StdLibType::U32 => quote! { u32 },
-                    StdLibType::I32 => quote! { i32 },
-                    StdLibType::U64 => quote! { u64 },
-                    StdLibType::I64 => quote! { i64 },
-                    StdLibType::Usize => quote! { usize },
-                    StdLibType::Isize => quote! { isize },
-                    StdLibType::F32 => quote! { f32 },
-                    StdLibType::F64 => quote! { f64 },
-                    StdLibType::Bool => quote! { bool },
-                    StdLibType::Pointer(ptr) => {
-                        ptr.to_rust_type_path(types)
-                    }
-                    StdLibType::RefSlice(ref_slice) => {
-                        let ty = ref_slice.ty.to_rust_type_path(types);
-                        quote! { &[#ty]}
-                    }
-                    StdLibType::Str => quote! { &str },
-                    StdLibType::Vec(v) => {
-                        let ty = v.ty.to_rust_type_path(types);
-                        quote! { Vec<#ty> }
-                    }
-                    StdLibType::Option(opt) => {
-                        let ty = opt.ty.to_rust_type_path(types);
-                        quote! { Option<#ty> }
-                    }
-                    StdLibType::Result(result) => result.to_rust_type_path(types),
-                    StdLibType::BoxedFnOnce(fn_once) => fn_once.to_rust_type_path(types),
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
+                StdLibType::Null => {
+                    quote! {()}
                 }
-            }
+                StdLibType::U8 => quote! { u8 },
+                StdLibType::I8 => quote! { i8 },
+                StdLibType::U16 => quote! { u16},
+                StdLibType::I16 => quote! { i16},
+                StdLibType::U32 => quote! { u32 },
+                StdLibType::I32 => quote! { i32 },
+                StdLibType::U64 => quote! { u64 },
+                StdLibType::I64 => quote! { i64 },
+                StdLibType::Usize => quote! { usize },
+                StdLibType::Isize => quote! { isize },
+                StdLibType::F32 => quote! { f32 },
+                StdLibType::F64 => quote! { f64 },
+                StdLibType::Bool => quote! { bool },
+                StdLibType::Pointer(ptr) => ptr.to_rust_type_path(types),
+                StdLibType::RefSlice(ref_slice) => {
+                    let ty = ref_slice.ty.to_rust_type_path(types);
+                    quote! { &[#ty]}
+                }
+                StdLibType::Str => quote! { &str },
+                StdLibType::Vec(v) => {
+                    let ty = v.ty.to_rust_type_path(types);
+                    quote! { Vec<#ty> }
+                }
+                StdLibType::Option(opt) => {
+                    let ty = opt.ty.to_rust_type_path(types);
+                    quote! { Option<#ty> }
+                }
+                StdLibType::Result(result) => result.to_rust_type_path(types),
+                StdLibType::BoxedFnOnce(fn_once) => fn_once.to_rust_type_path(types),
+            },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let ty_name = &shared_struct.name;
                 quote! {
@@ -970,7 +966,6 @@ impl BridgedType {
                 StdLibType::Isize => "Int".to_string(),
                 StdLibType::Bool => "Bool".to_string(),
                 StdLibType::Pointer(ptr) => {
-
                     let maybe_mutable = match ptr.kind {
                         PointerKind::Const => "",
                         PointerKind::Mut => "Mutable",
@@ -1101,7 +1096,6 @@ impl BridgedType {
                 StdLibType::Isize => "intptr_t".to_string(),
                 StdLibType::Bool => "bool".to_string(),
                 StdLibType::Pointer(ptr) => {
-
                     let maybe_const = match ptr.kind {
                         PointerKind::Const => " const ",
                         PointerKind::Mut => "",
@@ -1152,15 +1146,12 @@ impl BridgedType {
     ///     unsafe { __swift_bridge__void_pointers(arg1) }
     /// }
     ///
-    pub fn maybe_convert_pointer_to_super_pointer(&self,
-        types: &TypeDeclarations) -> TokenStream {
+    pub fn maybe_convert_pointer_to_super_pointer(&self, types: &TypeDeclarations) -> TokenStream {
         match self {
-            BridgedType::StdLib(stdlib_type) => {
-                match stdlib_type {
-                    StdLibType::Pointer(pointer) => pointer.to_rust_type_path(types),
-                    _ => self.to_rust_type_path(types),
-                }
-            }
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
+                StdLibType::Pointer(pointer) => pointer.to_rust_type_path(types),
+                _ => self.to_rust_type_path(types),
+            },
             _ => self.to_rust_type_path(types),
         }
     }
