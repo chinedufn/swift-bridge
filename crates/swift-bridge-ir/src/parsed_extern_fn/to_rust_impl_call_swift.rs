@@ -1,8 +1,8 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
+use crate::bridged_type::{pat_type_pat_is_self, BridgeableType, BridgedType};
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, quote_spanned};
+use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
 use syn::spanned::Spanned;
 use syn::{FnArg, PatType, Path, ReturnType, Type, TypeReference};
@@ -205,6 +205,20 @@ impl ParsedExternFn {
 
                             if let Some(built_in) = BridgedType::new_with_fn_arg(fn_arg, types) {
                                 let ty = built_in.maybe_convert_pointer_to_super_pointer(types);
+
+                                let maybe_unused = if built_in.can_be_encoded_with_zero_bytes() {
+                                    "_"
+                                } else {
+                                    ""
+                                };
+                                let pat = Ident::new(
+                                    &format!(
+                                        "{}{}",
+                                        maybe_unused,
+                                        pat.to_token_stream().to_string()
+                                    ),
+                                    pat.span(),
+                                );
 
                                 quote! { #pat: #ty}
                             } else {

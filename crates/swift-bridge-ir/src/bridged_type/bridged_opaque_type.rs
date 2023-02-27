@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgeableType, TypePosition, UnusedOptionNoneValue};
+use crate::bridged_type::{BridgeableType, OnlyEncoding, TypePosition, UnusedOptionNoneValue};
 use crate::parse::{HostLang, OpaqueRustTypeGenerics};
 use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, Span, TokenStream};
@@ -20,6 +20,10 @@ pub(crate) struct OpaqueForeignType {
 impl BridgeableType for OpaqueForeignType {
     fn is_built_in_type(&self) -> bool {
         false
+    }
+
+    fn only_encoding(&self) -> Option<OnlyEncoding> {
+        None
     }
 
     fn is_result(&self) -> bool {

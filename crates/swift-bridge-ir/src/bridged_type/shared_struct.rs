@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgedType, TypePosition};
+use crate::bridged_type::{BridgedType, OnlyEncoding, TypePosition};
 use crate::parse::TypeDeclarations;
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, Span, TokenStream};
@@ -62,6 +62,24 @@ impl SharedStruct {
             SWIFT_BRIDGE_PREFIX,
             self.swift_name_string()
         )
+    }
+
+    /// Some if the struct has a single variant.
+    /// TODO: If all of the struct's fields have an `OnlyEncoding`, then the struct has exactly
+    ///  one encoding as well.
+    pub fn only_encoding(&self) -> Option<OnlyEncoding> {
+        let has_fields = !self.fields.is_empty();
+        if has_fields || self.already_declared {
+            return None;
+        }
+
+        let struct_name = &self.name;
+        let empty_fields = self.fields.empty_field_wrapper();
+
+        Some(OnlyEncoding {
+            swift: format!("{}()", self.swift_name_string()),
+            rust: quote! {#struct_name #empty_fields},
+        })
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::bridged_type::boxed_fn::BridgeableBoxedFnOnce;
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType, StdLibType};
+use crate::bridged_type::{pat_type_pat_is_self, BridgeableType, BridgedType, StdLibType};
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, Span, TokenStream};
@@ -163,12 +163,12 @@ impl ParsedExternFn {
         let sig = &self.func.sig;
 
         if let Some(ret) = BridgedType::new_with_return_type(&sig.output, types) {
-            let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path, types);
-            if ty.to_string() == "()" {
-                quote! {}
-            } else {
-                quote! { -> #ty }
+            if ret.can_be_encoded_with_zero_bytes() {
+                return quote! {};
             }
+
+            let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path, types);
+            quote! { -> #ty }
         } else {
             todo!("Push to ParseErrors")
         }
@@ -251,7 +251,7 @@ impl ParsedExternFn {
     ) -> TokenStream {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
-        for fn_arg in inputs {
+        for fn_arg in inputs.into_iter() {
             match fn_arg {
                 FnArg::Receiver(_receiver) => {
                     if self.host_lang.is_swift() {
@@ -273,12 +273,16 @@ impl ParsedExternFn {
 
                     if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                         if self.host_lang.is_rust() {
-                            arg = built_in.convert_ffi_expression_to_rust_type(
-                                &arg,
-                                pat_ty.ty.span(),
-                                swift_bridge_path,
-                                types,
-                            );
+                            arg = if let Some(repr) = built_in.only_encoding() {
+                                repr.rust
+                            } else {
+                                built_in.convert_ffi_expression_to_rust_type(
+                                    &arg,
+                                    pat_ty.ty.span(),
+                                    swift_bridge_path,
+                                    types,
+                                )
+                            };
 
                             if self.args_into_contains_arg(fn_arg) {
                                 arg = quote_spanned! {pat_ty.span()=>
@@ -286,6 +290,10 @@ impl ParsedExternFn {
                                 };
                             }
                         } else {
+                            if built_in.can_be_encoded_with_zero_bytes() {
+                                continue;
+                            }
+
                             arg = built_in.convert_rust_expression_to_ffi_type(
                                 &arg,
                                 swift_bridge_path,
@@ -326,6 +334,11 @@ impl ParsedExternFn {
                         self.push_self_param(&mut params);
                     } else {
                         let built_in = BridgedType::new_with_type(&pat_ty.ty, types).unwrap();
+
+                        if built_in.can_be_encoded_with_zero_bytes() {
+                            continue;
+                        }
+
                         let ty = built_in.to_c();
 
                         let arg_name = pat.to_token_stream().to_string();
@@ -347,6 +360,10 @@ impl ParsedExternFn {
             ReturnType::Default => "void".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(ty) = BridgedType::new_with_type(&ty, types) {
+                    if ty.can_be_encoded_with_zero_bytes() {
+                        return "void".to_string();
+                    }
+
                     ty.to_c()
                 } else {
                     let ty_string = match ty.deref() {

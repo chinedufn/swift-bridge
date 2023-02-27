@@ -1,4 +1,4 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgedType};
+use crate::bridged_type::{pat_type_pat_is_self, BridgeableType, BridgedType};
 use crate::parse::{HostLang, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::{Ident, TokenStream};
@@ -41,9 +41,15 @@ impl ParsedExternFn {
 
                     if !pat_ty_is_self {
                         if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
+                            if built_in.can_be_encoded_with_zero_bytes() {
+                                continue;
+                            }
+
                             let pat = &pat_ty.pat;
                             let ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path, types);
+
                             params.push(quote! { #pat: #ty});
+
                             continue;
                         } else {
                             todo!("Push to ParsedErrors")

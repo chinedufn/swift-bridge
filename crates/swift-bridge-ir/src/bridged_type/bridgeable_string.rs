@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgeableType, TypePosition, UnusedOptionNoneValue};
+use crate::bridged_type::{BridgeableType, OnlyEncoding, TypePosition, UnusedOptionNoneValue};
 use crate::TypeDeclarations;
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
@@ -10,6 +10,10 @@ pub(crate) struct BridgedString;
 impl BridgeableType for BridgedString {
     fn is_built_in_type(&self) -> bool {
         true
+    }
+
+    fn only_encoding(&self) -> Option<OnlyEncoding> {
+        None
     }
 
     fn is_result(&self) -> bool {
