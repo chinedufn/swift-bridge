@@ -85,6 +85,23 @@ class SharedEnumTests: XCTestCase {
         default:
             XCTFail()
         }
-
+    }
+    
+    func testEnumWithOpaqueRust() {
+        let named = EnumWithOpaqueRust.Named(data: OpaqueRustForEnumTest())
+        switch reflect_enum_with_opaque_type(named) {
+        case .Named(let value):
+            XCTAssertEqual(value, OpaqueRustForEnumTest())
+        case .Unnamed(_):
+            XCTFail()
+        }
+        
+        let unnamed = EnumWithOpaqueRust.Unnamed(OpaqueRustForEnumTest())
+        switch reflect_enum_with_opaque_type(unnamed) {
+        case .Named(_):
+            XCTFail()
+        case .Unnamed(let value):
+            XCTAssertEqual(value, OpaqueRustForEnumTest())
+        }
     }
 }
