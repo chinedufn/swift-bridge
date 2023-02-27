@@ -40,44 +40,6 @@ impl BridgeableType for BuiltInPointer {
     }
 
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
-        /***
-        let ptr_kind = &ptr.kind;
-
-        match &ptr.pointee {
-            Pointee::BuiltIn(ty) => {
-                let ty = ty.to_rust_type_path(types);
-                quote! { #ptr_kind #ty}
-            }
-            Pointee::Void(_ty) => {
-                // quote! { * #ptr_kind #ty };
-                panic!("Add a test case that hits this branch, then make it pass")
-            }
-        }
-
-    pub fn maybe_convert_pointer_to_super_pointer(&self,
-        types: &TypeDeclarations) -> TokenStream {
-        match self {
-            BridgedType::StdLib(stdlib_type) => {
-                match stdlib_type {
-                    StdLibType::Pointer(pointer) => match &pointer.pointee {
-                        Pointee::BuiltIn(_built_in) => {
-                            self.to_rust_type_path(types)
-                        }
-                        Pointee::Void(_) => {
-                            todo!();
-                            let pointer_kind = &pointer.kind;
-                            let pointee = &pointer.pointee;
-
-                            quote! { #pointer_kind super:: #pointee }
-                        }
-                    },
-                    _ => self.to_rust_type_path(types),
-                }
-            }
-            _ => self.to_rust_type_path(types),
-        }
-        }
-        ***/
         match &self.pointee {
             Pointee::BuiltIn(ty) => {
                 let pointer_kind = &self.kind;
@@ -107,10 +69,21 @@ impl BridgeableType for BuiltInPointer {
 
     fn to_ffi_compatible_rust_type(
         &self,
-        _swift_bridge_path: &Path,
-        _types: &TypeDeclarations,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
     ) -> TokenStream {
-        todo!()
+        let kind = self.kind.to_token_stream();
+
+        let ty = match &self.pointee {
+            Pointee::BuiltIn(ty) => {
+                ty.to_ffi_compatible_rust_type(swift_bridge_path, types)
+            }
+            Pointee::Void(ty) => {
+                quote! { super::#ty }
+            }
+        };
+
+        quote! { #kind #ty}
     }
 
     fn to_ffi_compatible_option_rust_type(

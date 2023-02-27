@@ -816,20 +816,6 @@ impl BridgedType {
                 StdLibType::Bool => quote! { bool },
                 StdLibType::Pointer(ptr) => {
                     ptr.to_ffi_compatible_rust_type(swift_bridge_path, types)
-                    /***
-                    let kind = ptr.kind.to_token_stream();
-
-                    let ty = match &ptr.pointee {
-                        Pointee::BuiltIn(ty) => {
-                            ty.to_ffi_compatible_rust_type(swift_bridge_path, types)
-                        }
-                        Pointee::Void(ty) => {
-                            quote! { super::#ty }
-                        }
-                    };
-
-                    quote! { #kind #ty}
-                    ***/
                 }
                 StdLibType::RefSlice(slice) => {
                     let ty = slice
