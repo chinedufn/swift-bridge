@@ -11,14 +11,14 @@ mod ffi {
 
     extern "Rust" {
         #[swift_bridge(Equatable)]
-        type Foo;
+        type OpaqueRustForEnumTest;
         
         #[swift_bridge(init)]
-        fn new() -> Foo;
+        fn new() -> OpaqueRustForEnumTest;
     }
 
     enum EnumWithUnnamedData {
-        Variant1(String, Foo),
+        Variant1(String, OpaqueRustForEnumTest),
         Variant2(i32, u8),
         Variant3,
     }
@@ -30,7 +30,7 @@ mod ffi {
     enum EnumWithNamedData {
         Variant1 { hello: String, data_u8: u8 },
         Variant2 { data_i32: i32 },
-        Variant3 { foo: Foo },
+        Variant3 { foo: OpaqueRustForEnumTest },
     }
 
     extern "Rust" {
@@ -51,10 +51,10 @@ fn reflect_enum_with_named_data(arg: ffi::EnumWithNamedData) -> ffi::EnumWithNam
 }
 
 #[derive(PartialEq)]
-pub struct Foo;
+pub struct OpaqueRustForEnumTest;
 
-impl Foo {
+impl OpaqueRustForEnumTest {
     fn new() -> Self {
-        Foo
+        OpaqueRustForEnumTest
     }
 }
