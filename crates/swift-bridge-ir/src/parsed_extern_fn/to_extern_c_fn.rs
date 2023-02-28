@@ -226,6 +226,9 @@ impl ParsedExternFn {
                 TypeDeclaration::Opaque(ty) => {
                     let ty = &ty.ty;
                     quote! {#ty::}
+                },
+                TypeDeclaration::CustomResult(_) => {
+                    todo!();
                 }
             }
         });

@@ -24,6 +24,10 @@ impl BridgeableType for BridgedString {
         None
     }
 
+    fn is_passed_via_pointer(&self) -> bool {
+        true
+    }
+
     fn to_rust_type_path(&self, _types: &TypeDeclarations) -> TokenStream {
         // FIXME: Change to `::std::string::String`
         quote! { String }

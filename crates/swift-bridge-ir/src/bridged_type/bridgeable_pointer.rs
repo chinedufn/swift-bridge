@@ -41,6 +41,10 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
+    fn is_passed_via_pointer(&self) -> bool {
+        todo!()
+    }
+
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
         match &self.pointee {
             Pointee::BuiltIn(ty) => {

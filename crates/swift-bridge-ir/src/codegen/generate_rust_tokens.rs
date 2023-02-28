@@ -10,6 +10,7 @@ use self::vec::vec_of_opaque_rust_type::generate_vec_of_opaque_rust_type_functio
 use crate::bridge_module_attributes::CfgAttr;
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
 use crate::SwiftBridgeModule;
+use crate::bridged_type::BridgedType;
 
 mod shared_enum;
 mod shared_struct;
@@ -26,6 +27,7 @@ impl ToTokens for SwiftBridgeModule {
 
         let mut shared_struct_definitions = vec![];
         let mut shared_enum_definitions = vec![];
+        let mut custom_result_definitions = vec![];
         let mut impl_fn_tokens: HashMap<String, Vec<TokenStream>> = HashMap::new();
         let mut callbacks_support = vec![];
         let mut freestanding_rust_call_swift_fn_tokens = vec![];
@@ -56,6 +58,9 @@ impl ToTokens for SwiftBridgeModule {
                                     .entry(ty.to_string())
                                     .or_default()
                                     .push(tokens);
+                            }
+                            TypeDeclaration::CustomResult(_) => {
+                                todo!()
                             }
                         };
                     } else {
@@ -250,6 +255,19 @@ impl ToTokens for SwiftBridgeModule {
                         }
                     };
                 }
+                TypeDeclaration::CustomResult(custom_result) => {
+                    let custom_result_type = custom_result.to_bridged_type();
+                    let ty = custom_result_type.ffi_name_tokens();
+                    let ok = BridgedType::new_with_str(&custom_result_type.ok_ty.to_token_stream().to_string(), &self.types).unwrap().to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
+                    let err = BridgedType::new_with_str(&custom_result_type.err_ty.to_token_stream().to_string(), &self.types).unwrap().to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
+                    custom_result_definitions.push(quote!{
+                        #[repr(C)]
+                        pub enum #ty {
+                            Ok(#ok),
+                            Err(#err),
+                        }
+                    });
+                }
             }
         }
 
@@ -280,6 +298,8 @@ impl ToTokens for SwiftBridgeModule {
             #(#shared_struct_definitions)*
 
             #(#shared_enum_definitions)*
+
+            #(#custom_result_definitions)*
 
             #(#extern_rust_fn_tokens)*
 

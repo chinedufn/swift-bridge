@@ -69,6 +69,9 @@ impl SwiftBridgeModule {
                                     .identifiable = Some(identifiable_protocol);
                             }
                         }
+                        TypeDeclaration::CustomResult(_) => {
+                            todo!()
+                        }
                     };
                     continue;
                 }
@@ -141,6 +144,7 @@ impl SwiftBridgeModule {
                         swift += "\n";
                     }
                 },
+                TypeDeclaration::CustomResult(_) => {}
             };
         }
 
@@ -211,6 +215,7 @@ fn gen_function_exposes_swift_to_rust(
                     todo!()
                 }
                 TypeDeclaration::Opaque(associated_type) => associated_type.to_string(),
+                TypeDeclaration::CustomResult(_) => todo!()
             };
 
             if func.is_method() {

@@ -12,6 +12,7 @@ use crate::bridged_type::boxed_fn::BridgeableBoxedFnOnce;
 use crate::bridged_type::bridgeable_pointer::{BuiltInPointer, Pointee, PointerKind};
 use crate::bridged_type::bridgeable_result::BuiltInResult;
 use crate::bridged_type::bridgeable_string::BridgedString;
+
 use crate::parse::{HostLang, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 
@@ -26,6 +27,7 @@ mod bridgeable_result;
 pub mod bridgeable_str;
 pub mod bridgeable_string;
 pub mod bridged_opaque_type;
+pub mod bridgeable_custom_result;
 mod bridged_option;
 mod shared_enum;
 pub(crate) mod shared_struct;
@@ -75,6 +77,8 @@ pub(crate) trait BridgeableType: Debug {
     fn is_result(&self) -> bool;
 
     fn as_result(&self) -> Option<&BuiltInResult>;
+
+    fn is_passed_via_pointer(&self) -> bool;
 
     /// Get the Rust representation of this type.
     /// For a string this might be `std::string::String`.
@@ -440,6 +444,19 @@ impl BridgeableType for BridgedType {
         }
     }
 
+    fn is_passed_via_pointer(&self) -> bool {
+        match self {
+            BridgedType::StdLib(ty) => {
+                match ty {
+                    StdLibType::Null => true,
+                    _=>false,
+                }
+            }, 
+            BridgedType::Foreign(_) => false,
+            BridgedType::Bridgeable(ty) => ty.is_passed_via_pointer(),
+        }
+    }
+
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
         self.to_rust_type_path(types)
     }
@@ -725,8 +742,17 @@ impl BridgedType {
                 ty: Box::new(inner),
             })));
         } else if tokens.starts_with("Result < ") {
+            let result = BuiltInResult::from_str_tokens(&tokens, types)?;
+            if !(result.ok_ty.is_passed_via_pointer() && result.err_ty.is_passed_via_pointer()) {
+                if result.ok_ty.only_encoding().is_some() || result.err_ty.only_encoding().is_some() {
+                    return Some(BridgedType::StdLib(StdLibType::Result(
+                        result,
+                    )));
+                } 
+                return None;
+            }
             return Some(BridgedType::StdLib(StdLibType::Result(
-                BuiltInResult::from_str_tokens(&tokens, types)?,
+                result,
             )));
         } else if tokens.starts_with("Box < dyn FnOnce") {
             return Some(BridgedType::StdLib(StdLibType::BoxedFnOnce(

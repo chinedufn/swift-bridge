@@ -34,6 +34,10 @@ impl BridgeableType for OpaqueForeignType {
         None
     }
 
+    fn is_passed_via_pointer(&self) -> bool {
+        true
+    }
+
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
         let ty_name = &self.ty;
         let generics = self

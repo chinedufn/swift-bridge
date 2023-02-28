@@ -27,6 +27,9 @@ impl ParsedExternFn {
                             TypeDeclaration::Shared(_) => {
                                 todo!("Methods on shared types are not yet supported.")
                             }
+                            TypeDeclaration::CustomResult(_) => {
+                                todo!()
+                            }
                         };
 
                         params.push(this);
@@ -84,6 +87,7 @@ impl ParsedExternFn {
                             todo!("Support methods on shared types.")
                         }
                         TypeDeclaration::Opaque(opaque) => opaque.ffi_repr_type_tokens(),
+                        TypeDeclaration::CustomResult(_) => todo!()
                     };
 
                     params.push(quote! {
