@@ -407,7 +407,7 @@ struct __private__ResultVoidAndPtr __swift_bridge__$some_function(void);
 
 /// Test code generation for Rust function that accepts a Result<T, E> where T is a transparent enum type 
 /// E is a opaque Rust type.
-mod extern_rust_result_enum_type {
+mod extern_rust_result_transparent_enum_type_and_opaque_rust_type {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -479,7 +479,7 @@ r#"__swift_bridge__$ResultDataAndNetworkError __swift_bridge__$fetch_from_server
     }
 
     #[test]
-    fn extern_rust_result_enum_type() {
+    fn extern_rust_result_transparent_enum_type_and_opaque_rust_type() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

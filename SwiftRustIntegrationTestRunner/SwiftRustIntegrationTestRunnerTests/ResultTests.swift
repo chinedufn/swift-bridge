@@ -7,6 +7,9 @@
 import XCTest
 @testable import SwiftRustIntegrationTestRunner
 
+extension ResultTransparentEnum: Error {}
+extension ResultTransparentEnum: @unchecked Sendable {}
+
 class ResultTests: XCTestCase {
     /// Verify that we can pass a Result<String, String> from Swift -> Rust
     func testSwiftCallRustResultString() throws {
@@ -62,6 +65,24 @@ class ResultTests: XCTestCase {
             XCTFail("The function should have returned an error.")
         } catch let error as ResultTestOpaqueRustType {
             XCTAssertEqual(error.val(), 222)
+        }
+    }
+    
+    func testResultTransparentEnumOpaqueRust() throws {
+        do {
+            let _ = try rust_func_return_result_transparent_enum_opaque_rust(false)
+            XCTFail("The function should have returned an error.")
+        } catch let error as ResultTransparentEnum {
+            switch error {
+            case .NamedField(let data):
+                XCTAssertEqual(data, 123)
+            case .UnnamedFields(_, _):
+                XCTFail()
+            case .NoFields:
+                XCTFail()
+            }
+        } catch {
+            XCTFail()
         }
     }
 }
