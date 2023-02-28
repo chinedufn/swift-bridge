@@ -34,9 +34,13 @@ impl BridgeableBoxedFnOnce {
     }
 
     /// Box<dyn FnOnce(A, B) -> C>
-    pub fn to_rust_type_path(&self) -> TokenStream {
-        let args: Vec<TokenStream> = self.params.iter().map(|a| a.to_rust_type_path()).collect();
-        let ret = &self.ret.to_rust_type_path();
+    pub fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
+        let args: Vec<TokenStream> = self
+            .params
+            .iter()
+            .map(|a| a.to_rust_type_path(types))
+            .collect();
+        let ret = &self.ret.to_rust_type_path(types);
         quote! {
             Box<dyn FnOnce(#(#args),*) -> #ret>
         }
@@ -45,18 +49,27 @@ impl BridgeableBoxedFnOnce {
     pub fn convert_rust_value_to_ffi_compatible_value(
         &self,
         expression: &TokenStream,
+        types: &TypeDeclarations,
     ) -> TokenStream {
-        let args: Vec<TokenStream> = self.params.iter().map(|a| a.to_rust_type_path()).collect();
-        let ret = &self.ret.to_rust_type_path();
+        let args: Vec<TokenStream> = self
+            .params
+            .iter()
+            .map(|a| a.to_rust_type_path(types))
+            .collect();
+        let ret = &self.ret.to_rust_type_path(types);
 
         quote! {
             Box::into_raw(Box::new(#expression)) as *mut Box<dyn FnOnce(#(#args),*) -> #ret>
         }
     }
 
-    pub fn to_ffi_compatible_rust_type(&self) -> TokenStream {
-        let params: Vec<TokenStream> = self.params.iter().map(|a| a.to_rust_type_path()).collect();
-        let ret = &self.ret.to_rust_type_path();
+    pub fn to_ffi_compatible_rust_type(&self, types: &TypeDeclarations) -> TokenStream {
+        let params: Vec<TokenStream> = self
+            .params
+            .iter()
+            .map(|a| a.to_rust_type_path(types))
+            .collect();
+        let ret = &self.ret.to_rust_type_path(types);
         quote! {
             *mut Box<dyn FnOnce(#(#params),*) -> #ret>
         }

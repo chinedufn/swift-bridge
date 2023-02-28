@@ -3,9 +3,10 @@
 
 use crate::bridged_type::{BridgedType, SharedEnum, StructFields};
 use crate::codegen::generate_rust_tokens::vec::vec_of_transparent_enum::generate_vec_of_transparent_enum_functions;
+use crate::parse::TypeDeclarations;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote};
 use syn::Ident;
 
 impl SwiftBridgeModule {
@@ -13,6 +14,7 @@ impl SwiftBridgeModule {
     pub(super) fn generate_shared_enum_tokens(
         &self,
         shared_enum: &SharedEnum,
+        types: &TypeDeclarations,
     ) -> Option<TokenStream> {
         if shared_enum.already_declared {
             return None;
@@ -36,7 +38,9 @@ impl SwiftBridgeModule {
                     let mut names = vec![];
                     for named_field in named_fields {
                         let field_name = &named_field.name;
-                        let ty = named_field.ty.to_token_stream();
+                        let ty = BridgedType::new_with_type(&named_field.ty, &self.types)
+                            .unwrap()
+                            .to_rust_type_path(types);
                         let field = quote! {#field_name : #ty};
                         names.push(field);
                     }
@@ -47,7 +51,9 @@ impl SwiftBridgeModule {
                 StructFields::Unnamed(unamed_fields) => {
                     let mut names = vec![];
                     for unnamed_field in unamed_fields {
-                        names.push(unnamed_field.ty.to_token_stream());
+                        let ty =
+                            BridgedType::new_with_type(&unnamed_field.ty, &self.types).unwrap();
+                        names.push(ty.to_rust_type_path(types));
                     }
                     quote! {
                         #variant_name (#(#names),*)

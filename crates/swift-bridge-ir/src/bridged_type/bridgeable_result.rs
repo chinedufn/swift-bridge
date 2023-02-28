@@ -125,9 +125,9 @@ impl BuiltInResult {
         }
     }
 
-    pub fn to_rust_type_path(&self) -> TokenStream {
-        let ok = self.ok_ty.to_rust_type_path();
-        let err = self.err_ty.to_rust_type_path();
+    pub fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
+        let ok = self.ok_ty.to_rust_type_path(types);
+        let err = self.err_ty.to_rust_type_path(types);
 
         quote! { Result<#ok, #err> }
     }

@@ -151,7 +151,6 @@ extension {option_ffi_name} {{
             return nil
         }}
     }}
-
     @inline(__always)
     static func fromSwiftRepr(_ val: Optional<{enum_name}>) -> {option_ffi_name} {{
         if let v = val {{

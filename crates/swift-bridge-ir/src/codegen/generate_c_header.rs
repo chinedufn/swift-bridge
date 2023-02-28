@@ -212,8 +212,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                 }
                             }
                             let enum_decl = format!(
-                                r#"{variant_fields}
-union {ffi_union_name} {union_fields};
+                                r#"{variant_fields}union {ffi_union_name} {union_fields};
 typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
 typedef struct {ffi_name} {{ {ffi_tag_name} tag; union {ffi_union_name} payload;}} {ffi_name};
 typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{maybe_vec_support}"#,
