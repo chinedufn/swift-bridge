@@ -78,6 +78,7 @@ pub(crate) trait BridgeableType: Debug {
 
     fn as_result(&self) -> Option<&BuiltInResult>;
 
+    /// True if the type's FFI representation is a pointer
     fn is_passed_via_pointer(&self) -> bool;
 
     /// Get the Rust representation of this type.
