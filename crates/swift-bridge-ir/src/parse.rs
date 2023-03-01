@@ -7,7 +7,7 @@ use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::parse::parse_struct::SharedStructDeclarationParser;
 use crate::SwiftBridgeModule;
 use proc_macro2::TokenTree;
-use quote::{format_ident, quote, ToTokens};
+use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::{Item, ItemMod, Token};
 
@@ -124,23 +124,14 @@ impl Parse for SwiftBridgeModuleAndErrors {
                     .to_string()
                     .starts_with("Result <")
                 {
-                    let trimmed = unresolved_type.to_token_stream().to_string();
-                    let trimmed = trimmed.trim_start_matches("Result <");
-                    let trimmed = trimmed.trim_end_matches(">");
-                    let mut ok_and_err = trimmed.split(",");
-                    let ok_str = ok_and_err.next().unwrap().trim();
-                    let err_str = ok_and_err.next().unwrap().trim();
-                    let ok = BridgedType::new_with_str(ok_str, &type_declarations);
-                    let err = BridgedType::new_with_str(err_str, &type_declarations);
-                    if let (Some(_), Some(_)) = (ok, err) {
-                        let ok = format_ident!("{}", ok_str);
-                        let err = format_ident!("{}", err_str);
-                        let tokens = quote! {
-                            Result<#ok, #err>
-                        };
+                    if let Some(tokens) = CustomResultTypeDeclaration::maybe_tokens_from_str(&unresolved_type
+                        .to_token_stream()
+                        .to_string(), &type_declarations) {
                         let custom_result_type =
                             syn::parse2::<CustomResultTypeDeclaration>(tokens)?;
-                        let result_type = format!("Result<{},{}>", ok_str, err_str);
+                        let result_type = unresolved_type
+                        .to_token_stream()
+                        .to_string().replace(" ", "");
                         type_declarations.insert(
                             result_type,
                             TypeDeclaration::CustomResult(custom_result_type),

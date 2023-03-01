@@ -1,5 +1,8 @@
 use crate::bridged_type::bridgeable_custom_result::CustomResultType;
-use proc_macro2::Ident;
+use crate::bridged_type::BridgedType;
+use crate::parse::TypeDeclarations;
+use quote::{format_ident, quote};
+use proc_macro2::{Ident, TokenStream};
 use syn::parse::Parse;
 use syn::token::{Gt, Lt};
 use syn::Token;
@@ -20,29 +23,22 @@ impl CustomResultTypeDeclaration {
             err_ty: self.err.clone(),
         }
     }
-    /***
-    pub fn maybe_insert(tokens: &str, type_declarations: &mut TypeDeclarations) -> Option<String> {
-        let trimmed = tokens.trim_start_matches("Result <");
+
+    pub fn maybe_tokens_from_str(string: &str, types: &TypeDeclarations) -> Option<TokenStream> {
+        let trimmed = string.to_string();
+        let trimmed = trimmed.trim_start_matches("Result <");
         let trimmed = trimmed.trim_end_matches(">");
         let mut ok_and_err = trimmed.split(",");
         let ok_str = ok_and_err.next()?.trim();
-        let err_str      = ok_and_err.next()?.trim();
-        let result_type = format!("Result<{},{}>", ok_str, err_str);
-        let ok  = BridgedType::new_with_str(ok_str, &type_declarations)?;
-        let err = BridgedType::new_with_str(err_str, &type_declarations)?;
-        if let (Some(_), Some(_)) = (ok, err) {
-            let ok = format_ident!("{}", ok_str);
-            let err = format_ident!("{}", err_str);
-            let tokens = quote!{
-                Result<#ok, #err>
-            };
-            let custom_result_type = syn::parse2::<CustomResultTypeDeclaration>(tokens)?;
-            Ok(result_type)
-        } else {
-            Err(())
-        }
+        let err_str = ok_and_err.next()?.trim();
+        let _ = BridgedType::new_with_str(ok_str, &types)?;
+        let _ = BridgedType::new_with_str(err_str, &types)?;
+        let ok = format_ident!("{}", ok_str);
+        let err = format_ident!("{}", err_str);
+        Some(quote! {
+            Result<#ok, #err>
+        })
     }
-    ***/
 }
 
 impl Parse for CustomResultTypeDeclaration {
