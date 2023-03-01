@@ -446,10 +446,7 @@ impl BridgeableType for BridgedType {
 
     fn is_passed_via_pointer(&self) -> bool {
         match self {
-            BridgedType::StdLib(ty) => match ty {
-                StdLibType::Null => true,
-                _ => false,
-            },
+            BridgedType::StdLib(_) => false,
             BridgedType::Foreign(_) => false,
             BridgedType::Bridgeable(ty) => ty.is_passed_via_pointer(),
         }
