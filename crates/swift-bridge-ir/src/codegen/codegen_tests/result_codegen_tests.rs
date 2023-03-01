@@ -405,7 +405,7 @@ struct __private__ResultVoidAndPtr __swift_bridge__$some_function(void);
     }
 }
 
-/// Test code generation for Rust function that returns a Result<T, E> where T is a opaque Rust type
+/// Test code generation for Rust function that returns a Result<T, E> where T is a opaque Rust type and
 /// E is a transparent enum type.
 mod extern_rust_fn_return_result_opaque_rust_type_and_transparent_enum_type {
     use super::*;
@@ -491,7 +491,7 @@ typedef struct __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum{__swift_bridge__$
     }
 }
 
-/// Test code generation for Rust function that returns a Result<T, E> where T is a transparent enum type
+/// Test code generation for Rust function that returns a Result<T, E> where T is a transparent enum type and
 /// E is a opaque Rust type.
 mod extern_rust_fn_return_result_transparent_enum_type_and_opaque_rust_type_and {
     use super::*;
