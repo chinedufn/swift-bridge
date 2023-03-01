@@ -416,12 +416,12 @@ mod extern_rust_fn_return_result_opaque_rust_type_and_transparent_enum_type {
                 extern "Rust" {
                     type SomeOkType;
                 }
-                enum SomeEnumError {
+                enum SomeErrEnum {
                     Variant1,
                     Variant2(i32),
                 }
                 extern "Rust" {
-                    fn some_function() -> Result<SomeOkType, SomeEnumError>;
+                    fn some_function() -> Result<SomeOkType, SomeErrEnum>;
                 }
             }
         }
@@ -430,20 +430,20 @@ mod extern_rust_fn_return_result_opaque_rust_type_and_transparent_enum_type {
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[repr(C)]
-            pub enum ResultSomeOkTypeAndSomeEnumError{
+            pub enum ResultSomeOkTypeAndSomeErrEnum{
                 Ok(*mut super::SomeOkType),
-                Err(__swift_bridge__SomeEnumError),
+                Err(__swift_bridge__SomeErrEnum),
             }
 
 
             #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function() -> ResultSomeOkTypeAndSomeEnumError{
+            pub extern "C" fn __swift_bridge__some_function() -> ResultSomeOkTypeAndSomeErrEnum{
                 match super::some_function() {
-                    Ok(ok) => ResultSomeOkTypeAndSomeEnumError::Ok(Box::into_raw(Box::new({
+                    Ok(ok) => ResultSomeOkTypeAndSomeErrEnum::Ok(Box::into_raw(Box::new({
                         let val: super::SomeOkType = ok;
                         val
                     })) as *mut super::SomeOkType),
-                    Err(err) => ResultSomeOkTypeAndSomeEnumError::Err(err.into_ffi_repr()),
+                    Err(err) => ResultSomeOkTypeAndSomeErrEnum::Err(err.into_ffi_repr()),
                 }
             }
         })
@@ -471,11 +471,11 @@ public func some_function() throws -> SomeOkType {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-typedef enum __swift_bridge__$ResultSomeOkTypeAndSomeEnumError$Tag {__swift_bridge__$ResultOk, __swift_bridge__$ResultErr} __swift_bridge__$ResultSomeOkTypeAndSomeEnumError$Tag;
-union __swift_bridge__$ResultSomeOkTypeAndSomeEnumError$Fields {void* ok; struct __swift_bridge__$SomeEnumError err;};
-typedef struct __swift_bridge__$ResultSomeOkTypeAndSomeEnumError{__swift_bridge__$ResultSomeOkTypeAndSomeEnumError$Tag tag; union __swift_bridge__$ResultSomeOkTypeAndSomeEnumError$Fields payload;} __swift_bridge__$ResultSomeOkTypeAndSomeEnumError;        
+typedef enum __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag {__swift_bridge__$ResultOk, __swift_bridge__$ResultErr} __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag;
+union __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Fields {void* ok; struct __swift_bridge__$SomeErrEnum err;};
+typedef struct __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum{__swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum;        
 "#,
-            r#"__swift_bridge__$ResultSomeOkTypeAndSomeEnumError __swift_bridge__$some_function(void)"#,
+            r#"__swift_bridge__$ResultSomeOkTypeAndSomeErrEnum __swift_bridge__$some_function(void)"#,
         ])
     }
 
