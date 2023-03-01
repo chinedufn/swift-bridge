@@ -405,23 +405,23 @@ struct __private__ResultVoidAndPtr __swift_bridge__$some_function(void);
     }
 }
 
-/// Test code generation for Rust function that accepts a Result<T, E> where T is a transparent enum type
-/// E is a opaque Rust type.
-mod extern_rust_result_transparent_enum_type_and_opaque_rust_type {
+/// Test code generation for Rust function that returns a Result<T, E> where T is a opaque Rust type
+/// E is a transparent enum type.
+mod extern_rust_fn_return_result_opaque_rust_type_and_transparent_enum_type {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
         quote! {
             mod ffi {
-                enum NetworkError {
-                    JsonParse,
-                    UnknownError,
+                extern "Rust" {
+                    type SomeOkType;
+                }
+                enum SomeEnumError {
+                    Variant1,
+                    Variant2(i32),
                 }
                 extern "Rust" {
-                    type Data;
-                }
-                extern "Rust" {
-                    fn fetch_from_server() -> Result<Data, NetworkError>;
+                    fn some_function() -> Result<SomeOkType, SomeEnumError>;
                 }
             }
         }
@@ -430,20 +430,20 @@ mod extern_rust_result_transparent_enum_type_and_opaque_rust_type {
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[repr(C)]
-            pub enum ResultDataAndNetworkError{
-                Ok(*mut super::Data),
-                Err(__swift_bridge__NetworkError),
+            pub enum ResultSomeOkTypeAndSomeEnumError{
+                Ok(*mut super::SomeOkType),
+                Err(__swift_bridge__SomeEnumError),
             }
 
 
-            #[export_name = "__swift_bridge__$fetch_from_server"]
-            pub extern "C" fn __swift_bridge__fetch_from_server() -> ResultDataAndNetworkError{
-                match super::fetch_from_server() {
-                    Ok(ok) => ResultDataAndNetworkError::Ok(Box::into_raw(Box::new({
-                        let val: super::Data = ok;
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function() -> ResultSomeOkTypeAndSomeEnumError{
+                match super::some_function() {
+                    Ok(ok) => ResultSomeOkTypeAndSomeEnumError::Ok(Box::into_raw(Box::new({
+                        let val: super::SomeOkType = ok;
                         val
-                    })) as *mut super::Data),
-                    Err(err) => ResultDataAndNetworkError::Err(err.into_ffi_repr()),
+                    })) as *mut super::SomeOkType),
+                    Err(err) => ResultSomeOkTypeAndSomeEnumError::Err(err.into_ffi_repr()),
                 }
             }
         })
@@ -452,12 +452,12 @@ mod extern_rust_result_transparent_enum_type_and_opaque_rust_type {
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
-public func fetch_from_server() throws -> Data {
+public func some_function() throws -> SomeOkType {
     try {
-        let val = __swift_bridge__$fetch_from_server();
+        let val = __swift_bridge__$some_function();
         switch val.tag {
         case __swift_bridge__$ResultOk:
-            return Data(ptr: val.payload.ok)
+            return SomeOkType(ptr: val.payload.ok)
         case __swift_bridge__$ResultErr:
             throw val.payload.err.intoSwiftRepr()
         default:
@@ -471,11 +471,11 @@ public func fetch_from_server() throws -> Data {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-typedef enum __swift_bridge__$ResultDataAndNetworkError$Tag {__swift_bridge__$ResultOk, __swift_bridge__$ResultErr} __swift_bridge__$ResultDataAndNetworkError$Tag;
-union __swift_bridge__$ResultDataAndNetworkError$Fields {void* ok; struct __swift_bridge__$NetworkError err;};
-typedef struct __swift_bridge__$ResultDataAndNetworkError{__swift_bridge__$ResultDataAndNetworkError$Tag tag; union __swift_bridge__$ResultDataAndNetworkError$Fields payload;} __swift_bridge__$ResultDataAndNetworkError;        
+typedef enum __swift_bridge__$ResultSomeOkTypeAndSomeEnumError$Tag {__swift_bridge__$ResultOk, __swift_bridge__$ResultErr} __swift_bridge__$ResultSomeOkTypeAndSomeEnumError$Tag;
+union __swift_bridge__$ResultSomeOkTypeAndSomeEnumError$Fields {void* ok; struct __swift_bridge__$SomeEnumError err;};
+typedef struct __swift_bridge__$ResultSomeOkTypeAndSomeEnumError{__swift_bridge__$ResultSomeOkTypeAndSomeEnumError$Tag tag; union __swift_bridge__$ResultSomeOkTypeAndSomeEnumError$Fields payload;} __swift_bridge__$ResultSomeOkTypeAndSomeEnumError;        
 "#,
-            r#"__swift_bridge__$ResultDataAndNetworkError __swift_bridge__$fetch_from_server(void)"#,
+            r#"__swift_bridge__$ResultSomeOkTypeAndSomeEnumError __swift_bridge__$some_function(void)"#,
         ])
     }
 
