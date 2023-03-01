@@ -405,7 +405,7 @@ struct __private__ResultVoidAndPtr __swift_bridge__$some_function(void);
     }
 }
 
-/// Test code generation for Rust function that accepts a Result<T, E> where T is a transparent enum type 
+/// Test code generation for Rust function that accepts a Result<T, E> where T is a transparent enum type
 /// E is a opaque Rust type.
 mod extern_rust_result_transparent_enum_type_and_opaque_rust_type {
     use super::*;
@@ -414,7 +414,7 @@ mod extern_rust_result_transparent_enum_type_and_opaque_rust_type {
         quote! {
             mod ffi {
                 enum NetworkError {
-                    JsonParse, 
+                    JsonParse,
                     UnknownError,
                 }
                 extern "Rust" {
@@ -434,7 +434,7 @@ mod extern_rust_result_transparent_enum_type_and_opaque_rust_type {
                 Ok(*mut super::Data),
                 Err(__swift_bridge__NetworkError),
             }
-            
+
 
             #[export_name = "__swift_bridge__$fetch_from_server"]
             pub extern "C" fn __swift_bridge__fetch_from_server() -> ResultDataAndNetworkError{
@@ -470,12 +470,13 @@ public func fetch_from_server() throws -> Data {
 
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
-r#"
+            r#"
 typedef enum __swift_bridge__$ResultDataAndNetworkError$Tag {__swift_bridge__$ResultOk, __swift_bridge__$ResultErr} __swift_bridge__$ResultDataAndNetworkError$Tag;
 union __swift_bridge__$ResultDataAndNetworkError$Fields {void* ok; struct __swift_bridge__$NetworkError err;};
 typedef struct __swift_bridge__$ResultDataAndNetworkError{__swift_bridge__$ResultDataAndNetworkError$Tag tag; union __swift_bridge__$ResultDataAndNetworkError$Fields payload;} __swift_bridge__$ResultDataAndNetworkError;        
 "#,
-r#"__swift_bridge__$ResultDataAndNetworkError __swift_bridge__$fetch_from_server(void)"#])
+            r#"__swift_bridge__$ResultDataAndNetworkError __swift_bridge__$fetch_from_server(void)"#,
+        ])
     }
 
     #[test]

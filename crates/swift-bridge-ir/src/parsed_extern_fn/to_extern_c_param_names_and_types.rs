@@ -87,7 +87,7 @@ impl ParsedExternFn {
                             todo!("Support methods on shared types.")
                         }
                         TypeDeclaration::Opaque(opaque) => opaque.ffi_repr_type_tokens(),
-                        TypeDeclaration::CustomResult(_) => todo!()
+                        TypeDeclaration::CustomResult(_) => todo!(),
                     };
 
                     params.push(quote! {

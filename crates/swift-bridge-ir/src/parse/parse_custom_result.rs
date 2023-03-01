@@ -1,9 +1,9 @@
 use crate::bridged_type::bridgeable_custom_result::CustomResultType;
 use proc_macro2::Ident;
-use syn::TypeParam;
-use syn::token::{Lt, Gt};
-use syn::Token;
 use syn::parse::Parse;
+use syn::token::{Gt, Lt};
+use syn::Token;
+use syn::TypeParam;
 
 #[derive(Clone)]
 pub(crate) struct CustomResultTypeDeclaration {
@@ -14,7 +14,11 @@ pub(crate) struct CustomResultTypeDeclaration {
 
 impl CustomResultTypeDeclaration {
     pub fn to_bridged_type(&self) -> CustomResultType {
-        CustomResultType { ty: self.ty.clone(), ok_ty: self.ok.clone(), err_ty: self.err.clone() }
+        CustomResultType {
+            ty: self.ty.clone(),
+            ok_ty: self.ok.clone(),
+            err_ty: self.err.clone(),
+        }
     }
     /***
     pub fn maybe_insert(tokens: &str, type_declarations: &mut TypeDeclarations) -> Option<String> {
@@ -49,6 +53,6 @@ impl Parse for CustomResultTypeDeclaration {
         let _: Token![,] = input.parse()?;
         let err: TypeParam = input.parse()?;
         let _: Gt = input.parse()?;
-        Ok(CustomResultTypeDeclaration {ty,ok,err})
+        Ok(CustomResultTypeDeclaration { ty, ok, err })
     }
 }

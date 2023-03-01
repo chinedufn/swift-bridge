@@ -38,15 +38,15 @@ mod ffi {
     }
 
     enum ResultTransparentEnum {
-        NamedField{
-            data: i32
-        }, 
+        NamedField { data: i32 },
         UnnamedFields(u8, String),
-        NoFields, 
+        NoFields,
     }
 
     extern "Rust" {
-        fn rust_func_return_result_transparent_enum_opaque_rust(succeed: bool) -> Result<ResultTestOpaqueRustType, ResultTransparentEnum>;
+        fn rust_func_return_result_transparent_enum_opaque_rust(
+            succeed: bool,
+        ) -> Result<ResultTestOpaqueRustType, ResultTransparentEnum>;
     }
 }
 
@@ -120,7 +120,9 @@ impl ResultTestOpaqueRustType {
     }
 }
 
-fn rust_func_return_result_transparent_enum_opaque_rust(succeed: bool) -> Result<ResultTestOpaqueRustType, ffi::ResultTransparentEnum> {
+fn rust_func_return_result_transparent_enum_opaque_rust(
+    succeed: bool,
+) -> Result<ResultTestOpaqueRustType, ffi::ResultTransparentEnum> {
     if succeed {
         Ok(ResultTestOpaqueRustType::new(123))
     } else {

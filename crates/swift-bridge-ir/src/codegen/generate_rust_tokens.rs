@@ -8,9 +8,9 @@ use quote::{quote, quote_spanned};
 
 use self::vec::vec_of_opaque_rust_type::generate_vec_of_opaque_rust_type_functions;
 use crate::bridge_module_attributes::CfgAttr;
+use crate::bridged_type::BridgedType;
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
 use crate::SwiftBridgeModule;
-use crate::bridged_type::BridgedType;
 
 mod shared_enum;
 mod shared_struct;
@@ -258,9 +258,19 @@ impl ToTokens for SwiftBridgeModule {
                 TypeDeclaration::CustomResult(custom_result) => {
                     let custom_result_type = custom_result.to_bridged_type();
                     let ty = custom_result_type.ffi_name_tokens();
-                    let ok = BridgedType::new_with_str(&custom_result_type.ok_ty.to_token_stream().to_string(), &self.types).unwrap().to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
-                    let err = BridgedType::new_with_str(&custom_result_type.err_ty.to_token_stream().to_string(), &self.types).unwrap().to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
-                    custom_result_definitions.push(quote!{
+                    let ok = BridgedType::new_with_str(
+                        &custom_result_type.ok_ty.to_token_stream().to_string(),
+                        &self.types,
+                    )
+                    .unwrap()
+                    .to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
+                    let err = BridgedType::new_with_str(
+                        &custom_result_type.err_ty.to_token_stream().to_string(),
+                        &self.types,
+                    )
+                    .unwrap()
+                    .to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
+                    custom_result_definitions.push(quote! {
                         #[repr(C)]
                         pub enum #ty {
                             Ok(#ok),

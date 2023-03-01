@@ -1,8 +1,8 @@
-use crate::bridged_type::{BridgeableType, TypePosition, UnusedOptionNoneValue};
 use crate::bridged_type::BridgedType;
+use crate::bridged_type::{BridgeableType, TypePosition, UnusedOptionNoneValue};
 use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, ToTokens, format_ident};
+use quote::{format_ident, quote, ToTokens};
 use std::fmt::{Debug, Formatter};
 use syn::{Path, Type, TypeParam};
 
@@ -30,7 +30,11 @@ impl CustomResultType {
         format!("{}$ResultErr", SWIFT_BRIDGE_PREFIX)
     }
     pub fn ffi_name_tokens(&self) -> TokenStream {
-        let tokens = format_ident!("Result{}And{}", self.ok_ty.to_token_stream().to_string(), self.err_ty.to_token_stream().to_string());
+        let tokens = format_ident!(
+            "Result{}And{}",
+            self.ok_ty.to_token_stream().to_string(),
+            self.err_ty.to_token_stream().to_string()
+        );
         quote!(#tokens)
     }
 }
@@ -68,7 +72,13 @@ impl BridgeableType for CustomResultType {
     fn to_c_type(&self) -> String {
         let ok_name = self.ok_ty.to_token_stream().to_string();
         let err_name = self.err_ty.to_token_stream().to_string();
-        format!("{}${}{}And{}", SWIFT_BRIDGE_PREFIX, self.ty.to_string(), ok_name, err_name)
+        format!(
+            "{}${}{}And{}",
+            SWIFT_BRIDGE_PREFIX,
+            self.ty.to_string(),
+            ok_name,
+            err_name
+        )
     }
 
     fn to_c_include(&self) -> Option<&'static str> {
@@ -80,8 +90,12 @@ impl BridgeableType for CustomResultType {
         _swift_bridge_path: &Path,
         _types: &TypeDeclarations,
     ) -> TokenStream {
-        let ty = format_ident!("Result{}And{}", self.ok_ty.to_token_stream().to_string(), self.err_ty.to_token_stream().to_string());
-        quote!{#ty}
+        let ty = format_ident!(
+            "Result{}And{}",
+            self.ok_ty.to_token_stream().to_string(),
+            self.err_ty.to_token_stream().to_string()
+        );
+        quote! {#ty}
     }
 
     fn to_ffi_compatible_option_rust_type(
@@ -112,10 +126,18 @@ impl BridgeableType for CustomResultType {
         span: Span,
     ) -> TokenStream {
         let ffi_enum_name = self.ffi_name_tokens();
-        let ok_ty  = BridgedType::new_with_str(&self.ok_ty.to_token_stream().to_string(), types).unwrap();
-        let err_ty = BridgedType::new_with_str(&self.err_ty.to_token_stream().to_string(), types).unwrap();
-        let ok_ffi = ok_ty.convert_rust_expression_to_ffi_type(&quote!(ok), swift_bridge_path, types, span);
-        let err_ffi = err_ty.convert_rust_expression_to_ffi_type(&quote!(err), swift_bridge_path, types, span);
+        let ok_ty =
+            BridgedType::new_with_str(&self.ok_ty.to_token_stream().to_string(), types).unwrap();
+        let err_ty =
+            BridgedType::new_with_str(&self.err_ty.to_token_stream().to_string(), types).unwrap();
+        let ok_ffi =
+            ok_ty.convert_rust_expression_to_ffi_type(&quote!(ok), swift_bridge_path, types, span);
+        let err_ffi = err_ty.convert_rust_expression_to_ffi_type(
+            &quote!(err),
+            swift_bridge_path,
+            types,
+            span,
+        );
         quote! {
             match #expression {
                 Ok(ok) => #ffi_enum_name::Ok(#ok_ffi),
@@ -169,15 +191,20 @@ impl BridgeableType for CustomResultType {
         types: &TypeDeclarations,
     ) -> String {
         let c_ok_name = self.c_ok_tag_name();
-        let c_err_name        = self.c_err_tag_name();
-        let ok_ty  = BridgedType::new_with_str(&self.ok_ty.to_token_stream().to_string(), types).unwrap();
-        let err_ty = BridgedType::new_with_str(&self.err_ty.to_token_stream().to_string(), types).unwrap();
-        let ok_swift_type = ok_ty.convert_ffi_expression_to_swift_type("val.payload.ok", type_pos, types);
-        let err_swift_type = err_ty.convert_ffi_expression_to_swift_type("val.payload.err", type_pos, types);
-        
+        let c_err_name = self.c_err_tag_name();
+        let ok_ty =
+            BridgedType::new_with_str(&self.ok_ty.to_token_stream().to_string(), types).unwrap();
+        let err_ty =
+            BridgedType::new_with_str(&self.err_ty.to_token_stream().to_string(), types).unwrap();
+        let ok_swift_type =
+            ok_ty.convert_ffi_expression_to_swift_type("val.payload.ok", type_pos, types);
+        let err_swift_type =
+            err_ty.convert_ffi_expression_to_swift_type("val.payload.err", type_pos, types);
+
         match type_pos {
             TypePosition::FnArg(_, _) => todo!(),
-            TypePosition::FnReturn(_) => format!("try {{
+            TypePosition::FnReturn(_) => format!(
+                "try {{
         let val = {expression};
         switch val.tag {{
         case {c_ok_name}:
@@ -186,7 +213,13 @@ impl BridgeableType for CustomResultType {
             throw {err_swift_type}
         default:
             fatalError()
-    }} }}()", expression = expression, c_ok_name = c_ok_name, c_err_name = c_err_name, ok_swift_type = ok_swift_type, err_swift_type = err_swift_type),
+    }} }}()",
+                expression = expression,
+                c_ok_name = c_ok_name,
+                c_err_name = c_err_name,
+                ok_swift_type = ok_swift_type,
+                err_swift_type = err_swift_type
+            ),
             TypePosition::SharedStructField => todo!(),
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
         }

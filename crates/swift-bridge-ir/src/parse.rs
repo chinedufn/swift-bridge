@@ -1,20 +1,20 @@
 use crate::bridge_module_attributes::CfgAttr;
 use crate::bridged_type::BridgedType;
 use crate::errors::{ParseError, ParseErrors};
+use crate::parse::parse_custom_result::CustomResultTypeDeclaration;
 use crate::parse::parse_enum::SharedEnumDeclarationParser;
 use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::parse::parse_struct::SharedStructDeclarationParser;
-use crate::parse::parse_custom_result::CustomResultTypeDeclaration;
 use crate::SwiftBridgeModule;
 use proc_macro2::TokenTree;
-use quote::{quote, ToTokens, format_ident};
+use quote::{format_ident, quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::{Item, ItemMod, Token};
 
+mod parse_custom_result;
 mod parse_enum;
 mod parse_extern_mod;
 mod parse_struct;
-mod parse_custom_result;
 
 mod type_declarations;
 pub(crate) use self::type_declarations::*;
@@ -119,24 +119,32 @@ impl Parse for SwiftBridgeModuleAndErrors {
                 if BridgedType::new_with_type(&unresolved_type, &type_declarations).is_some() {
                     continue;
                 }
-                if unresolved_type.to_token_stream().to_string().starts_with("Result <") {
+                if unresolved_type
+                    .to_token_stream()
+                    .to_string()
+                    .starts_with("Result <")
+                {
                     let trimmed = unresolved_type.to_token_stream().to_string();
                     let trimmed = trimmed.trim_start_matches("Result <");
                     let trimmed = trimmed.trim_end_matches(">");
                     let mut ok_and_err = trimmed.split(",");
                     let ok_str = ok_and_err.next().unwrap().trim();
-                    let err_str      = ok_and_err.next().unwrap().trim();
-                    let ok  = BridgedType::new_with_str(ok_str, &type_declarations);
+                    let err_str = ok_and_err.next().unwrap().trim();
+                    let ok = BridgedType::new_with_str(ok_str, &type_declarations);
                     let err = BridgedType::new_with_str(err_str, &type_declarations);
                     if let (Some(_), Some(_)) = (ok, err) {
                         let ok = format_ident!("{}", ok_str);
                         let err = format_ident!("{}", err_str);
-                        let tokens = quote!{
+                        let tokens = quote! {
                             Result<#ok, #err>
                         };
-                        let custom_result_type = syn::parse2::<CustomResultTypeDeclaration>(tokens)?;
+                        let custom_result_type =
+                            syn::parse2::<CustomResultTypeDeclaration>(tokens)?;
                         let result_type = format!("Result<{},{}>", ok_str, err_str);
-                        type_declarations.insert(result_type, TypeDeclaration::CustomResult(custom_result_type));
+                        type_declarations.insert(
+                            result_type,
+                            TypeDeclaration::CustomResult(custom_result_type),
+                        );
                         continue;
                     }
                 }

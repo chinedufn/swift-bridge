@@ -56,10 +56,14 @@ impl TypeDeclaration {
         }
     }
 
-    pub fn to_custom_result_type(&self) -> Option<CustomResultType>{
+    pub fn to_custom_result_type(&self) -> Option<CustomResultType> {
         match self {
-            TypeDeclaration::CustomResult(custom_result) => Some(CustomResultType { ty: custom_result.ty.clone(), ok_ty: custom_result.ok.clone(), err_ty: custom_result.err.clone() }),
-            _=>None,
+            TypeDeclaration::CustomResult(custom_result) => Some(CustomResultType {
+                ty: custom_result.ty.clone(),
+                ok_ty: custom_result.ok.clone(),
+                err_ty: custom_result.err.clone(),
+            }),
+            _ => None,
         }
     }
 
