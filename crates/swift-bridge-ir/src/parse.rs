@@ -124,14 +124,16 @@ impl Parse for SwiftBridgeModuleAndErrors {
                     .to_string()
                     .starts_with("Result <")
                 {
-                    if let Some(tokens) = CustomResultTypeDeclaration::maybe_tokens_from_str(&unresolved_type
-                        .to_token_stream()
-                        .to_string(), &type_declarations) {
+                    if let Some(tokens) = CustomResultTypeDeclaration::maybe_tokens_from_str(
+                        &unresolved_type.to_token_stream().to_string(),
+                        &type_declarations,
+                    ) {
                         let custom_result_type =
                             syn::parse2::<CustomResultTypeDeclaration>(tokens)?;
                         let result_type = unresolved_type
-                        .to_token_stream()
-                        .to_string().replace(" ", "");
+                            .to_token_stream()
+                            .to_string()
+                            .replace(" ", "");
                         type_declarations.insert(
                             result_type,
                             TypeDeclaration::CustomResult(custom_result_type),

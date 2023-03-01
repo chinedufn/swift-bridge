@@ -1,8 +1,8 @@
 use crate::bridged_type::bridgeable_custom_result::CustomResultType;
 use crate::bridged_type::BridgedType;
 use crate::parse::TypeDeclarations;
-use quote::{format_ident, quote};
 use proc_macro2::{Ident, TokenStream};
+use quote::{format_ident, quote};
 use syn::parse::Parse;
 use syn::token::{Gt, Lt};
 use syn::Token;
