@@ -28,3 +28,6 @@ extension ResultTestOpaqueRustType: Error {}
 
 extension AsyncResultOpaqueRustType2: @unchecked Sendable {}
 extension AsyncResultOpaqueRustType2: Error {}
+
+extension ResultTransparentEnum: Error {}
+extension ResultTransparentEnum: @unchecked Sendable {}
