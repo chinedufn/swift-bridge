@@ -34,7 +34,6 @@ pub(super) fn gen_func_swift_calls_rust(
             TypeDeclaration::Opaque(ty) => {
                 format!("${}", ty.to_string())
             }
-            TypeDeclaration::CustomResult(_) => todo!(),
         }
     } else {
         "".to_string()
@@ -123,7 +122,6 @@ pub(super) fn gen_func_swift_calls_rust(
                                 )
                             }
                         }
-                        TypeDeclaration::CustomResult(_) => todo!(),
                     }
                 }
             }

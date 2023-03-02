@@ -229,9 +229,6 @@ impl ParsedExternFn {
                     let ty = &ty.ty;
                     quote! {#ty::}
                 }
-                TypeDeclaration::CustomResult(_) => {
-                    todo!();
-                }
             }
         });
 

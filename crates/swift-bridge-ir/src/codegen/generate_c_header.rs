@@ -310,6 +310,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         header += "\n";
                     }
                 }
+                /***
                 TypeDeclaration::CustomResult(custom_result) => {
                     let custom_result_type = custom_result.to_bridged_type();
                     let c_enum_name = custom_result_type.c_enum_name_string();
@@ -332,6 +333,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
 );
                     header += "\n";
                 }
+                ***/
             }
         }
 

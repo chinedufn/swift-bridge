@@ -204,9 +204,6 @@ impl ParsedExternFn {
                 TypeDeclaration::Opaque(associated_ty) => {
                     format!("{}_", associated_ty.ty)
                 }
-                TypeDeclaration::CustomResult(_) => {
-                    todo!()
-                }
             }
         } else {
             "".to_string()
@@ -390,9 +387,6 @@ impl ParsedExternFn {
                                 "void*".to_string()
                             }
                         }
-                        TypeDeclaration::CustomResult(_) => {
-                            todo!()
-                        }
                     }
                 }
             }
@@ -462,9 +456,6 @@ impl ParsedExternFn {
                     TypeDeclaration::Opaque(h) => {
                         format!("${}", h.to_string())
                     }
-                    TypeDeclaration::CustomResult(_) => {
-                        todo!()
-                    }
                 }
             })
             .unwrap_or("".to_string());
@@ -522,9 +513,6 @@ void {free_boxed_fn_link_name}(void* {boxed_fn_arg_name});"#
                     }
                     TypeDeclaration::Opaque(h) => {
                         format!("{}_", h.to_token_stream().to_string())
-                    }
-                    TypeDeclaration::CustomResult(_) => {
-                        todo!()
                     }
                 }
             })

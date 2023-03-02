@@ -119,28 +119,6 @@ impl Parse for SwiftBridgeModuleAndErrors {
                 if BridgedType::new_with_type(&unresolved_type, &type_declarations).is_some() {
                     continue;
                 }
-                if unresolved_type
-                    .to_token_stream()
-                    .to_string()
-                    .starts_with("Result <")
-                {
-                    if let Some(tokens) = CustomResultTypeDeclaration::maybe_tokens_from_str(
-                        &unresolved_type.to_token_stream().to_string(),
-                        &type_declarations,
-                    ) {
-                        let custom_result_type =
-                            syn::parse2::<CustomResultTypeDeclaration>(tokens)?;
-                        let result_type = unresolved_type
-                            .to_token_stream()
-                            .to_string()
-                            .replace(" ", "");
-                        type_declarations.insert(
-                            result_type,
-                            TypeDeclaration::CustomResult(custom_result_type),
-                        );
-                        continue;
-                    }
-                }
 
                 errors.push(ParseError::UndeclaredType {
                     ty: unresolved_type.clone(),

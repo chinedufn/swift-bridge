@@ -738,15 +738,7 @@ impl BridgedType {
                 ty: Box::new(inner),
             })));
         } else if tokens.starts_with("Result < ") {
-            let result = BuiltInResult::from_str_tokens(&tokens, types)?;
-            if !(result.ok_ty.is_passed_via_pointer() && result.err_ty.is_passed_via_pointer()) {
-                if result.ok_ty.only_encoding().is_some() || result.err_ty.only_encoding().is_some()
-                {
-                    return Some(BridgedType::StdLib(StdLibType::Result(result)));
-                }
-                return None;
-            }
-            return Some(BridgedType::StdLib(StdLibType::Result(result)));
+            return Some(BridgedType::StdLib(StdLibType::Result(BuiltInResult::from_str_tokens(&tokens, types)?)));
         } else if tokens.starts_with("Box < dyn FnOnce") {
             return Some(BridgedType::StdLib(StdLibType::BoxedFnOnce(
                 BridgeableBoxedFnOnce::from_str_tokens(&tokens, types)?,

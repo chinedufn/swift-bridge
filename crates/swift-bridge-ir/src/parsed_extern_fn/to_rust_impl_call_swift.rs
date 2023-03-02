@@ -238,9 +238,6 @@ impl ParsedExternFn {
                                             quote! { #pat: #ty }
                                         }
                                     }
-                                    TypeDeclaration::CustomResult(_) => {
-                                        todo!()
-                                    }
                                 }
                             }
                         }

@@ -27,7 +27,6 @@ impl ToTokens for SwiftBridgeModule {
 
         let mut shared_struct_definitions = vec![];
         let mut shared_enum_definitions = vec![];
-        let mut custom_result_definitions = vec![];
         let mut custom_type_definitions: HashMap<String, TokenStream> = HashMap::new();
         let mut impl_fn_tokens: HashMap<String, Vec<TokenStream>> = HashMap::new();
         let mut callbacks_support = vec![];
@@ -59,9 +58,6 @@ impl ToTokens for SwiftBridgeModule {
                                     .entry(ty.to_string())
                                     .or_default()
                                     .push(tokens);
-                            }
-                            TypeDeclaration::CustomResult(_) => {
-                                todo!()
                             }
                         };
                     } else {
@@ -256,6 +252,7 @@ impl ToTokens for SwiftBridgeModule {
                         }
                     };
                 }
+                /***
                 TypeDeclaration::CustomResult(custom_result) => {
                     let custom_result_type = custom_result.to_bridged_type();
                     let ty = custom_result_type.ffi_name_tokens();
@@ -279,6 +276,7 @@ impl ToTokens for SwiftBridgeModule {
                         }
                     });
                 }
+                ***/
             }
         }
 
@@ -310,7 +308,7 @@ impl ToTokens for SwiftBridgeModule {
 
             #(#shared_enum_definitions)*
 
-            #(#custom_result_definitions)*
+            //#(#custom_result_definitions)*
 
             #(#extern_rust_fn_tokens)*
 

@@ -25,7 +25,6 @@ pub(crate) struct TypeDeclarations {
 pub(crate) enum TypeDeclaration {
     Shared(SharedTypeDeclaration),
     Opaque(OpaqueForeignTypeDeclaration),
-    CustomResult(CustomResultTypeDeclaration),
 }
 
 #[derive(Clone)]
@@ -50,20 +49,6 @@ impl TypeDeclaration {
             TypeDeclaration::Opaque(_o) => {
                 BridgedType::Bridgeable(Box::new(self.to_opaque_type(reference, mutable).unwrap()))
             }
-            TypeDeclaration::CustomResult(_) => {
-                BridgedType::Bridgeable(Box::new(self.to_custom_result_type().unwrap()))
-            }
-        }
-    }
-
-    pub fn to_custom_result_type(&self) -> Option<CustomResultType> {
-        match self {
-            TypeDeclaration::CustomResult(custom_result) => Some(CustomResultType {
-                ty: custom_result.ty.clone(),
-                ok_ty: custom_result.ok.clone(),
-                err_ty: custom_result.err.clone(),
-            }),
-            _ => None,
         }
     }
 
