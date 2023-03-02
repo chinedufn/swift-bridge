@@ -5,6 +5,7 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::spanned::Spanned;
 use syn::Path;
+use std::collections::HashMap;
 
 impl ParsedExternFn {
     /// Generates:
@@ -27,6 +28,7 @@ impl ParsedExternFn {
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
+        custom_type_definitions: &mut HashMap<String, TokenStream>,
     ) -> TokenStream {
         let link_name = self.link_name();
 
@@ -329,7 +331,7 @@ mod tests {
         let function = &module.functions[0];
 
         assert_tokens_eq(
-            &function.to_extern_c_function_tokens(&module.swift_bridge_path, &module.types),
+            &function.to_extern_c_function_tokens(&module.swift_bridge_path, &module.types, &mut HashMap::new()),
             &expected_fn,
         );
     }
