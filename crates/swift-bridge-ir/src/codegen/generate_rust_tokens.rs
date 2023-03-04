@@ -280,10 +280,7 @@ impl ToTokens for SwiftBridgeModule {
                 }
             };
         }
-        let custom_type_definitions: Vec<TokenStream> = custom_type_definitions
-            .into_iter()
-            .map(|(_, v)| v)
-            .collect();
+        let custom_type_definitions = custom_type_definitions.into_values();
         let module_inner = quote! {
             #(#shared_struct_definitions)*
 
