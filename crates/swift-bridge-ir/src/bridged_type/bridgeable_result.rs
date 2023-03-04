@@ -216,16 +216,7 @@ impl BuiltInResult {
             return match type_pos {
                 TypePosition::FnArg(_, _) => todo!(),
                 TypePosition::FnReturn(_) => format!(
-                        "try {{
-        let val = {expression};
-        switch val.tag {{
-        case {c_ok_name}:
-            return{ok_swift_type}
-        case {c_err_name}:
-            throw {err_swift_type}
-        default:
-            fatalError()
-    }} }}()",
+                        "try {{ let val = {expression}; switch val.tag {{ case {c_ok_name}: return{ok_swift_type} case {c_err_name}: throw {err_swift_type} default: fatalError() }} }}()",
                     expression = expression,
                     c_ok_name = c_ok_name,
                     c_err_name = c_err_name,

@@ -453,16 +453,7 @@ mod extern_rust_fn_return_result_opaque_rust_type_and_transparent_enum_type {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 public func some_function() throws -> SomeOkType {
-    try {
-        let val = __swift_bridge__$some_function();
-        switch val.tag {
-        case __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$ResultOk:
-            return SomeOkType(ptr: val.payload.ok)
-        case __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$ResultErr:
-            throw val.payload.err.intoSwiftRepr()
-        default:
-            fatalError()
-    } }()
+    try { let val = __swift_bridge__$some_function(); switch val.tag { case __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$ResultOk: return SomeOkType(ptr: val.payload.ok) case __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$ResultErr: throw val.payload.err.intoSwiftRepr() default: fatalError() } }()
 }
 "#,
         )
@@ -539,16 +530,7 @@ mod extern_rust_fn_return_result_transparent_enum_type_and_opaque_rust_type {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 public func some_function() throws -> SomeOkEnum {
-    try {
-        let val = __swift_bridge__$some_function();
-        switch val.tag {
-        case __swift_bridge__$ResultSomeOkEnumAndSomeErrType$ResultOk:
-            return val.payload.ok.intoSwiftRepr()
-        case __swift_bridge__$ResultSomeOkEnumAndSomeErrType$ResultErr:
-            throw SomeErrType(ptr: val.payload.err)
-        default:
-            fatalError()
-    } }()
+    try { let val = __swift_bridge__$some_function(); switch val.tag { case __swift_bridge__$ResultSomeOkEnumAndSomeErrType$ResultOk: return val.payload.ok.intoSwiftRepr() case __swift_bridge__$ResultSomeOkEnumAndSomeErrType$ResultErr: throw SomeErrType(ptr: val.payload.err) default: fatalError() } }()
 }
 "#,
         )
@@ -618,16 +600,7 @@ mod extern_rust_fn_return_result_unit_type_and_transparent_enum_type {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 public func some_function() throws -> () {
-    try {
-        let val = __swift_bridge__$some_function();
-        switch val.tag {
-        case __swift_bridge__$ResultVoidAndSomeErrEnum$ResultOk:
-            return
-        case __swift_bridge__$ResultVoidAndSomeErrEnum$ResultErr:
-            throw val.payload.err.intoSwiftRepr()
-        default:
-            fatalError()
-    } }()
+    try { let val = __swift_bridge__$some_function(); switch val.tag { case __swift_bridge__$ResultVoidAndSomeErrEnum$ResultOk: return case __swift_bridge__$ResultVoidAndSomeErrEnum$ResultErr: throw val.payload.err.intoSwiftRepr() default: fatalError() } }()
 }
 "#,
         )

@@ -44,9 +44,12 @@ mod ffi {
     }
 
     extern "Rust" {
-        fn rust_func_return_result_transparent_enum_opaque_rust(
+        fn rust_func_return_result_opaque_rust_transparent_enum(
             succeed: bool,
         ) -> Result<ResultTestOpaqueRustType, ResultTransparentEnum>;
+        fn rust_func_return_result_transparent_enum_opaque_rust(
+            succeed: bool,
+        ) -> Result<ResultTransparentEnum, ResultTestOpaqueRustType>;
     }
 
     extern "Rust" {
@@ -54,6 +57,16 @@ mod ffi {
             succeed: bool,
         ) -> Result<(), ResultTransparentEnum>;
     }
+
+    enum SameEnum {
+        Variant1, 
+        Variant2,
+    }
+    extern "Rust" {
+        fn same_custom_result_returned_twice_first() -> Result<SameEnum, SameEnum>;
+        fn same_custom_result_returned_twice_second() -> Result<SameEnum, SameEnum>;
+    }
+
 }
 
 fn rust_func_takes_result_string(arg: Result<String, String>) {
@@ -126,13 +139,23 @@ impl ResultTestOpaqueRustType {
     }
 }
 
-fn rust_func_return_result_transparent_enum_opaque_rust(
+fn rust_func_return_result_opaque_rust_transparent_enum(
     succeed: bool,
 ) -> Result<ResultTestOpaqueRustType, ffi::ResultTransparentEnum> {
     if succeed {
         Ok(ResultTestOpaqueRustType::new(123))
     } else {
         Err(ffi::ResultTransparentEnum::NamedField { data: 123 })
+    }
+}
+
+fn rust_func_return_result_transparent_enum_opaque_rust(
+    succeed: bool,
+) -> Result<ffi::ResultTransparentEnum, ResultTestOpaqueRustType> {
+    if succeed {
+        Ok(ffi::ResultTransparentEnum::NamedField { data: 123 })
+    } else {
+        Err(ResultTestOpaqueRustType::new(123))
     }
 }
 
@@ -145,4 +168,12 @@ fn rust_func_return_result_unit_type_enum_opaque_rust(
     } else {
         Err(ffi::ResultTransparentEnum::NamedField { data: 123 })
     }
+}
+
+fn same_custom_result_returned_twice_first() -> Result<ffi::SameEnum, ffi::SameEnum> {
+    todo!()
+}
+
+fn same_custom_result_returned_twice_second() -> Result<ffi::SameEnum, ffi::SameEnum>{
+    todo!()
 }

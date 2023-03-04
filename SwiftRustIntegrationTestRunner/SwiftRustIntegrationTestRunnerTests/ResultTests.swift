@@ -65,11 +65,11 @@ class ResultTests: XCTestCase {
         }
     }
     
-    func testResultTransparentEnumOpaqueRust() throws {
+    func testResultOpaqueRustTransparentEnum() throws {
         XCTContext.runActivity(named: "Should return a ResultTestOpaqueRustType") {
             _ in
             do {
-                let _ :ResultTestOpaqueRustType = try rust_func_return_result_transparent_enum_opaque_rust(true)
+                let _ :ResultTestOpaqueRustType = try rust_func_return_result_opaque_rust_transparent_enum(true)
             } catch {
                 XCTFail()
             }
@@ -78,7 +78,7 @@ class ResultTests: XCTestCase {
         XCTContext.runActivity(named: "Should throw an error") {
             _ in
             do {
-                let _ = try rust_func_return_result_transparent_enum_opaque_rust(false)
+                let _: ResultTestOpaqueRustType = try rust_func_return_result_opaque_rust_transparent_enum(false)
                 XCTFail("The function should have returned an error.")
             } catch let error as ResultTransparentEnum {
                 switch error {
@@ -89,6 +89,37 @@ class ResultTests: XCTestCase {
                 case .NoFields:
                     XCTFail()
                 }
+            } catch {
+                XCTFail()
+            }
+        }
+    }
+    
+    func testResultTransparentEnumOpaqueRust() throws {
+        XCTContext.runActivity(named: "Should return a ResultTestOpaqueRustType") {
+            _ in
+            do {
+                let resultTransparentEnum : ResultTransparentEnum = try rust_func_return_result_transparent_enum_opaque_rust(true)
+                switch resultTransparentEnum {
+                case .NamedField(let data):
+                    XCTAssertEqual(data, 123)
+                case .UnnamedFields(_, _):
+                    XCTFail()
+                case .NoFields:
+                    XCTFail()
+                }
+            } catch {
+                XCTFail()
+            }
+        }
+    
+        XCTContext.runActivity(named: "Should throw an error") {
+            _ in
+            do {
+                let _: ResultTransparentEnum = try rust_func_return_result_transparent_enum_opaque_rust(false)
+                XCTFail("The function should have returned an error.")
+            } catch _ as ResultTestOpaqueRustType {
+                //
             } catch {
                 XCTFail()
             }

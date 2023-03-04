@@ -31,3 +31,6 @@ extension AsyncResultOpaqueRustType2: Error {}
 
 extension ResultTransparentEnum: Error {}
 extension ResultTransparentEnum: @unchecked Sendable {}
+
+extension SameEnum: Error {}
+extension SameEnum: @unchecked Sendable {}
