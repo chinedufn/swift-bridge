@@ -19,15 +19,15 @@ use syn::Path;
 pub(crate) struct BuiltInResult {
     pub ok_ty: Box<dyn BridgeableType>,
     pub err_ty: Box<dyn BridgeableType>,
-    ok_ty_ident: Ident, 
-    err_ty_ident: Ident, 
+    ok_ty_string: String, 
+    err_ty_string: String, 
 }
 
 impl BuiltInResult {
     pub(super) fn to_ffi_compatible_rust_type(&self, swift_bridge_path: &Path) -> TokenStream {
         if !(self.ok_ty.is_passed_via_pointer() && self.err_ty.is_passed_via_pointer()) {
             if !(self.ok_ty.only_encoding().is_some() || self.err_ty.only_encoding().is_some()) {
-                let ty = format_ident!("Result{}And{}", self.ok_ty_ident.to_string(), self.err_ty_ident.to_string());
+                let ty = format_ident!("Result{}And{}", self.ok_ty_string, self.err_ty_string);
                 return quote!{
                     #ty
                 }
@@ -288,7 +288,7 @@ impl BuiltInResult {
     pub fn to_c(&self) -> String {
         if !(self.ok_ty.is_passed_via_pointer() && self.err_ty.is_passed_via_pointer()) {
             if !(self.ok_ty.only_encoding().is_some() || self.err_ty.only_encoding().is_some()) {
-                return format!("{}$Result{}And{}", SWIFT_BRIDGE_PREFIX, self.ok_ty_ident.to_string(), self.err_ty_ident.to_string());
+                return format!("{}$Result{}And{}", SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string);
             }
         }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
@@ -325,7 +325,7 @@ impl BuiltInResult {
             if self.ok_ty.only_encoding().is_some() || self.err_ty.only_encoding().is_some() {
                 return None;
             }
-                let c_type = format!("{}$Result{}And{}", SWIFT_BRIDGE_PREFIX, self.ok_ty_ident.to_string(), self.err_ty_ident.to_string());
+                let c_type = format!("{}$Result{}And{}", SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string);
                 let c_enum_name = c_type.clone();
                 let c_tag_name = format!("{}$Tag", c_type.clone());
                 let c_fields_name = format!("{}$Fields", c_type);
@@ -358,8 +358,8 @@ impl BuiltInResult {
         let ok = ok_and_err.next()?.trim();
         let err = ok_and_err.next()?.trim();
 
-        let ok_ty_ident = format_ident!("{}", ok);
-        let err_ty_ident = format_ident!("{}", err);
+        let ok_ty_string = format!("{}", ok);
+        let err_ty_string = format!("{}", err);
 
         let ok = BridgedType::new_with_str(ok, types)?;
         let err = BridgedType::new_with_str(err, types)?;
@@ -367,8 +367,8 @@ impl BuiltInResult {
         Some(BuiltInResult {
             ok_ty: Box::new(ok),
             err_ty: Box::new(err),
-            ok_ty_ident,
-            err_ty_ident,
+            ok_ty_string,
+            err_ty_string,
         })
     }
 }
