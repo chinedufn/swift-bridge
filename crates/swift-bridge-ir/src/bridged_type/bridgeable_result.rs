@@ -304,10 +304,7 @@ impl BuiltInResult {
 
     pub fn to_c(&self) -> String {
         if self.is_custom_result_type() {
-            return format!(
-                "struct {}${}",
-                SWIFT_BRIDGE_PREFIX, self.c_struct_name()
-            );
+            return format!("struct {}${}", SWIFT_BRIDGE_PREFIX, self.c_struct_name());
         }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
@@ -335,9 +332,10 @@ impl BuiltInResult {
         let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
             quote! {}
         } else {
-            let ty = self.ok_ty
+            let ty = self
+                .ok_ty
                 .to_ffi_compatible_rust_type(swift_bridge_path, types);
-            quote!{(#ty)}
+            quote! {(#ty)}
         };
 
         let err = self
@@ -359,10 +357,7 @@ impl BuiltInResult {
         if self.err_ty.can_be_encoded_with_zero_bytes() {
             todo!();
         }
-        let c_type = format!(
-            "{}${}",
-            SWIFT_BRIDGE_PREFIX, self.c_struct_name()
-        );
+        let c_type = format!("{}${}", SWIFT_BRIDGE_PREFIX, self.c_struct_name());
         let c_enum_name = c_type.clone();
         let c_tag_name = format!("{}$Tag", c_type.clone());
         let c_fields_name = format!("{}$Fields", c_type);
@@ -446,8 +441,8 @@ impl BuiltInResult {
             return "ResultPtrAndVoid".to_string();
         }
 
-        let ok  = ok.to_alpha_numeric_underscore_name();
-        let err =        err.to_alpha_numeric_underscore_name();
+        let ok = ok.to_alpha_numeric_underscore_name();
+        let err = err.to_alpha_numeric_underscore_name();
 
         format!("Result{ok}And{err}")
     }

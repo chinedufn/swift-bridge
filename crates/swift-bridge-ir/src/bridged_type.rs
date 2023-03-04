@@ -286,9 +286,9 @@ pub(crate) trait BridgeableType: Debug {
     fn has_swift_bridge_copy_annotation(&self) -> bool;
 
     /// Get this type's underscore name.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// type Foo would return Foo
     /// Option<T> would return Option_{T.to_alpha_numeric_underscore_name()}
     /// () would return "Void"
@@ -681,8 +681,8 @@ impl BridgeableType for BridgedType {
             BridgedType::Foreign(ty) => match ty {
                 CustomBridgedType::Shared(ty) => match ty {
                     SharedType::Struct(_ty) => todo!(),
-                    SharedType::Enum(ty) => ty.name.to_string()
-                }
+                    SharedType::Enum(ty) => ty.name.to_string(),
+                },
             },
             BridgedType::Bridgeable(b) => b.to_alpha_numeric_underscore_name(),
         }

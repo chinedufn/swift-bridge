@@ -266,7 +266,6 @@ impl PointerKind {
             }
         }
     }
-    
 }
 
 impl Pointee {
