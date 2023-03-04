@@ -582,14 +582,14 @@ mod extern_rust_fn_return_result_unit_type_and_transparent_enum_type {
         ExpectedRustTokens::Contains(quote! {
             #[repr(C)]
             pub enum ResultVoidAndSomeErrEnum{
-                Ok(*mut std::ffi::c_void),
+                Ok,
                 Err(__swift_bridge__SomeErrEnum),
             }
 
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function() -> ResultVoidAndSomeErrEnum{
                 match super::some_function() {
-                    Ok(ok) => ResultVoidAndSomeErrEnum::Ok(std::ptr::null_mut::<std::ffi::c_void>()),
+                    Ok(ok) => ResultVoidAndSomeErrEnum::Ok,
                     Err(err) => ResultVoidAndSomeErrEnum::Err(err.into_ffi_repr()),
                 }
             }

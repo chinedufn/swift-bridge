@@ -82,7 +82,7 @@ impl BuiltInResult {
                 );
                 return quote! {
                     match #expression {
-                        Ok(ok) => #ffi_enum_name::Ok(std::ptr::null_mut::<std::ffi::c_void>()),
+                        Ok(ok) => #ffi_enum_name::Ok,
                         Err(err) => #ffi_enum_name::Err(#err_ffi),
                     }
                 };
@@ -336,10 +336,11 @@ impl BuiltInResult {
         }
         let ty = self.to_ffi_compatible_rust_type(swift_bridge_path);
         let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
-            quote! {* mut std :: ffi :: c_void}
+            quote! {}
         } else {
-            self.ok_ty
-                .to_ffi_compatible_rust_type(swift_bridge_path, types)
+            let ty = self.ok_ty
+                .to_ffi_compatible_rust_type(swift_bridge_path, types);
+            quote!{(#ty)}
         };
 
         let err = self
@@ -348,7 +349,7 @@ impl BuiltInResult {
         return Some(quote! {
             #[repr(C)]
             pub enum #ty {
-                Ok(#ok),
+                Ok #ok,
                 Err(#err),
             }
         });
