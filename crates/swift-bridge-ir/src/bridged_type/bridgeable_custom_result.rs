@@ -56,6 +56,10 @@ impl BridgeableType for CustomResultType {
         todo!();
     }
 
+    fn generate_ffi_definition(&self, _swift_bridge_path: &Path, _types: &TypeDeclarations) -> Option<TokenStream> {
+        None
+    }
+
     fn to_rust_type_path(&self, _types: &TypeDeclarations) -> TokenStream {
         todo!();
     }
@@ -83,6 +87,10 @@ impl BridgeableType for CustomResultType {
 
     fn to_c_include(&self) -> Option<&'static str> {
         None
+    }
+
+    fn generate_c_declaration(&self) -> Option<String> {
+        todo!()
     }
 
     fn to_ffi_compatible_rust_type(

@@ -159,6 +159,7 @@ impl ParsedExternFn {
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
+        custom_type_definitions: &mut HashMap<String, TokenStream>,
     ) -> TokenStream {
         let sig = &self.func.sig;
 
@@ -166,7 +167,9 @@ impl ParsedExternFn {
             if ret.can_be_encoded_with_zero_bytes() {
                 return quote! {};
             }
-
+            if let Some(tokens) = ret.generate_ffi_definition(swift_bridge_path, types) {
+                custom_type_definitions.insert(tokens.to_string(), tokens);
+            }
             let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path, types);
             quote! { -> #ty }
         } else {
@@ -363,7 +366,7 @@ impl ParsedExternFn {
                     if ty.can_be_encoded_with_zero_bytes() {
                         return "void".to_string();
                     }
-
+                    
                     ty.to_c()
                 } else {
                     let ty_string = match ty.deref() {

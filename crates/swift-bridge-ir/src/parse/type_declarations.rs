@@ -1,8 +1,6 @@
-use crate::bridged_type::bridgeable_custom_result::CustomResultType;
 use crate::bridged_type::{
     BridgedType, CustomBridgedType, OpaqueForeignType, SharedEnum, SharedStruct, SharedType,
 };
-use crate::parse::parse_custom_result::CustomResultTypeDeclaration;
 use crate::parse::parse_extern_mod::OpaqueTypeAllAttributes;
 use crate::parse::HostLang;
 use crate::SWIFT_BRIDGE_PREFIX;

@@ -36,7 +36,7 @@ impl ParsedExternFn {
 
         let prefixed_fn_name = self.prefixed_fn_name();
 
-        let ret = self.rust_fn_sig_return_tokens(swift_bridge_path, types);
+        let ret = self.rust_fn_sig_return_tokens(swift_bridge_path, types, custom_type_definitions);
 
         match self.host_lang {
             HostLang::Rust => {

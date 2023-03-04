@@ -302,13 +302,13 @@ impl ToTokens for SwiftBridgeModule {
                 }
             };
         }
-
+        let custom_type_definitions: Vec<TokenStream> = custom_type_definitions.into_iter().map(|(_, v)|v).collect();
         let module_inner = quote! {
             #(#shared_struct_definitions)*
 
             #(#shared_enum_definitions)*
 
-            //#(#custom_result_definitions)*
+            #(#custom_type_definitions)*
 
             #(#extern_rust_fn_tokens)*
 

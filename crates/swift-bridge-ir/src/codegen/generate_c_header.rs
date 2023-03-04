@@ -1,7 +1,7 @@
 //! Tests can be found in src/codegen/codegen_tests.rs and its submodules.
 
 use crate::bridged_type::shared_struct::StructField;
-use crate::bridged_type::{BridgedType, StdLibType, StructFields};
+use crate::bridged_type::{BridgedType, StdLibType, StructFields, BridgeableType};
 use crate::codegen::CodegenConfig;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
@@ -336,7 +336,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
                 ***/
             }
         }
-
+        let mut custom_type_declarations: HashSet<String> = HashSet::new();
         for func in self.functions.iter() {
             if func.host_lang.is_swift() {
                 for (idx, boxed_fn) in func.args_filtered_to_boxed_fns(&self.types) {
@@ -351,7 +351,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
                 continue;
             }
 
-            header += &declare_func(&func, &mut bookkeeping, &self.types);
+            header += &declare_func(&func, &mut bookkeeping, &self.types, &mut custom_type_declarations);
         }
 
         for slice_ty in bookkeeping.slice_types.iter() {
@@ -372,7 +372,9 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
                 include, header
             );
         }
-
+        for custom_type_declaration in custom_type_declarations {
+            header += &custom_type_declaration;
+        }
         header
     }
 }
@@ -413,6 +415,7 @@ fn declare_func(
     func: &ParsedExternFn,
     bookkeeping: &mut Bookkeeping,
     types: &TypeDeclarations,
+    custom_type_declarations: &mut HashSet<String>,
 ) -> String {
     let ret = func.to_c_header_return(types);
     let name = func.link_name();
@@ -420,6 +423,9 @@ fn declare_func(
 
     if let ReturnType::Type(_, ty) = &func.func.sig.output {
         if let Some(ty) = BridgedType::new_with_type(&ty, types) {
+            if let Some(declaration) = &ty.generate_c_declaration() {
+                custom_type_declarations.insert(declaration.clone());
+            }
             if let BridgedType::StdLib(StdLibType::RefSlice(ref_slice)) = ty {
                 bookkeeping.slice_types.insert(ref_slice.ty.to_c());
             }

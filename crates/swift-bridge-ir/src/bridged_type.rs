@@ -81,10 +81,15 @@ pub(crate) trait BridgeableType: Debug {
     /// True if the type's FFI representation is a pointer
     fn is_passed_via_pointer(&self) -> bool;
 
+    /// Generate the type's ffi definition if needed.
+    fn generate_ffi_definition(&self, swift_bridge_path: &Path, types: &TypeDeclarations,) -> Option<TokenStream>;
+
+    fn generate_c_declaration(&self) -> Option<String>;
+
     /// Get the Rust representation of this type.
     /// For a string this might be `std::string::String`.
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream;
-
+    
     /// Get the Swift representation of this type.
     ///
     /// For example, `Result<String, ()>` would become `RustResult<String, ()>`
@@ -450,6 +455,32 @@ impl BridgeableType for BridgedType {
             BridgedType::StdLib(_) => false,
             BridgedType::Foreign(_) => false,
             BridgedType::Bridgeable(ty) => ty.is_passed_via_pointer(),
+        }
+    }
+
+    fn generate_ffi_definition(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> Option<TokenStream>{
+        match self {
+            BridgedType::StdLib(ty) => {
+                match ty {
+                    StdLibType::Result(ty) => ty.generate_ffi_definition(swift_bridge_path, types),
+                    _=>None
+                }
+            },
+            BridgedType::Foreign(_) => None,
+            BridgedType::Bridgeable(ty) => ty.generate_ffi_definition(swift_bridge_path, types),
+        }
+    }
+
+    fn generate_c_declaration(&self) -> Option<String> {
+        match self {
+            BridgedType::StdLib(ty) => {
+                match ty {
+                    StdLibType::Result(ty) => ty.generate_c_declaration(),
+                    _=>None
+                }
+            },
+            BridgedType::Foreign(_) => None,
+            BridgedType::Bridgeable(ty) => None,
         }
     }
 

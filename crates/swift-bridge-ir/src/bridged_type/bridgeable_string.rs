@@ -28,6 +28,14 @@ impl BridgeableType for BridgedString {
         true
     }
 
+    fn generate_ffi_definition(&self, _swift_bridge_path: &Path, _types: &TypeDeclarations) -> Option<TokenStream> {
+        None
+    }
+
+    fn generate_c_declaration(&self) -> Option<String> {
+        None
+    }
+
     fn to_rust_type_path(&self, _types: &TypeDeclarations) -> TokenStream {
         // FIXME: Change to `::std::string::String`
         quote! { String }

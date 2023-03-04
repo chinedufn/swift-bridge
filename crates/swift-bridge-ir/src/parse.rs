@@ -1,7 +1,6 @@
 use crate::bridge_module_attributes::CfgAttr;
 use crate::bridged_type::BridgedType;
 use crate::errors::{ParseError, ParseErrors};
-use crate::parse::parse_custom_result::CustomResultTypeDeclaration;
 use crate::parse::parse_enum::SharedEnumDeclarationParser;
 use crate::parse::parse_extern_mod::ForeignModParser;
 use crate::parse::parse_struct::SharedStructDeclarationParser;
@@ -11,7 +10,6 @@ use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::{Item, ItemMod, Token};
 
-mod parse_custom_result;
 mod parse_enum;
 mod parse_extern_mod;
 mod parse_struct;
