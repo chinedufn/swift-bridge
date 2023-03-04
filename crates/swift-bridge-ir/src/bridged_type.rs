@@ -83,6 +83,7 @@ pub(crate) trait BridgeableType: Debug {
     /// Generate the type's ffi definition if needed.
     fn generate_ffi_definition(&self, swift_bridge_path: &Path, types: &TypeDeclarations,) -> Option<TokenStream>;
 
+    /// Generate the type's c declaration
     fn generate_c_declaration(&self) -> Option<String>;
 
     /// Get the Rust representation of this type.
