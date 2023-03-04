@@ -475,7 +475,7 @@ typedef enum __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag {__swift_bridge
 union __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Fields {void* ok; struct __swift_bridge__$SomeErrEnum err;};
 typedef struct __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum{__swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum;        
 "#,
-            r#"__swift_bridge__$ResultSomeOkTypeAndSomeErrEnum __swift_bridge__$some_function(void)"#,
+            r#"struct __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum __swift_bridge__$some_function(void)"#,
         ])
     }
 
@@ -561,7 +561,7 @@ typedef enum __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag {__swift_bridge
 union __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Fields {struct __swift_bridge__$SomeOkEnum ok; void* err;};
 typedef struct __swift_bridge__$ResultSomeOkEnumAndSomeErrType{__swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag tag; union __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Fields payload;} __swift_bridge__$ResultSomeOkEnumAndSomeErrType;        
 "#,
-            r#"__swift_bridge__$ResultSomeOkEnumAndSomeErrType __swift_bridge__$some_function(void)"#,
+            r#"struct __swift_bridge__$ResultSomeOkEnumAndSomeErrType __swift_bridge__$some_function(void)"#,
         ])
     }
 

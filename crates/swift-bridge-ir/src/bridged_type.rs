@@ -479,7 +479,7 @@ impl BridgeableType for BridgedType {
                 }
             },
             BridgedType::Foreign(_) => None,
-            BridgedType::Bridgeable(ty) => None,
+            BridgedType::Bridgeable(_) => None,
         }
     }
 

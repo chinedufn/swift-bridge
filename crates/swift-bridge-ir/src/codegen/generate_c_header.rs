@@ -6,7 +6,6 @@ use crate::codegen::CodegenConfig;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
-use quote::ToTokens;
 use std::collections::{BTreeSet, HashSet};
 use syn::ReturnType;
 

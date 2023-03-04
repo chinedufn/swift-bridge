@@ -1,8 +1,6 @@
-use std::fmt::format;
-
 use crate::bridged_type::{BridgeableType, BridgedType, TypePosition};
 use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
-use proc_macro2::{Span, TokenStream, Ident};
+use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, format_ident};
 use syn::Path;
 
@@ -288,7 +286,7 @@ impl BuiltInResult {
     pub fn to_c(&self) -> String {
         if !(self.ok_ty.is_passed_via_pointer() && self.err_ty.is_passed_via_pointer()) {
             if !(self.ok_ty.only_encoding().is_some() || self.err_ty.only_encoding().is_some()) {
-                return format!("{}$Result{}And{}", SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string);
+                return format!("struct {}$Result{}And{}", SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string);
             }
         }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
