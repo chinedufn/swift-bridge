@@ -366,7 +366,7 @@ impl ParsedExternFn {
                     if ty.can_be_encoded_with_zero_bytes() {
                         return "void".to_string();
                     }
-                    
+
                     ty.to_c()
                 } else {
                     let ty_string = match ty.deref() {

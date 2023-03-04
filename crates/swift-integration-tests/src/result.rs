@@ -59,14 +59,13 @@ mod ffi {
     }
 
     enum SameEnum {
-        Variant1, 
+        Variant1,
         Variant2,
     }
     extern "Rust" {
         fn same_custom_result_returned_twice_first() -> Result<SameEnum, SameEnum>;
         fn same_custom_result_returned_twice_second() -> Result<SameEnum, SameEnum>;
     }
-
 }
 
 fn rust_func_takes_result_string(arg: Result<String, String>) {
@@ -159,7 +158,6 @@ fn rust_func_return_result_transparent_enum_opaque_rust(
     }
 }
 
-
 fn rust_func_return_result_unit_type_enum_opaque_rust(
     succeed: bool,
 ) -> Result<(), ffi::ResultTransparentEnum> {
@@ -174,6 +172,6 @@ fn same_custom_result_returned_twice_first() -> Result<ffi::SameEnum, ffi::SameE
     todo!()
 }
 
-fn same_custom_result_returned_twice_second() -> Result<ffi::SameEnum, ffi::SameEnum>{
+fn same_custom_result_returned_twice_second() -> Result<ffi::SameEnum, ffi::SameEnum> {
     todo!()
 }

@@ -3,9 +3,9 @@ use crate::parse::{HostLang, OpaqueCopy, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::{GetField, GetFieldDirect, GetFieldWith, ParsedExternFn};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
+use std::collections::HashMap;
 use syn::spanned::Spanned;
 use syn::Path;
-use std::collections::HashMap;
 
 impl ParsedExternFn {
     /// Generates:
@@ -328,7 +328,11 @@ mod tests {
         let function = &module.functions[0];
 
         assert_tokens_eq(
-            &function.to_extern_c_function_tokens(&module.swift_bridge_path, &module.types, &mut HashMap::new()),
+            &function.to_extern_c_function_tokens(
+                &module.swift_bridge_path,
+                &module.types,
+                &mut HashMap::new(),
+            ),
             &expected_fn,
         );
     }

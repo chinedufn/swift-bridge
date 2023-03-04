@@ -35,9 +35,11 @@ impl ToTokens for SwiftBridgeModule {
         for func in &self.functions {
             match func.host_lang {
                 HostLang::Rust => {
-                    extern_rust_fn_tokens.push(
-                        func.to_extern_c_function_tokens(&self.swift_bridge_path, &self.types, &mut custom_type_definitions),
-                    );
+                    extern_rust_fn_tokens.push(func.to_extern_c_function_tokens(
+                        &self.swift_bridge_path,
+                        &self.types,
+                        &mut custom_type_definitions,
+                    ));
                 }
                 HostLang::Swift => {
                     let tokens = func
@@ -63,9 +65,11 @@ impl ToTokens for SwiftBridgeModule {
                         freestanding_rust_call_swift_fn_tokens.push(tokens);
                     }
 
-                    extern_swift_fn_tokens.push(
-                        func.to_extern_c_function_tokens(&self.swift_bridge_path, &self.types, &mut HashMap::new()),
-                    );
+                    extern_swift_fn_tokens.push(func.to_extern_c_function_tokens(
+                        &self.swift_bridge_path,
+                        &self.types,
+                        &mut HashMap::new(),
+                    ));
                 }
             };
         }
@@ -250,32 +254,31 @@ impl ToTokens for SwiftBridgeModule {
                             extern_swift_fn_tokens.push(free);
                         }
                     };
-                }
-                /***
-                TypeDeclaration::CustomResult(custom_result) => {
-                    let custom_result_type = custom_result.to_bridged_type();
-                    let ty = custom_result_type.ffi_name_tokens();
-                    let ok = BridgedType::new_with_str(
-                        &custom_result_type.ok_ty.to_token_stream().to_string(),
-                        &self.types,
-                    )
-                    .unwrap()
-                    .to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
-                    let err = BridgedType::new_with_str(
-                        &custom_result_type.err_ty.to_token_stream().to_string(),
-                        &self.types,
-                    )
-                    .unwrap()
-                    .to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
-                    custom_result_definitions.push(quote! {
-                        #[repr(C)]
-                        pub enum #ty {
-                            Ok(#ok),
-                            Err(#err),
-                        }
-                    });
-                }
-                ***/
+                } /***
+                  TypeDeclaration::CustomResult(custom_result) => {
+                      let custom_result_type = custom_result.to_bridged_type();
+                      let ty = custom_result_type.ffi_name_tokens();
+                      let ok = BridgedType::new_with_str(
+                          &custom_result_type.ok_ty.to_token_stream().to_string(),
+                          &self.types,
+                      )
+                      .unwrap()
+                      .to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
+                      let err = BridgedType::new_with_str(
+                          &custom_result_type.err_ty.to_token_stream().to_string(),
+                          &self.types,
+                      )
+                      .unwrap()
+                      .to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
+                      custom_result_definitions.push(quote! {
+                          #[repr(C)]
+                          pub enum #ty {
+                              Ok(#ok),
+                              Err(#err),
+                          }
+                      });
+                  }
+                  ***/
             }
         }
 
@@ -301,7 +304,10 @@ impl ToTokens for SwiftBridgeModule {
                 }
             };
         }
-        let custom_type_definitions: Vec<TokenStream> = custom_type_definitions.into_iter().map(|(_, v)|v).collect();
+        let custom_type_definitions: Vec<TokenStream> = custom_type_definitions
+            .into_iter()
+            .map(|(_, v)| v)
+            .collect();
         let module_inner = quote! {
             #(#shared_struct_definitions)*
 
@@ -978,7 +984,11 @@ mod tests {
         let function = &module.functions[0];
 
         assert_tokens_eq(
-            &function.to_extern_c_function_tokens(&module.swift_bridge_path, &module.types, &mut HashMap::new()),
+            &function.to_extern_c_function_tokens(
+                &module.swift_bridge_path,
+                &module.types,
+                &mut HashMap::new(),
+            ),
             &expected_fn,
         );
     }

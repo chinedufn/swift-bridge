@@ -81,7 +81,11 @@ pub(crate) trait BridgeableType: Debug {
     fn is_passed_via_pointer(&self) -> bool;
 
     /// Generate the type's ffi definition if needed.
-    fn generate_ffi_definition(&self, swift_bridge_path: &Path, types: &TypeDeclarations,) -> Option<TokenStream>;
+    fn generate_ffi_definition(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Option<TokenStream>;
 
     /// Generate the type's c declaration
     fn generate_c_declaration(&self) -> Option<String>;
@@ -89,7 +93,7 @@ pub(crate) trait BridgeableType: Debug {
     /// Get the Rust representation of this type.
     /// For a string this might be `std::string::String`.
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream;
-    
+
     /// Get the Swift representation of this type.
     ///
     /// For example, `Result<String, ()>` would become `RustResult<String, ()>`
@@ -458,13 +462,15 @@ impl BridgeableType for BridgedType {
         }
     }
 
-    fn generate_ffi_definition(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> Option<TokenStream>{
+    fn generate_ffi_definition(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Option<TokenStream> {
         match self {
-            BridgedType::StdLib(ty) => {
-                match ty {
-                    StdLibType::Result(ty) => ty.generate_ffi_definition(swift_bridge_path, types),
-                    _=>None
-                }
+            BridgedType::StdLib(ty) => match ty {
+                StdLibType::Result(ty) => ty.generate_ffi_definition(swift_bridge_path, types),
+                _ => None,
             },
             BridgedType::Foreign(_) => None,
             BridgedType::Bridgeable(ty) => ty.generate_ffi_definition(swift_bridge_path, types),
@@ -473,11 +479,9 @@ impl BridgeableType for BridgedType {
 
     fn generate_c_declaration(&self) -> Option<String> {
         match self {
-            BridgedType::StdLib(ty) => {
-                match ty {
-                    StdLibType::Result(ty) => ty.generate_c_declaration(),
-                    _=>None
-                }
+            BridgedType::StdLib(ty) => match ty {
+                StdLibType::Result(ty) => ty.generate_c_declaration(),
+                _ => None,
             },
             BridgedType::Foreign(_) => None,
             BridgedType::Bridgeable(_) => None,
@@ -769,7 +773,9 @@ impl BridgedType {
                 ty: Box::new(inner),
             })));
         } else if tokens.starts_with("Result < ") {
-            return Some(BridgedType::StdLib(StdLibType::Result(BuiltInResult::from_str_tokens(&tokens, types)?)));
+            return Some(BridgedType::StdLib(StdLibType::Result(
+                BuiltInResult::from_str_tokens(&tokens, types)?,
+            )));
         } else if tokens.starts_with("Box < dyn FnOnce") {
             return Some(BridgedType::StdLib(StdLibType::BoxedFnOnce(
                 BridgeableBoxedFnOnce::from_str_tokens(&tokens, types)?,

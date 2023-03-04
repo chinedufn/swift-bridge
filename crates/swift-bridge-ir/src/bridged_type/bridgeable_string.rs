@@ -28,7 +28,11 @@ impl BridgeableType for BridgedString {
         true
     }
 
-    fn generate_ffi_definition(&self, _swift_bridge_path: &Path, _types: &TypeDeclarations) -> Option<TokenStream> {
+    fn generate_ffi_definition(
+        &self,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+    ) -> Option<TokenStream> {
         None
     }
 

@@ -1,7 +1,7 @@
 use crate::bridged_type::{BridgeableType, BridgedType, TypePosition};
 use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, quote_spanned, format_ident};
+use quote::{format_ident, quote, quote_spanned};
 use syn::Path;
 
 /// Rust: Result<T, E>
@@ -17,17 +17,17 @@ use syn::Path;
 pub(crate) struct BuiltInResult {
     pub ok_ty: Box<dyn BridgeableType>,
     pub err_ty: Box<dyn BridgeableType>,
-    ok_ty_string: String, 
-    err_ty_string: String, 
+    ok_ty_string: String,
+    err_ty_string: String,
 }
 
 impl BuiltInResult {
     pub(super) fn to_ffi_compatible_rust_type(&self, swift_bridge_path: &Path) -> TokenStream {
         if self.is_custom_result_type() {
             let ty = format_ident!("Result{}And{}", self.ok_ty_string, self.err_ty_string);
-            return quote!{
+            return quote! {
                 #ty
-            }
+            };
         }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
@@ -86,10 +86,14 @@ impl BuiltInResult {
                         Err(err) => #ffi_enum_name::Err(#err_ffi),
                     }
                 };
-            } 
+            }
             let ffi_enum_name = self.to_ffi_compatible_rust_type(swift_bridge_path);
-            let ok_ffi =
-                self.ok_ty.convert_rust_expression_to_ffi_type(&quote!(ok), swift_bridge_path, types, span);
+            let ok_ffi = self.ok_ty.convert_rust_expression_to_ffi_type(
+                &quote!(ok),
+                swift_bridge_path,
+                types,
+                span,
+            );
             let err_ffi = self.err_ty.convert_rust_expression_to_ffi_type(
                 &quote!(err),
                 swift_bridge_path,
@@ -203,16 +207,24 @@ impl BuiltInResult {
                 todo!();
             }
             let c_type = format!("Result{}And{}", self.ok_ty_string, self.err_ty_string);
-            let c_ok_name  = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
-            let c_err_name =  format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
+            let c_ok_name = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
+            let c_err_name = format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
             let ok_swift_type = if self.ok_ty.can_be_encoded_with_zero_bytes() {
                 "".to_string()
             } else {
-                " ".to_string() + &self.ok_ty.convert_ffi_expression_to_swift_type("val.payload.ok", type_pos, types)
+                " ".to_string()
+                    + &self.ok_ty.convert_ffi_expression_to_swift_type(
+                        "val.payload.ok",
+                        type_pos,
+                        types,
+                    )
             };
-            let err_swift_type =
-                self.err_ty.convert_ffi_expression_to_swift_type("val.payload.err", type_pos, types);
-    
+            let err_swift_type = self.err_ty.convert_ffi_expression_to_swift_type(
+                "val.payload.err",
+                type_pos,
+                types,
+            );
+
             return match type_pos {
                 TypePosition::FnArg(_, _) => todo!(),
                 TypePosition::FnReturn(_) => format!(
@@ -295,7 +307,10 @@ impl BuiltInResult {
 
     pub fn to_c(&self) -> String {
         if self.is_custom_result_type() {
-            return format!("struct {}$Result{}And{}", SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string);
+            return format!(
+                "struct {}$Result{}And{}",
+                SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string
+            );
         }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
@@ -307,23 +322,30 @@ impl BuiltInResult {
         }
     }
 
-    pub fn generate_ffi_definition(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> Option<TokenStream> {
+    pub fn generate_ffi_definition(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Option<TokenStream> {
         if self.is_custom_result_type() {
             if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!()
             }
             let ty = self.to_ffi_compatible_rust_type(swift_bridge_path);
             let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
-                quote!{* mut std :: ffi :: c_void}
+                quote! {* mut std :: ffi :: c_void}
             } else {
-                self.ok_ty.to_ffi_compatible_rust_type(swift_bridge_path, types)
+                self.ok_ty
+                    .to_ffi_compatible_rust_type(swift_bridge_path, types)
             };
-            
-            let err = self.err_ty.to_ffi_compatible_rust_type(swift_bridge_path, types);
-            return Some(quote!{
+
+            let err = self
+                .err_ty
+                .to_ffi_compatible_rust_type(swift_bridge_path, types);
+            return Some(quote! {
                 #[repr(C)]
                 pub enum #ty {
-                    Ok(#ok), 
+                    Ok(#ok),
                     Err(#err),
                 }
             });
@@ -336,7 +358,10 @@ impl BuiltInResult {
             if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!();
             }
-            let c_type = format!("{}$Result{}And{}", SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string);
+            let c_type = format!(
+                "{}$Result{}And{}",
+                SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string
+            );
             let c_enum_name = c_type.clone();
             let c_tag_name = format!("{}$Tag", c_type.clone());
             let c_fields_name = format!("{}$Fields", c_type);
@@ -351,11 +376,18 @@ impl BuiltInResult {
             let ok_c_tag_name = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
             let err_c_tag_name = format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
 
-            return Some(format!("typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
+            return Some(format!(
+                "typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
 union {c_fields_name} {{{ok_c_field_name}{err_c_field_name} err;}};
 typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}} {c_enum_name};",
-            c_enum_name = c_enum_name, c_tag_name = c_tag_name, c_fields_name = c_fields_name, ok_c_field_name = ok_c_field_name, err_c_field_name = err_c_field_name, ok_c_tag_name = ok_c_tag_name, err_c_tag_name = err_c_tag_name,
-));   
+                c_enum_name = c_enum_name,
+                c_tag_name = c_tag_name,
+                c_fields_name = c_fields_name,
+                ok_c_field_name = ok_c_field_name,
+                err_c_field_name = err_c_field_name,
+                ok_c_tag_name = ok_c_tag_name,
+                err_c_tag_name = err_c_tag_name,
+            ));
         }
         return None;
     }
@@ -367,12 +399,14 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         }
 
         // ResultVoidAndPtr or ResultPtrAndVoid
-        if (self.ok_ty.only_encoding().is_some() && self.err_ty.is_passed_via_pointer()) || (self.ok_ty.is_passed_via_pointer() && self.err_ty.only_encoding().is_some()) {
+        if (self.ok_ty.only_encoding().is_some() && self.err_ty.is_passed_via_pointer())
+            || (self.ok_ty.is_passed_via_pointer() && self.err_ty.only_encoding().is_some())
+        {
             return false;
         }
 
         return true;
-    } 
+    }
 }
 
 impl BuiltInResult {
