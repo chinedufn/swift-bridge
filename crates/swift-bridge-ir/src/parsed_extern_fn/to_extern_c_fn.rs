@@ -3,6 +3,7 @@ use crate::parse::{HostLang, OpaqueCopy, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::{GetField, GetFieldDirect, GetFieldWith, ParsedExternFn};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
+use std::collections::HashMap;
 use syn::spanned::Spanned;
 use syn::Path;
 
@@ -27,6 +28,7 @@ impl ParsedExternFn {
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
+        custom_type_definitions: &mut HashMap<String, TokenStream>,
     ) -> TokenStream {
         let link_name = self.link_name();
 
@@ -34,7 +36,7 @@ impl ParsedExternFn {
 
         let prefixed_fn_name = self.prefixed_fn_name();
 
-        let ret = self.rust_fn_sig_return_tokens(swift_bridge_path, types);
+        let ret = self.rust_fn_sig_return_tokens(swift_bridge_path, types, custom_type_definitions);
 
         match self.host_lang {
             HostLang::Rust => {
@@ -326,7 +328,11 @@ mod tests {
         let function = &module.functions[0];
 
         assert_tokens_eq(
-            &function.to_extern_c_function_tokens(&module.swift_bridge_path, &module.types),
+            &function.to_extern_c_function_tokens(
+                &module.swift_bridge_path,
+                &module.types,
+                &mut HashMap::new(),
+            ),
             &expected_fn,
         );
     }

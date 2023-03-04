@@ -24,6 +24,22 @@ impl BridgeableType for BridgedString {
         None
     }
 
+    fn is_passed_via_pointer(&self) -> bool {
+        true
+    }
+
+    fn generate_custom_rust_ffi_type(
+        &self,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+    ) -> Option<TokenStream> {
+        None
+    }
+
+    fn generate_custom_c_ffi_type(&self) -> Option<String> {
+        None
+    }
+
     fn to_rust_type_path(&self, _types: &TypeDeclarations) -> TokenStream {
         // FIXME: Change to `::std::string::String`
         quote! { String }
@@ -272,5 +288,9 @@ impl BridgeableType for BridgedString {
 
     fn has_swift_bridge_copy_annotation(&self) -> bool {
         false
+    }
+
+    fn to_alpha_numeric_underscore_name(&self) -> String {
+        todo!()
     }
 }

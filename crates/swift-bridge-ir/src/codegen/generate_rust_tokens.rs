@@ -26,6 +26,7 @@ impl ToTokens for SwiftBridgeModule {
 
         let mut shared_struct_definitions = vec![];
         let mut shared_enum_definitions = vec![];
+        let mut custom_type_definitions: HashMap<String, TokenStream> = HashMap::new();
         let mut impl_fn_tokens: HashMap<String, Vec<TokenStream>> = HashMap::new();
         let mut callbacks_support = vec![];
         let mut freestanding_rust_call_swift_fn_tokens = vec![];
@@ -34,9 +35,11 @@ impl ToTokens for SwiftBridgeModule {
         for func in &self.functions {
             match func.host_lang {
                 HostLang::Rust => {
-                    extern_rust_fn_tokens.push(
-                        func.to_extern_c_function_tokens(&self.swift_bridge_path, &self.types),
-                    );
+                    extern_rust_fn_tokens.push(func.to_extern_c_function_tokens(
+                        &self.swift_bridge_path,
+                        &self.types,
+                        &mut custom_type_definitions,
+                    ));
                 }
                 HostLang::Swift => {
                     let tokens = func
@@ -62,9 +65,11 @@ impl ToTokens for SwiftBridgeModule {
                         freestanding_rust_call_swift_fn_tokens.push(tokens);
                     }
 
-                    extern_swift_fn_tokens.push(
-                        func.to_extern_c_function_tokens(&self.swift_bridge_path, &self.types),
-                    );
+                    extern_swift_fn_tokens.push(func.to_extern_c_function_tokens(
+                        &self.swift_bridge_path,
+                        &self.types,
+                        &mut HashMap::new(),
+                    ));
                 }
             };
         }
@@ -275,11 +280,13 @@ impl ToTokens for SwiftBridgeModule {
                 }
             };
         }
-
+        let custom_type_definitions = custom_type_definitions.into_values();
         let module_inner = quote! {
             #(#shared_struct_definitions)*
 
             #(#shared_enum_definitions)*
+
+            #(#custom_type_definitions)*
 
             #(#extern_rust_fn_tokens)*
 
@@ -950,7 +957,11 @@ mod tests {
         let function = &module.functions[0];
 
         assert_tokens_eq(
-            &function.to_extern_c_function_tokens(&module.swift_bridge_path, &module.types),
+            &function.to_extern_c_function_tokens(
+                &module.swift_bridge_path,
+                &module.types,
+                &mut HashMap::new(),
+            ),
             &expected_fn,
         );
     }

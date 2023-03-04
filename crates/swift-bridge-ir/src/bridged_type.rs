@@ -12,6 +12,7 @@ use crate::bridged_type::boxed_fn::BridgeableBoxedFnOnce;
 use crate::bridged_type::bridgeable_pointer::{BuiltInPointer, Pointee, PointerKind};
 use crate::bridged_type::bridgeable_result::BuiltInResult;
 use crate::bridged_type::bridgeable_string::BridgedString;
+
 use crate::parse::{HostLang, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 
@@ -75,6 +76,32 @@ pub(crate) trait BridgeableType: Debug {
     fn is_result(&self) -> bool;
 
     fn as_result(&self) -> Option<&BuiltInResult>;
+
+    /// True if the type's FFI representation is a pointer
+    fn is_passed_via_pointer(&self) -> bool;
+
+    /// Generate the type's ffi definition if needed.
+    ///
+    /// # Examples
+    /// String -> None
+    /// Result<String, OpaqueRust> -> None
+    /// Result<(), TransparentEnum> -> pub enum ResultVoidAndTransparentEnum { //... }
+    fn generate_custom_rust_ffi_type(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Option<TokenStream>;
+
+    /// Generate the type's c declaration if needed.
+    ///
+    /// # Examples
+    /// String -> None
+    /// Result<String, OpaqueRust> -> None
+    /// Result<(), TransparentEnum> ->
+    /// typedef enum __swift_bridge__$ResultVoidAndTransparentEnum$Tag { //... };
+    /// // ...
+    /// typedef struct __swift_bridge__$ResultVoidAndTransparentEnum { //... };
+    fn generate_custom_c_ffi_type(&self) -> Option<String>;
 
     /// Get the Rust representation of this type.
     /// For a string this might be `std::string::String`.
@@ -270,6 +297,15 @@ pub(crate) trait BridgeableType: Debug {
 
     /// Whether or not this type is annotated with `#[swift_bridge(Copy(..))]`
     fn has_swift_bridge_copy_annotation(&self) -> bool;
+
+    /// Get this type's underscore name.
+    ///
+    /// # Examples
+    ///
+    /// type Foo would return Foo
+    /// Option<T> would return Option_{T.to_alpha_numeric_underscore_name()}
+    /// () would return "Void"
+    fn to_alpha_numeric_underscore_name(&self) -> String;
 }
 
 /// Parse a BridgeableType from a stringified token stream.
@@ -437,6 +473,44 @@ impl BridgeableType for BridgedType {
             BridgedType::StdLib(StdLibType::Result(result)) => Some(result),
             BridgedType::Bridgeable(ty) => ty.as_result(),
             _ => None,
+        }
+    }
+
+    fn is_passed_via_pointer(&self) -> bool {
+        match self {
+            BridgedType::StdLib(_) => false,
+            BridgedType::Foreign(_) => false,
+            BridgedType::Bridgeable(ty) => ty.is_passed_via_pointer(),
+        }
+    }
+
+    fn generate_custom_rust_ffi_type(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Option<TokenStream> {
+        match self {
+            BridgedType::StdLib(ty) => match ty {
+                StdLibType::Result(ty) => {
+                    ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
+                }
+                _ => None,
+            },
+            BridgedType::Foreign(_) => None,
+            BridgedType::Bridgeable(ty) => {
+                ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
+            }
+        }
+    }
+
+    fn generate_custom_c_ffi_type(&self) -> Option<String> {
+        match self {
+            BridgedType::StdLib(ty) => match ty {
+                StdLibType::Result(ty) => ty.generate_custom_c_ffi_type(),
+                _ => None,
+            },
+            BridgedType::Foreign(_) => None,
+            BridgedType::Bridgeable(_) => None,
         }
     }
 
@@ -611,6 +685,23 @@ impl BridgeableType for BridgedType {
         match self {
             BridgedType::Bridgeable(b) => b.has_swift_bridge_copy_annotation(),
             _ => false,
+        }
+    }
+
+    fn to_alpha_numeric_underscore_name(&self) -> String {
+        match self {
+            BridgedType::StdLib(ty) => match ty {
+                StdLibType::Result(_ty) => todo!(),
+                StdLibType::Null => "Void".to_string(),
+                _ => todo!(),
+            },
+            BridgedType::Foreign(ty) => match ty {
+                CustomBridgedType::Shared(ty) => match ty {
+                    SharedType::Struct(_ty) => todo!(),
+                    SharedType::Enum(ty) => ty.name.to_string(),
+                },
+            },
+            BridgedType::Bridgeable(b) => b.to_alpha_numeric_underscore_name(),
         }
     }
 }

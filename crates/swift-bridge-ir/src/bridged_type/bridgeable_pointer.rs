@@ -41,6 +41,22 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
+    fn is_passed_via_pointer(&self) -> bool {
+        todo!()
+    }
+
+    fn generate_custom_rust_ffi_type(
+        &self,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+    ) -> Option<TokenStream> {
+        None
+    }
+
+    fn generate_custom_c_ffi_type(&self) -> Option<String> {
+        None
+    }
+
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
         match &self.pointee {
             Pointee::BuiltIn(ty) => {
@@ -231,6 +247,10 @@ impl BridgeableType for BuiltInPointer {
     }
 
     fn only_encoding(&self) -> Option<super::OnlyEncoding> {
+        todo!()
+    }
+
+    fn to_alpha_numeric_underscore_name(&self) -> String {
         todo!()
     }
 }

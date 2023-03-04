@@ -1,7 +1,7 @@
 use crate::bridged_type::{BridgeableType, BridgedType, TypePosition};
-use crate::TypeDeclarations;
+use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, quote_spanned};
+use quote::{format_ident, quote, quote_spanned};
 use syn::Path;
 
 /// Rust: Result<T, E>
@@ -21,6 +21,12 @@ pub(crate) struct BuiltInResult {
 
 impl BuiltInResult {
     pub(super) fn to_ffi_compatible_rust_type(&self, swift_bridge_path: &Path) -> TokenStream {
+        if self.is_custom_result_type() {
+            let ty = format_ident!("{}", self.c_struct_name());
+            return quote! {
+                #ty
+            };
+        }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
@@ -59,6 +65,46 @@ impl BuiltInResult {
             types,
             span,
         );
+
+        if self.is_custom_result_type() {
+            if self.err_ty.can_be_encoded_with_zero_bytes() {
+                todo!();
+            }
+            if self.ok_ty.can_be_encoded_with_zero_bytes() {
+                let ffi_enum_name = self.to_ffi_compatible_rust_type(swift_bridge_path);
+                let err_ffi = self.err_ty.convert_rust_expression_to_ffi_type(
+                    &quote!(err),
+                    swift_bridge_path,
+                    types,
+                    span,
+                );
+                return quote! {
+                    match #expression {
+                        Ok(ok) => #ffi_enum_name::Ok,
+                        Err(err) => #ffi_enum_name::Err(#err_ffi),
+                    }
+                };
+            }
+            let ffi_enum_name = self.to_ffi_compatible_rust_type(swift_bridge_path);
+            let ok_ffi = self.ok_ty.convert_rust_expression_to_ffi_type(
+                &quote!(ok),
+                swift_bridge_path,
+                types,
+                span,
+            );
+            let err_ffi = self.err_ty.convert_rust_expression_to_ffi_type(
+                &quote!(err),
+                swift_bridge_path,
+                types,
+                span,
+            );
+            return quote! {
+                match #expression {
+                    Ok(ok) => #ffi_enum_name::Ok(#ok_ffi),
+                    Err(err) => #ffi_enum_name::Err(#err_ffi),
+                }
+            };
+        }
 
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
             quote! {
@@ -154,6 +200,42 @@ impl BuiltInResult {
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
+        if self.is_custom_result_type() {
+            if self.err_ty.can_be_encoded_with_zero_bytes() {
+                todo!();
+            }
+            let c_ok_name = self.c_ok_tag_name();
+            let c_err_name = self.c_err_tag_name();
+            let ok_swift_type = if self.ok_ty.can_be_encoded_with_zero_bytes() {
+                "".to_string()
+            } else {
+                " ".to_string()
+                    + &self.ok_ty.convert_ffi_expression_to_swift_type(
+                        "val.payload.ok",
+                        type_pos,
+                        types,
+                    )
+            };
+            let err_swift_type = self.err_ty.convert_ffi_expression_to_swift_type(
+                "val.payload.err",
+                type_pos,
+                types,
+            );
+
+            return match type_pos {
+                TypePosition::FnArg(_, _) => todo!(),
+                TypePosition::FnReturn(_) => format!(
+                        "try {{ let val = {expression}; switch val.tag {{ case {c_ok_name}: return{ok_swift_type} case {c_err_name}: throw {err_swift_type} default: fatalError() }} }}()",
+                    expression = expression,
+                    c_ok_name = c_ok_name,
+                    c_err_name = c_err_name,
+                    ok_swift_type = ok_swift_type,
+                    err_swift_type = err_swift_type
+                ),
+                TypePosition::SharedStructField => todo!(),
+                TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
+            };
+        }
         let (mut ok, err) = if let Some(zero_byte_encoding) = self.ok_ty.only_encoding() {
             let ok = zero_byte_encoding.swift;
             let convert_err = self
@@ -220,15 +302,103 @@ impl BuiltInResult {
         }
     }
 
-    pub fn to_c(&self) -> &'static str {
+    pub fn to_c(&self) -> String {
+        if self.is_custom_result_type() {
+            return format!("struct {}${}", SWIFT_BRIDGE_PREFIX, self.c_struct_name());
+        }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
-            "struct __private__ResultVoidAndPtr"
+            format!("struct __private__ResultVoidAndPtr")
         } else {
-            "struct __private__ResultPtrAndPtr"
+            format!("struct __private__ResultPtrAndPtr")
         }
+    }
+
+    pub fn generate_custom_rust_ffi_type(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Option<TokenStream> {
+        if !self.is_custom_result_type() {
+            return None;
+        }
+
+        if self.err_ty.can_be_encoded_with_zero_bytes() {
+            todo!()
+        }
+        let ty = self.to_ffi_compatible_rust_type(swift_bridge_path);
+        let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            quote! {}
+        } else {
+            let ty = self
+                .ok_ty
+                .to_ffi_compatible_rust_type(swift_bridge_path, types);
+            quote! {(#ty)}
+        };
+
+        let err = self
+            .err_ty
+            .to_ffi_compatible_rust_type(swift_bridge_path, types);
+        return Some(quote! {
+            #[repr(C)]
+            pub enum #ty {
+                Ok #ok,
+                Err(#err),
+            }
+        });
+    }
+
+    pub fn generate_custom_c_ffi_type(&self) -> Option<String> {
+        if !self.is_custom_result_type() {
+            return None;
+        }
+        if self.err_ty.can_be_encoded_with_zero_bytes() {
+            todo!();
+        }
+        let c_type = format!("{}${}", SWIFT_BRIDGE_PREFIX, self.c_struct_name());
+        let c_enum_name = c_type.clone();
+        let c_tag_name = format!("{}$Tag", c_type.clone());
+        let c_fields_name = format!("{}$Fields", c_type);
+
+        let ok_c_field_name = if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            "".to_string()
+        } else {
+            format!("{} ok; ", self.ok_ty.to_c_type())
+        };
+        let err_c_field_name = self.err_ty.to_c_type();
+        let ok_c_tag_name = self.c_ok_tag_name();
+        let err_c_tag_name = self.c_err_tag_name();
+
+        return Some(format!(
+            "typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
+union {c_fields_name} {{{ok_c_field_name}{err_c_field_name} err;}};
+typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}} {c_enum_name};",
+            c_enum_name = c_enum_name,
+            c_tag_name = c_tag_name,
+            c_fields_name = c_fields_name,
+            ok_c_field_name = ok_c_field_name,
+            err_c_field_name = err_c_field_name,
+            ok_c_tag_name = ok_c_tag_name,
+            err_c_tag_name = err_c_tag_name,
+        ));
+    }
+
+    fn is_custom_result_type(&self) -> bool {
+        // ResultPtrAndPtr
+        if self.ok_ty.is_passed_via_pointer() && self.err_ty.is_passed_via_pointer() {
+            return false;
+        }
+
+        // ResultVoidAndPtr or ResultPtrAndVoid
+        if (self.ok_ty.only_encoding().is_some() && self.err_ty.is_passed_via_pointer())
+            || (self.ok_ty.is_passed_via_pointer() && self.err_ty.only_encoding().is_some())
+        {
+            return false;
+        }
+
+        return true;
     }
 }
 
@@ -252,6 +422,36 @@ impl BuiltInResult {
             ok_ty: Box::new(ok),
             err_ty: Box::new(err),
         })
+    }
+}
+
+impl BuiltInResult {
+    fn c_struct_name(&self) -> String {
+        if !self.is_custom_result_type() {
+            panic!("Should not be called when this type is not a custom result type.")
+        }
+        let ok = &self.ok_ty;
+        let err = &self.err_ty;
+
+        if ok.can_be_encoded_with_zero_bytes() && err.is_passed_via_pointer() {
+            return "ResultVoidAndPtr".to_string();
+        }
+
+        if ok.is_passed_via_pointer() && err.can_be_encoded_with_zero_bytes() {
+            return "ResultPtrAndVoid".to_string();
+        }
+
+        let ok = ok.to_alpha_numeric_underscore_name();
+        let err = err.to_alpha_numeric_underscore_name();
+
+        format!("Result{ok}And{err}")
+    }
+    fn c_ok_tag_name(&self) -> String {
+        format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, self.c_struct_name())
+    }
+
+    fn c_err_tag_name(&self) -> String {
+        format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, self.c_struct_name())
     }
 }
 
