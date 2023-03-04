@@ -204,9 +204,8 @@ impl BuiltInResult {
             if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!();
             }
-            let c_type = self.c_struct_name();
-            let c_ok_name = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
-            let c_err_name = format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
+            let c_ok_name = self.c_ok_tag_name();
+            let c_err_name = self.c_err_tag_name();
             let ok_swift_type = if self.ok_ty.can_be_encoded_with_zero_bytes() {
                 "".to_string()
             } else {
@@ -374,9 +373,8 @@ impl BuiltInResult {
             format!("{} ok; ", self.ok_ty.to_c_type())
         };
         let err_c_field_name = self.err_ty.to_c_type();
-        let c_type = self.c_struct_name();
-        let ok_c_tag_name = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
-        let err_c_tag_name = format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
+        let ok_c_tag_name = self.c_ok_tag_name();
+        let err_c_tag_name = self.c_err_tag_name();
 
         return Some(format!(
             "typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
@@ -434,6 +432,9 @@ impl BuiltInResult {
 
 impl BuiltInResult {
     fn c_struct_name(&self) -> String {
+        if !self.is_custom_result_type() {
+            panic!("Should not be called when this type is not a custom result type.")
+        }
         let ok = &self.ok_ty;
         let err = &self.err_ty;
 
@@ -450,13 +451,12 @@ impl BuiltInResult {
 
         format!("Result{ok}And{err}")
     }
-
     fn c_ok_tag_name(&self) -> String {
-        unimplemented!()
+        format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, self.c_struct_name())
     }
 
     fn c_err_tag_name(&self) -> String {
-        unimplemented!()
+        format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, self.c_struct_name())
     }
 }
 

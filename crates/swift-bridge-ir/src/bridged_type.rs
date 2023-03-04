@@ -674,7 +674,7 @@ impl BridgeableType for BridgedType {
     fn to_alpha_numeric_underscore_name(&self) -> String {
         match self {
             BridgedType::StdLib(ty) => match ty {
-                StdLibType::Result(ty) => todo!(),
+                StdLibType::Result(_ty) => todo!(),
                 StdLibType::Null => "Void".to_string(),
                 _ => todo!(),
             },

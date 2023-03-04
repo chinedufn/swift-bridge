@@ -1,4 +1,3 @@
-/***
 //! See also: crates/swift-bridge-ir/src/codegen/codegen_tests/result_codegen_tests.rs
 
 #[swift_bridge::bridge]
@@ -176,4 +175,3 @@ fn same_custom_result_returned_twice_first() -> Result<ffi::SameEnum, ffi::SameE
 fn same_custom_result_returned_twice_second() -> Result<ffi::SameEnum, ffi::SameEnum> {
     todo!()
 }
-***/
