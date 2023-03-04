@@ -308,30 +308,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         header += &vec_functions;
                         header += "\n";
                     }
-                } /***
-                                  TypeDeclaration::CustomResult(custom_result) => {
-                                      let custom_result_type = custom_result.to_bridged_type();
-                                      let c_enum_name = custom_result_type.c_enum_name_string();
-                                      let c_tag_name = custom_result_type.c_tag_name_string();
-                                      let c_fields_name = custom_result_type.c_fields_name_string();
-
-                                      let ok_string = custom_result_type.ok_ty.to_token_stream().to_string();
-                                      let err_string = custom_result_type.err_ty.to_token_stream().to_string();
-                                      let ok_type = BridgedType::new_with_str(&ok_string, &self.types).unwrap();
-                                      let err_type = BridgedType::new_with_str(&err_string, &self.types).unwrap();
-                                      let ok_c_field_name = ok_type.to_c();
-                                      let err_c_field_name = err_type.to_c();
-                                      let ok_c_tag_name = custom_result_type.c_ok_tag_name();
-                                      let err_c_tag_name = custom_result_type.c_err_tag_name();
-
-                                      header += &format!("typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
-                  union {c_fields_name} {{{ok_c_field_name} ok; {err_c_field_name} err;}};
-                  typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}} {c_enum_name};",
-                                      c_enum_name = c_enum_name, c_tag_name = c_tag_name, c_fields_name = c_fields_name, ok_c_field_name = ok_c_field_name, err_c_field_name = err_c_field_name, ok_c_tag_name = ok_c_tag_name, err_c_tag_name = err_c_tag_name,
-                  );
-                                      header += "\n";
-                                  }
-                                  ***/
+                }
             }
         }
         let mut custom_type_declarations: HashSet<String> = HashSet::new();

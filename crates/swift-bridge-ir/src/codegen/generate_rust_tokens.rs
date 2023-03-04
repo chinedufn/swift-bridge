@@ -254,31 +254,7 @@ impl ToTokens for SwiftBridgeModule {
                             extern_swift_fn_tokens.push(free);
                         }
                     };
-                } /***
-                  TypeDeclaration::CustomResult(custom_result) => {
-                      let custom_result_type = custom_result.to_bridged_type();
-                      let ty = custom_result_type.ffi_name_tokens();
-                      let ok = BridgedType::new_with_str(
-                          &custom_result_type.ok_ty.to_token_stream().to_string(),
-                          &self.types,
-                      )
-                      .unwrap()
-                      .to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
-                      let err = BridgedType::new_with_str(
-                          &custom_result_type.err_ty.to_token_stream().to_string(),
-                          &self.types,
-                      )
-                      .unwrap()
-                      .to_ffi_compatible_rust_type(&self.swift_bridge_path, &self.types);
-                      custom_result_definitions.push(quote! {
-                          #[repr(C)]
-                          pub enum #ty {
-                              Ok(#ok),
-                              Err(#err),
-                          }
-                      });
-                  }
-                  ***/
+                }
             }
         }
 
