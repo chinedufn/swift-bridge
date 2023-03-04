@@ -48,6 +48,12 @@ mod ffi {
             succeed: bool,
         ) -> Result<ResultTestOpaqueRustType, ResultTransparentEnum>;
     }
+
+    extern "Rust" {
+        fn rust_func_return_result_unit_type_enum_opaque_rust(
+            succeed: bool,
+        ) -> Result<(), ResultTransparentEnum>;
+    }
 }
 
 fn rust_func_takes_result_string(arg: Result<String, String>) {
@@ -125,6 +131,17 @@ fn rust_func_return_result_transparent_enum_opaque_rust(
 ) -> Result<ResultTestOpaqueRustType, ffi::ResultTransparentEnum> {
     if succeed {
         Ok(ResultTestOpaqueRustType::new(123))
+    } else {
+        Err(ffi::ResultTransparentEnum::NamedField { data: 123 })
+    }
+}
+
+
+fn rust_func_return_result_unit_type_enum_opaque_rust(
+    succeed: bool,
+) -> Result<(), ffi::ResultTransparentEnum> {
+    if succeed {
+        Ok(())
     } else {
         Err(ffi::ResultTransparentEnum::NamedField { data: 123 })
     }

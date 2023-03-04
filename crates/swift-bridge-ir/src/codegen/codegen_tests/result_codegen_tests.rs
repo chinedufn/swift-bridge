@@ -456,9 +456,9 @@ public func some_function() throws -> SomeOkType {
     try {
         let val = __swift_bridge__$some_function();
         switch val.tag {
-        case __swift_bridge__$ResultOk:
+        case __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$ResultOk:
             return SomeOkType(ptr: val.payload.ok)
-        case __swift_bridge__$ResultErr:
+        case __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$ResultErr:
             throw val.payload.err.intoSwiftRepr()
         default:
             fatalError()
@@ -471,7 +471,7 @@ public func some_function() throws -> SomeOkType {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-typedef enum __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag {__swift_bridge__$ResultOk, __swift_bridge__$ResultErr} __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag;
+typedef enum __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag {__swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$ResultOk, __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$ResultErr} __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag;
 union __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Fields {void* ok; struct __swift_bridge__$SomeErrEnum err;};
 typedef struct __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum{__swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum;        
 "#,
@@ -542,9 +542,9 @@ public func some_function() throws -> SomeOkEnum {
     try {
         let val = __swift_bridge__$some_function();
         switch val.tag {
-        case __swift_bridge__$ResultOk:
+        case __swift_bridge__$ResultSomeOkEnumAndSomeErrType$ResultOk:
             return val.payload.ok.intoSwiftRepr()
-        case __swift_bridge__$ResultErr:
+        case __swift_bridge__$ResultSomeOkEnumAndSomeErrType$ResultErr:
             throw SomeErrType(ptr: val.payload.err)
         default:
             fatalError()
@@ -557,7 +557,7 @@ public func some_function() throws -> SomeOkEnum {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-typedef enum __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag {__swift_bridge__$ResultOk, __swift_bridge__$ResultErr} __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag;
+typedef enum __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag {__swift_bridge__$ResultSomeOkEnumAndSomeErrType$ResultOk, __swift_bridge__$ResultSomeOkEnumAndSomeErrType$ResultErr} __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag;
 union __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Fields {struct __swift_bridge__$SomeOkEnum ok; void* err;};
 typedef struct __swift_bridge__$ResultSomeOkEnumAndSomeErrType{__swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag tag; union __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Fields payload;} __swift_bridge__$ResultSomeOkEnumAndSomeErrType;        
 "#,
@@ -621,9 +621,9 @@ public func some_function() throws -> () {
     try {
         let val = __swift_bridge__$some_function();
         switch val.tag {
-        case __swift_bridge__$ResultOk:
+        case __swift_bridge__$ResultVoidAndSomeErrEnum$ResultOk:
             return
-        case __swift_bridge__$ResultErr:
+        case __swift_bridge__$ResultVoidAndSomeErrEnum$ResultErr:
             throw val.payload.err.intoSwiftRepr()
         default:
             fatalError()
@@ -636,7 +636,7 @@ public func some_function() throws -> () {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-typedef enum __swift_bridge__$ResultVoidAndSomeErrEnum$Tag {__swift_bridge__$ResultOk, __swift_bridge__$ResultErr} __swift_bridge__$ResultVoidAndSomeErrEnum$Tag;
+typedef enum __swift_bridge__$ResultVoidAndSomeErrEnum$Tag {__swift_bridge__$ResultVoidAndSomeErrEnum$ResultOk, __swift_bridge__$ResultVoidAndSomeErrEnum$ResultErr} __swift_bridge__$ResultVoidAndSomeErrEnum$Tag;
 union __swift_bridge__$ResultVoidAndSomeErrEnum$Fields {struct __swift_bridge__$SomeErrEnum err;};
 typedef struct __swift_bridge__$ResultVoidAndSomeErrEnum{__swift_bridge__$ResultVoidAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultVoidAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultVoidAndSomeErrEnum;        
 "#,

@@ -94,4 +94,34 @@ class ResultTests: XCTestCase {
             }
         }
     }
+    
+    func testResultUnitTypeTransparentEnum() throws {
+        XCTContext.runActivity(named: "Should return a Unit type") {
+            _ in
+            do {
+                let _ :() = try rust_func_return_result_unit_type_enum_opaque_rust(true)
+            } catch {
+                XCTFail()
+            }
+        }
+    
+        XCTContext.runActivity(named: "Should throw an error") {
+            _ in
+            do {
+                let _ :() = try rust_func_return_result_unit_type_enum_opaque_rust(false)
+                XCTFail("The function should have returned an error.")
+            } catch let error as ResultTransparentEnum {
+                switch error {
+                case .NamedField(let data):
+                    XCTAssertEqual(data, 123)
+                case .UnnamedFields(_, _):
+                    XCTFail()
+                case .NoFields:
+                    XCTFail()
+                }
+            } catch {
+                XCTFail()
+            }
+        }
+    }
 }

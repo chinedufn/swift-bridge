@@ -202,8 +202,9 @@ impl BuiltInResult {
             if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!();
             }
-            let c_ok_name  = format!("{}$ResultOk", SWIFT_BRIDGE_PREFIX);
-            let c_err_name =  format!("{}$ResultErr", SWIFT_BRIDGE_PREFIX);
+            let c_type = format!("Result{}And{}", self.ok_ty_string, self.err_ty_string);
+            let c_ok_name  = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
+            let c_err_name =  format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
             let ok_swift_type = if self.ok_ty.can_be_encoded_with_zero_bytes() {
                 "".to_string()
             } else {
@@ -355,8 +356,9 @@ impl BuiltInResult {
                 format!("{} ok; ", self.ok_ty.to_c_type())
             };
             let err_c_field_name = self.err_ty.to_c_type();
-            let ok_c_tag_name = format!("{}$ResultOk", SWIFT_BRIDGE_PREFIX);
-            let err_c_tag_name = format!("{}$ResultErr", SWIFT_BRIDGE_PREFIX);
+            let c_type = format!("Result{}And{}", self.ok_ty_string, self.err_ty_string);
+            let ok_c_tag_name = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
+            let err_c_tag_name = format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
 
             return Some(format!("typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
 union {c_fields_name} {{{ok_c_field_name}{err_c_field_name} err;}};
