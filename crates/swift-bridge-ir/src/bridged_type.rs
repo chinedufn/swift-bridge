@@ -21,7 +21,6 @@ pub(crate) use self::shared_enum::{EnumVariant, SharedEnum};
 pub(crate) use self::shared_struct::{SharedStruct, StructFields, StructSwiftRepr};
 
 pub(crate) mod boxed_fn;
-pub mod bridgeable_custom_result;
 mod bridgeable_pointer;
 mod bridgeable_primitive;
 mod bridgeable_result;
