@@ -45,7 +45,7 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
-    fn generate_ffi_definition(
+    fn generate_custom_rust_ffi_type(
         &self,
         _swift_bridge_path: &Path,
         _types: &TypeDeclarations,
@@ -53,7 +53,7 @@ impl BridgeableType for BuiltInPointer {
         None
     }
 
-    fn generate_c_declaration(&self) -> Option<String> {
+    fn generate_custom_c_ffi_type(&self) -> Option<String> {
         None
     }
 

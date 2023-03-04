@@ -403,7 +403,7 @@ fn declare_func(
 
     if let ReturnType::Type(_, ty) = &func.func.sig.output {
         if let Some(ty) = BridgedType::new_with_type(&ty, types) {
-            if let Some(declaration) = &ty.generate_c_declaration() {
+            if let Some(declaration) = &ty.generate_custom_c_ffi_type() {
                 custom_type_declarations.insert(declaration.clone());
             }
             if let BridgedType::StdLib(StdLibType::RefSlice(ref_slice)) = ty {

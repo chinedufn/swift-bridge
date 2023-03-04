@@ -316,7 +316,7 @@ impl BuiltInResult {
         }
     }
 
-    pub fn generate_ffi_definition(
+    pub fn generate_custom_rust_ffi_type(
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
@@ -350,7 +350,7 @@ impl BuiltInResult {
         });
     }
 
-    pub fn generate_c_declaration(&self) -> Option<String> {
+    pub fn generate_custom_c_ffi_type(&self) -> Option<String> {
         if !self.is_custom_result_type() {
             return None;
         }

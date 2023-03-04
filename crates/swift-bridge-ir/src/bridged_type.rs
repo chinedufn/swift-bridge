@@ -81,14 +81,27 @@ pub(crate) trait BridgeableType: Debug {
     fn is_passed_via_pointer(&self) -> bool;
 
     /// Generate the type's ffi definition if needed.
-    fn generate_ffi_definition(
+    /// 
+    /// # Examples
+    /// String -> None
+    /// Result<String, OpaqueRust> -> None
+    /// Result<(), TransparentEnum> -> pub enum ResultVoidAndTransparentEnum { //... }
+    fn generate_custom_rust_ffi_type(
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> Option<TokenStream>;
 
-    /// Generate the type's c declaration
-    fn generate_c_declaration(&self) -> Option<String>;
+    /// Generate the type's c declaration if needed.
+    /// 
+    /// # Examples
+    /// String -> None
+    /// Result<String, OpaqueRust> -> None
+    /// Result<(), TransparentEnum> -> 
+    /// typedef enum __swift_bridge__$ResultVoidAndTransparentEnum$Tag { //... };
+    /// // ...
+    /// typedef struct __swift_bridge__$ResultVoidAndTransparentEnum { //... }; 
+    fn generate_custom_c_ffi_type(&self) -> Option<String>;
 
     /// Get the Rust representation of this type.
     /// For a string this might be `std::string::String`.
@@ -471,25 +484,25 @@ impl BridgeableType for BridgedType {
         }
     }
 
-    fn generate_ffi_definition(
+    fn generate_custom_rust_ffi_type(
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> Option<TokenStream> {
         match self {
             BridgedType::StdLib(ty) => match ty {
-                StdLibType::Result(ty) => ty.generate_ffi_definition(swift_bridge_path, types),
+                StdLibType::Result(ty) => ty.generate_custom_rust_ffi_type(swift_bridge_path, types),
                 _ => None,
             },
             BridgedType::Foreign(_) => None,
-            BridgedType::Bridgeable(ty) => ty.generate_ffi_definition(swift_bridge_path, types),
+            BridgedType::Bridgeable(ty) => ty.generate_custom_rust_ffi_type(swift_bridge_path, types),
         }
     }
 
-    fn generate_c_declaration(&self) -> Option<String> {
+    fn generate_custom_c_ffi_type(&self) -> Option<String> {
         match self {
             BridgedType::StdLib(ty) => match ty {
-                StdLibType::Result(ty) => ty.generate_c_declaration(),
+                StdLibType::Result(ty) => ty.generate_custom_c_ffi_type(),
                 _ => None,
             },
             BridgedType::Foreign(_) => None,
