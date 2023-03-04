@@ -316,7 +316,7 @@ impl BuiltInResult {
     }
 
     pub fn generate_ffi_definition(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> Option<TokenStream> {
-        if !(self.ok_ty.is_passed_via_pointer() && self.err_ty.is_passed_via_pointer()) {
+        if self.is_custom_result_type() {
             if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!()
             }
