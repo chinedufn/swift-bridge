@@ -249,6 +249,10 @@ impl BridgeableType for BuiltInPointer {
     fn only_encoding(&self) -> Option<super::OnlyEncoding> {
         todo!()
     }
+
+    fn to_alpha_numeric_underscore_name(&self) -> String {
+        todo!()
+    }
 }
 
 impl PointerKind {
@@ -262,6 +266,7 @@ impl PointerKind {
             }
         }
     }
+    
 }
 
 impl Pointee {

@@ -289,4 +289,8 @@ impl BridgeableType for BridgedString {
     fn has_swift_bridge_copy_annotation(&self) -> bool {
         false
     }
+
+    fn to_alpha_numeric_underscore_name(&self) -> String {
+        todo!()
+    }
 }

@@ -621,6 +621,13 @@ impl BridgeableType for OpaqueForeignType {
     fn has_swift_bridge_copy_annotation(&self) -> bool {
         self.has_swift_bridge_copy_annotation
     }
+
+    fn to_alpha_numeric_underscore_name(&self) -> String {
+        if self.generics.len() >= 1 {
+            todo!()
+        }
+        self.ty.to_string()
+    }
 }
 
 impl OpaqueForeignType {

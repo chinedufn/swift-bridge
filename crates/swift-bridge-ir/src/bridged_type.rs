@@ -284,6 +284,15 @@ pub(crate) trait BridgeableType: Debug {
 
     /// Whether or not this type is annotated with `#[swift_bridge(Copy(..))]`
     fn has_swift_bridge_copy_annotation(&self) -> bool;
+
+    /// Get this type's underscore name.
+    /// 
+    /// # Examples
+    /// 
+    /// type Foo would return Foo
+    /// Option<T> would return Option_{T.to_alpha_numeric_underscore_name()}
+    /// () would return "Void"
+    fn to_alpha_numeric_underscore_name(&self) -> String;
 }
 
 /// Parse a BridgeableType from a stringified token stream.
@@ -659,6 +668,23 @@ impl BridgeableType for BridgedType {
         match self {
             BridgedType::Bridgeable(b) => b.has_swift_bridge_copy_annotation(),
             _ => false,
+        }
+    }
+
+    fn to_alpha_numeric_underscore_name(&self) -> String {
+        match self {
+            BridgedType::StdLib(ty) => match ty {
+                StdLibType::Result(ty) => todo!(),
+                StdLibType::Null => "Void".to_string(),
+                _ => todo!(),
+            },
+            BridgedType::Foreign(ty) => match ty {
+                CustomBridgedType::Shared(ty) => match ty {
+                    SharedType::Struct(_ty) => todo!(),
+                    SharedType::Enum(ty) => ty.name.to_string()
+                }
+            },
+            BridgedType::Bridgeable(b) => b.to_alpha_numeric_underscore_name(),
         }
     }
 }

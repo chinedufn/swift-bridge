@@ -17,14 +17,12 @@ use syn::Path;
 pub(crate) struct BuiltInResult {
     pub ok_ty: Box<dyn BridgeableType>,
     pub err_ty: Box<dyn BridgeableType>,
-    ok_ty_string: String,
-    err_ty_string: String,
 }
 
 impl BuiltInResult {
     pub(super) fn to_ffi_compatible_rust_type(&self, swift_bridge_path: &Path) -> TokenStream {
         if self.is_custom_result_type() {
-            let ty = format_ident!("Result{}And{}", self.ok_ty_string, self.err_ty_string);
+            let ty = format_ident!("{}", self.c_struct_name());
             return quote! {
                 #ty
             };
@@ -206,7 +204,7 @@ impl BuiltInResult {
             if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!();
             }
-            let c_type = format!("Result{}And{}", self.ok_ty_string, self.err_ty_string);
+            let c_type = self.c_struct_name();
             let c_ok_name = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
             let c_err_name = format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
             let ok_swift_type = if self.ok_ty.can_be_encoded_with_zero_bytes() {
@@ -308,8 +306,8 @@ impl BuiltInResult {
     pub fn to_c(&self) -> String {
         if self.is_custom_result_type() {
             return format!(
-                "struct {}$Result{}And{}",
-                SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string
+                "struct {}${}",
+                SWIFT_BRIDGE_PREFIX, self.c_struct_name()
             );
         }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
@@ -363,8 +361,8 @@ impl BuiltInResult {
             todo!();
         }
         let c_type = format!(
-            "{}$Result{}And{}",
-            SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string
+            "{}${}",
+            SWIFT_BRIDGE_PREFIX, self.c_struct_name()
         );
         let c_enum_name = c_type.clone();
         let c_tag_name = format!("{}$Tag", c_type.clone());
@@ -376,7 +374,7 @@ impl BuiltInResult {
             format!("{} ok; ", self.ok_ty.to_c_type())
         };
         let err_c_field_name = self.err_ty.to_c_type();
-        let c_type = format!("Result{}And{}", self.ok_ty_string, self.err_ty_string);
+        let c_type = self.c_struct_name();
         let ok_c_tag_name = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
         let err_c_tag_name = format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
 
@@ -424,22 +422,41 @@ impl BuiltInResult {
         let ok = ok_and_err.next()?.trim();
         let err = ok_and_err.next()?.trim();
 
-        let ok_ty_string = if ok == "()" {
-            format!("Void")
-        } else {
-            format!("{}", ok)
-        };
-        let err_ty_string = format!("{}", err);
-
         let ok = BridgedType::new_with_str(ok, types)?;
         let err = BridgedType::new_with_str(err, types)?;
 
         Some(BuiltInResult {
             ok_ty: Box::new(ok),
             err_ty: Box::new(err),
-            ok_ty_string,
-            err_ty_string,
         })
+    }
+}
+
+impl BuiltInResult {
+    fn c_struct_name(&self) -> String {
+        let ok = &self.ok_ty;
+        let err = &self.err_ty;
+
+        if ok.can_be_encoded_with_zero_bytes() && err.is_passed_via_pointer() {
+            return "ResultVoidAndPtr".to_string();
+        }
+
+        if ok.is_passed_via_pointer() && err.can_be_encoded_with_zero_bytes() {
+            return "ResultPtrAndVoid".to_string();
+        }
+
+        let ok  = ok.to_alpha_numeric_underscore_name();
+        let err =        err.to_alpha_numeric_underscore_name();
+
+        format!("Result{ok}And{err}")
+    }
+
+    fn c_ok_tag_name(&self) -> String {
+        unimplemented!()
+    }
+
+    fn c_err_tag_name(&self) -> String {
+        unimplemented!()
     }
 }
 
