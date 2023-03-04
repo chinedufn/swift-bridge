@@ -81,7 +81,7 @@ pub(crate) trait BridgeableType: Debug {
     fn is_passed_via_pointer(&self) -> bool;
 
     /// Generate the type's ffi definition if needed.
-    /// 
+    ///
     /// # Examples
     /// String -> None
     /// Result<String, OpaqueRust> -> None
@@ -93,14 +93,14 @@ pub(crate) trait BridgeableType: Debug {
     ) -> Option<TokenStream>;
 
     /// Generate the type's c declaration if needed.
-    /// 
+    ///
     /// # Examples
     /// String -> None
     /// Result<String, OpaqueRust> -> None
-    /// Result<(), TransparentEnum> -> 
+    /// Result<(), TransparentEnum> ->
     /// typedef enum __swift_bridge__$ResultVoidAndTransparentEnum$Tag { //... };
     /// // ...
-    /// typedef struct __swift_bridge__$ResultVoidAndTransparentEnum { //... }; 
+    /// typedef struct __swift_bridge__$ResultVoidAndTransparentEnum { //... };
     fn generate_custom_c_ffi_type(&self) -> Option<String>;
 
     /// Get the Rust representation of this type.
@@ -491,11 +491,15 @@ impl BridgeableType for BridgedType {
     ) -> Option<TokenStream> {
         match self {
             BridgedType::StdLib(ty) => match ty {
-                StdLibType::Result(ty) => ty.generate_custom_rust_ffi_type(swift_bridge_path, types),
+                StdLibType::Result(ty) => {
+                    ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
+                }
                 _ => None,
             },
             BridgedType::Foreign(_) => None,
-            BridgedType::Bridgeable(ty) => ty.generate_custom_rust_ffi_type(swift_bridge_path, types),
+            BridgedType::Bridgeable(ty) => {
+                ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
+            }
         }
     }
 
