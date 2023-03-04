@@ -327,69 +327,70 @@ impl BuiltInResult {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> Option<TokenStream> {
-        if self.is_custom_result_type() {
-            if self.err_ty.can_be_encoded_with_zero_bytes() {
-                todo!()
-            }
-            let ty = self.to_ffi_compatible_rust_type(swift_bridge_path);
-            let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
-                quote! {* mut std :: ffi :: c_void}
-            } else {
-                self.ok_ty
-                    .to_ffi_compatible_rust_type(swift_bridge_path, types)
-            };
-
-            let err = self
-                .err_ty
-                .to_ffi_compatible_rust_type(swift_bridge_path, types);
-            return Some(quote! {
-                #[repr(C)]
-                pub enum #ty {
-                    Ok(#ok),
-                    Err(#err),
-                }
-            });
+        if !self.is_custom_result_type() {
+            return None;
         }
-        return None;
+
+        if self.err_ty.can_be_encoded_with_zero_bytes() {
+            todo!()
+        }
+        let ty = self.to_ffi_compatible_rust_type(swift_bridge_path);
+        let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            quote! {* mut std :: ffi :: c_void}
+        } else {
+            self.ok_ty
+                .to_ffi_compatible_rust_type(swift_bridge_path, types)
+        };
+
+        let err = self
+            .err_ty
+            .to_ffi_compatible_rust_type(swift_bridge_path, types);
+        return Some(quote! {
+            #[repr(C)]
+            pub enum #ty {
+                Ok(#ok),
+                Err(#err),
+            }
+        });
     }
 
     pub fn generate_c_declaration(&self) -> Option<String> {
-        if self.is_custom_result_type() {
-            if self.err_ty.can_be_encoded_with_zero_bytes() {
-                todo!();
-            }
-            let c_type = format!(
-                "{}$Result{}And{}",
-                SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string
-            );
-            let c_enum_name = c_type.clone();
-            let c_tag_name = format!("{}$Tag", c_type.clone());
-            let c_fields_name = format!("{}$Fields", c_type);
+        if !self.is_custom_result_type() {
+            return None;
+        }
+        if self.err_ty.can_be_encoded_with_zero_bytes() {
+            todo!();
+        }
+        let c_type = format!(
+            "{}$Result{}And{}",
+            SWIFT_BRIDGE_PREFIX, self.ok_ty_string, self.err_ty_string
+        );
+        let c_enum_name = c_type.clone();
+        let c_tag_name = format!("{}$Tag", c_type.clone());
+        let c_fields_name = format!("{}$Fields", c_type);
 
-            let ok_c_field_name = if self.ok_ty.can_be_encoded_with_zero_bytes() {
-                "".to_string()
-            } else {
-                format!("{} ok; ", self.ok_ty.to_c_type())
-            };
-            let err_c_field_name = self.err_ty.to_c_type();
-            let c_type = format!("Result{}And{}", self.ok_ty_string, self.err_ty_string);
-            let ok_c_tag_name = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
-            let err_c_tag_name = format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
+        let ok_c_field_name = if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            "".to_string()
+        } else {
+            format!("{} ok; ", self.ok_ty.to_c_type())
+        };
+        let err_c_field_name = self.err_ty.to_c_type();
+        let c_type = format!("Result{}And{}", self.ok_ty_string, self.err_ty_string);
+        let ok_c_tag_name = format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, c_type);
+        let err_c_tag_name = format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, c_type);
 
-            return Some(format!(
-                "typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
+        return Some(format!(
+            "typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
 union {c_fields_name} {{{ok_c_field_name}{err_c_field_name} err;}};
 typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}} {c_enum_name};",
-                c_enum_name = c_enum_name,
-                c_tag_name = c_tag_name,
-                c_fields_name = c_fields_name,
-                ok_c_field_name = ok_c_field_name,
-                err_c_field_name = err_c_field_name,
-                ok_c_tag_name = ok_c_tag_name,
-                err_c_tag_name = err_c_tag_name,
-            ));
-        }
-        return None;
+            c_enum_name = c_enum_name,
+            c_tag_name = c_tag_name,
+            c_fields_name = c_fields_name,
+            ok_c_field_name = ok_c_field_name,
+            err_c_field_name = err_c_field_name,
+            ok_c_tag_name = ok_c_tag_name,
+            err_c_tag_name = err_c_tag_name,
+        ));
     }
 
     fn is_custom_result_type(&self) -> bool {
