@@ -65,6 +65,7 @@ class ResultTests: XCTestCase {
         }
     }
     
+    /// Verify that we can receive a Result<OpaqueRust, TransparentEnum> from Rust
     func testResultOpaqueRustTransparentEnum() throws {
         XCTContext.runActivity(named: "Should return a ResultTestOpaqueRustType") {
             _ in
@@ -95,6 +96,7 @@ class ResultTests: XCTestCase {
         }
     }
     
+    /// Verify that we can receive a Result<TransparentEnum, OpaqueRust> from Rust
     func testResultTransparentEnumOpaqueRust() throws {
         XCTContext.runActivity(named: "Should return a ResultTestOpaqueRustType") {
             _ in
@@ -119,13 +121,14 @@ class ResultTests: XCTestCase {
                 let _: ResultTransparentEnum = try rust_func_return_result_transparent_enum_opaque_rust(false)
                 XCTFail("The function should have returned an error.")
             } catch _ as ResultTestOpaqueRustType {
-                //
+
             } catch {
                 XCTFail()
             }
         }
     }
     
+    /// Verify that we can receive a Result<(), TransparentEnum> from Rust
     func testResultUnitTypeTransparentEnum() throws {
         XCTContext.runActivity(named: "Should return a Unit type") {
             _ in
