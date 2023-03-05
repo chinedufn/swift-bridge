@@ -26,7 +26,7 @@ impl BuiltInResult {
         types: &TypeDeclarations,
     ) -> TokenStream {
         if self.is_custom_result_type() {
-            let ty = format_ident!("{}", self.c_struct_name());
+            let ty = format_ident!("{}", self.custom_c_struct_name());
             return quote! {
                 #ty
             };
@@ -298,7 +298,7 @@ impl BuiltInResult {
 
     pub fn to_c(&self) -> String {
         if self.is_custom_result_type() {
-            return format!("struct {}${}", SWIFT_BRIDGE_PREFIX, self.c_struct_name());
+            return format!("struct {}${}", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name());
         }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
@@ -351,7 +351,7 @@ impl BuiltInResult {
         if self.err_ty.can_be_encoded_with_zero_bytes() {
             todo!();
         }
-        let c_type = format!("{}${}", SWIFT_BRIDGE_PREFIX, self.c_struct_name());
+        let c_type = format!("{}${}", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name());
         let c_enum_name = c_type.clone();
         let c_tag_name = format!("{}$Tag", c_type.clone());
         let c_fields_name = format!("{}$Fields", c_type);
@@ -420,7 +420,7 @@ impl BuiltInResult {
 }
 
 impl BuiltInResult {
-    fn c_struct_name(&self) -> String {
+    fn custom_c_struct_name(&self) -> String {
         let ok = &self.ok_ty;
         let err = &self.err_ty;
 
@@ -430,11 +430,11 @@ impl BuiltInResult {
         format!("Result{ok}And{err}")
     }
     fn c_ok_tag_name(&self) -> String {
-        format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, self.c_struct_name())
+        format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name())
     }
 
     fn c_err_tag_name(&self) -> String {
-        format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, self.c_struct_name())
+        format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name())
     }
 }
 
