@@ -1,5 +1,6 @@
 use crate::bridged_type::{BridgeableType, BridgedType, TypePosition};
 use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
+use crate::parse::HostLang;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
 use syn::Path;
@@ -184,6 +185,15 @@ impl BuiltInResult {
                 )
             }
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                if self.ok_ty.can_be_encoded_with_zero_bytes() {
+                    todo!()
+                }
+                if self.err_ty.can_be_encoded_with_zero_bytes() {
+                    todo!()
+                }
+                if self.is_custom_result_type() {
+                    return format!("{}${}", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name());
+                }
                 "__private__ResultPtrAndPtr".to_string()
             }
         }
@@ -228,7 +238,7 @@ impl BuiltInResult {
                     err_swift_type = err_swift_type
                 ),
                 TypePosition::SharedStructField => todo!(),
-                TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
+                TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => format!("なにわ"),
             };
         }
 
@@ -399,6 +409,29 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         }
 
         return true;
+    }
+
+    pub fn generate_async_run_wrapper_cb(&self, types: &TypeDeclarations) -> String {
+        if self.is_custom_result_type() {
+            format!(
+                r#"switch rustFnRetVal.tag {{ case __swift_bridge__$ResultOkEnumAndErrEnum$ResultOk: wrapper.cb(.success(rustFnRetVal.payload.ok.intoSwiftRepr())) case __swift_bridge__$ResultOkEnumAndErrEnum$ResultErr: wrapper.cb(.failure(rustFnRetVal.payload.err.intoSwiftRepr())) default: fatalError() }}"#
+            )
+        } else {
+            let ok = self
+            .ok_ty
+            .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
+            let err = self
+            .err_ty
+            .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
+
+            format!(
+                    r#"if rustFnRetVal.is_ok {{
+        wrapper.cb(.success({ok}(ptr: rustFnRetVal.ok_or_err!)))
+    }} else {{
+        wrapper.cb(.failure({err}(ptr: rustFnRetVal.ok_or_err!)))
+    }}"#
+            )
+        }
     }
 }
 

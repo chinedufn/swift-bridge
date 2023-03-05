@@ -704,10 +704,10 @@ mod extern_rust_async_function_returns_result_transparent_enum {
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
-public func some_function() async throws -> OkType {
+public func some_function() async throws -> OkEnum {
     func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: __swift_bridge__$ResultOkEnumAndErrEnum) {
         let wrapper = Unmanaged<CbWrapper$some_function>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
-        switch val.tag { case __swift_bridge__$ResultOkEnumAndErrEnum$ResultOk: wrapper.cb(.success(val.payload.ok.intoSwiftRepr())) case __swift_bridge__$ResultOkEnumAndErrEnum$ResultErr: wrapper.cb(.failure(val.payload.err.intoSwiftRepr())) }
+        switch rustFnRetVal.tag { case __swift_bridge__$ResultOkEnumAndErrEnum$ResultOk: wrapper.cb(.success(rustFnRetVal.payload.ok.intoSwiftRepr())) case __swift_bridge__$ResultOkEnumAndErrEnum$ResultErr: wrapper.cb(.failure(rustFnRetVal.payload.err.intoSwiftRepr())) default: fatalError() }
     }
 
     return try await withCheckedThrowingContinuation({ (continuation: CheckedContinuation<OkEnum, Error>) in

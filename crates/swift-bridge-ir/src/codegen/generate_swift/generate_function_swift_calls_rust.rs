@@ -213,20 +213,9 @@ pub(super) fn gen_func_swift_calls_rust(
         let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
         let (run_wrapper_cb, error, maybe_try, with_checked_continuation_function_name) =
             if let Some(result) = func_ret_ty.as_result() {
-                let ok = result
-                    .ok_ty
-                    .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
-                let err = result
-                    .err_ty
-                    .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
+                let run_wrapper_cb = result.generate_async_run_wrapper_cb(types);
                 (
-                    format!(
-                        r#"if rustFnRetVal.is_ok {{
-        wrapper.cb(.success({ok}(ptr: rustFnRetVal.ok_or_err!)))
-    }} else {{
-        wrapper.cb(.failure({err}(ptr: rustFnRetVal.ok_or_err!)))
-    }}"#
-                    ),
+                    run_wrapper_cb,
                     "Error".to_string(),
                     " try ".to_string(),
                     "withCheckedThrowingContinuation".to_string(),
