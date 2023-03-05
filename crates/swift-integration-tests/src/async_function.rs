@@ -57,6 +57,8 @@ mod ffi {
 
     extern "Rust" {
         async fn rust_async_func_return_result_transparent_enum_and_transparent_enum(succeed: bool) -> Result<AsyncResultOkEnum, AsyncResultErrEnum>;
+        async fn rust_async_func_return_result_opaque_rust_and_transparent_enum(succeed: bool) -> Result<AsyncResultOpaqueRustType1, AsyncResultErrEnum>;
+        async fn rust_async_func_return_result_transparent_enum_and_opaque_rust(succeed: bool) -> Result<AsyncResultOkEnum, AsyncResultOpaqueRustType1>;
     }
 }
 
@@ -131,5 +133,21 @@ async fn rust_async_func_return_result_transparent_enum_and_transparent_enum(suc
         Ok(ffi::AsyncResultOkEnum::UnnamedFields(123, "hello".to_string()))
     } else {
         Err(ffi::AsyncResultErrEnum::NamedFields { value: 100 })
+    }
+}
+
+async fn rust_async_func_return_result_opaque_rust_and_transparent_enum(succeed: bool) -> Result<AsyncResultOpaqueRustType1, ffi::AsyncResultErrEnum> {
+    if succeed {
+        Ok(AsyncResultOpaqueRustType1(10))
+    } else {
+        Err(ffi::AsyncResultErrEnum::NamedFields { value: 1000 })
+    }
+}
+
+async fn rust_async_func_return_result_transparent_enum_and_opaque_rust(succeed: bool) -> Result<ffi::AsyncResultOkEnum, AsyncResultOpaqueRustType1> {
+    if succeed {
+        Ok(ffi::AsyncResultOkEnum::NoFields)
+    } else {
+        Err(AsyncResultOpaqueRustType1(1000))
     }
 }

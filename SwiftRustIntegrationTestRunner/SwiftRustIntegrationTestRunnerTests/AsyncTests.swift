@@ -62,7 +62,7 @@ class AsyncTests: XCTestCase {
         }
     }
     
-    //Verify that we can return a Result<TransparentEnum, TransparentEnum> from async Rust function
+    /// Verify that we can return a Result<TransparentEnum, TransparentEnum> from async Rust function
     func testSwiftCallsRustAsyncFnReturnResultTransparentEnum() async throws {
         
         //Should return an AsyncResultOkEnum
@@ -84,6 +84,7 @@ class AsyncTests: XCTestCase {
         //Should throw an AsyncResultErrEnum
         do {
             let _ = try await rust_async_func_return_result_transparent_enum_and_transparent_enum(false)
+            XCTFail()
         } catch let error as AsyncResultErrEnum {
             switch error {
             case .NoFields:
@@ -96,6 +97,62 @@ class AsyncTests: XCTestCase {
         } catch {
             XCTFail()
         }
+    }
+    
+    /// Verify that we can return a Result<OpaqueRust, TransparentEnum> from async Rust function
+    func testSwiftCallsRustAsyncFnReturnResultOpaqueRustTransparentEnum() async throws {
+        //Should return an AsyncResultOpaqueRustType1
+        do {
+            let value: AsyncResultOpaqueRustType1 = try await rust_async_func_return_result_opaque_rust_and_transparent_enum(true)
+            XCTAssertEqual(value.val(), 10)
+        } catch {
+            XCTFail()
+        }
+        
+        //Should throw an AsyncResultErrEnum
+        do {
+            let _: AsyncResultOpaqueRustType1 = try await rust_async_func_return_result_opaque_rust_and_transparent_enum(false)
+        } catch let error as AsyncResultErrEnum {
+            switch error {
+            case .NoFields:
+                XCTFail()
+            case .UnnamedFields(_, _):
+                XCTFail()
+            case .NamedFields(let value):
+                XCTAssertEqual(value, 1000)
+            }
+        } catch {
+            XCTFail()
+        }
+    }
+    
+    /// Verify that we can return a Result<TransparentEnum, OpaqueRust> from async Rust function
+    func testSwiftCallsRustAsyncFnReturnResultTransparentEnumOpaqueRust() async throws {
+        //Should return an AsyncResultOkEnum
+        do {
+            let value: AsyncResultOkEnum = try await rust_async_func_return_result_transparent_enum_and_opaque_rust(true)
+            switch value {
+            case .NoFields:
+                break
+            case .UnnamedFields(_, _):
+                XCTFail()
+            case .NamedFields(let value):
+                XCTFail()
+            }
+        } catch {
+            XCTFail()
+        }
+        
+        //Should throw an AsyncResultOpaqueRustType1
+        do {
+            let _ = try await rust_async_func_return_result_transparent_enum_and_opaque_rust(false)
+            XCTFail()
+        } catch let error as AsyncResultOpaqueRustType1 {
+            XCTAssertEqual(error.val(), 1000)
+        } catch {
+            XCTFail()
+        }
+        
     }
     
     func testSwiftCallsRustAsyncFnRetStruct() async throws {
