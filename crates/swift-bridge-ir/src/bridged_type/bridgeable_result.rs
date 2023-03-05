@@ -412,9 +412,11 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
 
     pub fn generate_async_run_wrapper_cb(&self, expression: &str, type_pos: TypePosition, types: &TypeDeclarations) -> String {
         if self.is_custom_result_type() {
+            let ok = self.ok_ty.convert_ffi_expression_to_swift_type(&format!("{expression}.payload.ok"), type_pos, types);
+            let err = self.err_ty.convert_ffi_expression_to_swift_type(&format!("{expression}.payload.err"), type_pos, types);
             return format!(
-                r#"switch {expression}.tag {{ case {c_ok_tag_name}: wrapper.cb(.success({expression}.payload.ok.intoSwiftRepr())) case {c_err_tag_name}: wrapper.cb(.failure({expression}.payload.err.intoSwiftRepr())) default: fatalError() }}"#
-            , expression = expression, c_ok_tag_name = self.c_ok_tag_name(), c_err_tag_name = self.c_err_tag_name());
+                r#"switch {expression}.tag {{ case {c_ok_tag_name}: wrapper.cb(.success({ok})) case {c_err_tag_name}: wrapper.cb(.failure({err})) default: fatalError() }}"#
+            , expression = expression, ok = ok, err = err, c_ok_tag_name = self.c_ok_tag_name(), c_err_tag_name = self.c_err_tag_name());
         }
         let ok = self
         .ok_ty
