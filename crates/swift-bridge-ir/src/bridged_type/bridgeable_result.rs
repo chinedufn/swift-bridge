@@ -410,11 +410,11 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         return true;
     }
 
-    pub fn generate_async_run_wrapper_cb(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+    pub fn generate_async_run_wrapper_cb(&self, expression: &str, type_pos: TypePosition, types: &TypeDeclarations) -> String {
         if self.is_custom_result_type() {
             return format!(
-                r#"switch rustFnRetVal.tag {{ case __swift_bridge__$ResultOkEnumAndErrEnum$ResultOk: wrapper.cb(.success(rustFnRetVal.payload.ok.intoSwiftRepr())) case __swift_bridge__$ResultOkEnumAndErrEnum$ResultErr: wrapper.cb(.failure(rustFnRetVal.payload.err.intoSwiftRepr())) default: fatalError() }}"#
-            );
+                r#"switch {expression}.tag {{ case {c_ok_tag_name}: wrapper.cb(.success({expression}.payload.ok.intoSwiftRepr())) case {c_err_tag_name}: wrapper.cb(.failure({expression}.payload.err.intoSwiftRepr())) default: fatalError() }}"#
+            , expression = expression, c_ok_tag_name = self.c_ok_tag_name(), c_err_tag_name = self.c_err_tag_name());
         }
         let ok = self
         .ok_ty
