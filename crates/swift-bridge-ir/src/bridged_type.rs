@@ -1037,7 +1037,9 @@ impl BridgedType {
                         quote! { #name }
                     }
                 },
-                StdLibType::Result(result) => result.to_ffi_compatible_rust_type(swift_bridge_path, types),
+                StdLibType::Result(result) => {
+                    result.to_ffi_compatible_rust_type(swift_bridge_path, types)
+                }
                 StdLibType::BoxedFnOnce(fn_once) => fn_once.to_ffi_compatible_rust_type(types),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {

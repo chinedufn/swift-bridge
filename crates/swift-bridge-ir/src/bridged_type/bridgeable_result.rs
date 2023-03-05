@@ -20,7 +20,11 @@ pub(crate) struct BuiltInResult {
 }
 
 impl BuiltInResult {
-    pub(super) fn to_ffi_compatible_rust_type(&self, swift_bridge_path: &Path, types: &TypeDeclarations,) -> TokenStream {
+    pub(super) fn to_ffi_compatible_rust_type(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         if self.is_custom_result_type() {
             let ty = format_ident!("{}", self.c_struct_name());
             return quote! {
@@ -235,17 +239,18 @@ impl BuiltInResult {
             } else {
                 ok = " ".to_string() + &ok;
             }
-            let err = self.err_ty.convert_ffi_expression_to_swift_type("val!", type_pos, types);
+            let err = self
+                .err_ty
+                .convert_ffi_expression_to_swift_type("val!", type_pos, types);
             return format!("try {{ let val = {expression}; if val != nil {{ throw {err} }} else {{ return{ok} }} }}()", expression = expression, err = err, ok = ok);
         }
 
-        let ok =
-            self.ok_ty
-                .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+        let ok = self
+            .ok_ty
+            .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
         let err =
             self.err_ty
                 .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
-
 
         // There is a Swift compiler bug in Xcode 13 where using an explicit `()` here somehow leads
         // the Swift compiler to a compile time error:

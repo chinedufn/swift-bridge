@@ -44,4 +44,3 @@ pub struct ResultPtrAndPtr {
     pub is_ok: bool,
     pub ok_or_err: *mut std::ffi::c_void,
 }
-
