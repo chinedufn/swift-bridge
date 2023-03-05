@@ -660,8 +660,8 @@ mod extern_rust_async_function_returns_result_transparent_enum {
             #[swift_bridge::bridge]
             mod ffi {
                 enum OkEnum {
-                    OkVariant1, 
-                    OkVariant2, 
+                    OkVariant1,
+                    OkVariant2,
                 }
                 enum ErrEnum {
                     ErrVariant1,

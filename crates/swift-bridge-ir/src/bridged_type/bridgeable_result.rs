@@ -410,23 +410,37 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         return true;
     }
 
-    pub fn generate_async_run_wrapper_cb(&self, expression: &str, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+    pub fn generate_async_run_wrapper_cb(
+        &self,
+        expression: &str,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+    ) -> String {
         if self.is_custom_result_type() {
-            let ok = self.ok_ty.convert_ffi_expression_to_swift_type(&format!("{expression}.payload.ok"), type_pos, types);
-            let err = self.err_ty.convert_ffi_expression_to_swift_type(&format!("{expression}.payload.err"), type_pos, types);
+            let ok = self.ok_ty.convert_ffi_expression_to_swift_type(
+                &format!("{expression}.payload.ok"),
+                type_pos,
+                types,
+            );
+            let err = self.err_ty.convert_ffi_expression_to_swift_type(
+                &format!("{expression}.payload.err"),
+                type_pos,
+                types,
+            );
             return format!(
-                r#"switch {expression}.tag {{ case {c_ok_tag_name}: wrapper.cb(.success({ok})) case {c_err_tag_name}: wrapper.cb(.failure({err})) default: fatalError() }}"#
-            , expression = expression, ok = ok, err = err, c_ok_tag_name = self.c_ok_tag_name(), c_err_tag_name = self.c_err_tag_name());
+                r#"switch {expression}.tag {{ case {c_ok_tag_name}: wrapper.cb(.success({ok})) case {c_err_tag_name}: wrapper.cb(.failure({err})) default: fatalError() }}"#,
+                expression = expression,
+                ok = ok,
+                err = err,
+                c_ok_tag_name = self.c_ok_tag_name(),
+                c_err_tag_name = self.c_err_tag_name()
+            );
         }
-        let ok = self
-        .ok_ty
-        .to_swift_type(type_pos, types);
-        let err = self
-        .err_ty
-        .to_swift_type(type_pos, types);
+        let ok = self.ok_ty.to_swift_type(type_pos, types);
+        let err = self.err_ty.to_swift_type(type_pos, types);
 
         format!(
-                r#"if rustFnRetVal.is_ok {{
+            r#"if rustFnRetVal.is_ok {{
         wrapper.cb(.success({ok}(ptr: rustFnRetVal.ok_or_err!)))
     }} else {{
         wrapper.cb(.failure({err}(ptr: rustFnRetVal.ok_or_err!)))

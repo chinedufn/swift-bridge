@@ -213,7 +213,11 @@ pub(super) fn gen_func_swift_calls_rust(
         let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
         let (run_wrapper_cb, error, maybe_try, with_checked_continuation_function_name) =
             if let Some(result) = func_ret_ty.as_result() {
-                let run_wrapper_cb = result.generate_async_run_wrapper_cb("rustFnRetVal", TypePosition::FnReturn(HostLang::Rust), types);
+                let run_wrapper_cb = result.generate_async_run_wrapper_cb(
+                    "rustFnRetVal",
+                    TypePosition::FnReturn(HostLang::Rust),
+                    types,
+                );
                 (
                     run_wrapper_cb,
                     "Error".to_string(),
