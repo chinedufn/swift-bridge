@@ -33,12 +33,9 @@ impl BuiltInResult {
         }
 
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
-            let err_ty = self
+            return self
                 .err_ty
                 .to_ffi_compatible_rust_type(swift_bridge_path, types);
-            return quote! {
-                #err_ty
-            };
         };
 
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
@@ -235,21 +232,22 @@ impl BuiltInResult {
             };
         }
 
-        // There is a Swift compiler bug in Xcode 13 where using an explicit `()` here somehow leads
-        // the Swift compiler to a compile time error:
-        // "Unable to infer complex closure return type; add explicit type to disambiguate"
-        //
-        // It's asking us to add a `{ () -> () in .. }` explicit type to the beginning of our closure.
-        //
-        // To solve this bug we can either add that explicit closure type, or remove the explicit
-        // `return ()` in favor of a `return`.. Not sure why making the return type less explicit
-        //  solves the compile time error.. But it does..
-        //
-        // As mentioned, this doesn't seem to happen in Xcode 14.
-        // So, we can remove this if statement whenever we stop supporting Xcode 13.
-
         if let Some(ok) = self.ok_ty.only_encoding() {
             let mut ok = ok.swift;
+
+            // There is a Swift compiler bug in Xcode 13 where using an explicit `()` here somehow leads
+            // the Swift compiler to a compile time error:
+            // "Unable to infer complex closure return type; add explicit type to disambiguate"
+            //
+            // It's asking us to add a `{ () -> () in .. }` explicit type to the beginning of our closure.
+            //
+            // To solve this bug we can either add that explicit closure type, or remove the explicit
+            // `return ()` in favor of a `return`.. Not sure why making the return type less explicit
+            //  solves the compile time error.. But it does..
+            //
+            // As mentioned, this doesn't seem to happen in Xcode 14.
+            // So, we can remove this if statement whenever we stop supporting Xcode 13.
+
             if self.ok_ty.is_null() {
                 ok = "".to_string();
             } else {

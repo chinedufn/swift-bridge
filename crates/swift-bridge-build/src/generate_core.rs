@@ -33,7 +33,6 @@ pub(super) fn write_core_swift_and_c(out_dir: &Path) {
     c_header += &C_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN;
     c_header += "\n";
     c_header += &C_RESULT_SUPPORT;
-    c_header += "\n";
 
     std::fs::write(core_c_header_out, c_header).unwrap();
 }
