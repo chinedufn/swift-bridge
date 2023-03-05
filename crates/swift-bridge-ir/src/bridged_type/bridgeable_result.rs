@@ -33,7 +33,9 @@ impl BuiltInResult {
         }
 
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
-            let err_ty = self.err_ty.to_ffi_compatible_rust_type(swift_bridge_path, types);
+            let err_ty = self
+                .err_ty
+                .to_ffi_compatible_rust_type(swift_bridge_path, types);
             return quote! {
                 #err_ty
             };
@@ -300,7 +302,11 @@ impl BuiltInResult {
 
     pub fn to_c(&self) -> String {
         if self.is_custom_result_type() {
-            return format!("struct {}${}", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name());
+            return format!(
+                "struct {}${}",
+                SWIFT_BRIDGE_PREFIX,
+                self.custom_c_struct_name()
+            );
         }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
@@ -432,11 +438,19 @@ impl BuiltInResult {
         format!("Result{ok}And{err}")
     }
     fn c_ok_tag_name(&self) -> String {
-        format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name())
+        format!(
+            "{}${}$ResultOk",
+            SWIFT_BRIDGE_PREFIX,
+            self.custom_c_struct_name()
+        )
     }
 
     fn c_err_tag_name(&self) -> String {
-        format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name())
+        format!(
+            "{}${}$ResultErr",
+            SWIFT_BRIDGE_PREFIX,
+            self.custom_c_struct_name()
+        )
     }
 }
 

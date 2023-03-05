@@ -1,9 +1,7 @@
 use crate::generate_core::boxed_fn_support::{
     C_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN, SWIFT_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN,
 };
-use crate::generate_core::result_support::{
-    C_RESULT_SUPPORT, SWIFT_RUST_RESULT,
-};
+use crate::generate_core::result_support::{C_RESULT_SUPPORT, SWIFT_RUST_RESULT};
 use std::path::Path;
 
 const RUST_STRING_SWIFT: &'static str = include_str!("./generate_core/rust_string.swift");
