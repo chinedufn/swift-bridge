@@ -421,20 +421,8 @@ impl BuiltInResult {
 
 impl BuiltInResult {
     fn c_struct_name(&self) -> String {
-        if !self.is_custom_result_type() {
-            panic!("Should not be called when this type is not a custom result type.")
-        }
-
         let ok = &self.ok_ty;
         let err = &self.err_ty;
-
-        if ok.can_be_encoded_with_zero_bytes() && err.is_passed_via_pointer() {
-            panic!("Should not be called when this type is a ResultVoidAndPtr")
-        }
-
-        if ok.is_passed_via_pointer() && err.can_be_encoded_with_zero_bytes() {
-            panic!("Should not be called when this type is a ResultPtrAndVoid")
-        }
 
         let ok = ok.to_alpha_numeric_underscore_name();
         let err = err.to_alpha_numeric_underscore_name();
