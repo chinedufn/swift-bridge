@@ -650,3 +650,104 @@ void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge_
         .test();
     }
 }
+
+/// Verify that we generate the correct code for extern "Rust" async functions that returns a Result<TransparentEnum, TransparentEnum>.
+mod extern_rust_async_function_returns_result_transparent_enum {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                enum OkEnum {
+                    OkVariant1, 
+                    OkVariant2, 
+                }
+                enum ErrEnum {
+                    ErrVariant1,
+                    ErrVariant2,
+                }
+                extern "Rust" {
+                    async fn some_function() -> Result<OkEnum, ErrEnum>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+             pub extern "C" fn __swift_bridge__some_function(
+                callback_wrapper: *mut std::ffi::c_void,
+                callback: extern "C" fn(*mut std::ffi::c_void, ResultOkEnumAndErrEnum) -> (),
+            ) {
+                let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
+                let fut = super::some_function();
+                let task = async move {
+                let val = match fut.await {
+                    Ok(ok) => ResultOkEnumAndErrEnum::Ok(ok.into_ffi_repr()),
+                    Err(err) => ResultOkEnumAndErrEnum::Err(err.into_ffi_repr()),
+                };
+                    let callback_wrapper = callback_wrapper;
+                    let callback_wrapper = callback_wrapper.0;
+
+                    (callback)(callback_wrapper, val)
+                };
+                swift_bridge::async_support::ASYNC_RUNTIME.spawn_task(Box::pin(task))
+            }
+        })
+    }
+
+    // TODO: Replace `Error` with the concrete error type `ErrorType`.
+    // As of Feb 2023 using the concrete error type leads to a compile time error.
+    // This seems like a bug in the Swift compiler.
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public func some_function() async throws -> OkType {
+    func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: __swift_bridge__$ResultOkEnumAndErrEnum) {
+        let wrapper = Unmanaged<CbWrapper$some_function>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+        switch val.tag { case __swift_bridge__$ResultOkEnumAndErrEnum$ResultOk: wrapper.cb(.success(val.payload.ok.intoSwiftRepr())) case __swift_bridge__$ResultOkEnumAndErrEnum$ResultErr: wrapper.cb(.failure(val.payload.err.intoSwiftRepr())) }
+    }
+
+    return try await withCheckedThrowingContinuation({ (continuation: CheckedContinuation<OkEnum, Error>) in
+        let callback = { rustFnRetVal in
+            continuation.resume(with: rustFnRetVal)
+        }
+
+        let wrapper = CbWrapper$some_function(cb: callback)
+        let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
+
+        __swift_bridge__$some_function(wrapperPtr, onComplete)
+    })
+}
+class CbWrapper$some_function {
+    var cb: (Result<OkEnum, Error>) -> ()
+
+    public init(cb: @escaping (Result<OkEnum, Error>) -> ()) {
+        self.cb = cb
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge__$some_function$async(void* callback_wrapper, struct __swift_bridge__$ResultOkEnumAndErrEnum ret));
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_async_function_returns_result_transparent_enum() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
