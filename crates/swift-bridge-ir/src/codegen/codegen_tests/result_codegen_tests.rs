@@ -284,23 +284,13 @@ mod extern_rust_fn_return_result_null_and_opaque_rust {
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function() -> swift_bridge::result::ResultVoidAndPtr {
+            pub extern "C" fn __swift_bridge__some_function() -> *mut super::SomeType {
                 match super::some_function() {
-                    Ok(ok) => {
-                        swift_bridge::result::ResultVoidAndPtr {
-                            is_ok: true,
-                            err: std::ptr::null_mut::<std::ffi::c_void>()
-                        }
-                    }
-                    Err(err) => {
-                        swift_bridge::result::ResultVoidAndPtr {
-                            is_ok: false,
-                            err: Box::into_raw(Box::new({
-                                let val: super::SomeType = err;
-                                val
-                            })) as *mut super::SomeType as *mut std::ffi::c_void
-                        }
-                    }
+                    Ok(ok) => std::ptr::null_mut(),
+                    Err(err) => Box::into_raw(Box::new({
+                        let val: super::SomeType = err;
+                        val
+                    })) as *mut super::SomeType
                 }
             }
         })
@@ -310,7 +300,7 @@ mod extern_rust_fn_return_result_null_and_opaque_rust {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 public func some_function() throws -> () {
-    try { let val = __swift_bridge__$some_function(); if val.is_ok { return  } else { throw SomeType(ptr: val.err!) } }()
+    try { let val = __swift_bridge__$some_function(); if val != nil { throw SomeType(ptr: val!) } else { return } }()
 }
 "#,
         )
@@ -318,7 +308,7 @@ public func some_function() throws -> () {
 
     const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ContainsAfterTrim(
         r#"
-struct __private__ResultVoidAndPtr __swift_bridge__$some_function(void);
+void* __swift_bridge__$some_function(void);
     "#,
     );
 
@@ -355,23 +345,13 @@ mod extern_rust_fn_return_result_unit_and_opaque_rust {
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function() -> swift_bridge::result::ResultVoidAndPtr {
+            pub extern "C" fn __swift_bridge__some_function() -> *mut super::SomeType {
                 match super::some_function() {
-                    Ok(ok) => {
-                        swift_bridge::result::ResultVoidAndPtr {
-                            is_ok: true,
-                            err: std::ptr::null_mut::<std::ffi::c_void>()
-                        }
-                    }
-                    Err(err) => {
-                        swift_bridge::result::ResultVoidAndPtr {
-                            is_ok: false,
-                            err: Box::into_raw(Box::new({
-                                let val: super::SomeType = err;
-                                val
-                            })) as *mut super::SomeType as *mut std::ffi::c_void
-                        }
-                    }
+                    Ok(ok) => std::ptr::null_mut(),
+                    Err(err) => Box::into_raw(Box::new({
+                        let val: super::SomeType = err;
+                        val
+                    })) as *mut super::SomeType
                 }
             }
         })
@@ -381,7 +361,7 @@ mod extern_rust_fn_return_result_unit_and_opaque_rust {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 public func some_function() throws -> UnitType {
-    try { let val = __swift_bridge__$some_function(); if val.is_ok { return UnitType() } else { throw SomeType(ptr: val.err!) } }()
+    try { let val = __swift_bridge__$some_function(); if val != nil { throw SomeType(ptr: val!) } else { return UnitType() } }()
 }
 "#,
         )
@@ -389,7 +369,7 @@ public func some_function() throws -> UnitType {
 
     const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ContainsAfterTrim(
         r#"
-struct __private__ResultVoidAndPtr __swift_bridge__$some_function(void);
+void* __swift_bridge__$some_function(void);
     "#,
     );
 

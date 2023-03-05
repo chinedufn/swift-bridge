@@ -45,11 +45,3 @@ pub struct ResultPtrAndPtr {
     pub ok_or_err: *mut std::ffi::c_void,
 }
 
-// Bridges `Result<T, E>` where `T` is able to be encoded with zero bytes - e.g. `()` or `struct UnitStruct;`,
-// and where `E` is able to be encoded as a pointer.
-#[repr(C)]
-#[doc(hidden)]
-pub struct ResultVoidAndPtr {
-    pub is_ok: bool,
-    pub err: *mut std::ffi::c_void,
-}
