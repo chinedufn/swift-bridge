@@ -20,24 +20,29 @@ pub(crate) struct BuiltInResult {
 }
 
 impl BuiltInResult {
-    pub(super) fn to_ffi_compatible_rust_type(&self, swift_bridge_path: &Path) -> TokenStream {
+    pub(super) fn to_ffi_compatible_rust_type(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         if self.is_custom_result_type() {
-            let ty = format_ident!("{}", self.c_struct_name());
+            let ty = format_ident!("{}", self.custom_c_struct_name());
             return quote! {
                 #ty
             };
         }
+
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            return self
+                .err_ty
+                .to_ffi_compatible_rust_type(swift_bridge_path, types);
+        };
+
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
-        let result_kind = if self.ok_ty.can_be_encoded_with_zero_bytes() {
-            quote! {
-                ResultVoidAndPtr
-            }
-        } else {
-            quote! {
+        let result_kind = quote! {
                 ResultPtrAndPtr
-            }
         };
 
         quote! {
@@ -71,7 +76,7 @@ impl BuiltInResult {
                 todo!();
             }
             if self.ok_ty.can_be_encoded_with_zero_bytes() {
-                let ffi_enum_name = self.to_ffi_compatible_rust_type(swift_bridge_path);
+                let ffi_enum_name = self.to_ffi_compatible_rust_type(swift_bridge_path, types);
                 let err_ffi = self.err_ty.convert_rust_expression_to_ffi_type(
                     &quote!(err),
                     swift_bridge_path,
@@ -85,7 +90,7 @@ impl BuiltInResult {
                     }
                 };
             }
-            let ffi_enum_name = self.to_ffi_compatible_rust_type(swift_bridge_path);
+            let ffi_enum_name = self.to_ffi_compatible_rust_type(swift_bridge_path, types);
             let ok_ffi = self.ok_ty.convert_rust_expression_to_ffi_type(
                 &quote!(ok),
                 swift_bridge_path,
@@ -109,18 +114,8 @@ impl BuiltInResult {
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
             quote! {
                 match #expression {
-                    Ok(ok) => {
-                        #swift_bridge_path::result::ResultVoidAndPtr {
-                            is_ok: true,
-                            err: std::ptr::null_mut::<std::ffi::c_void>()
-                        }
-                    }
-                    Err(err) => {
-                        #swift_bridge_path::result::ResultVoidAndPtr {
-                            is_ok: false,
-                            err: #convert_err as *mut std::ffi::c_void
-                        }
-                    }
+                    Ok(ok) => std::ptr::null_mut(),
+                    Err(err) => #convert_err
                 }
             }
         } else {
@@ -236,39 +231,40 @@ impl BuiltInResult {
                 TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
             };
         }
-        let (mut ok, err) = if let Some(zero_byte_encoding) = self.ok_ty.only_encoding() {
-            let ok = zero_byte_encoding.swift;
-            let convert_err = self
+
+        if let Some(ok) = self.ok_ty.only_encoding() {
+            let mut ok = ok.swift;
+
+            // There is a Swift compiler bug in Xcode 13 where using an explicit `()` here somehow leads
+            // the Swift compiler to a compile time error:
+            // "Unable to infer complex closure return type; add explicit type to disambiguate"
+            //
+            // It's asking us to add a `{ () -> () in .. }` explicit type to the beginning of our closure.
+            //
+            // To solve this bug we can either add that explicit closure type, or remove the explicit
+            // `return ()` in favor of a `return`.. Not sure why making the return type less explicit
+            //  solves the compile time error.. But it does..
+            //
+            // As mentioned, this doesn't seem to happen in Xcode 14.
+            // So, we can remove this if statement whenever we stop supporting Xcode 13.
+
+            if self.ok_ty.is_null() {
+                ok = "".to_string();
+            } else {
+                ok = " ".to_string() + &ok;
+            }
+            let err = self
                 .err_ty
-                .convert_ffi_expression_to_swift_type("val.err!", type_pos, types);
-
-            (ok, convert_err)
-        } else {
-            let convert_ok =
-                self.ok_ty
-                    .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
-            let convert_err =
-                self.err_ty
-                    .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
-
-            (convert_ok, convert_err)
-        };
-
-        // There is a Swift compiler bug in Xcode 13 where using an explicit `()` here somehow leads
-        // the Swift compiler to a compile time error:
-        // "Unable to infer complex closure return type; add explicit type to disambiguate"
-        //
-        // It's asking us to add a `{ () -> () in .. }` explicit type to the beginning of our closure.
-        //
-        // To solve this bug we can either add that explicit closure type, or remove the explicit
-        // `return ()` in favor of a `return`.. Not sure why making the return type less explicit
-        //  solves the compile time error.. But it does..
-        //
-        // As mentioned, this doesn't seem to happen in Xcode 14.
-        // So, we can remove this if statement whenever we stop supporting Xcode 13.
-        if self.ok_ty.is_null() {
-            ok = "".to_string();
+                .convert_ffi_expression_to_swift_type("val!", type_pos, types);
+            return format!("try {{ let val = {expression}; if val != nil {{ throw {err} }} else {{ return{ok} }} }}()", expression = expression, err = err, ok = ok);
         }
+
+        let ok = self
+            .ok_ty
+            .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+        let err =
+            self.err_ty
+                .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
 
         format!(
             "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
@@ -291,7 +287,7 @@ impl BuiltInResult {
 
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
             format!(
-                "{{ switch {val} {{ case .Ok(let ok): return __private__ResultVoidAndPtr(is_ok: true, err: nil) case .Err(let err): return __private__ResultVoidAndPtr(is_ok: false, err: {convert_err}) }} }}()",
+                "{{ switch {val} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()",
                 val = expression
             )
         } else {
@@ -304,13 +300,17 @@ impl BuiltInResult {
 
     pub fn to_c(&self) -> String {
         if self.is_custom_result_type() {
-            return format!("struct {}${}", SWIFT_BRIDGE_PREFIX, self.c_struct_name());
+            return format!(
+                "struct {}${}",
+                SWIFT_BRIDGE_PREFIX,
+                self.custom_c_struct_name()
+            );
         }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
-            format!("struct __private__ResultVoidAndPtr")
+            format!("{}", self.err_ty.to_c_type())
         } else {
             format!("struct __private__ResultPtrAndPtr")
         }
@@ -328,7 +328,7 @@ impl BuiltInResult {
         if self.err_ty.can_be_encoded_with_zero_bytes() {
             todo!()
         }
-        let ty = self.to_ffi_compatible_rust_type(swift_bridge_path);
+        let ty = self.to_ffi_compatible_rust_type(swift_bridge_path, types);
         let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
             quote! {}
         } else {
@@ -357,7 +357,7 @@ impl BuiltInResult {
         if self.err_ty.can_be_encoded_with_zero_bytes() {
             todo!();
         }
-        let c_type = format!("{}${}", SWIFT_BRIDGE_PREFIX, self.c_struct_name());
+        let c_type = format!("{}${}", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name());
         let c_enum_name = c_type.clone();
         let c_tag_name = format!("{}$Tag", c_type.clone());
         let c_fields_name = format!("{}$Fields", c_type);
@@ -426,20 +426,9 @@ impl BuiltInResult {
 }
 
 impl BuiltInResult {
-    fn c_struct_name(&self) -> String {
-        if !self.is_custom_result_type() {
-            panic!("Should not be called when this type is not a custom result type.")
-        }
+    fn custom_c_struct_name(&self) -> String {
         let ok = &self.ok_ty;
         let err = &self.err_ty;
-
-        if ok.can_be_encoded_with_zero_bytes() && err.is_passed_via_pointer() {
-            return "ResultVoidAndPtr".to_string();
-        }
-
-        if ok.is_passed_via_pointer() && err.can_be_encoded_with_zero_bytes() {
-            return "ResultPtrAndVoid".to_string();
-        }
 
         let ok = ok.to_alpha_numeric_underscore_name();
         let err = err.to_alpha_numeric_underscore_name();
@@ -447,11 +436,19 @@ impl BuiltInResult {
         format!("Result{ok}And{err}")
     }
     fn c_ok_tag_name(&self) -> String {
-        format!("{}${}$ResultOk", SWIFT_BRIDGE_PREFIX, self.c_struct_name())
+        format!(
+            "{}${}$ResultOk",
+            SWIFT_BRIDGE_PREFIX,
+            self.custom_c_struct_name()
+        )
     }
 
     fn c_err_tag_name(&self) -> String {
-        format!("{}${}$ResultErr", SWIFT_BRIDGE_PREFIX, self.c_struct_name())
+        format!(
+            "{}${}$ResultErr",
+            SWIFT_BRIDGE_PREFIX,
+            self.custom_c_struct_name()
+        )
     }
 }
 
