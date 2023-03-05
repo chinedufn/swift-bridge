@@ -33,9 +33,9 @@ impl BuiltInResult {
         }
 
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
-            let err_ty = self.err_ty.to_rust_type_path(types);
+            let err_ty = self.err_ty.to_ffi_compatible_rust_type(swift_bridge_path, types);
             return quote! {
-                *mut #err_ty
+                #err_ty
             };
         };
 
