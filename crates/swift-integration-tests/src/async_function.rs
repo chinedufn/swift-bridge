@@ -38,6 +38,26 @@ mod ffi {
         fn new(val: u32) -> AsyncResultOpaqueRustType2;
         fn val(&self) -> u32;
     }
+
+    enum AsyncResultOkEnum {
+        NoFields,
+        UnnamedFields(i32, String),
+        NamedFields{
+            value: u8
+        },
+    }
+
+    enum AsyncResultErrEnum {
+        NoFields,
+        UnnamedFields(String, i32),
+        NamedFields{
+            value: u32
+        },
+    }
+
+    extern "Rust" {
+        async fn rust_async_func_return_result_transparent_enum_and_transparent_enum(succeed: bool) -> Result<AsyncResultOkEnum, AsyncResultErrEnum>;
+    }
 }
 
 async fn rust_async_return_null() {}
@@ -102,5 +122,14 @@ async fn rust_async_func_reflect_result_opaque_rust(
             assert_eq!(err.0, 100);
             Err(err)
         }
+    }
+}
+
+
+async fn rust_async_func_return_result_transparent_enum_and_transparent_enum(succeed: bool) -> Result<ffi::AsyncResultOkEnum, ffi::AsyncResultErrEnum> {
+    if succeed {
+        Ok(ffi::AsyncResultOkEnum::UnnamedFields(123, "hello".to_string()))
+    } else {
+        Err(ffi::AsyncResultErrEnum::NamedFields { value: 100 })
     }
 }

@@ -34,3 +34,6 @@ extension ResultTransparentEnum: @unchecked Sendable {}
 
 extension SameEnum: Error {}
 extension SameEnum: @unchecked Sendable {}
+
+extension AsyncResultErrEnum: Error {}
+extension AsyncResultErrEnum: @unchecked Sendable {}
