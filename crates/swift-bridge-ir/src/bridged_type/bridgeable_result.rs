@@ -237,7 +237,7 @@ impl BuiltInResult {
                     err_swift_type = err_swift_type
                 ),
                 TypePosition::SharedStructField => todo!(),
-                TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => format!("なにわ"),
+                TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
             };
         }
 
@@ -410,7 +410,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         return true;
     }
 
-    pub fn generate_async_run_wrapper_cb(
+    pub fn generate_swift_calls_async_rust_callback(
         &self,
         expression: &str,
         type_pos: TypePosition,
