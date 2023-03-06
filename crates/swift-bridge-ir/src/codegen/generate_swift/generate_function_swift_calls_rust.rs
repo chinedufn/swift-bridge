@@ -194,44 +194,39 @@ pub(super) fn gen_func_swift_calls_rust(
         let func_ret_ty = function.return_ty_built_in(types).unwrap();
         let rust_fn_ret_ty =
             func_ret_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
-        let (maybe_on_complete_sig_ret_val, on_complete_ret_val) = if func_ret_ty.is_null() {
-            ("".to_string(), "()".to_string())
+        let maybe_on_complete_sig_ret_val = if func_ret_ty.is_null() {
+            "".to_string()
         } else {
-            (
-                format!(
-                    ", rustFnRetVal: {}",
-                    func_ret_ty
-                        .to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy, types)
-                ),
-                func_ret_ty.convert_ffi_value_to_swift_value(
-                    "rustFnRetVal",
-                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
-                    types,
-                ),
+            format!(
+                ", rustFnRetVal: {}",
+                func_ret_ty
+                    .to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy, types)
             )
         };
         let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
         let (run_wrapper_cb, error, maybe_try, with_checked_continuation_function_name) =
             if let Some(result) = func_ret_ty.as_result() {
-                let ok = result
-                    .ok_ty
-                    .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
-                let err = result
-                    .err_ty
-                    .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
+                let run_wrapper_cb = result.generate_swift_calls_async_rust_callback(
+                    "rustFnRetVal",
+                    TypePosition::FnReturn(HostLang::Rust),
+                    types,
+                );
                 (
-                    format!(
-                        r#"if rustFnRetVal.is_ok {{
-        wrapper.cb(.success({ok}(ptr: rustFnRetVal.ok_or_err!)))
-    }} else {{
-        wrapper.cb(.failure({err}(ptr: rustFnRetVal.ok_or_err!)))
-    }}"#
-                    ),
+                    run_wrapper_cb,
                     "Error".to_string(),
                     " try ".to_string(),
                     "withCheckedThrowingContinuation".to_string(),
                 )
             } else {
+                let on_complete_ret_val = if func_ret_ty.is_null() {
+                    "()".to_string()
+                } else {
+                    func_ret_ty.convert_ffi_value_to_swift_value(
+                        "rustFnRetVal",
+                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
+                        types,
+                    )
+                };
                 (
                     format!(r#"wrapper.cb(.success({on_complete_ret_val}))"#),
                     "Never".to_string(),
