@@ -184,9 +184,6 @@ impl BuiltInResult {
                 )
             }
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
-                if self.ok_ty.can_be_encoded_with_zero_bytes() {
-                    todo!()
-                }
                 if self.err_ty.can_be_encoded_with_zero_bytes() {
                     todo!()
                 }
@@ -417,11 +414,15 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         types: &TypeDeclarations,
     ) -> String {
         if self.is_custom_result_type() {
-            let ok = self.ok_ty.convert_ffi_expression_to_swift_type(
-                &format!("{expression}.payload.ok"),
-                type_pos,
-                types,
-            );
+            let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
+                "()".to_string()
+            } else {
+                self.ok_ty.convert_ffi_expression_to_swift_type(
+                    &format!("{expression}.payload.ok"),
+                    type_pos,
+                    types,
+                )
+            };
             let err = self.err_ty.convert_ffi_expression_to_swift_type(
                 &format!("{expression}.payload.err"),
                 type_pos,

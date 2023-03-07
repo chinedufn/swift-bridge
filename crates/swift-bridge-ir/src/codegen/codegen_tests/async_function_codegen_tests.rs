@@ -852,3 +852,172 @@ void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge_
         .test();
     }
 }
+
+/// Verify that we generate the correct code for extern "Rust" async functions that returns a Result<(), TransparentEnum>.
+mod extern_rust_async_function_returns_result_nll_transparent_enum {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                enum ErrEnum {
+                    ErrVariant1,
+                    ErrVariant2,
+                }
+                extern "Rust" {
+                    async fn some_function() -> Result<(), ErrEnum>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+             pub extern "C" fn __swift_bridge__some_function(
+                callback_wrapper: *mut std::ffi::c_void,
+                callback: extern "C" fn(*mut std::ffi::c_void, ResultVoidAndErrEnum) -> (),
+            ) {
+                let callback_wrapper = swift_bridge::async_support::SwiftCallbackWrapper(callback_wrapper);
+                let fut = super::some_function();
+                let task = async move {
+                let val = match fut.await {
+                    Ok(ok) => ResultVoidAndErrEnum::Ok,
+                    Err(err) => ResultVoidAndErrEnum::Err(err.into_ffi_repr()),
+                };
+                    let callback_wrapper = callback_wrapper;
+                    let callback_wrapper = callback_wrapper.0;
+
+                    (callback)(callback_wrapper, val)
+                };
+                swift_bridge::async_support::ASYNC_RUNTIME.spawn_task(Box::pin(task))
+            }
+        })
+    }
+
+    // TODO: Replace `Error` with the concrete error type `ErrorType`.
+    // As of Feb 2023 using the concrete error type leads to a compile time error.
+    // This seems like a bug in the Swift compiler.
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public func some_function() async throws -> () {
+    func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?, rustFnRetVal: __swift_bridge__$ResultVoidAndErrEnum) {
+        let wrapper = Unmanaged<CbWrapper$some_function>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+        switch rustFnRetVal.tag { case __swift_bridge__$ResultVoidAndErrEnum$ResultOk: wrapper.cb(.success(())) case __swift_bridge__$ResultVoidAndErrEnum$ResultErr: wrapper.cb(.failure(rustFnRetVal.payload.err.intoSwiftRepr())) default: fatalError() }
+    }
+
+    return try await withCheckedThrowingContinuation({ (continuation: CheckedContinuation<(), Error>) in
+        let callback = { rustFnRetVal in
+            continuation.resume(with: rustFnRetVal)
+        }
+
+        let wrapper = CbWrapper$some_function(cb: callback)
+        let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
+
+        __swift_bridge__$some_function(wrapperPtr, onComplete)
+    })
+}
+class CbWrapper$some_function {
+    var cb: (Result<(), Error>) -> ()
+
+    public init(cb: @escaping (Result<(), Error>) -> ()) {
+        self.cb = cb
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge__$some_function$async(void* callback_wrapper, struct __swift_bridge__$ResultVoidAndErrEnum ret));
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_async_function_returns_result_opaque_rust_transparent_enum() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/***
+/// Test code generation for Rust function that returns a Result<T, E> where T is () and
+/// E is a transparent enum type.
+mod extern_rust_fn_return_result_unit_type_and_transparent_enum_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                enum SomeErrEnum {
+                    Variant1,
+                    Variant2(i32),
+                }
+                extern "Rust" {
+                    fn some_function() -> Result<(), SomeErrEnum>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[repr(C)]
+            pub enum ResultVoidAndSomeErrEnum{
+                Ok,
+                Err(__swift_bridge__SomeErrEnum),
+            }
+
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function() -> ResultVoidAndSomeErrEnum{
+                match super::some_function() {
+                    Ok(ok) => ResultVoidAndSomeErrEnum::Ok,
+                    Err(err) => ResultVoidAndSomeErrEnum::Err(err.into_ffi_repr()),
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public func some_function() throws -> () {
+    try { let val = __swift_bridge__$some_function(); switch val.tag { case __swift_bridge__$ResultVoidAndSomeErrEnum$ResultOk: return case __swift_bridge__$ResultVoidAndSomeErrEnum$ResultErr: throw val.payload.err.intoSwiftRepr() default: fatalError() } }()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+typedef enum __swift_bridge__$ResultVoidAndSomeErrEnum$Tag {__swift_bridge__$ResultVoidAndSomeErrEnum$ResultOk, __swift_bridge__$ResultVoidAndSomeErrEnum$ResultErr} __swift_bridge__$ResultVoidAndSomeErrEnum$Tag;
+union __swift_bridge__$ResultVoidAndSomeErrEnum$Fields {struct __swift_bridge__$SomeErrEnum err;};
+typedef struct __swift_bridge__$ResultVoidAndSomeErrEnum{__swift_bridge__$ResultVoidAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultVoidAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultVoidAndSomeErrEnum;
+"#,
+            r#"struct __swift_bridge__$ResultVoidAndSomeErrEnum __swift_bridge__$some_function(void)"#,
+        ])
+    }
+
+    #[test]
+    fn extern_rust_result_transparent_enum_type_and_opaque_rust_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+***/
