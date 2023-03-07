@@ -854,7 +854,7 @@ void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge_
 }
 
 /// Verify that we generate the correct code for extern "Rust" async functions that returns a Result<(), TransparentEnum>.
-mod extern_rust_async_function_returns_result_nll_transparent_enum {
+mod extern_rust_async_function_returns_result_null_transparent_enum {
     use super::*;
 
     fn bridge_module() -> TokenStream {
@@ -939,7 +939,7 @@ void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge_
     }
 
     #[test]
-    fn extern_rust_async_function_returns_result_opaque_rust_transparent_enum() {
+    fn extern_rust_async_function_returns_result_null_transparent_enum() {
         CodegenTest {
             bridge_module: bridge_module().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -949,75 +949,3 @@ void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge_
         .test();
     }
 }
-
-/***
-/// Test code generation for Rust function that returns a Result<T, E> where T is () and
-/// E is a transparent enum type.
-mod extern_rust_fn_return_result_unit_type_and_transparent_enum_type {
-    use super::*;
-
-    fn bridge_module_tokens() -> TokenStream {
-        quote! {
-            mod ffi {
-                enum SomeErrEnum {
-                    Variant1,
-                    Variant2(i32),
-                }
-                extern "Rust" {
-                    fn some_function() -> Result<(), SomeErrEnum>;
-                }
-            }
-        }
-    }
-
-    fn expected_rust_tokens() -> ExpectedRustTokens {
-        ExpectedRustTokens::Contains(quote! {
-            #[repr(C)]
-            pub enum ResultVoidAndSomeErrEnum{
-                Ok,
-                Err(__swift_bridge__SomeErrEnum),
-            }
-
-            #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function() -> ResultVoidAndSomeErrEnum{
-                match super::some_function() {
-                    Ok(ok) => ResultVoidAndSomeErrEnum::Ok,
-                    Err(err) => ResultVoidAndSomeErrEnum::Err(err.into_ffi_repr()),
-                }
-            }
-        })
-    }
-
-    fn expected_swift_code() -> ExpectedSwiftCode {
-        ExpectedSwiftCode::ContainsAfterTrim(
-            r#"
-public func some_function() throws -> () {
-    try { let val = __swift_bridge__$some_function(); switch val.tag { case __swift_bridge__$ResultVoidAndSomeErrEnum$ResultOk: return case __swift_bridge__$ResultVoidAndSomeErrEnum$ResultErr: throw val.payload.err.intoSwiftRepr() default: fatalError() } }()
-}
-"#,
-        )
-    }
-
-    fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ContainsManyAfterTrim(vec![
-            r#"
-typedef enum __swift_bridge__$ResultVoidAndSomeErrEnum$Tag {__swift_bridge__$ResultVoidAndSomeErrEnum$ResultOk, __swift_bridge__$ResultVoidAndSomeErrEnum$ResultErr} __swift_bridge__$ResultVoidAndSomeErrEnum$Tag;
-union __swift_bridge__$ResultVoidAndSomeErrEnum$Fields {struct __swift_bridge__$SomeErrEnum err;};
-typedef struct __swift_bridge__$ResultVoidAndSomeErrEnum{__swift_bridge__$ResultVoidAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultVoidAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultVoidAndSomeErrEnum;
-"#,
-            r#"struct __swift_bridge__$ResultVoidAndSomeErrEnum __swift_bridge__$some_function(void)"#,
-        ])
-    }
-
-    #[test]
-    fn extern_rust_result_transparent_enum_type_and_opaque_rust_type() {
-        CodegenTest {
-            bridge_module: bridge_module_tokens().into(),
-            expected_rust_tokens: expected_rust_tokens(),
-            expected_swift_code: expected_swift_code(),
-            expected_c_header: expected_c_header(),
-        }
-        .test();
-    }
-}
-***/
