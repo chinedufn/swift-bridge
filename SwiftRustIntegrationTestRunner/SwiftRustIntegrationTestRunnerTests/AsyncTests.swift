@@ -87,8 +87,6 @@ class AsyncTests: XCTestCase {
             XCTFail()
         } catch let error as AsyncResultErrEnum {
             switch error {
-            case .NoFields:
-                XCTFail()
             case .UnnamedFields(_, _):
                 XCTFail()
             case .NamedFields(let valueUInt32):
@@ -114,8 +112,6 @@ class AsyncTests: XCTestCase {
             let _: AsyncResultOpaqueRustType1 = try await rust_async_func_return_result_opaque_rust_and_transparent_enum(false)
         } catch let error as AsyncResultErrEnum {
             switch error {
-            case .NoFields:
-                XCTFail()
             case .UnnamedFields(_, _):
                 XCTFail()
             case .NamedFields(let value):
@@ -153,6 +149,32 @@ class AsyncTests: XCTestCase {
             XCTFail()
         }
         
+    }
+    
+    /// Verify that we can return a Result<(), TransparentEnum> from async Rust function
+    func testSwiftCallsRustAsyncFnReturnResultNullTransparentEnum() async throws {
+        //Should return an Unit type
+        do {
+            let _: () = try await rust_async_func_return_result_null_and_transparent_enum(true)
+        } catch {
+            XCTFail()
+        }
+        
+        //Should throw an AsyncResultErrEnum
+        do {
+            let _ = try await rust_async_func_return_result_null_and_transparent_enum(false)
+            XCTFail()
+        } catch let error as AsyncResultErrEnum {
+            switch error {
+            case .UnnamedFields(let valueString, let valueInt32):
+                XCTAssertEqual(valueString.toString(), "foo")
+                XCTAssertEqual(valueInt32, 123)
+            case .NamedFields(_):
+                XCTFail()
+            }
+        } catch {
+            XCTFail()
+        }
     }
     
     func testSwiftCallsRustAsyncFnRetStruct() async throws {

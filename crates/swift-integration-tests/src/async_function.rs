@@ -46,7 +46,6 @@ mod ffi {
     }
 
     enum AsyncResultErrEnum {
-        NoFields,
         UnnamedFields(String, i32),
         NamedFields { value: u32 },
     }
@@ -61,6 +60,9 @@ mod ffi {
         async fn rust_async_func_return_result_transparent_enum_and_opaque_rust(
             succeed: bool,
         ) -> Result<AsyncResultOkEnum, AsyncResultOpaqueRustType1>;
+        async fn rust_async_func_return_result_null_and_transparent_enum(
+            succeed: bool,
+        ) -> Result<(), AsyncResultErrEnum>;
     }
 }
 
@@ -159,5 +161,18 @@ async fn rust_async_func_return_result_transparent_enum_and_opaque_rust(
         Ok(ffi::AsyncResultOkEnum::NoFields)
     } else {
         Err(AsyncResultOpaqueRustType1(1000))
+    }
+}
+
+async fn rust_async_func_return_result_null_and_transparent_enum(
+    succeed: bool,
+) -> Result<(), ffi::AsyncResultErrEnum> {
+    if succeed {
+        Ok(())
+    } else {
+        Err(ffi::AsyncResultErrEnum::UnnamedFields(
+            "foo".to_string(),
+            123,
+        ))
     }
 }
