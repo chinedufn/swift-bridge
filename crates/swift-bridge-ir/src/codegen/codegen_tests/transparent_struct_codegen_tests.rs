@@ -702,3 +702,63 @@ struct __swift_bridge__$Option$SomeStruct __swift_bridge__$some_function(struct 
         .test();
     }
 }
+
+/// Verify that we can use a tuple as Rust function arg and return type.
+mod generates_tuple {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                fn some_function(arg: (i32, u8)) -> (i32, u8);
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub extern "C" fn __swift_bridge__some_function (arg: __swift_bridge__tuple_i32u8) -> __swift_bridge__tuple_i32u8 {
+                    let val = super::some_function((arg.0, arg.1));
+                    __swift_bridge__tuple_i32u8(val.0, val.1)
+                }
+            },
+            quote! {
+                #[repr(C)]
+                #[doc(hidden)]
+                pub struct __swift_bridge__tuple_i32u8(i32, u8);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+func some_function(_ arg: (Int32, UInt8)) -> (Int32, UInt8) {
+    let val = __swift_bridge__$some_function(arg);
+    return (val._0, val._1);
+}
+"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+typedef struct __swift_bridge__$tuple$i32u8 { int32_t _0; uint8_t _1; } __swift_bridge__$tuple$i32u8;
+    "#,
+        ])
+    }
+
+    #[test]
+    fn generates_tuple() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
