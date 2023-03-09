@@ -5,10 +5,12 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use std::fmt::{Debug, Formatter};
 use syn::spanned::Spanned;
-use syn::{LitStr, Path};
+use syn::{LitStr, Path, Type};
+use quote::format_ident;
 
 pub(crate) use self::struct_field::StructField;
 pub(crate) use self::struct_field::StructFields;
+use self::struct_field::UnnamedStructField;
 
 mod struct_field;
 
@@ -19,6 +21,7 @@ pub(crate) struct SharedStruct {
     pub fields: StructFields,
     pub swift_name: Option<LitStr>,
     pub already_declared: bool,
+    pub is_tuple: bool,
 }
 
 impl SharedStruct {
@@ -271,6 +274,23 @@ impl SharedStruct {
                 quote! {}
             }
         }
+    }
+
+    pub fn tuple_from(types: &Vec<Type>) -> Option<Self>{
+        let unnamed_fields = types.iter().enumerate().map(|(idx, ty)|
+            UnnamedStructField{
+                ty: ty.clone(),
+                idx: idx
+            }
+        ).collect();
+        Some(SharedStruct {
+            name: format_ident!("tuple"),
+            swift_repr: StructSwiftRepr::Structure,
+            fields: StructFields::Unnamed(unnamed_fields),
+            swift_name: None,
+            already_declared: false, 
+            is_tuple: true,
+        })
     }
 }
 

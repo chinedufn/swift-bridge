@@ -711,7 +711,9 @@ mod generates_tuple {
         quote! {
             #[swift_bridge::bridge]
             mod ffi {
-                fn some_function(arg: (i32, u8)) -> (i32, u8);
+                extern "Rust" {
+                    fn some_function(arg: (i32, u8)) -> (i32, u8);
+                }
             }
         }
     }

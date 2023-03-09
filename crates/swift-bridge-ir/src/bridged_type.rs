@@ -3,7 +3,7 @@ use std::ops::Deref;
 use std::str::FromStr;
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::ToTokens;
+use quote::{ToTokens, format_ident};
 use quote::{quote, quote_spanned};
 use syn::{FnArg, Pat, PatType, Path, ReturnType, Type};
 
@@ -757,10 +757,18 @@ impl BridgedType {
                 }),
                 _ => None,
             },
-            Type::Tuple(tuple) if tuple.elems.len() == 0 => {
-                Some(BridgedType::StdLib(StdLibType::Null))
+            Type::Tuple(tuple) => {
+                if tuple.elems.len() == 0 {
+                    Some(BridgedType::StdLib(StdLibType::Null))
+                } else {
+                    let types = tuple.elems.iter().map(|ty|ty.clone()).collect();
+                    let shared_struct = SharedStruct::tuple_from(&types)?;
+                    return Some(BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))));
+                }
             }
-            _ => None,
+            _ => {
+                None
+            },
         }
     }
 
@@ -781,7 +789,7 @@ impl BridgedType {
     pub fn new_with_str(tokens: &str, types: &TypeDeclarations) -> Option<BridgedType> {
         let tokens = tokens.replace("\n", " ");
         let tokens = tokens.as_str();
-
+        println!("tokens: {} at new_with_str", tokens);
         if tokens.starts_with("Vec < ") {
             let inner = tokens.trim_start_matches("Vec < ");
             let inner = inner.trim_end_matches(" >");
