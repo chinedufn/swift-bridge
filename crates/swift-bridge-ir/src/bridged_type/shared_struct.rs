@@ -39,6 +39,7 @@ impl SharedStruct {
     }
 
     pub(crate) fn ffi_name_tokens(&self) -> TokenStream {
+        println!("SharedStruct::ffi_name_tokens");
         let name = Ident::new(
             &format!("{}{}", SWIFT_BRIDGE_PREFIX, &self.name),
             self.name.span(),
@@ -291,6 +292,23 @@ impl SharedStruct {
             already_declared: false, 
             is_tuple: true,
         })
+    }
+
+    pub fn generate_prefixed_type_name_tokens(&self, swift_bridge_path: &Path) -> TokenStream {
+        let ty_name = &self.name;
+        
+        let prefixed_ty_name = Ident::new(
+            &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
+            ty_name.span(),
+        );
+    
+        let prefixed_ty_name = if self.already_declared {
+            quote! { <super:: #ty_name as #swift_bridge_path::SharedStruct>::FfiRepr }
+        } else {
+            quote! { #prefixed_ty_name }
+        };
+    
+        prefixed_ty_name   
     }
 }
 

@@ -1051,19 +1051,7 @@ impl BridgedType {
                 StdLibType::BoxedFnOnce(fn_once) => fn_once.to_ffi_compatible_rust_type(types),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                let ty_name = &shared_struct.name;
-                let prefixed_ty_name = Ident::new(
-                    &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
-                    ty_name.span(),
-                );
-
-                let prefixed_ty_name = if shared_struct.already_declared {
-                    quote! { <super:: #ty_name as #swift_bridge_path::SharedStruct>::FfiRepr }
-                } else {
-                    quote! { #prefixed_ty_name }
-                };
-
-                prefixed_ty_name
+                shared_struct.generate_prefixed_type_name_tokens(swift_bridge_path)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 let ty_name = &shared_enum.name;

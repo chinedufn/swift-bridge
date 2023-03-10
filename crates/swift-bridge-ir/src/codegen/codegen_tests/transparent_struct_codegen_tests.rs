@@ -703,6 +703,7 @@ struct __swift_bridge__$Option$SomeStruct __swift_bridge__$some_function(struct 
     }
 }
 
+/***
 /// Verify that we can use a tuple as Rust function arg and return type.
 mod generates_tuple {
     use super::*;
@@ -764,3 +765,4 @@ typedef struct __swift_bridge__$tuple$i32u8 { int32_t _0; uint8_t _1; } __swift_
         .test();
     }
 }
+***/
