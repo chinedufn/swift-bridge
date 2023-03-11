@@ -515,7 +515,12 @@ impl BridgeableType for BridgedType {
                 StdLibType::Result(ty) => ty.generate_custom_c_ffi_type(),
                 _ => None,
             },
-            BridgedType::Foreign(_) => None,
+            BridgedType::Foreign(ty) => match ty {
+                CustomBridgedType::Shared(ty) => match ty {
+                    SharedType::Struct(ty)  => ty.generate_custom_c_ffi_type(),
+                    SharedType::Enum(_) => None,
+                }
+            },
             BridgedType::Bridgeable(_) => None,
         }
     }

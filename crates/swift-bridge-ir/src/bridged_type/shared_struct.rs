@@ -443,6 +443,12 @@ impl SharedStruct {
         }
         format!("{}.intoFfiRepr()", expression)
     }
+    pub fn generate_custom_c_ffi_type(&self) -> Option<String> {
+        if self.is_tuple {
+            return Some("typedef struct __swift_bridge__$tuple$i32u8 { int32_t _0; uint8_t _1; } __swift_bridge__$tuple$i32u8;".to_string());
+        }
+        None
+    }
 }
 
 impl PartialEq for SharedStruct {
