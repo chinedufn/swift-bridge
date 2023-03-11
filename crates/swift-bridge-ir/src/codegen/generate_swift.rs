@@ -222,6 +222,7 @@ fn gen_function_exposes_swift_to_rust(
 
                 call_fn = built_in.convert_swift_expression_to_ffi_type(
                     &call_fn,
+                    types,
                     TypePosition::FnReturn(func.host_lang),
                 );
             } else if func.is_swift_initializer {
@@ -232,6 +233,7 @@ fn gen_function_exposes_swift_to_rust(
         } else {
             call_fn = built_in.convert_swift_expression_to_ffi_type(
                 &call_fn,
+                types,
                 TypePosition::FnReturn(func.host_lang),
             );
         }
@@ -253,7 +255,7 @@ fn gen_function_exposes_swift_to_rust(
         }
 
         let params_as_swift = boxed_fn.params_to_swift_types(types);
-        let swift_ffi_call_args = boxed_fn.to_from_swift_to_rust_ffi_call_args();
+        let swift_ffi_call_args = boxed_fn.to_from_swift_to_rust_ffi_call_args(types);
 
         let maybe_ret = if boxed_fn.ret.is_null() {
             "".to_string()

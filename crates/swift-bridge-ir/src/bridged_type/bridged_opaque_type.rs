@@ -295,6 +295,7 @@ impl BridgeableType for OpaqueForeignType {
     fn convert_swift_expression_to_ffi_type(
         &self,
         expression: &str,
+        types: &TypeDeclarations,
         type_pos: TypePosition,
     ) -> String {
         let ty_name = &self.ty;

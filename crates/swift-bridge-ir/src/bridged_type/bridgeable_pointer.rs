@@ -143,6 +143,7 @@ impl BridgeableType for BuiltInPointer {
     fn convert_swift_expression_to_ffi_type(
         &self,
         _expression: &str,
+        _types: &TypeDeclarations,
         _type_pos: TypePosition,
     ) -> String {
         todo!()

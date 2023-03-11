@@ -166,7 +166,7 @@ impl BridgeableBoxedFnOnce {
 
     /// Box<dyn FnOnce(u8, SomeType)> would become:
     /// ", arg0, { arg1.isOwned = false; arg1 }()"
-    pub fn to_from_swift_to_rust_ffi_call_args(&self) -> String {
+    pub fn to_from_swift_to_rust_ffi_call_args(&self, types: &TypeDeclarations) -> String {
         let mut args = "".to_string();
 
         if self.params.is_empty() {
@@ -179,6 +179,7 @@ impl BridgeableBoxedFnOnce {
                 ", {}",
                 ty.convert_swift_expression_to_ffi_type(
                     &arg_name,
+                    types,
                     TypePosition::FnArg(HostLang::Rust, idx)
                 )
             );

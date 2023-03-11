@@ -166,6 +166,7 @@ pub(crate) trait BridgeableType: Debug {
     fn convert_swift_expression_to_ffi_type(
         &self,
         expression: &str,
+        types: &TypeDeclarations,
         type_pos: TypePosition,
     ) -> String;
 
@@ -584,9 +585,10 @@ impl BridgeableType for BridgedType {
     fn convert_swift_expression_to_ffi_type(
         &self,
         expression: &str,
+        types: &TypeDeclarations,
         type_pos: TypePosition,
     ) -> String {
-        self.convert_swift_expression_to_ffi_type(expression, type_pos)
+        self.convert_swift_expression_to_ffi_type(expression, types, type_pos)
     }
 
     fn convert_option_swift_expression_to_ffi_type(
@@ -1518,11 +1520,7 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                if let Some(only) = shared_struct.only_encoding() {
-                    return format!("{{ let _ = {}; return {} }}()", expression, only.swift);
-                }
-
-                format!("{}.intoSwiftRepr()", expression)
+                shared_struct.convert_ffi_expression_to_swift_type(expression)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 format!("{}.intoSwiftRepr()", expression)
@@ -1540,11 +1538,12 @@ impl BridgedType {
     pub fn convert_swift_expression_to_ffi_type(
         &self,
         expression: &str,
+        types: &TypeDeclarations,
         type_pos: TypePosition,
     ) -> String {
         match self {
             BridgedType::Bridgeable(b) => {
-                b.convert_swift_expression_to_ffi_type(expression, type_pos)
+                b.convert_swift_expression_to_ffi_type(expression, types, type_pos)
             }
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::Null
@@ -1609,18 +1608,14 @@ impl BridgedType {
                     option.convert_swift_expression_to_ffi_type(expression, type_pos)
                 }
                 StdLibType::Result(result) => {
-                    result.convert_swift_expression_to_ffi_compatible(expression, type_pos)
+                    result.convert_swift_expression_to_ffi_compatible(expression, types, type_pos)
                 }
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Support Box<dyn FnOnce(A, B) -> C>")
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                if let Some(_only) = shared_struct.only_encoding() {
-                    return format!("{{ let _ = {}; }}()", expression);
-                }
-
-                format!("{}.intoFfiRepr()", expression)
+                shared_struct.convert_swift_expression_to_ffi_type(expression, types)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 format!("{}.intoFfiRepr()", expression)

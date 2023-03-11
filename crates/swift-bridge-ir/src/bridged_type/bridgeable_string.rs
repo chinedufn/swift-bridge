@@ -129,6 +129,7 @@ impl BridgeableType for BridgedString {
     fn convert_swift_expression_to_ffi_type(
         &self,
         expression: &str,
+        types: &TypeDeclarations,
         _type_pos: TypePosition,
     ) -> String {
         format!(

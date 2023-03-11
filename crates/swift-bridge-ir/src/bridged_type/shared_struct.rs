@@ -26,6 +26,9 @@ pub(crate) struct SharedStruct {
 
 impl SharedStruct {
     pub(crate) fn swift_name_string(&self) -> String {
+        if self.is_tuple {
+            return "(Int32, UInt8)".to_string();
+        }
         match self.swift_name.as_ref() {
             Some(ty) => ty.value(),
             None => self.name.to_string(),
@@ -39,7 +42,6 @@ impl SharedStruct {
     }
 
     pub(crate) fn ffi_name_tokens(&self) -> TokenStream {
-        println!("SharedStruct::ffi_name_tokens");
         let name = Ident::new(
             &format!("{}{}", SWIFT_BRIDGE_PREFIX, &self.name),
             self.name.span(),
@@ -202,6 +204,7 @@ impl SharedStruct {
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
                 let access_field = ty.convert_swift_expression_to_ffi_type(
                     &format!("val.{field_name}", field_name = field_name),
+                    types,
                     TypePosition::SharedStructField,
                 );
 
@@ -304,7 +307,7 @@ impl SharedStruct {
         })
     }
 
-    fn combine_field_types_string(&self, _swift_bridge_path: &Path, types: &TypeDeclarations) -> String {
+    fn combine_field_types_string(&self, types: &TypeDeclarations) -> String {
         match &self.fields {
             StructFields::Named(_) => todo!(),
             StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|BridgedType::new_with_type(&field.ty, types).unwrap().to_rust_type_path(types).to_string()).fold("".to_string(), |sum, s| sum+&s),
@@ -322,7 +325,7 @@ impl SharedStruct {
 
     pub fn generate_prefixed_type_name_tokens(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream {
         if self.is_tuple {
-            let combined_types = self.combine_field_types_string(swift_bridge_path, types);
+            let combined_types = self.combine_field_types_string(types);
             let ty_name = format_ident!("{}_{}", self.name, combined_types);
             let prefixed_ty_name = Ident::new(
                 &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
@@ -384,7 +387,7 @@ impl SharedStruct {
             return quote! { {#expression;} };
         }
         if self.is_tuple {
-            let combined_types = self.combine_field_types_string(swift_bridge_path, types);
+            let combined_types = self.combine_field_types_string(types);
             let ty_name = format_ident!("{}_{}", self.name, combined_types);
             let prefixed_ty_name = Ident::new(
                 &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
@@ -402,7 +405,7 @@ impl SharedStruct {
 
     pub(crate) fn generate_custom_rust_ffi_type(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> Option<TokenStream>{
         if self.is_tuple {
-            let combined_types_string = self.combine_field_types_string(swift_bridge_path, types);
+            let combined_types_string = self.combine_field_types_string(types);
             let combined_types_tokens = self.combine_field_types_tokens(swift_bridge_path, types);
             let ty_name = format_ident!("{}_{}", self.name, combined_types_string);
             let prefixed_ty_name = Ident::new(
@@ -416,6 +419,29 @@ impl SharedStruct {
             });
         }
         None
+    }
+
+    pub(crate) fn convert_ffi_expression_to_swift_type(&self, expression: &str) -> String {
+        if let Some(only) = self.only_encoding() {
+            return format!("{{ let _ = {}; return {} }}()", expression, only.swift);
+        }
+        if self.is_tuple {
+            return format!("let val = {}; return (val._0, val._1);", expression);
+        }
+        format!("{}.intoSwiftRepr()", expression)
+    }
+    pub fn convert_swift_expression_to_ffi_type(
+        &self,
+        expression: &str,
+        types: &TypeDeclarations,
+    ) -> String {
+        if self.is_tuple {
+            return format!("{}${}${}(_0: arg.0, _1: arg.1)", SWIFT_BRIDGE_PREFIX, self.name, self.combine_field_types_string(types));
+        }
+        if let Some(_only) = self.only_encoding() {
+            return format!("{{ let _ = {}; }}()", expression);
+        }
+        format!("{}.intoFfiRepr()", expression)
     }
 }
 

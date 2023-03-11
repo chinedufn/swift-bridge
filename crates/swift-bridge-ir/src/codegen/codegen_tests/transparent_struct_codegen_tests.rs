@@ -737,9 +737,8 @@ mod generates_tuple {
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsManyAfterTrim(vec![
             r#"
-func some_function(_ arg: (Int32, UInt8)) -> (Int32, UInt8) {
-    let val = __swift_bridge__$some_function(arg);
-    return (val._0, val._1);
+public func some_function(_ arg: (Int32, UInt8)) -> (Int32, UInt8) {
+    let val = __swift_bridge__$some_function(__swift_bridge__$tuple$i32u8(_0: arg.0, _1: arg.1)); return (val._0, val._1);
 }
 "#,
         ])

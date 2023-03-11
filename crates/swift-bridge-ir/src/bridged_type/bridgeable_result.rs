@@ -282,14 +282,15 @@ impl BuiltInResult {
     pub fn convert_swift_expression_to_ffi_compatible(
         &self,
         expression: &str,
+        types: &TypeDeclarations,
         type_pos: TypePosition,
     ) -> String {
         let convert_ok = self
             .ok_ty
-            .convert_swift_expression_to_ffi_type("ok", type_pos);
+            .convert_swift_expression_to_ffi_type("ok", types, type_pos);
         let convert_err = self
             .err_ty
-            .convert_swift_expression_to_ffi_type("err", type_pos);
+            .convert_swift_expression_to_ffi_type("err", types, type_pos);
 
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
             format!(
