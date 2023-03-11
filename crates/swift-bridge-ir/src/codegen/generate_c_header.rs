@@ -112,14 +112,17 @@ impl SwiftBridgeModule {
                             "".to_string()
                         };
 
+                        let vec_support = vec_transparent_struct_c_support(&name);
+
                         let ty_decl = format!(
                             r#"typedef struct {prefix}${name} {{{maybe_fields}}} {prefix}${name};
-typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};"#,
+typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{vec_support}"#,
                             prefix = SWIFT_BRIDGE_PREFIX,
                             ffi_name = ffi_name,
                             option_ffi_name = option_ffi_name,
                             name = name,
-                            maybe_fields = maybe_fields
+                            maybe_fields = maybe_fields,
+                            vec_support = vec_support
                         );
 
                         header += &ty_decl;
@@ -388,6 +391,22 @@ uintptr_t __swift_bridge__$Vec_{enum_name}$len(void* vec_ptr);
 void* __swift_bridge__$Vec_{enum_name}$as_ptr(void* vec_ptr);
 "#,
         enum_name = enum_name
+    )
+}
+
+fn vec_transparent_struct_c_support(struct_name: &str) -> String {
+    format!(
+        r#"
+void* __swift_bridge__$Vec_{struct_name}$new(void);
+void __swift_bridge__$Vec_{struct_name}$drop(void* vec_ptr);
+void __swift_bridge__$Vec_{struct_name}$push(void* vec_ptr, __swift_bridge__${struct_name} item);
+__swift_bridge__$Option${struct_name} __swift_bridge__$Vec_{struct_name}$pop(void* vec_ptr);
+__swift_bridge__$Option${struct_name} __swift_bridge__$Vec_{struct_name}$get(void* vec_ptr, uintptr_t index);
+__swift_bridge__$Option${struct_name} __swift_bridge__$Vec_{struct_name}$get_mut(void* vec_ptr, uintptr_t index);
+uintptr_t __swift_bridge__$Vec_{struct_name}$len(void* vec_ptr);
+void* __swift_bridge__$Vec_{struct_name}$as_ptr(void* vec_ptr);
+"#,
+        struct_name = struct_name
     )
 }
 

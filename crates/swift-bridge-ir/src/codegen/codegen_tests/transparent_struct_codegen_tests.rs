@@ -73,7 +73,7 @@ extension __swift_bridge__$SomeStruct {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
+        ExpectedCHeader::ContainsAfterTrim(
             r#"
 #include <stdint.h>
 #include <stdbool.h>
@@ -680,15 +680,15 @@ func some_function(_ arg: Optional<SomeStruct>) -> Optional<SomeStruct> {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ExactAfterTrim(
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
 #include <stdint.h>
 #include <stdbool.h>
 typedef struct __swift_bridge__$SomeStruct { uint8_t field; } __swift_bridge__$SomeStruct;
 typedef struct __swift_bridge__$Option$SomeStruct { bool is_some; __swift_bridge__$SomeStruct val; } __swift_bridge__$Option$SomeStruct;
-struct __swift_bridge__$Option$SomeStruct __swift_bridge__$some_function(struct __swift_bridge__$Option$SomeStruct arg);
-    "#,
-        )
+"#,
+            "struct __swift_bridge__$Option$SomeStruct __swift_bridge__$some_function(struct __swift_bridge__$Option$SomeStruct arg);",
+        ])
     }
 
     #[test]

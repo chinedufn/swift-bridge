@@ -5,6 +5,12 @@ mod ffi {
         VariantB,
     }
 
+    #[swift_bridge(swift_repr = "struct")]
+    struct TransparentStructInsideVecT {
+        string: String,
+        integer: i64,
+    }
+
     extern "Rust" {
         type ARustTypeInsideVecT;
 
@@ -24,6 +30,12 @@ mod ffi {
         fn rust_reflect_vec_transparent_enum(
             arg: Vec<TransparentEnumInsideVecT>,
         ) -> Vec<TransparentEnumInsideVecT>;
+    }
+
+    extern "Rust" {
+        fn rust_reflect_vec_transparent_struct(
+            arg: Vec<TransparentStructInsideVecT>,
+        ) -> Vec<TransparentStructInsideVecT>;
     }
 }
 
@@ -50,5 +62,11 @@ fn rust_reflect_vec_opaque_rust_type(arg: Vec<ARustTypeInsideVecT>) -> Vec<ARust
 fn rust_reflect_vec_transparent_enum(
     arg: Vec<ffi::TransparentEnumInsideVecT>,
 ) -> Vec<ffi::TransparentEnumInsideVecT> {
+    arg
+}
+
+fn rust_reflect_vec_transparent_struct(
+    arg: Vec<ffi::TransparentStructInsideVecT>,
+) -> Vec<ffi::TransparentStructInsideVecT> {
     arg
 }

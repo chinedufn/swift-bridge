@@ -3,6 +3,7 @@
 
 use crate::bridged_type::{BridgedType, SharedStruct};
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
+use crate::codegen::generate_rust_tokens::vec::vec_of_transparent_struct::generate_vec_of_transparent_struct_functions;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
@@ -90,7 +91,14 @@ impl SwiftBridgeModule {
             }
         };
 
+        // TODO:
+        //  Parse any derives that the user has specified and combine those with our auto derives.
+        let automatic_derives = vec![quote! {Clone}];
+
+        let vec_support = generate_vec_of_transparent_struct_functions(&shared_struct);
+
         let definition = quote! {
+            #[derive(#(#automatic_derives),*)]
             pub struct #struct_name #struct_fields
 
             #struct_ffi_repr
@@ -149,6 +157,8 @@ impl SwiftBridgeModule {
                     }
                 }
             }
+
+            #vec_support
         };
 
         Some(definition)
