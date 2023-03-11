@@ -15,7 +15,7 @@ if [[ -n "${DEVELOPER_SDK_DIR:-}" ]]; then
   export LIBRARY_PATH="${DEVELOPER_SDK_DIR}/MacOSX.sdk/usr/lib:${LIBRARY_PATH:-}"
 fi
 
-cd $PROJECT_DIR
+cd "$PROJECT_DIR"
 
 if [[ $CONFIGURATION == "Release" ]]; then
     echo "BUIlDING FOR RELEASE"
