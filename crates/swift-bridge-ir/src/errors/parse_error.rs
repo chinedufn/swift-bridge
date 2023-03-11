@@ -5,6 +5,7 @@ use syn::{ForeignItemFn, ForeignItemType, LitStr};
 use syn::{Token, Type};
 
 // <!-- ANCHOR: mdbook-parse-error-enum -->
+#[allow(dead_code)] // TODO: remove
 pub(crate) enum ParseError {
     ArgsIntoArgNotFound {
         func: ForeignItemFn,

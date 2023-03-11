@@ -130,6 +130,19 @@ extension {enum_name}: Vectorizable {{
             )
         };
 
+        let derive_debug_impl = if shared_enum.derive.debug {
+            format!(
+                r#"
+extension {enum_name}: CustomDebugStringConvertible {{
+    public var debugDescription: String {{
+        RustString(ptr: __swift_bridge__${enum_name}$_Debug(self.intoFfiRepr())).toString()
+    }}
+}}"#
+            )
+        } else {
+            "".to_string()
+        };
+
         let swift_enum = format!(
             r#"public enum {enum_name} {{{variants}}}
 extension {enum_name} {{
@@ -159,7 +172,7 @@ extension {option_ffi_name} {{
             return {option_ffi_name}(is_some: false, val: {ffi_repr_name}())
         }}
     }}
-}}{vectorizable_impl}"#,
+}}{vectorizable_impl}{derive_debug_impl}"#,
             enum_name = enum_name,
             enum_ffi_name = enum_ffi_name,
             option_ffi_name = option_ffi_name,

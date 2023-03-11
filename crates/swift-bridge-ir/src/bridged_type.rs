@@ -17,7 +17,7 @@ use crate::parse::{HostLang, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
 
 use self::bridged_option::BridgedOption;
-pub(crate) use self::shared_enum::{EnumVariant, SharedEnum};
+pub(crate) use self::shared_enum::{DeriveAttrs, EnumVariant, SharedEnum};
 pub(crate) use self::shared_struct::{SharedStruct, StructFields, StructSwiftRepr};
 
 pub(crate) mod boxed_fn;

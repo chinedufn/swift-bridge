@@ -1,9 +1,10 @@
 use crate::bridged_type::{EnumVariant, SharedEnum, StructFields};
-use crate::errors::{ParseError, ParseErrors};
-use crate::parse::move_input_cursor_to_next_comma;
-use proc_macro2::Ident;
-use syn::parse::{Parse, ParseStream};
-use syn::{ItemEnum, LitStr, Token};
+use crate::errors::ParseErrors;
+use syn::ItemEnum;
+
+use self::enum_attributes::SharedEnumAllAttributes;
+
+mod enum_attributes;
 
 pub(crate) struct SharedEnumDeclarationParser<'a> {
     pub item_enum: ItemEnum,
@@ -12,84 +13,13 @@ pub(crate) struct SharedEnumDeclarationParser<'a> {
     pub errors: &'a mut ParseErrors,
 }
 
-enum EnumAttr {
-    AlreadyDeclared,
-    Error(EnumAttrParseError),
-    SwiftName(LitStr),
-}
-
-enum EnumAttrParseError {
-    UnrecognizedAttribute(Ident),
-}
-
-#[derive(Default)]
-struct EnumAttribs {
-    already_declared: bool,
-    swift_name: Option<LitStr>,
-}
-
-struct ParsedAttribs(Vec<EnumAttr>);
-impl Parse for ParsedAttribs {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        if input.is_empty() {
-            return Ok(ParsedAttribs(vec![]));
-        }
-
-        let opts = syn::punctuated::Punctuated::<_, syn::token::Comma>::parse_terminated(input)?;
-
-        Ok(ParsedAttribs(opts.into_iter().collect()))
-    }
-}
-
-impl Parse for EnumAttr {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let key: Ident = input.parse()?;
-
-        let attr = match key.to_string().as_str() {
-            "already_declared" => EnumAttr::AlreadyDeclared,
-            "swift_name" => {
-                input.parse::<Token![=]>()?;
-
-                let name = input.parse()?;
-                EnumAttr::SwiftName(name)
-            }
-            _ => {
-                move_input_cursor_to_next_comma(input);
-                EnumAttr::Error(EnumAttrParseError::UnrecognizedAttribute(key))
-            }
-        };
-
-        Ok(attr)
-    }
-}
-
 impl<'a> SharedEnumDeclarationParser<'a> {
     pub fn parse(self) -> Result<SharedEnum, syn::Error> {
         let item_enum = self.item_enum;
 
+        let attribs = SharedEnumAllAttributes::from_attributes(&item_enum.attrs)?;
+
         let mut variants = vec![];
-
-        let mut attribs = EnumAttribs::default();
-        for attr in item_enum.attrs {
-            let sections: ParsedAttribs = attr.parse_args()?;
-
-            for attr in sections.0 {
-                match attr {
-                    EnumAttr::AlreadyDeclared => {
-                        attribs.already_declared = true;
-                    }
-                    EnumAttr::Error(err) => match err {
-                        EnumAttrParseError::UnrecognizedAttribute(attribute) => {
-                            self.errors
-                                .push(ParseError::EnumUnrecognizedAttribute { attribute });
-                        }
-                    },
-                    EnumAttr::SwiftName(name) => {
-                        attribs.swift_name = Some(name);
-                    }
-                }
-            }
-        }
 
         for v in item_enum.variants {
             let variant = EnumVariant {
@@ -102,8 +32,9 @@ impl<'a> SharedEnumDeclarationParser<'a> {
         let shared_enum = SharedEnum {
             name: item_enum.ident,
             variants,
-            already_declared: attribs.already_declared,
-            swift_name: attribs.swift_name,
+            already_declared: attribs.swift_bridge.already_declared,
+            swift_name: attribs.swift_bridge.swift_name,
+            derive: attribs.derive,
         };
 
         Ok(shared_enum)
@@ -252,5 +183,24 @@ mod tests {
             }
             _ => panic!(),
         };
+    }
+
+    /// Verify that we can parse #[derive(Debug)] on enums
+    #[test]
+    fn derive_debug() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[derive(Debug)]
+                enum Foo {
+                    Variant1
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let ty = module.types.types()[0].unwrap_shared_enum();
+        assert!(ty.derive.debug);
     }
 }

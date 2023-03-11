@@ -96,7 +96,7 @@ pub(in super::super) fn generate_vec_of_transparent_enum_functions(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::assert_tokens_eq;
+    use crate::{bridged_type::DeriveAttrs, test_utils::assert_tokens_eq};
     use proc_macro2::{Ident, Span};
 
     /// Verify that we can generate the functions for an opaque Rust type that get exposed to Swift
@@ -168,6 +168,7 @@ mod tests {
             variants: vec![],
             already_declared: false,
             swift_name: None,
+            derive: DeriveAttrs::default(),
         };
         assert_tokens_eq(
             &generate_vec_of_transparent_enum_functions(&shared_enum),

@@ -148,6 +148,12 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                             variants += &variant;
                         }
 
+                        let derive_debug_impl = if ty_enum.derive.debug {
+                            format!("void* {ffi_name}$_Debug({ffi_name} this);")
+                        } else {
+                            "".to_string()
+                        };
+
                         let maybe_vec_support = if ty_enum.has_one_or_more_variants_with_data() {
                             "".to_string()
                         } else {
@@ -158,7 +164,8 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                             let enum_decl = format!(
                                 r#"typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
 typedef struct {ffi_name} {{ {ffi_tag_name} tag; }} {ffi_name};
-typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{maybe_vec_support}"#,
+typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};
+{derive_debug_impl}{maybe_vec_support}"#,
                                 ffi_name = ffi_name,
                                 ffi_tag_name = ffi_tag_name,
                                 option_ffi_name = option_ffi_name,
@@ -215,7 +222,8 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                 r#"{variant_fields}union {ffi_union_name} {union_fields};
 typedef enum {ffi_tag_name} {{ {variants}}} {ffi_tag_name};
 typedef struct {ffi_name} {{ {ffi_tag_name} tag; union {ffi_union_name} payload;}} {ffi_name};
-typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{maybe_vec_support}"#,
+typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};
+{derive_debug_impl}{maybe_vec_support}"#,
                                 union_fields = ffi_union_field_names,
                                 variant_fields = variant_fields,
                                 ffi_name = ffi_name,

@@ -130,13 +130,30 @@ impl SwiftBridgeModule {
             convert_ffi_variants_to_rust.push(convert_ffi_variant_to_rust);
         }
 
-        // TODO:
-        //  Parse any derives that the user has specified and combine those with our auto derives.
-        let automatic_derives = if shared_enum.has_one_or_more_variants_with_data() {
+        // Auto derives
+        let mut derives = if shared_enum.has_one_or_more_variants_with_data() {
             vec![]
         } else {
             vec![quote! {Copy}, quote! {Clone}]
         };
+
+        // User derives
+        let mut derive_impls = vec![];
+
+        if shared_enum.derive.debug {
+            derives.push(quote! {::std::fmt::Debug});
+
+            // __swift_bridge__$SomeEnum$_Debug
+            let export_name = format!("{}$_Debug", shared_enum.ffi_name_string());
+            // __swift_bridge__SomeEnum_Debug
+            let fn_name = format_ident!("{}_Debug", enum_ffi_name);
+            derive_impls.push(quote! {
+                #[export_name = #export_name]
+                pub extern "C" fn #fn_name(this: #enum_ffi_name) -> *mut swift_bridge::string::RustString {
+                    swift_bridge::string::RustString(format!("{:?}", this.into_rust_repr())).box_into_raw()
+                }
+            });
+        }
 
         let vec_support = if shared_enum.has_one_or_more_variants_with_data() {
             // Enums with variants that contain data are not yet supported.
@@ -146,7 +163,7 @@ impl SwiftBridgeModule {
         };
 
         let definition = quote! {
-            #[derive(#(#automatic_derives),*)]
+            #[derive(#(#derives),*)]
             pub enum #enum_name {
                 #(#enum_variants),*
             }
@@ -217,6 +234,8 @@ impl SwiftBridgeModule {
             }
 
             #vec_support
+
+            #(#derive_impls),*
         };
 
         Some(definition)
