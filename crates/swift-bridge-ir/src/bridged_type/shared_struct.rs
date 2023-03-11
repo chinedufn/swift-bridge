@@ -6,7 +6,7 @@ use quote::quote;
 use std::fmt::{Debug, Formatter};
 use syn::spanned::Spanned;
 use syn::{LitStr, Path, Type};
-use quote::format_ident;
+use quote::{format_ident, quote_spanned};
 
 pub(crate) use self::struct_field::StructField;
 pub(crate) use self::struct_field::StructFields;
@@ -132,13 +132,13 @@ impl SharedStruct {
         }
     }
 
-    pub(crate) fn convert_rust_expression_to_ffi_repr(
-        &self,
-        expression: &TokenStream,
+    pub(crate) fn generate_into_ffi_repr_method(&self, expression: &TokenStream,
         types: &TypeDeclarations,
         swift_bridge_path: &Path,
-        span: Span,
-    ) -> TokenStream {
+        span: Span,) -> TokenStream{
+        let struct_name = &self.name;
+        let struct_ffi_name = format_ident!("{}{}", SWIFT_BRIDGE_PREFIX, struct_name);
+
         let converted_fields: Vec<TokenStream> = self
             .fields
             .normalized_fields()
@@ -165,13 +165,23 @@ impl SharedStruct {
 
         let ffi_name = self.ffi_name_tokens();
 
-        if self.fields.is_empty() {
+        let convert_rust_to_ffi = if self.fields.is_empty() {
             quote! {
                 #ffi_name { _private: 123 }
             }
         } else {
             quote! {
                 { let val = #expression; #ffi_name #converted_fields }
+            }
+        };
+
+        quote!{
+            impl #struct_name {
+                #[doc(hidden)]
+                #[inline(always)]
+                pub fn into_ffi_repr(self) -> #struct_ffi_name {
+                    #convert_rust_to_ffi
+                }
             }
         }
     }
@@ -294,7 +304,31 @@ impl SharedStruct {
         })
     }
 
-    pub fn generate_prefixed_type_name_tokens(&self, swift_bridge_path: &Path) -> TokenStream {
+    fn combine_field_types_string(&self, _swift_bridge_path: &Path, types: &TypeDeclarations) -> String {
+        match &self.fields {
+            StructFields::Named(_) => todo!(),
+            StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|BridgedType::new_with_type(&field.ty, types).unwrap().to_rust_type_path(types).to_string()).fold("".to_string(), |sum, s| sum+&s),
+            StructFields::Unit => todo!(),
+        }
+    }
+
+    pub fn generate_prefixed_type_name_tokens(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream {
+        if self.is_tuple {
+            let combined_types = self.combine_field_types_string(swift_bridge_path, types);
+            let ty_name = format_ident!("{}_{}", self.name, combined_types);
+            let prefixed_ty_name = Ident::new(
+                &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
+                ty_name.span(),
+            );
+        
+            let prefixed_ty_name = if self.already_declared {
+                quote! { <super:: #ty_name as #swift_bridge_path::SharedStruct>::FfiRepr }
+            } else {
+                quote! { #prefixed_ty_name }
+            };
+        
+            return prefixed_ty_name;
+        }
         let ty_name = &self.name;
         
         let prefixed_ty_name = Ident::new(
@@ -309,6 +343,32 @@ impl SharedStruct {
         };
     
         prefixed_ty_name   
+    }
+
+    pub fn convert_ffi_expression_to_rust_type(
+        &self,
+        value: &TokenStream,
+        span: Span,
+        _swift_bridge_path: &Path,
+        _types: &TypeDeclarations,
+    ) -> TokenStream {
+        if self.is_tuple {
+            let fields: Vec<TokenStream> = self
+            .fields
+            .normalized_fields()
+            .iter()
+            .map(|norm_field| {
+                let access_field = norm_field.append_field_accessor(&quote! {arg});
+                access_field
+            })
+            .collect();
+            return quote_spanned!{
+                span => ( #(#fields),* )
+            };
+        }
+        quote_spanned! {span=>
+            #value.into_rust_repr()
+        }
     }
 }
 

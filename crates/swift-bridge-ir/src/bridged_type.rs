@@ -789,7 +789,6 @@ impl BridgedType {
     pub fn new_with_str(tokens: &str, types: &TypeDeclarations) -> Option<BridgedType> {
         let tokens = tokens.replace("\n", " ");
         let tokens = tokens.as_str();
-        println!("tokens: {} at new_with_str", tokens);
         if tokens.starts_with("Vec < ") {
             let inner = tokens.trim_start_matches("Vec < ");
             let inner = inner.trim_end_matches(" >");
@@ -1051,7 +1050,7 @@ impl BridgedType {
                 StdLibType::BoxedFnOnce(fn_once) => fn_once.to_ffi_compatible_rust_type(types),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.generate_prefixed_type_name_tokens(swift_bridge_path)
+                shared_struct.generate_prefixed_type_name_tokens(swift_bridge_path, types)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 let ty_name = &shared_enum.name;
@@ -1426,10 +1425,8 @@ impl BridgedType {
                     todo!("Support Box<dyn FnOnce(A, B) -> C>")
                 }
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
-                quote_spanned! {span=>
-                    #value.into_rust_repr()
-                }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                shared_struct.convert_ffi_expression_to_rust_type(value, span, swift_bridge_path, types)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 quote_spanned! {span=>
