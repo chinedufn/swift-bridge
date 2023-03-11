@@ -59,9 +59,9 @@ impl SwiftBridgeModule {
         let repr_c_struct_fields = shared_struct
             .fields
             .wrap_declaration_fields(&repr_c_struct_fields);
-
+        
         let into_ffi_repr_impl = shared_struct.generate_into_ffi_repr_method(&quote!{self}, &self.types, &self.swift_bridge_path, Span::call_site());
-
+        
         let convert_ffi_to_rust = shared_struct.convert_ffi_repr_to_rust(
             &quote! { self },
             swift_bridge_path,

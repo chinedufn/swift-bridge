@@ -312,6 +312,14 @@ impl SharedStruct {
         }
     }
 
+    fn combine_field_types_tokens(&self, _swift_bridge_path: &Path, types: &TypeDeclarations) -> Vec<TokenStream> {
+        match &self.fields {
+            StructFields::Named(_) => todo!(),
+            StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|BridgedType::new_with_type(&field.ty, types).unwrap().to_rust_type_path(types)).collect(),
+            StructFields::Unit => todo!(),
+        }
+    }
+
     pub fn generate_prefixed_type_name_tokens(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream {
         if self.is_tuple {
             let combined_types = self.combine_field_types_string(swift_bridge_path, types);
@@ -369,6 +377,45 @@ impl SharedStruct {
         quote_spanned! {span=>
             #value.into_rust_repr()
         }
+    }
+
+    pub fn convert_rust_expression_to_ffi_type(&self, expression: &TokenStream, swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream{
+        if let Some(_only) = self.only_encoding() {
+            return quote! { {#expression;} };
+        }
+        if self.is_tuple {
+            let combined_types = self.combine_field_types_string(swift_bridge_path, types);
+            let ty_name = format_ident!("{}_{}", self.name, combined_types);
+            let prefixed_ty_name = Ident::new(
+                &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
+                ty_name.span(),
+            );
+            return quote!{
+                let val = #expression;
+                #prefixed_ty_name(val.0, val.1)
+            };
+        }
+        quote! {
+            #expression.into_ffi_repr()
+        }
+    }
+
+    pub(crate) fn generate_custom_rust_ffi_type(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> Option<TokenStream>{
+        if self.is_tuple {
+            let combined_types_string = self.combine_field_types_string(swift_bridge_path, types);
+            let combined_types_tokens = self.combine_field_types_tokens(swift_bridge_path, types);
+            let ty_name = format_ident!("{}_{}", self.name, combined_types_string);
+            let prefixed_ty_name = Ident::new(
+                &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
+                ty_name.span(),
+            );
+            return Some(quote!{
+                #[repr(C)]
+                #[doc(hidden)]
+                pub struct #prefixed_ty_name ( #(#combined_types_tokens),* );
+            });
+        }
+        None
     }
 }
 

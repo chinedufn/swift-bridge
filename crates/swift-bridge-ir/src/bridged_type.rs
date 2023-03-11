@@ -496,7 +496,12 @@ impl BridgeableType for BridgedType {
                 }
                 _ => None,
             },
-            BridgedType::Foreign(_) => None,
+            BridgedType::Foreign(ty) => match ty {
+                CustomBridgedType::Shared(ty) => match ty {
+                    SharedType::Struct(ty) => ty.generate_custom_rust_ffi_type(swift_bridge_path, types),
+                    SharedType::Enum(_) => None,
+                }
+            },
             BridgedType::Bridgeable(ty) => {
                 ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
             }
@@ -1343,13 +1348,7 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                if let Some(_only) = shared_struct.only_encoding() {
-                    return quote! { {#expression;} };
-                }
-
-                quote! {
-                    #expression.into_ffi_repr()
-                }
+                shared_struct.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 quote! {
