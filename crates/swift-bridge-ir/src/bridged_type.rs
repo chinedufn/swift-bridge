@@ -268,7 +268,7 @@ pub(crate) trait BridgeableType: Debug {
     /// TODO: This is temporary as we move towards using this trait.. We should look at how
     ///  this is being used and create a trait method(s) that handles that particular case instead
     ///  of checking the type.
-    fn contains_owned_string_recursive(&self) -> bool;
+    fn contains_owned_string_recursive(&self, types: &TypeDeclarations) -> bool;
 
     /// Whether or not the type is a `&str`, or a type that contains a &str such as
     /// `Option<&str>` or `struct Foo { field: &'static str } `
@@ -684,8 +684,8 @@ impl BridgeableType for BridgedType {
         }
     }
 
-    fn contains_owned_string_recursive(&self) -> bool {
-        self.contains_owned_string_recursive()
+    fn contains_owned_string_recursive(&self, types: &TypeDeclarations) -> bool {
+        self.contains_owned_string_recursive(types)
     }
 
     fn contains_ref_string_recursive(&self) -> bool {
@@ -1771,22 +1771,19 @@ impl BridgedType {
 
     /// Whether or not the type is a `String`, or a type that contains an owned String such as
     /// `Option<String>` or `struct Foo { field: String } `
-    pub fn contains_owned_string_recursive(&self) -> bool {
+    pub fn contains_owned_string_recursive(&self, types: &TypeDeclarations) -> bool {
         match self {
-            BridgedType::Bridgeable(b) => b.contains_owned_string_recursive(),
+            BridgedType::Bridgeable(b) => b.contains_owned_string_recursive(types),
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
-                StdLibType::Vec(inner) => inner.ty.contains_owned_string_recursive(),
-                StdLibType::Option(inner) => inner.ty.contains_owned_string_recursive(),
+                StdLibType::Vec(inner) => inner.ty.contains_owned_string_recursive(types),
+                StdLibType::Option(inner) => inner.ty.contains_owned_string_recursive(types),
                 StdLibType::Result(inner) => {
-                    inner.ok_ty.contains_owned_string_recursive()
-                        || inner.err_ty.contains_owned_string_recursive()
+                    inner.ok_ty.contains_owned_string_recursive(types)
+                        || inner.err_ty.contains_owned_string_recursive(types)
                 }
                 _ => false,
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
-                // TODO: Check fields for String
-                false
-            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => shared_struct.contains_owned_string_recursive(types),
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 // TODO: Check fields for &str
                 false

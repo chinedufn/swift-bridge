@@ -482,6 +482,18 @@ impl SharedStruct {
         }
         None
     }
+    pub fn contains_owned_string_recursive(&self, types: &TypeDeclarations) -> bool {
+        if self.is_tuple {
+            return match &self.fields {
+                StructFields::Named(_) => todo!(),
+                StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|{
+                    return BridgedType::new_with_type(&field.ty, types).unwrap();
+                }).any(|ty|ty.contains_owned_string_recursive(types)),
+                StructFields::Unit => todo!(),
+            };
+        }
+        false
+    }
 }
 
 impl PartialEq for SharedStruct {

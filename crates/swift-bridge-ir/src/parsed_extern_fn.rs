@@ -620,7 +620,7 @@ void {free_boxed_fn_link_name}(void* {boxed_fn_arg_name});"#
             }
 
             let bridged_arg = bridged_arg.unwrap();
-            if bridged_arg.contains_owned_string_recursive() {
+            if bridged_arg.contains_owned_string_recursive(types) {
                 maybe_generics.insert(SwiftFuncGenerics::String);
             } else if bridged_arg.contains_ref_string_recursive() {
                 maybe_generics.insert(SwiftFuncGenerics::Str);

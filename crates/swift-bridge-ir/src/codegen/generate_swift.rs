@@ -275,7 +275,7 @@ fn gen_function_exposes_swift_to_rust(
             types,
         );
 
-        let maybe_generics = boxed_fn.maybe_swift_generics();
+        let maybe_generics = boxed_fn.maybe_swift_generics(types);
 
         rust_fn_once_callback_classes += &format!(
             r#"

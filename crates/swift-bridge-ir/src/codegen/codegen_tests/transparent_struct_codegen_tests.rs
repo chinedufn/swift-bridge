@@ -830,3 +830,66 @@ struct __swift_bridge__$tuple$i16u32 __swift_bridge__$some_function(struct __swi
         .test();
     }
 }
+
+mod generates_tuple3 {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    fn some_function(arg1: (String, u32)) -> (String, u32);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub extern "C" fn __swift_bridge__some_function (arg1: __swift_bridge__tuple_Stringu32) -> __swift_bridge__tuple_Stringu32 {
+                    let val = super::some_function((arg1.0, arg1.1));
+                    __swift_bridge__tuple_Stringu32(val.0, val.1)
+                }
+            },
+            quote! {
+                #[repr(C)]
+                #[doc(hidden)]
+                pub struct __swift_bridge__tuple_Stringu32(String, u32);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+public func some_function<GenericIntoRustString: IntoRustString>(_ arg1: (GenericIntoRustString, UInt32)) -> (GenericIntoRustString, UInt32) {
+    let val = __swift_bridge__$some_function(__swift_bridge__$tuple$Stringu32(_0: arg1.0, _1: arg1.1)); return (val._0, val._1);
+}
+"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+typedef struct __swift_bridge__$tuple$Stringu32 { void* _0; uint32_t _1; } __swift_bridge__$tuple$Stringu32;
+"#,
+r#"
+struct __swift_bridge__$tuple$Stringu32 __swift_bridge__$some_function(struct __swift_bridge__$tuple$Stringu32 arg1);
+"#,
+        ])
+    }
+
+    #[test]
+    fn generates_tuple3() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

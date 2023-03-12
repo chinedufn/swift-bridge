@@ -211,11 +211,11 @@ impl BridgeableBoxedFnOnce {
     /// Generate the generate bounds for the Swift side.
     /// For example:
     /// "<GenericRustString: IntoRustString>"
-    pub fn maybe_swift_generics(&self) -> String {
+    pub fn maybe_swift_generics(&self, types: &TypeDeclarations) -> String {
         let mut maybe_generics = HashSet::new();
 
         for bridged_arg in &self.params {
-            if bridged_arg.contains_owned_string_recursive() {
+            if bridged_arg.contains_owned_string_recursive(types) {
                 maybe_generics.insert(SwiftFuncGenerics::String);
             } else if bridged_arg.contains_ref_string_recursive() {
                 maybe_generics.insert(SwiftFuncGenerics::Str);
