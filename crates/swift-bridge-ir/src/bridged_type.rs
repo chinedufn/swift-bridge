@@ -63,14 +63,14 @@ pub(crate) trait BridgeableType: Debug {
     /// and therefore can be encoded with zero bytes.
     /// For example `()` and `struct Foo;` can have exactly one representation,
     /// but `u8` cannot since there are 255 possible `u8`s.
-    fn can_be_encoded_with_zero_bytes(&self) -> bool {
-        self.only_encoding().is_some()
+    fn can_be_encoded_with_zero_bytes(&self, types: &TypeDeclarations) -> bool {
+        self.only_encoding(types).is_some()
     }
 
     /// Some if this type can be encoded to exactly one representation.
     /// For example `()` and `struct Foo;` can have exactly one representation,
     /// but `u8` does not since there are 255 possible `u8`s.
-    fn only_encoding(&self) -> Option<OnlyEncoding>;
+    fn only_encoding(&self, types: &TypeDeclarations) -> Option<OnlyEncoding>;
 
     /// Whether or not this is a `Result<T,E>`.
     fn is_result(&self) -> bool;
@@ -447,16 +447,16 @@ impl BridgeableType for BridgedType {
         !self.is_custom_type()
     }
 
-    fn only_encoding(&self) -> Option<OnlyEncoding> {
+    fn only_encoding(&self, types: &TypeDeclarations) -> Option<OnlyEncoding> {
         match self {
             BridgedType::StdLib(StdLibType::Null) => Some(OnlyEncoding {
                 swift: "()".to_string(),
                 rust: quote! {()},
             }),
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(s))) => {
-                s.only_encoding()
+                s.only_encoding(types)
             }
-            BridgedType::Bridgeable(ty) => ty.only_encoding(),
+            BridgedType::Bridgeable(ty) => ty.only_encoding(types),
             _ => None,
         }
     }
@@ -1182,12 +1182,12 @@ impl BridgedType {
                     TypePosition::FnArg(func_host_lang, _)
                     | TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_rust() {
-                            shared_struct.swift_name_string()
+                            shared_struct.swift_name_string(types)
                         } else {
                             shared_struct.ffi_name_string(types)
                         }
                     }
-                    TypePosition::SharedStructField => shared_struct.swift_name_string(),
+                    TypePosition::SharedStructField => shared_struct.swift_name_string(types),
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         shared_struct.ffi_name_string(types)
                     }
@@ -1246,7 +1246,7 @@ impl BridgedType {
                 StdLibType::Str => "struct RustStr".to_string(),
                 StdLibType::Null => "void".to_string(),
                 StdLibType::Vec(_) => "void*".to_string(),
-                StdLibType::Option(opt) => opt.to_c(),
+                StdLibType::Option(opt) => opt.to_c(types),
                 StdLibType::Result(result) => result.to_c(types).to_string(),
                 StdLibType::BoxedFnOnce(_) => "void*".to_string(),
             },
@@ -1379,7 +1379,7 @@ impl BridgedType {
         types: &TypeDeclarations,
     ) -> TokenStream {
         if !self.is_null() {
-            if let Some(repr) = self.only_encoding() {
+            if let Some(repr) = self.only_encoding(types) {
                 let repr = repr.rust;
 
                 return quote_spanned! {span=> { #value; #repr } };
@@ -1525,7 +1525,7 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_ffi_expression_to_swift_type(expression)
+                shared_struct.convert_ffi_expression_to_swift_type(expression, types)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 format!("{}.intoSwiftRepr()", expression)
@@ -1610,7 +1610,7 @@ impl BridgedType {
                     )
                 }
                 StdLibType::Option(option) => {
-                    option.convert_swift_expression_to_ffi_type(expression, type_pos)
+                    option.convert_swift_expression_to_ffi_type(expression, type_pos, types)
                 }
                 StdLibType::Result(result) => {
                     result.convert_swift_expression_to_ffi_compatible(expression, types, type_pos)

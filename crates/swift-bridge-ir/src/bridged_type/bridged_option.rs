@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgedType, CustomBridgedType, SharedType, StdLibType, TypePosition};
+use crate::{bridged_type::{BridgedType, CustomBridgedType, SharedType, StdLibType, TypePosition}, parse::TypeDeclarations};
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::ops::Deref;
@@ -251,6 +251,7 @@ impl BridgedOption {
         &self,
         expression: &str,
         type_pos: TypePosition,
+        types: &TypeDeclarations,
     ) -> String {
         let convert_primitive = move |primitive_kind: &str, unused_none: &str| {
             format!(
@@ -308,7 +309,7 @@ impl BridgedOption {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                let ffi_name = shared_struct.ffi_option_name_string();
+                let ffi_name = shared_struct.ffi_option_name_string(types);
                 format!(
                     "{ffi_name}.fromSwiftRepr({expression})",
                     ffi_name = ffi_name,
@@ -328,7 +329,7 @@ impl BridgedOption {
 }
 
 impl BridgedOption {
-    pub fn to_c(&self) -> String {
+    pub fn to_c(&self, types: &TypeDeclarations) -> String {
         match self.ty.deref() {
             BridgedType::Bridgeable(b) => b.to_ffi_compatible_option_c_type(),
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
@@ -367,7 +368,7 @@ impl BridgedOption {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                format!("struct {}", shared_struct.ffi_option_name_string())
+                format!("struct {}", shared_struct.ffi_option_name_string(types))
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 format!("struct {}", shared_enum.ffi_option_name_string())

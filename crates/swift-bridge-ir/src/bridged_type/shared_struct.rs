@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgedType, OnlyEncoding, TypePosition};
+use crate::bridged_type::{BridgedType, OnlyEncoding, TypePosition, HostLang};
 use crate::parse::TypeDeclarations;
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, Span, TokenStream};
@@ -25,9 +25,9 @@ pub(crate) struct SharedStruct {
 }
 
 impl SharedStruct {
-    pub(crate) fn swift_name_string(&self) -> String {
+    pub(crate) fn swift_name_string(&self, types: &TypeDeclarations) -> String {
         if self.is_tuple {
-            return "(Int32, UInt8)".to_string();
+            return self.combine_field_types_swift_name(types);
         }
         match self.swift_name.as_ref() {
             Some(ty) => ty.value(),
@@ -39,7 +39,7 @@ impl SharedStruct {
         if self.is_tuple {
             return format!("{}${}${}", SWIFT_BRIDGE_PREFIX, self.name.to_string(), self.combine_field_types_string(types));            
         }
-        let name = self.swift_name_string();
+        let name = self.swift_name_string(types);
 
         format!("{}${}", SWIFT_BRIDGE_PREFIX, name)
     }
@@ -65,18 +65,18 @@ impl SharedStruct {
     }
 
     /// __swift_bridge__$Option$SomeStruct
-    pub fn ffi_option_name_string(&self) -> String {
+    pub fn ffi_option_name_string(&self, types: &TypeDeclarations) -> String {
         format!(
             "{}$Option${}",
             SWIFT_BRIDGE_PREFIX,
-            self.swift_name_string()
+            self.swift_name_string(types)
         )
     }
 
     /// Some if the struct has a single variant.
     /// TODO: If all of the struct's fields have an `OnlyEncoding`, then the struct has exactly
     ///  one encoding as well.
-    pub fn only_encoding(&self) -> Option<OnlyEncoding> {
+    pub fn only_encoding(&self, types: &TypeDeclarations) -> Option<OnlyEncoding> {
         let has_fields = !self.fields.is_empty();
         if has_fields || self.already_declared {
             return None;
@@ -86,7 +86,7 @@ impl SharedStruct {
         let empty_fields = self.fields.empty_field_wrapper();
 
         Some(OnlyEncoding {
-            swift: format!("{}()", self.swift_name_string()),
+            swift: format!("{}()", self.swift_name_string(types)),
             rust: quote! {#struct_name #empty_fields},
         })
     }
@@ -237,7 +237,7 @@ impl SharedStruct {
         expression: &str,
         types: &TypeDeclarations,
     ) -> String {
-        let struct_name = &self.swift_name_string();
+        let struct_name = &self.swift_name_string(types);
 
         let converted_fields: Vec<String> = self
             .fields
@@ -308,6 +308,20 @@ impl SharedStruct {
             already_declared: false, 
             is_tuple: true,
         })
+    }
+
+    fn combine_field_types_swift_name(&self, types: &TypeDeclarations) -> String {
+        match &self.fields {
+            StructFields::Named(_) => todo!(),
+            StructFields::Unnamed(unnamed_fiels) => {
+                let names: Vec<String> = unnamed_fiels.iter().enumerate().map(|(idx, field)|BridgedType::new_with_type(&field.ty, types).unwrap().to_swift_type(TypePosition::FnArg(HostLang::Rust, idx), types)).collect();
+                let names = names.join(", ");
+                let names = "(".to_string() + &names;
+                let names = names + ")";
+                return names;
+            },
+            StructFields::Unit => todo!(),
+        }
     }
 
     fn combine_field_types_string(&self, types: &TypeDeclarations) -> String {
@@ -386,7 +400,7 @@ impl SharedStruct {
     }
 
     pub fn convert_rust_expression_to_ffi_type(&self, expression: &TokenStream, swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream{
-        if let Some(_only) = self.only_encoding() {
+        if let Some(_only) = self.only_encoding(types) {
             return quote! { {#expression;} };
         }
         if self.is_tuple {
@@ -424,8 +438,8 @@ impl SharedStruct {
         None
     }
 
-    pub(crate) fn convert_ffi_expression_to_swift_type(&self, expression: &str) -> String {
-        if let Some(only) = self.only_encoding() {
+    pub(crate) fn convert_ffi_expression_to_swift_type(&self, expression: &str, types: &TypeDeclarations) -> String {
+        if let Some(only) = self.only_encoding(types) {
             return format!("{{ let _ = {}; return {} }}()", expression, only.swift);
         }
         if self.is_tuple {
@@ -441,7 +455,7 @@ impl SharedStruct {
         if self.is_tuple {
             return format!("{}${}${}(_0: arg.0, _1: arg.1)", SWIFT_BRIDGE_PREFIX, self.name, self.combine_field_types_string(types));
         }
-        if let Some(_only) = self.only_encoding() {
+        if let Some(_only) = self.only_encoding(types) {
             return format!("{{ let _ = {}; }}()", expression);
         }
         format!("{}.intoFfiRepr()", expression)

@@ -164,7 +164,7 @@ impl ParsedExternFn {
         let sig = &self.func.sig;
 
         if let Some(ret) = BridgedType::new_with_return_type(&sig.output, types) {
-            if ret.can_be_encoded_with_zero_bytes() {
+            if ret.can_be_encoded_with_zero_bytes(types) {
                 return quote! {};
             }
             if let Some(tokens) = ret.generate_custom_rust_ffi_type(swift_bridge_path, types) {
@@ -276,7 +276,7 @@ impl ParsedExternFn {
 
                     if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                         if self.host_lang.is_rust() {
-                            arg = if let Some(repr) = built_in.only_encoding() {
+                            arg = if let Some(repr) = built_in.only_encoding(types) {
                                 repr.rust
                             } else {
                                 built_in.convert_ffi_expression_to_rust_type(
@@ -293,7 +293,7 @@ impl ParsedExternFn {
                                 };
                             }
                         } else {
-                            if built_in.can_be_encoded_with_zero_bytes() {
+                            if built_in.can_be_encoded_with_zero_bytes(types) {
                                 continue;
                             }
 
@@ -338,7 +338,7 @@ impl ParsedExternFn {
                     } else {
                         let built_in = BridgedType::new_with_type(&pat_ty.ty, types).unwrap();
 
-                        if built_in.can_be_encoded_with_zero_bytes() {
+                        if built_in.can_be_encoded_with_zero_bytes(types) {
                             continue;
                         }
 
@@ -363,7 +363,7 @@ impl ParsedExternFn {
             ReturnType::Default => "void".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(ty) = BridgedType::new_with_type(&ty, types) {
-                    if ty.can_be_encoded_with_zero_bytes() {
+                    if ty.can_be_encoded_with_zero_bytes(types) {
                         return "void".to_string();
                     }
 
@@ -377,7 +377,7 @@ impl ParsedExternFn {
 
                     match types.get(&ty_string).unwrap() {
                         TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
-                            format!("struct {}", shared_struct.swift_name_string())
+                            format!("struct {}", shared_struct.swift_name_string(types))
                         }
                         TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_shared_enum)) => {
                             //

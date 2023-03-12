@@ -22,7 +22,7 @@ impl BridgeableType for OpaqueForeignType {
         false
     }
 
-    fn only_encoding(&self) -> Option<OnlyEncoding> {
+    fn only_encoding(&self, types: &TypeDeclarations) -> Option<OnlyEncoding> {
         None
     }
 

@@ -12,7 +12,7 @@ impl BridgeableType for BridgedString {
         true
     }
 
-    fn only_encoding(&self) -> Option<OnlyEncoding> {
+    fn only_encoding(&self, types: &TypeDeclarations) -> Option<OnlyEncoding> {
         None
     }
 
