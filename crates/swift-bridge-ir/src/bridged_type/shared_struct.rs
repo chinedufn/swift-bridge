@@ -452,8 +452,13 @@ impl SharedStruct {
         expression: &str,
         types: &TypeDeclarations,
     ) -> String {
-        if self.is_tuple {
-            return format!("{}${}${}(_0: arg.0, _1: arg.1)", SWIFT_BRIDGE_PREFIX, self.name, self.combine_field_types_string(types));
+        if self.is_tuple {  
+            let converted_fields: Vec<String> = match &self.fields {
+                StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().enumerate().map(|(idx, _)|format!("_{idx}: {expression}.{idx}")).collect(),
+                _ => todo!()
+            };
+            let converted_fields = converted_fields.join(", ");
+            return format!("{}${}${}({})", SWIFT_BRIDGE_PREFIX, self.name, self.combine_field_types_string(types), converted_fields);
         }
         if let Some(_only) = self.only_encoding(types) {
             return format!("{{ let _ = {}; }}()", expression);
