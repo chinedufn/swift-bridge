@@ -12,7 +12,7 @@ impl BridgeableType for BridgedString {
         true
     }
 
-    fn only_encoding(&self, types: &TypeDeclarations) -> Option<OnlyEncoding> {
+    fn only_encoding(&self, _types: &TypeDeclarations) -> Option<OnlyEncoding> {
         None
     }
 
@@ -36,7 +36,7 @@ impl BridgeableType for BridgedString {
         None
     }
 
-    fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
+    fn generate_custom_c_ffi_type(&self, _types: &TypeDeclarations) -> Option<String> {
         None
     }
 
@@ -62,7 +62,7 @@ impl BridgeableType for BridgedString {
         }
     }
 
-    fn to_c_type(&self, types: &TypeDeclarations) -> String {
+    fn to_c_type(&self, _types: &TypeDeclarations) -> String {
         "void*".to_string()
     }
 
@@ -129,7 +129,7 @@ impl BridgeableType for BridgedString {
     fn convert_swift_expression_to_ffi_type(
         &self,
         expression: &str,
-        types: &TypeDeclarations,
+        _types: &TypeDeclarations,
         _type_pos: TypePosition,
     ) -> String {
         format!(

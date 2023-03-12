@@ -53,7 +53,7 @@ impl BridgeableType for BuiltInPointer {
         None
     }
 
-    fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
+    fn generate_custom_c_ffi_type(&self, _types: &TypeDeclarations) -> Option<String> {
         None
     }
 
@@ -77,7 +77,7 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
-    fn to_c_type(&self, types: &TypeDeclarations) -> String {
+    fn to_c_type(&self, _types: &TypeDeclarations) -> String {
         todo!()
     }
 
@@ -247,7 +247,7 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
-    fn only_encoding(&self, types: &TypeDeclarations) -> Option<super::OnlyEncoding> {
+    fn only_encoding(&self, _types: &TypeDeclarations) -> Option<super::OnlyEncoding> {
         todo!()
     }
 

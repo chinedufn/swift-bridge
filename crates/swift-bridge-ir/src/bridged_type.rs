@@ -3,7 +3,7 @@ use std::ops::Deref;
 use std::str::FromStr;
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{ToTokens, format_ident};
+use quote::ToTokens;
 use quote::{quote, quote_spanned};
 use syn::{FnArg, Pat, PatType, Path, ReturnType, Type};
 
@@ -14,7 +14,6 @@ use crate::bridged_type::bridgeable_result::BuiltInResult;
 use crate::bridged_type::bridgeable_string::BridgedString;
 
 use crate::parse::{HostLang, TypeDeclaration, TypeDeclarations};
-use crate::SWIFT_BRIDGE_PREFIX;
 
 use self::bridged_option::BridgedOption;
 pub(crate) use self::shared_enum::{EnumVariant, SharedEnum};
@@ -1355,7 +1354,7 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types)
+                shared_struct.convert_rust_expression_to_ffi_type(expression, types)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 quote! {

@@ -399,7 +399,7 @@ impl SharedStruct {
         }
     }
 
-    pub fn convert_rust_expression_to_ffi_type(&self, expression: &TokenStream, swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream{
+    pub fn convert_rust_expression_to_ffi_type(&self, expression: &TokenStream, types: &TypeDeclarations) -> TokenStream{
         if let Some(_only) = self.only_encoding(types) {
             return quote! { {#expression;} };
         }
