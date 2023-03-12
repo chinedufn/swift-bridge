@@ -386,7 +386,7 @@ impl SharedStruct {
             .normalized_fields()
             .iter()
             .map(|norm_field| {
-                let access_field = norm_field.append_field_accessor(&quote! {arg});
+                let access_field = norm_field.append_field_accessor(&quote! {#value});
                 access_field
             })
             .collect();
@@ -465,9 +465,20 @@ impl SharedStruct {
         }
         format!("{}.intoFfiRepr()", expression)
     }
-    pub fn generate_custom_c_ffi_type(&self) -> Option<String> {
+    pub fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
         if self.is_tuple {
-            return Some("typedef struct __swift_bridge__$tuple$i32u8 { int32_t _0; uint8_t _1; } __swift_bridge__$tuple$i32u8;".to_string());
+            let combined_types = self.combine_field_types_string(types);
+            let fields: Vec<String> = match &self.fields {
+                StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().enumerate().map(|(idx, field)|{
+                    let field = BridgedType::new_with_type(&field.ty, types).unwrap().to_c(types);
+                    return format!("{} _{}", field, idx);
+                }).collect(),
+                _ => todo!(),
+            };
+            let fields = fields.join("; ");
+            let fields = fields + ";";
+            let c_decl = format!("typedef struct __swift_bridge__$tuple${combined_types} {{ {fields} }} __swift_bridge__$tuple${combined_types};");
+            return Some(c_decl);
         }
         None
     }
