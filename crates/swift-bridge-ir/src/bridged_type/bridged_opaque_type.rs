@@ -46,7 +46,7 @@ impl BridgeableType for OpaqueForeignType {
         None
     }
 
-    fn generate_custom_c_ffi_type(&self) -> Option<String> {
+    fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
         None
     }
 
@@ -133,7 +133,7 @@ impl BridgeableType for OpaqueForeignType {
         }
     }
 
-    fn to_c_type(&self) -> String {
+    fn to_c_type(&self, types: &TypeDeclarations) -> String {
         if self.host_lang.is_rust() {
             if self.has_swift_bridge_copy_annotation {
                 format!("struct {}", self.copy_ffi_repr_type_string())

@@ -101,7 +101,7 @@ pub(crate) trait BridgeableType: Debug {
     /// typedef enum __swift_bridge__$ResultVoidAndTransparentEnum$Tag { //... };
     /// // ...
     /// typedef struct __swift_bridge__$ResultVoidAndTransparentEnum { //... };
-    fn generate_custom_c_ffi_type(&self) -> Option<String>;
+    fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String>;
 
     /// Get the Rust representation of this type.
     /// For a string this might be `std::string::String`.
@@ -113,7 +113,7 @@ pub(crate) trait BridgeableType: Debug {
     fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String;
 
     /// Get the C representation of this type.
-    fn to_c_type(&self) -> String;
+    fn to_c_type(&self, types: &TypeDeclarations) -> String;
 
     /// Generate a C include statement to put in the C header.
     /// For example, for a `u8` we would generate a `#include <stdint.h>` line.
@@ -509,10 +509,10 @@ impl BridgeableType for BridgedType {
         }
     }
 
-    fn generate_custom_c_ffi_type(&self) -> Option<String> {
+    fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
         match self {
             BridgedType::StdLib(ty) => match ty {
-                StdLibType::Result(ty) => ty.generate_custom_c_ffi_type(),
+                StdLibType::Result(ty) => ty.generate_custom_c_ffi_type(types),
                 _ => None,
             },
             BridgedType::Foreign(ty) => match ty {
@@ -533,8 +533,8 @@ impl BridgeableType for BridgedType {
         self.to_swift_type(type_pos, types)
     }
 
-    fn to_c_type(&self) -> String {
-        self.to_c()
+    fn to_c_type(&self, types: &TypeDeclarations) -> String {
+        self.to_c(types)
     }
 
     fn to_c_include(&self) -> Option<&'static str> {
@@ -1184,12 +1184,12 @@ impl BridgedType {
                         if func_host_lang.is_rust() {
                             shared_struct.swift_name_string()
                         } else {
-                            shared_struct.ffi_name_string()
+                            shared_struct.ffi_name_string(types)
                         }
                     }
                     TypePosition::SharedStructField => shared_struct.swift_name_string(),
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
-                        shared_struct.ffi_name_string()
+                        shared_struct.ffi_name_string(types)
                     }
                 }
             }
@@ -1212,9 +1212,9 @@ impl BridgedType {
         }
     }
 
-    pub fn to_c(&self) -> String {
+    pub fn to_c(&self, types: &TypeDeclarations) -> String {
         match self {
-            BridgedType::Bridgeable(b) => b.to_c_type(),
+            BridgedType::Bridgeable(b) => b.to_c_type(types),
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::U8 => "uint8_t".to_string(),
                 StdLibType::I8 => "int8_t".to_string(),
@@ -1237,7 +1237,7 @@ impl BridgedType {
 
                     match &ptr.pointee {
                         Pointee::BuiltIn(ty) => {
-                            format!("{}{}*", ty.to_c(), maybe_const)
+                            format!("{}{}*", ty.to_c(types), maybe_const)
                         }
                         Pointee::Void(_) => "void*".to_string(),
                     }
@@ -1247,11 +1247,11 @@ impl BridgedType {
                 StdLibType::Null => "void".to_string(),
                 StdLibType::Vec(_) => "void*".to_string(),
                 StdLibType::Option(opt) => opt.to_c(),
-                StdLibType::Result(result) => result.to_c().to_string(),
+                StdLibType::Result(result) => result.to_c(types).to_string(),
                 StdLibType::BoxedFnOnce(_) => "void*".to_string(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                format!("struct {}", shared_struct.ffi_name_string())
+                format!("struct {}", shared_struct.ffi_name_string(types))
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 format!("struct {}", shared_enum.ffi_name_string())

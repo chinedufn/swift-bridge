@@ -36,7 +36,7 @@ impl BridgeableType for BridgedString {
         None
     }
 
-    fn generate_custom_c_ffi_type(&self) -> Option<String> {
+    fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
         None
     }
 
@@ -62,7 +62,7 @@ impl BridgeableType for BridgedString {
         }
     }
 
-    fn to_c_type(&self) -> String {
+    fn to_c_type(&self, types: &TypeDeclarations) -> String {
         "void*".to_string()
     }
 

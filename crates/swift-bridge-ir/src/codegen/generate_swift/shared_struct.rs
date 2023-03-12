@@ -87,7 +87,7 @@ extension {option_ffi_name} {{
                     initializer_params = initializer_params,
                     initializer_body = initializer_body,
                     fields = fields,
-                    ffi_repr_name = shared_struct.ffi_name_string(),
+                    ffi_repr_name = shared_struct.ffi_name_string(&self.types),
                     option_ffi_name = option_ffi_name,
                     convert_swift_to_ffi_repr = convert_swift_to_ffi_repr,
                     convert_ffi_repr_to_swift = convert_ffi_repr_to_swift

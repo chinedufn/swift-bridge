@@ -35,7 +35,10 @@ impl SharedStruct {
         }
     }
 
-    pub(crate) fn ffi_name_string(&self) -> String {
+    pub(crate) fn ffi_name_string(&self, types: &TypeDeclarations) -> String {
+        if self.is_tuple {
+            return format!("{}${}${}", SWIFT_BRIDGE_PREFIX, self.name.to_string(), self.combine_field_types_string(types));            
+        }
         let name = self.swift_name_string();
 
         format!("{}${}", SWIFT_BRIDGE_PREFIX, name)
@@ -193,7 +196,7 @@ impl SharedStruct {
         expression: &str,
         types: &TypeDeclarations,
     ) -> String {
-        let struct_name = &self.ffi_name_string();
+        let struct_name = &self.ffi_name_string(types);
 
         let converted_fields: Vec<String> = self
             .fields

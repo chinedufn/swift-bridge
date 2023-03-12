@@ -305,7 +305,7 @@ impl BuiltInResult {
         }
     }
 
-    pub fn to_c(&self) -> String {
+    pub fn to_c(&self, types: &TypeDeclarations) -> String {
         if self.is_custom_result_type() {
             return format!(
                 "struct {}${}",
@@ -317,7 +317,7 @@ impl BuiltInResult {
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
-            format!("{}", self.err_ty.to_c_type())
+            format!("{}", self.err_ty.to_c_type(types))
         } else {
             format!("struct __private__ResultPtrAndPtr")
         }
@@ -357,7 +357,7 @@ impl BuiltInResult {
         });
     }
 
-    pub fn generate_custom_c_ffi_type(&self) -> Option<String> {
+    pub fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
         if !self.is_custom_result_type() {
             return None;
         }
@@ -372,9 +372,9 @@ impl BuiltInResult {
         let ok_c_field_name = if self.ok_ty.can_be_encoded_with_zero_bytes() {
             "".to_string()
         } else {
-            format!("{} ok; ", self.ok_ty.to_c_type())
+            format!("{} ok; ", self.ok_ty.to_c_type(types))
         };
-        let err_c_field_name = self.err_ty.to_c_type();
+        let err_c_field_name = self.err_ty.to_c_type(types);
         let ok_c_tag_name = self.c_ok_tag_name();
         let err_c_tag_name = self.c_err_tag_name();
 

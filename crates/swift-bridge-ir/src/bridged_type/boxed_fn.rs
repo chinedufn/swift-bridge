@@ -114,12 +114,12 @@ impl BridgeableBoxedFnOnce {
 
     /// Box<dyn FnOnce(u8, SomeRustType)> becomes:
     /// uint8_t arg0, *void arg1
-    pub fn params_to_c_types(&self) -> String {
+    pub fn params_to_c_types(&self, types: &TypeDeclarations) -> String {
         self.params
             .iter()
             .enumerate()
             .map(|(idx, ty)| {
-                let ty = ty.to_c();
+                let ty = ty.to_c(types);
 
                 format!("{ty} arg{idx}")
             })

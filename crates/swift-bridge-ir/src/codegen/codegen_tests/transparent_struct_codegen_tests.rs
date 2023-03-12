@@ -747,9 +747,11 @@ public func some_function(_ arg: (Int32, UInt8)) -> (Int32, UInt8) {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
-struct __swift_bridge__some_function (struct __swift_bridge__tuple_i32u8 arg);
 typedef struct __swift_bridge__$tuple$i32u8 { int32_t _0; uint8_t _1; } __swift_bridge__$tuple$i32u8;
-    "#,
+"#,
+r#"
+struct __swift_bridge__$tuple$i32u8 __swift_bridge__$some_function(struct __swift_bridge__$tuple$i32u8 arg);
+"#,
         ])
     }
 

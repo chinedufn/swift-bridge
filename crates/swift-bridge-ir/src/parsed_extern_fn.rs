@@ -342,7 +342,7 @@ impl ParsedExternFn {
                             continue;
                         }
 
-                        let ty = built_in.to_c();
+                        let ty = built_in.to_c(types);
 
                         let arg_name = pat.to_token_stream().to_string();
                         params.push(format!("{} {}", ty, arg_name));
@@ -367,7 +367,7 @@ impl ParsedExternFn {
                         return "void".to_string();
                     }
 
-                    ty.to_c()
+                    ty.to_c(types)
                 } else {
                     let ty_string = match ty.deref() {
                         Type::Reference(reference) => reference.elem.to_token_stream().to_string(),
@@ -481,7 +481,7 @@ impl ParsedExternFn {
     /// Generates something like:
     /// void __swift_bridge__$some_function$param0(void* boxed_fn, uint8_t arg);
     /// void __swift_bridge__$some_function$_free$param0(void* boxed_fn);
-    pub fn boxed_fn_to_c_header_fns(&self, idx: usize, boxed_fn: &BridgeableBoxedFnOnce) -> String {
+    pub fn boxed_fn_to_c_header_fns(&self, idx: usize, boxed_fn: &BridgeableBoxedFnOnce, types: &TypeDeclarations) -> String {
         let call_boxed_fn_link_name = self.call_boxed_fn_link_name(idx);
         let free_boxed_fn_link_name = self.free_boxed_fn_link_name(idx);
 
@@ -491,11 +491,11 @@ impl ParsedExternFn {
         let maybe_args = if boxed_fn.params.is_empty() {
             "".to_string()
         } else {
-            let args = boxed_fn.params_to_c_types();
+            let args = boxed_fn.params_to_c_types(types);
             format!(", {args}")
         };
 
-        let ret = boxed_fn.ret.to_c();
+        let ret = boxed_fn.ret.to_c(types);
 
         format!(
             r#"
