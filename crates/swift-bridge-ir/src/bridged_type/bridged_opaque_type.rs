@@ -611,7 +611,7 @@ impl BridgeableType for OpaqueForeignType {
         false
     }
 
-    fn contains_owned_string_recursive(&self, types: &TypeDeclarations) -> bool {
+    fn contains_owned_string_recursive(&self, _types: &TypeDeclarations) -> bool {
         false
     }
 

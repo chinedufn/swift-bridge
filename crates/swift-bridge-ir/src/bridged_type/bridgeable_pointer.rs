@@ -235,7 +235,7 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
-    fn contains_owned_string_recursive(&self, types: &TypeDeclarations) -> bool {
+    fn contains_owned_string_recursive(&self, _types: &TypeDeclarations) -> bool {
         todo!()
     }
 
