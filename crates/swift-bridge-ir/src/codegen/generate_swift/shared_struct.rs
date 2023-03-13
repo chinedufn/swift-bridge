@@ -17,7 +17,7 @@ impl SwiftBridgeModule {
 
         let struct_name =
             &shared_struct.swift_name_string(TypePosition::FnArg(host_lang, 0), types);
-        let option_ffi_name = shared_struct.ffi_option_name_string(&self.types);
+        let option_ffi_name = shared_struct.ffi_option_name_string();
 
         match shared_struct.swift_repr {
             StructSwiftRepr::Class => {

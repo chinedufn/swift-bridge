@@ -77,7 +77,7 @@ impl SharedStruct {
     }
 
     /// __swift_bridge__$Option$SomeStruct
-    pub fn ffi_option_name_string(&self, _types: &TypeDeclarations) -> String {
+    pub fn ffi_option_name_string(&self) -> String {
         let name = match self.swift_name.as_ref() {
             Some(ty) => ty.value(),
             None => self.name.to_string(),

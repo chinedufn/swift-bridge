@@ -53,7 +53,7 @@ impl SwiftBridgeModule {
                         let name = ty_struct
                             .swift_name_string(TypePosition::FnArg(HostLang::Rust, 0), &self.types);
                         let ffi_name = ty_struct.ffi_name_string(&self.types);
-                        let option_ffi_name = ty_struct.ffi_option_name_string(&self.types);
+                        let option_ffi_name = ty_struct.ffi_option_name_string();
 
                         let mut fields = vec![];
 

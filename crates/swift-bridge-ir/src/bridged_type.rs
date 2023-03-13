@@ -1236,7 +1236,7 @@ impl BridgedType {
                 StdLibType::Str => "struct RustStr".to_string(),
                 StdLibType::Null => "void".to_string(),
                 StdLibType::Vec(_) => "void*".to_string(),
-                StdLibType::Option(opt) => opt.to_c(types),
+                StdLibType::Option(opt) => opt.to_c(),
                 StdLibType::Result(result) => result.to_c(types).to_string(),
                 StdLibType::BoxedFnOnce(_) => "void*".to_string(),
             },
@@ -1610,7 +1610,7 @@ impl BridgedType {
                     )
                 }
                 StdLibType::Option(option) => {
-                    option.convert_swift_expression_to_ffi_type(expression, type_pos, types)
+                    option.convert_swift_expression_to_ffi_type(expression, type_pos)
                 }
                 StdLibType::Result(result) => {
                     result.convert_swift_expression_to_ffi_compatible(expression, types, type_pos)
