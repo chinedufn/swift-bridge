@@ -1,18 +1,21 @@
 use crate::bridged_type::shared_struct::StructField;
 use crate::bridged_type::{BridgedType, SharedStruct, StructFields, StructSwiftRepr, TypePosition};
 use crate::SwiftBridgeModule;
+use crate::parse::{TypeDeclarations, HostLang};
 
 impl SwiftBridgeModule {
     /// Generate the tokens for a shared struct.
     pub(super) fn generate_shared_struct_string(
         &self,
         shared_struct: &SharedStruct,
+        types: &TypeDeclarations,
+        host_lang: HostLang,
     ) -> Option<String> {
         if shared_struct.already_declared {
             return None;
         }
 
-        let struct_name = &shared_struct.swift_name_string(&self.types);
+        let struct_name = &shared_struct.swift_name_string(TypePosition::FnArg(host_lang, 0), types);
         let option_ffi_name = shared_struct.ffi_option_name_string(&self.types);
 
         match shared_struct.swift_repr {

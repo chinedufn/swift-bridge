@@ -1170,12 +1170,12 @@ impl BridgedType {
                     TypePosition::FnArg(func_host_lang, _)
                     | TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_rust() {
-                            shared_struct.to_swift_type(type_pos, types)
+                            shared_struct.swift_name_string(type_pos, types)
                         } else {
                             shared_struct.ffi_name_string(types)
                         }
                     }
-                    TypePosition::SharedStructField => shared_struct.swift_name_string(types),
+                    TypePosition::SharedStructField => shared_struct.swift_name_string(type_pos, types),
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         shared_struct.ffi_name_string(types)
                     }

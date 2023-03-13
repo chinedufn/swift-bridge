@@ -90,7 +90,7 @@ impl SwiftBridgeModule {
         for ty in self.types.types() {
             match ty {
                 TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
-                    if let Some(swift_struct) = self.generate_shared_struct_string(shared_struct) {
+                    if let Some(swift_struct) = self.generate_shared_struct_string(shared_struct, &self.types, HostLang::Rust) {
                         swift += &swift_struct;
                         swift += "\n";
                     }

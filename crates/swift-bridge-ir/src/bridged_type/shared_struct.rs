@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgedType, HostLang, OnlyEncoding, TypePosition};
+use crate::bridged_type::{BridgedType, OnlyEncoding, TypePosition};
 use crate::parse::TypeDeclarations;
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, Span, TokenStream};
@@ -25,19 +25,9 @@ pub(crate) struct SharedStruct {
 }
 
 impl SharedStruct {
-    pub(crate) fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+    pub(crate) fn swift_name_string(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
         if self.is_tuple {
             return self.combine_field_types_into_swift_name(type_pos, types);
-        }
-        match self.swift_name.as_ref() {
-            Some(ty) => ty.value(),
-            None => self.name.to_string(),
-        }
-    }
-
-    pub(crate) fn swift_name_string(&self, types: &TypeDeclarations) -> String {
-        if self.is_tuple {
-            return self.combine_field_types_into_swift_name(TypePosition::FnArg(HostLang::Rust, 0), types);
         }
         match self.swift_name.as_ref() {
             Some(ty) => ty.value(),
@@ -54,7 +44,10 @@ impl SharedStruct {
                 self.combine_field_types_into_ffi_name_string(types)
             );
         }
-        let name = self.swift_name_string(types);
+        let name = match self.swift_name.as_ref() {
+            Some(ty) => ty.value(),
+            None => self.name.to_string(),
+        };
 
         format!("{}${}", SWIFT_BRIDGE_PREFIX, name)
     }
@@ -80,18 +73,22 @@ impl SharedStruct {
     }
 
     /// __swift_bridge__$Option$SomeStruct
-    pub fn ffi_option_name_string(&self, types: &TypeDeclarations) -> String {
+    pub fn ffi_option_name_string(&self, _types: &TypeDeclarations) -> String {
+        let name = match self.swift_name.as_ref() {
+            Some(ty) => ty.value(),
+            None => self.name.to_string(),
+        };
         format!(
             "{}$Option${}",
             SWIFT_BRIDGE_PREFIX,
-            self.swift_name_string(types)
+            name,
         )
     }
 
     /// Some if the struct has a single variant.
     /// TODO: If all of the struct's fields have an `OnlyEncoding`, then the struct has exactly
     ///  one encoding as well.
-    pub fn only_encoding(&self, types: &TypeDeclarations) -> Option<OnlyEncoding> {
+    pub fn only_encoding(&self, _types: &TypeDeclarations) -> Option<OnlyEncoding> {
         let has_fields = !self.fields.is_empty();
         if has_fields || self.already_declared {
             return None;
@@ -99,9 +96,12 @@ impl SharedStruct {
 
         let struct_name = &self.name;
         let empty_fields = self.fields.empty_field_wrapper();
-
+        let name = match self.swift_name.as_ref() {
+            Some(ty) => ty.value(),
+            None => self.name.to_string(),
+        };
         Some(OnlyEncoding {
-            swift: format!("{}()", self.swift_name_string(types)),
+            swift: format!("{}()", name),
             rust: quote! {#struct_name #empty_fields},
         })
     }
@@ -255,7 +255,11 @@ impl SharedStruct {
         expression: &str,
         types: &TypeDeclarations,
     ) -> String {
-        let struct_name = &self.swift_name_string(types);
+        let name = match self.swift_name.as_ref() {
+            Some(ty) => ty.value(),
+            None => self.name.to_string(),
+        };
+        let struct_name = &name;
 
         let converted_fields: Vec<String> = self
             .fields
