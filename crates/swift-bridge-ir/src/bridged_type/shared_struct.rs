@@ -25,6 +25,16 @@ pub(crate) struct SharedStruct {
 }
 
 impl SharedStruct {
+    pub(crate) fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+        if self.is_tuple {
+            return self.combine_field_types_swift_name_with_type_pos(type_pos, types);
+        }
+        match self.swift_name.as_ref() {
+            Some(ty) => ty.value(),
+            None => self.name.to_string(),
+        }
+    }
+
     pub(crate) fn swift_name_string(&self, types: &TypeDeclarations) -> String {
         if self.is_tuple {
             return self.combine_field_types_swift_name(types);
@@ -310,6 +320,20 @@ impl SharedStruct {
         })
     }
 
+    fn combine_field_types_swift_name_with_type_pos(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+        match &self.fields {
+            StructFields::Named(_) => todo!(),
+            StructFields::Unnamed(unnamed_fiels) => {
+                let names: Vec<String> = unnamed_fiels.iter().enumerate().map(|(_idx, field)|BridgedType::new_with_type(&field.ty, types).unwrap().to_swift_type(type_pos, types)).collect();
+                let names = names.join(", ");
+                let names = "(".to_string() + &names;
+                let names = names + ")";
+                return names;
+            },
+            StructFields::Unit => todo!(),
+        }
+    }
+
     fn combine_field_types_swift_name(&self, types: &TypeDeclarations) -> String {
         match &self.fields {
             StructFields::Named(_) => todo!(),
@@ -438,23 +462,39 @@ impl SharedStruct {
         None
     }
 
-    pub(crate) fn convert_ffi_expression_to_swift_type(&self, expression: &str, types: &TypeDeclarations) -> String {
+    pub(crate) fn convert_ffi_expression_to_swift_type(&self, expression: &str, type_pos: TypePosition, types: &TypeDeclarations) -> String {
         if let Some(only) = self.only_encoding(types) {
             return format!("{{ let _ = {}; return {} }}()", expression, only.swift);
         }
         if self.is_tuple {
-            return format!("let val = {}; return (val._0, val._1);", expression);
+            let converted_fields: Vec<String> = match &self.fields {
+                StructFields::Named(_) => todo!(),
+                StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().enumerate().map(|(idx, field)|{
+                    let ty = BridgedType::new_with_type(&field.ty, types).unwrap();
+                    let converted_field = ty.convert_ffi_value_to_swift_value(&format!("val._{idx}"), type_pos, types);
+                    converted_field
+                }).collect(),
+                StructFields::Unit => todo!(),
+            };
+            let converted_fields = converted_fields.join(", ");
+
+            return format!("let val = {}; return ({converted_fields});", expression);
         }
         format!("{}.intoSwiftRepr()", expression)
     }
     pub fn convert_swift_expression_to_ffi_type(
         &self,
         expression: &str,
+        type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
         if self.is_tuple {  
             let converted_fields: Vec<String> = match &self.fields {
-                StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().enumerate().map(|(idx, _)|format!("_{idx}: {expression}.{idx}")).collect(),
+                StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().enumerate().map(|(idx, field)|{
+                    let ty = BridgedType::new_with_type(&field.ty, types).unwrap();
+                    let converted_field = ty.convert_swift_expression_to_ffi_type(&format!("{expression}.{idx}"), types, type_pos);
+                    format!("_{idx}: ")+&converted_field
+                }).collect(),
                 _ => todo!()
             };
             let converted_fields = converted_fields.join(", ");

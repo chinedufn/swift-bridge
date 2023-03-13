@@ -1181,7 +1181,7 @@ impl BridgedType {
                     TypePosition::FnArg(func_host_lang, _)
                     | TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_rust() {
-                            shared_struct.swift_name_string(types)
+                            shared_struct.to_swift_type(type_pos, types)
                         } else {
                             shared_struct.ffi_name_string(types)
                         }
@@ -1524,7 +1524,7 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_ffi_expression_to_swift_type(expression, types)
+                shared_struct.convert_ffi_expression_to_swift_type(expression, type_pos, types)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 format!("{}.intoSwiftRepr()", expression)
@@ -1619,7 +1619,7 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_swift_expression_to_ffi_type(expression, types)
+                shared_struct.convert_swift_expression_to_ffi_type(expression, type_pos, types)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 format!("{}.intoFfiRepr()", expression)

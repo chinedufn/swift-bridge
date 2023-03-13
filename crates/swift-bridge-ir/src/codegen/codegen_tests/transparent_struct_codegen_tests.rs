@@ -861,11 +861,15 @@ mod generates_tuple3 {
         ])
     }
 
+    //public func foo<GenericIntoRustString: IntoRustString>(_ arg: GenericIntoRustString) -> RustString {
+    //    RustString(ptr: __swift_bridge__$foo({ let rustString = arg.intoRustString(); rustString.isOwned = false; return rustString.ptr }()))
+    //}
+
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsManyAfterTrim(vec![
             r#"
-public func some_function<GenericIntoRustString: IntoRustString>(_ arg1: (GenericIntoRustString, UInt32)) -> (GenericIntoRustString, UInt32) {
-    let val = __swift_bridge__$some_function(__swift_bridge__$tuple$Stringu32(_0: arg1.0, _1: arg1.1)); return (val._0, val._1);
+public func some_function<GenericIntoRustString: IntoRustString>(_ arg1: (GenericIntoRustString, UInt32)) -> (RustString, UInt32) {
+    let val = __swift_bridge__$some_function(__swift_bridge__$tuple$Stringu32(_0: { let rustString = arg1.0.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), _1: arg1.1)); return (RustString(ptr: val._0), val._1);
 }
 "#,
         ])
