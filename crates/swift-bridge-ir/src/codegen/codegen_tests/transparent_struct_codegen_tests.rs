@@ -703,8 +703,8 @@ struct __swift_bridge__$Option$SomeStruct __swift_bridge__$some_function(struct 
     }
 }
 
-/// Verify that we can use a tuple as Rust function arg and return type.
-mod generates_tuple {
+/// Verify that we can use a (primitive type, primitive type) as Rust function arg and return type.
+mod extern_rust_tuple_primitives {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -756,7 +756,7 @@ struct __swift_bridge__$tuple$I32U8 __swift_bridge__$some_function(struct __swif
     }
 
     #[test]
-    fn generates_tuple() {
+    fn extern_rust_tuple_primitives() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -767,71 +767,8 @@ struct __swift_bridge__$tuple$I32U8 __swift_bridge__$some_function(struct __swif
     }
 }
 
-/// Verify that we can use a tuple as Rust function arg and return type.
-mod generates_tuple2 {
-    use super::*;
-
-    fn bridge_module_tokens() -> TokenStream {
-        quote! {
-            #[swift_bridge::bridge]
-            mod ffi {
-                extern "Rust" {
-                    fn some_function(arg1: (i16, u32)) -> (i16, u32);
-                }
-            }
-        }
-    }
-
-    fn expected_rust_tokens() -> ExpectedRustTokens {
-        ExpectedRustTokens::ContainsMany(vec![
-            quote! {
-                pub extern "C" fn __swift_bridge__some_function (arg1: __swift_bridge__tuple_I16U32) -> __swift_bridge__tuple_I16U32 {
-                    let val = super::some_function((arg1.0, arg1.1));
-                    __swift_bridge__tuple_I16U32(val.0, val.1)
-                }
-            },
-            quote! {
-                #[repr(C)]
-                #[doc(hidden)]
-                pub struct __swift_bridge__tuple_I16U32(i16, u32);
-            },
-        ])
-    }
-
-    fn expected_swift_code() -> ExpectedSwiftCode {
-        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
-            r#"
-public func some_function(_ arg1: (Int16, UInt32)) -> (Int16, UInt32) {
-    let val = __swift_bridge__$some_function(__swift_bridge__$tuple$I16U32(_0: arg1.0, _1: arg1.1)); return (val._0, val._1);
-}
-"#,
-        ])
-    }
-
-    fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ContainsManyAfterTrim(vec![
-            r#"
-typedef struct __swift_bridge__$tuple$I16U32 { int16_t _0; uint32_t _1; } __swift_bridge__$tuple$I16U32;
-"#,
-            r#"
-struct __swift_bridge__$tuple$I16U32 __swift_bridge__$some_function(struct __swift_bridge__$tuple$I16U32 arg1);
-"#,
-        ])
-    }
-
-    #[test]
-    fn generates_tuple2() {
-        CodegenTest {
-            bridge_module: bridge_module_tokens().into(),
-            expected_rust_tokens: expected_rust_tokens(),
-            expected_swift_code: expected_swift_code(),
-            expected_c_header: expected_c_header(),
-        }
-        .test();
-    }
-}
-
-mod generates_tuple3 {
+/// Verify that we can use a (String, primitive type) as Rust function arg and return type.
+mod extern_rust_tuple_string_primitive {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -883,7 +820,7 @@ struct __swift_bridge__$tuple$StringU32 __swift_bridge__$some_function(struct __
     }
 
     #[test]
-    fn generates_tuple3() {
+    fn extern_rust_tuple_string_primitive() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -894,7 +831,8 @@ struct __swift_bridge__$tuple$StringU32 __swift_bridge__$some_function(struct __
     }
 }
 
-mod generates_tuple4 {
+/// Verify that we can use a (OpaqueRustType, primitive type) as Rust function arg and return type.
+mod extern_rust_tuple_opaque_rust_primitive {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -950,7 +888,7 @@ struct __swift_bridge__$tuple$SomeTypeU32 __swift_bridge__$some_function(struct 
     }
 
     #[test]
-    fn generates_tuple4() {
+    fn extern_rust_tuple_opaque_rust_primitive() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
