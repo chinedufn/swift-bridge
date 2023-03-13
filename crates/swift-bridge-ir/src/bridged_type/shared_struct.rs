@@ -351,7 +351,7 @@ impl SharedStruct {
     fn combine_field_types_string(&self, types: &TypeDeclarations) -> String {
         match &self.fields {
             StructFields::Named(_) => todo!(),
-            StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|BridgedType::new_with_type(&field.ty, types).unwrap().to_rust_type_path(types).to_string()).fold("".to_string(), |sum, s| sum+&s),
+            StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|BridgedType::new_with_type(&field.ty, types).unwrap().to_alpha_numeric_underscore_name()).fold("".to_string(), |sum, s| sum+&s),
             StructFields::Unit => todo!(),
         }
     }

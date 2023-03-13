@@ -292,6 +292,6 @@ impl BridgeableType for BridgedString {
     }
 
     fn to_alpha_numeric_underscore_name(&self) -> String {
-        todo!()
+        "String".to_string()
     }
 }

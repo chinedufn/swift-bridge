@@ -700,20 +700,7 @@ impl BridgeableType for BridgedType {
     }
 
     fn to_alpha_numeric_underscore_name(&self) -> String {
-        match self {
-            BridgedType::StdLib(ty) => match ty {
-                StdLibType::Result(_ty) => todo!(),
-                StdLibType::Null => "Void".to_string(),
-                _ => todo!(),
-            },
-            BridgedType::Foreign(ty) => match ty {
-                CustomBridgedType::Shared(ty) => match ty {
-                    SharedType::Struct(_ty) => todo!(),
-                    SharedType::Enum(ty) => ty.name.to_string(),
-                },
-            },
-            BridgedType::Bridgeable(b) => b.to_alpha_numeric_underscore_name(),
-        }
+        self.to_alpha_numeric_underscore_name()
     }
 }
 
@@ -1847,6 +1834,29 @@ impl BridgedType {
             _ => {
                 quote! { #expression.into() }
             }
+        }
+    }
+
+    pub fn to_alpha_numeric_underscore_name(&self) -> String {
+        match self {
+            BridgedType::StdLib(ty) => match ty {
+                StdLibType::Result(_ty) => todo!(),
+                StdLibType::Null => "Void".to_string(),
+                StdLibType::U8   => "U8".to_string(),
+                StdLibType::U16  => "U16".to_string(),
+                StdLibType::U32  => "U32".to_string(),
+                StdLibType::I8   => "I8".to_string(),
+                StdLibType::I16  => "I16".to_string(),
+                StdLibType::I32  => "I32".to_string(),
+                _ => todo!(),
+            },
+            BridgedType::Foreign(ty) => match ty {
+                CustomBridgedType::Shared(ty) => match ty {
+                    SharedType::Struct(_ty) => todo!(),
+                    SharedType::Enum(ty) => ty.name.to_string(),
+                },
+            },
+            BridgedType::Bridgeable(b) => b.to_alpha_numeric_underscore_name(),
         }
     }
 
