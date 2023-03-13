@@ -1,8 +1,8 @@
 use crate::bridged_type::boxed_fn::BridgeableBoxedFnOnce;
+use crate::bridged_type::TypePosition;
 use crate::bridged_type::{pat_type_pat_is_self, BridgeableType, BridgedType, StdLibType};
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::SWIFT_BRIDGE_PREFIX;
-use crate::bridged_type::TypePosition;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::collections::{HashMap, HashSet};
@@ -378,7 +378,13 @@ impl ParsedExternFn {
 
                     match types.get(&ty_string).unwrap() {
                         TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
-                            format!("struct {}", shared_struct.swift_name_string(TypePosition::FnReturn(self.host_lang), types))
+                            format!(
+                                "struct {}",
+                                shared_struct.swift_name_string(
+                                    TypePosition::FnReturn(self.host_lang),
+                                    types
+                                )
+                            )
                         }
                         TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_shared_enum)) => {
                             //

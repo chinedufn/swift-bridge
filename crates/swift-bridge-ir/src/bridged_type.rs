@@ -1175,7 +1175,9 @@ impl BridgedType {
                             shared_struct.ffi_name_string(types)
                         }
                     }
-                    TypePosition::SharedStructField => shared_struct.swift_name_string(type_pos, types),
+                    TypePosition::SharedStructField => {
+                        shared_struct.swift_name_string(type_pos, types)
+                    }
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         shared_struct.ffi_name_string(types)
                     }

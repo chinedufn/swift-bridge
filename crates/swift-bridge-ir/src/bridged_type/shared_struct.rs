@@ -25,7 +25,11 @@ pub(crate) struct SharedStruct {
 }
 
 impl SharedStruct {
-    pub(crate) fn swift_name_string(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+    pub(crate) fn swift_name_string(
+        &self,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+    ) -> String {
         if self.is_tuple {
             return self.combine_field_types_into_swift_name(type_pos, types);
         }
@@ -78,11 +82,7 @@ impl SharedStruct {
             Some(ty) => ty.value(),
             None => self.name.to_string(),
         };
-        format!(
-            "{}$Option${}",
-            SWIFT_BRIDGE_PREFIX,
-            name,
-        )
+        format!("{}$Option${}", SWIFT_BRIDGE_PREFIX, name,)
     }
 
     /// Some if the struct has a single variant.
@@ -512,7 +512,8 @@ impl SharedStruct {
     ) -> Option<TokenStream> {
         if self.is_tuple {
             let combined_types_string = self.combine_field_types_into_ffi_name_string(types);
-            let combined_types_tokens = self.combine_field_types_into_ffi_name_tokens(swift_bridge_path, types);
+            let combined_types_tokens =
+                self.combine_field_types_into_ffi_name_tokens(swift_bridge_path, types);
             let ty_name = format_ident!("{}_{}", self.name, combined_types_string);
             let prefixed_ty_name = Ident::new(
                 &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),

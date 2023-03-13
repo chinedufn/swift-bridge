@@ -3,10 +3,10 @@
 use crate::bridged_type::shared_struct::StructField;
 use crate::bridged_type::{BridgeableType, BridgedType, StdLibType, StructFields, TypePosition};
 use crate::codegen::CodegenConfig;
+use crate::parse::HostLang;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
-use crate::parse::HostLang;
 use std::collections::{BTreeSet, HashSet};
 use syn::ReturnType;
 
@@ -50,7 +50,8 @@ impl SwiftBridgeModule {
                             continue;
                         }
 
-                        let name = ty_struct.swift_name_string(TypePosition::FnArg(HostLang::Rust, 0), &self.types);
+                        let name = ty_struct
+                            .swift_name_string(TypePosition::FnArg(HostLang::Rust, 0), &self.types);
                         let ffi_name = ty_struct.ffi_name_string(&self.types);
                         let option_ffi_name = ty_struct.ffi_option_name_string(&self.types);
 
