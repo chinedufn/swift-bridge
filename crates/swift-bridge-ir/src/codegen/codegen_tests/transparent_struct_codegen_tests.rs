@@ -849,21 +849,17 @@ mod generates_tuple3 {
         ExpectedRustTokens::ContainsMany(vec![
             quote! {
                 pub extern "C" fn __swift_bridge__some_function (arg1: __swift_bridge__tuple_Stringu32) -> __swift_bridge__tuple_Stringu32 {
-                    let val = super::some_function((arg1.0, arg1.1));
-                    __swift_bridge__tuple_Stringu32(val.0, val.1)
+                    let val = super::some_function((unsafe { Box::from_raw(arg1.0).0 }, arg1.1));
+                    __swift_bridge__tuple_Stringu32(swift_bridge::string::RustString(val.0).box_into_raw(), val.1)
                 }
             },
             quote! {
                 #[repr(C)]
                 #[doc(hidden)]
-                pub struct __swift_bridge__tuple_Stringu32(String, u32);
+                pub struct __swift_bridge__tuple_Stringu32(*mut swift_bridge::string::RustString, u32);
             },
         ])
     }
-
-    //public func foo<GenericIntoRustString: IntoRustString>(_ arg: GenericIntoRustString) -> RustString {
-    //    RustString(ptr: __swift_bridge__$foo({ let rustString = arg.intoRustString(); rustString.isOwned = false; return rustString.ptr }()))
-    //}
 
     fn expected_swift_code() -> ExpectedSwiftCode {
         ExpectedSwiftCode::ContainsManyAfterTrim(vec![

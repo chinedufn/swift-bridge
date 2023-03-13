@@ -356,10 +356,10 @@ impl SharedStruct {
         }
     }
 
-    fn combine_field_types_tokens(&self, _swift_bridge_path: &Path, types: &TypeDeclarations) -> Vec<TokenStream> {
+    fn combine_field_types_tokens(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> Vec<TokenStream> {
         match &self.fields {
             StructFields::Named(_) => todo!(),
-            StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|BridgedType::new_with_type(&field.ty, types).unwrap().to_rust_type_path(types)).collect(),
+            StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|BridgedType::new_with_type(&field.ty, types).unwrap().to_ffi_compatible_rust_type(swift_bridge_path, types)).collect(),
             StructFields::Unit => todo!(),
         }
     }
@@ -401,8 +401,8 @@ impl SharedStruct {
         &self,
         value: &TokenStream,
         span: Span,
-        _swift_bridge_path: &Path,
-        _types: &TypeDeclarations,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
     ) -> TokenStream {
         if self.is_tuple {
             let fields: Vec<TokenStream> = self
@@ -410,8 +410,10 @@ impl SharedStruct {
             .normalized_fields()
             .iter()
             .map(|norm_field| {
+                let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
                 let access_field = norm_field.append_field_accessor(&quote! {#value});
-                access_field
+                ty.convert_ffi_expression_to_rust_type(&access_field, span, swift_bridge_path, types)
+                
             })
             .collect();
             return quote_spanned!{
@@ -423,7 +425,8 @@ impl SharedStruct {
         }
     }
 
-    pub fn convert_rust_expression_to_ffi_type(&self, expression: &TokenStream, types: &TypeDeclarations) -> TokenStream{
+    pub fn convert_rust_expression_to_ffi_type(&self, expression: &TokenStream, span: Span,
+        swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream{
         if let Some(_only) = self.only_encoding(types) {
             return quote! { {#expression;} };
         }
@@ -434,9 +437,19 @@ impl SharedStruct {
                 &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
                 ty_name.span(),
             );
+            let converted_fields: Vec<TokenStream> = self
+            .fields
+            .normalized_fields()
+            .iter()
+            .map(|norm_field| {
+                let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
+                let access_field = norm_field.append_field_accessor(&quote! {val});
+                ty.convert_rust_expression_to_ffi_type(&access_field, swift_bridge_path, types, span)
+            })
+            .collect();
             return quote!{
                 let val = #expression;
-                #prefixed_ty_name(val.0, val.1)
+                #prefixed_ty_name( #(#converted_fields),* )
             };
         }
         quote! {

@@ -23,9 +23,9 @@ final class TupleTest: XCTestCase {
         }
         XCTContext.runActivity(named: "String and primitive type") {
             _ in
-            //let tuple = reflect_tuple_string_and_primitive_type(("hello", 10))
-            //XCTAssertEqual(tuple.0.toString(), "hello")
-            //XCTAssertEqual(tuple.1, 10)
+            let tuple = reflect_tuple_string_and_primitive_type(("hello", 10))
+            XCTAssertEqual(tuple.0.toString(), "hello")
+            XCTAssertEqual(tuple.1, 10)
         }
     }
     

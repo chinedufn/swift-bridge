@@ -1354,7 +1354,7 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_rust_expression_to_ffi_type(expression, types)
+                shared_struct.convert_rust_expression_to_ffi_type(expression, span, swift_bridge_path, types)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 quote! {
