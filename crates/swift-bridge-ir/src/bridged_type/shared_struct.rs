@@ -88,7 +88,7 @@ impl SharedStruct {
     /// Some if the struct has a single variant.
     /// TODO: If all of the struct's fields have an `OnlyEncoding`, then the struct has exactly
     ///  one encoding as well.
-    pub fn only_encoding(&self, _types: &TypeDeclarations) -> Option<OnlyEncoding> {
+    pub fn only_encoding(&self) -> Option<OnlyEncoding> {
         let has_fields = !self.fields.is_empty();
         if has_fields || self.already_declared {
             return None;
@@ -470,7 +470,7 @@ impl SharedStruct {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
-        if let Some(_only) = self.only_encoding(types) {
+        if let Some(_only) = self.only_encoding() {
             return quote! { {#expression;} };
         }
         if self.is_tuple {
@@ -534,7 +534,7 @@ impl SharedStruct {
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
-        if let Some(only) = self.only_encoding(types) {
+        if let Some(only) = self.only_encoding() {
             return format!("{{ let _ = {}; return {} }}()", expression, only.swift);
         }
         if self.is_tuple {
@@ -593,7 +593,7 @@ impl SharedStruct {
                 converted_fields
             );
         }
-        if let Some(_only) = self.only_encoding(types) {
+        if let Some(_only) = self.only_encoding() {
             return format!("{{ let _ = {}; }}()", expression);
         }
         format!("{}.intoFfiRepr()", expression)

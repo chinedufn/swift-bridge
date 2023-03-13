@@ -453,7 +453,7 @@ impl BridgeableType for BridgedType {
                 rust: quote! {()},
             }),
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(s))) => {
-                s.only_encoding(types)
+                s.only_encoding()
             }
             BridgedType::Bridgeable(ty) => ty.only_encoding(types),
             _ => None,
