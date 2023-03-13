@@ -498,9 +498,11 @@ impl BridgeableType for BridgedType {
             },
             BridgedType::Foreign(ty) => match ty {
                 CustomBridgedType::Shared(ty) => match ty {
-                    SharedType::Struct(ty) => ty.generate_custom_rust_ffi_type(swift_bridge_path, types),
+                    SharedType::Struct(ty) => {
+                        ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
+                    }
                     SharedType::Enum(_) => None,
-                }
+                },
             },
             BridgedType::Bridgeable(ty) => {
                 ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
@@ -516,9 +518,9 @@ impl BridgeableType for BridgedType {
             },
             BridgedType::Foreign(ty) => match ty {
                 CustomBridgedType::Shared(ty) => match ty {
-                    SharedType::Struct(ty)  => ty.generate_custom_c_ffi_type(types),
+                    SharedType::Struct(ty) => ty.generate_custom_c_ffi_type(types),
                     SharedType::Enum(_) => None,
-                }
+                },
             },
             BridgedType::Bridgeable(_) => None,
         }
@@ -759,14 +761,14 @@ impl BridgedType {
                 if tuple.elems.len() == 0 {
                     Some(BridgedType::StdLib(StdLibType::Null))
                 } else {
-                    let types = tuple.elems.iter().map(|ty|ty.clone()).collect();
+                    let types = tuple.elems.iter().map(|ty| ty.clone()).collect();
                     let shared_struct = SharedStruct::tuple_from(&types)?;
-                    return Some(BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))));
+                    return Some(BridgedType::Foreign(CustomBridgedType::Shared(
+                        SharedType::Struct(shared_struct),
+                    )));
                 }
             }
-            _ => {
-                None
-            },
+            _ => None,
         }
     }
 
@@ -1341,7 +1343,12 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_rust_expression_to_ffi_type(expression, span, swift_bridge_path, types)
+                shared_struct.convert_rust_expression_to_ffi_type(
+                    expression,
+                    span,
+                    swift_bridge_path,
+                    types,
+                )
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 quote! {
@@ -1418,7 +1425,12 @@ impl BridgedType {
                 }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_ffi_expression_to_rust_type(value, span, swift_bridge_path, types)
+                shared_struct.convert_ffi_expression_to_rust_type(
+                    value,
+                    span,
+                    swift_bridge_path,
+                    types,
+                )
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 quote_spanned! {span=>
@@ -1770,7 +1782,9 @@ impl BridgedType {
                 }
                 _ => false,
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => shared_struct.contains_owned_string_recursive(types),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                shared_struct.contains_owned_string_recursive(types)
+            }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 // TODO: Check fields for &str
                 false
@@ -1842,12 +1856,12 @@ impl BridgedType {
             BridgedType::StdLib(ty) => match ty {
                 StdLibType::Result(_ty) => todo!(),
                 StdLibType::Null => "Void".to_string(),
-                StdLibType::U8   => "U8".to_string(),
-                StdLibType::U16  => "U16".to_string(),
-                StdLibType::U32  => "U32".to_string(),
-                StdLibType::I8   => "I8".to_string(),
-                StdLibType::I16  => "I16".to_string(),
-                StdLibType::I32  => "I32".to_string(),
+                StdLibType::U8 => "U8".to_string(),
+                StdLibType::U16 => "U16".to_string(),
+                StdLibType::U32 => "U32".to_string(),
+                StdLibType::I8 => "I8".to_string(),
+                StdLibType::I16 => "I16".to_string(),
+                StdLibType::I32 => "I32".to_string(),
                 _ => todo!(),
             },
             BridgedType::Foreign(ty) => match ty {

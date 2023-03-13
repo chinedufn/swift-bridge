@@ -7,7 +7,9 @@ mod ffi {
         fn val(&self) -> i32;
         fn reflect_tuple_primitives(tuple: (i16, u32)) -> (i16, u32);
         fn reflect_tuple_string_and_primitive(tuple: (String, i32)) -> (String, i32);
-        fn reflect_tuple_opaque_rust_and_string_and_primitive(tuple: (TupleTestOpaqueRustType, String, u8)) -> (TupleTestOpaqueRustType, String, u8);
+        fn reflect_tuple_opaque_rust_and_string_and_primitive(
+            tuple: (TupleTestOpaqueRustType, String, u8),
+        ) -> (TupleTestOpaqueRustType, String, u8);
     }
 }
 
@@ -30,6 +32,8 @@ fn reflect_tuple_string_and_primitive(tuple: (String, i32)) -> (String, i32) {
     tuple
 }
 
-fn reflect_tuple_opaque_rust_and_string_and_primitive(tuple: (TupleTestOpaqueRustType, String, u8)) -> (TupleTestOpaqueRustType, String, u8) {
+fn reflect_tuple_opaque_rust_and_string_and_primitive(
+    tuple: (TupleTestOpaqueRustType, String, u8),
+) -> (TupleTestOpaqueRustType, String, u8) {
     tuple
 }

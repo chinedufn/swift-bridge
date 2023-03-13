@@ -1,12 +1,12 @@
-use crate::bridged_type::{BridgedType, OnlyEncoding, TypePosition, HostLang};
+use crate::bridged_type::{BridgedType, HostLang, OnlyEncoding, TypePosition};
 use crate::parse::TypeDeclarations;
 use crate::SWIFT_BRIDGE_PREFIX;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
+use quote::{format_ident, quote_spanned};
 use std::fmt::{Debug, Formatter};
 use syn::spanned::Spanned;
 use syn::{LitStr, Path, Type};
-use quote::{format_ident, quote_spanned};
 
 pub(crate) use self::struct_field::StructField;
 pub(crate) use self::struct_field::StructFields;
@@ -47,7 +47,12 @@ impl SharedStruct {
 
     pub(crate) fn ffi_name_string(&self, types: &TypeDeclarations) -> String {
         if self.is_tuple {
-            return format!("{}${}${}", SWIFT_BRIDGE_PREFIX, self.name.to_string(), self.combine_field_types_string(types));            
+            return format!(
+                "{}${}${}",
+                SWIFT_BRIDGE_PREFIX,
+                self.name.to_string(),
+                self.combine_field_types_string(types)
+            );
         }
         let name = self.swift_name_string(types);
 
@@ -147,10 +152,13 @@ impl SharedStruct {
         }
     }
 
-    pub(crate) fn generate_into_ffi_repr_method(&self, expression: &TokenStream,
+    pub(crate) fn generate_into_ffi_repr_method(
+        &self,
+        expression: &TokenStream,
         types: &TypeDeclarations,
         swift_bridge_path: &Path,
-        span: Span,) -> TokenStream{
+        span: Span,
+    ) -> TokenStream {
         let struct_name = &self.name;
         let struct_ffi_name = format_ident!("{}{}", SWIFT_BRIDGE_PREFIX, struct_name);
 
@@ -190,7 +198,7 @@ impl SharedStruct {
             }
         };
 
-        quote!{
+        quote! {
             impl #struct_name {
                 #[doc(hidden)]
                 #[inline(always)]
@@ -303,33 +311,47 @@ impl SharedStruct {
         }
     }
 
-    pub fn tuple_from(types: &Vec<Type>) -> Option<Self>{
-        let unnamed_fields = types.iter().enumerate().map(|(idx, ty)|
-            UnnamedStructField{
+    pub fn tuple_from(types: &Vec<Type>) -> Option<Self> {
+        let unnamed_fields = types
+            .iter()
+            .enumerate()
+            .map(|(idx, ty)| UnnamedStructField {
                 ty: ty.clone(),
-                idx: idx
-            }
-        ).collect();
+                idx: idx,
+            })
+            .collect();
         Some(SharedStruct {
             name: format_ident!("tuple"),
             swift_repr: StructSwiftRepr::Structure,
             fields: StructFields::Unnamed(unnamed_fields),
             swift_name: None,
-            already_declared: false, 
+            already_declared: false,
             is_tuple: true,
         })
     }
 
-    fn combine_field_types_swift_name_with_type_pos(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+    fn combine_field_types_swift_name_with_type_pos(
+        &self,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+    ) -> String {
         match &self.fields {
             StructFields::Named(_) => todo!(),
             StructFields::Unnamed(unnamed_fiels) => {
-                let names: Vec<String> = unnamed_fiels.iter().enumerate().map(|(_idx, field)|BridgedType::new_with_type(&field.ty, types).unwrap().to_swift_type(type_pos, types)).collect();
+                let names: Vec<String> = unnamed_fiels
+                    .iter()
+                    .enumerate()
+                    .map(|(_idx, field)| {
+                        BridgedType::new_with_type(&field.ty, types)
+                            .unwrap()
+                            .to_swift_type(type_pos, types)
+                    })
+                    .collect();
                 let names = names.join(", ");
                 let names = "(".to_string() + &names;
                 let names = names + ")";
                 return names;
-            },
+            }
             StructFields::Unit => todo!(),
         }
     }
@@ -338,12 +360,20 @@ impl SharedStruct {
         match &self.fields {
             StructFields::Named(_) => todo!(),
             StructFields::Unnamed(unnamed_fiels) => {
-                let names: Vec<String> = unnamed_fiels.iter().enumerate().map(|(idx, field)|BridgedType::new_with_type(&field.ty, types).unwrap().to_swift_type(TypePosition::FnArg(HostLang::Rust, idx), types)).collect();
+                let names: Vec<String> = unnamed_fiels
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, field)| {
+                        BridgedType::new_with_type(&field.ty, types)
+                            .unwrap()
+                            .to_swift_type(TypePosition::FnArg(HostLang::Rust, idx), types)
+                    })
+                    .collect();
                 let names = names.join(", ");
                 let names = "(".to_string() + &names;
                 let names = names + ")";
                 return names;
-            },
+            }
             StructFields::Unit => todo!(),
         }
     }
@@ -351,20 +381,42 @@ impl SharedStruct {
     fn combine_field_types_string(&self, types: &TypeDeclarations) -> String {
         match &self.fields {
             StructFields::Named(_) => todo!(),
-            StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|BridgedType::new_with_type(&field.ty, types).unwrap().to_alpha_numeric_underscore_name()).fold("".to_string(), |sum, s| sum+&s),
+            StructFields::Unnamed(unnamed_fields) => unnamed_fields
+                .iter()
+                .map(|field| {
+                    BridgedType::new_with_type(&field.ty, types)
+                        .unwrap()
+                        .to_alpha_numeric_underscore_name()
+                })
+                .fold("".to_string(), |sum, s| sum + &s),
             StructFields::Unit => todo!(),
         }
     }
 
-    fn combine_field_types_tokens(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> Vec<TokenStream> {
+    fn combine_field_types_tokens(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Vec<TokenStream> {
         match &self.fields {
             StructFields::Named(_) => todo!(),
-            StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|BridgedType::new_with_type(&field.ty, types).unwrap().to_ffi_compatible_rust_type(swift_bridge_path, types)).collect(),
+            StructFields::Unnamed(unnamed_fields) => unnamed_fields
+                .iter()
+                .map(|field| {
+                    BridgedType::new_with_type(&field.ty, types)
+                        .unwrap()
+                        .to_ffi_compatible_rust_type(swift_bridge_path, types)
+                })
+                .collect(),
             StructFields::Unit => todo!(),
         }
     }
 
-    pub fn generate_prefixed_type_name_tokens(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream {
+    pub fn generate_prefixed_type_name_tokens(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         if self.is_tuple {
             let combined_types = self.combine_field_types_string(types);
             let ty_name = format_ident!("{}_{}", self.name, combined_types);
@@ -372,29 +424,29 @@ impl SharedStruct {
                 &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
                 ty_name.span(),
             );
-        
+
             let prefixed_ty_name = if self.already_declared {
                 quote! { <super:: #ty_name as #swift_bridge_path::SharedStruct>::FfiRepr }
             } else {
                 quote! { #prefixed_ty_name }
             };
-        
+
             return prefixed_ty_name;
         }
         let ty_name = &self.name;
-        
+
         let prefixed_ty_name = Ident::new(
             &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
             ty_name.span(),
         );
-    
+
         let prefixed_ty_name = if self.already_declared {
             quote! { <super:: #ty_name as #swift_bridge_path::SharedStruct>::FfiRepr }
         } else {
             quote! { #prefixed_ty_name }
         };
-    
-        prefixed_ty_name   
+
+        prefixed_ty_name
     }
 
     pub fn convert_ffi_expression_to_rust_type(
@@ -406,17 +458,21 @@ impl SharedStruct {
     ) -> TokenStream {
         if self.is_tuple {
             let fields: Vec<TokenStream> = self
-            .fields
-            .normalized_fields()
-            .iter()
-            .map(|norm_field| {
-                let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-                let access_field = norm_field.append_field_accessor(&quote! {#value});
-                ty.convert_ffi_expression_to_rust_type(&access_field, span, swift_bridge_path, types)
-                
-            })
-            .collect();
-            return quote_spanned!{
+                .fields
+                .normalized_fields()
+                .iter()
+                .map(|norm_field| {
+                    let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
+                    let access_field = norm_field.append_field_accessor(&quote! {#value});
+                    ty.convert_ffi_expression_to_rust_type(
+                        &access_field,
+                        span,
+                        swift_bridge_path,
+                        types,
+                    )
+                })
+                .collect();
+            return quote_spanned! {
                 span => ( #(#fields),* )
             };
         }
@@ -425,8 +481,13 @@ impl SharedStruct {
         }
     }
 
-    pub fn convert_rust_expression_to_ffi_type(&self, expression: &TokenStream, span: Span,
-        swift_bridge_path: &Path, types: &TypeDeclarations) -> TokenStream{
+    pub fn convert_rust_expression_to_ffi_type(
+        &self,
+        expression: &TokenStream,
+        span: Span,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
         if let Some(_only) = self.only_encoding(types) {
             return quote! { {#expression;} };
         }
@@ -438,16 +499,21 @@ impl SharedStruct {
                 ty_name.span(),
             );
             let converted_fields: Vec<TokenStream> = self
-            .fields
-            .normalized_fields()
-            .iter()
-            .map(|norm_field| {
-                let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
-                let access_field = norm_field.append_field_accessor(&quote! {val});
-                ty.convert_rust_expression_to_ffi_type(&access_field, swift_bridge_path, types, span)
-            })
-            .collect();
-            return quote!{
+                .fields
+                .normalized_fields()
+                .iter()
+                .map(|norm_field| {
+                    let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
+                    let access_field = norm_field.append_field_accessor(&quote! {val});
+                    ty.convert_rust_expression_to_ffi_type(
+                        &access_field,
+                        swift_bridge_path,
+                        types,
+                        span,
+                    )
+                })
+                .collect();
+            return quote! {
                 let val = #expression;
                 #prefixed_ty_name( #(#converted_fields),* )
             };
@@ -457,7 +523,11 @@ impl SharedStruct {
         }
     }
 
-    pub(crate) fn generate_custom_rust_ffi_type(&self, swift_bridge_path: &Path, types: &TypeDeclarations) -> Option<TokenStream>{
+    pub(crate) fn generate_custom_rust_ffi_type(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Option<TokenStream> {
         if self.is_tuple {
             let combined_types_string = self.combine_field_types_string(types);
             let combined_types_tokens = self.combine_field_types_tokens(swift_bridge_path, types);
@@ -466,7 +536,7 @@ impl SharedStruct {
                 &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
                 ty_name.span(),
             );
-            return Some(quote!{
+            return Some(quote! {
                 #[repr(C)]
                 #[doc(hidden)]
                 pub struct #prefixed_ty_name ( #(#combined_types_tokens),* );
@@ -475,18 +545,31 @@ impl SharedStruct {
         None
     }
 
-    pub(crate) fn convert_ffi_expression_to_swift_type(&self, expression: &str, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+    pub(crate) fn convert_ffi_expression_to_swift_type(
+        &self,
+        expression: &str,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+    ) -> String {
         if let Some(only) = self.only_encoding(types) {
             return format!("{{ let _ = {}; return {} }}()", expression, only.swift);
         }
         if self.is_tuple {
             let converted_fields: Vec<String> = match &self.fields {
                 StructFields::Named(_) => todo!(),
-                StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().enumerate().map(|(idx, field)|{
-                    let ty = BridgedType::new_with_type(&field.ty, types).unwrap();
-                    let converted_field = ty.convert_ffi_value_to_swift_value(&format!("val._{idx}"), type_pos, types);
-                    converted_field
-                }).collect(),
+                StructFields::Unnamed(unnamed_fields) => unnamed_fields
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, field)| {
+                        let ty = BridgedType::new_with_type(&field.ty, types).unwrap();
+                        let converted_field = ty.convert_ffi_value_to_swift_value(
+                            &format!("val._{idx}"),
+                            type_pos,
+                            types,
+                        );
+                        converted_field
+                    })
+                    .collect(),
                 StructFields::Unit => todo!(),
             };
             let converted_fields = converted_fields.join(", ");
@@ -501,17 +584,31 @@ impl SharedStruct {
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
-        if self.is_tuple {  
+        if self.is_tuple {
             let converted_fields: Vec<String> = match &self.fields {
-                StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().enumerate().map(|(idx, field)|{
-                    let ty = BridgedType::new_with_type(&field.ty, types).unwrap();
-                    let converted_field = ty.convert_swift_expression_to_ffi_type(&format!("{expression}.{idx}"), types, type_pos);
-                    format!("_{idx}: ")+&converted_field
-                }).collect(),
-                _ => todo!()
+                StructFields::Unnamed(unnamed_fields) => unnamed_fields
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, field)| {
+                        let ty = BridgedType::new_with_type(&field.ty, types).unwrap();
+                        let converted_field = ty.convert_swift_expression_to_ffi_type(
+                            &format!("{expression}.{idx}"),
+                            types,
+                            type_pos,
+                        );
+                        format!("_{idx}: ") + &converted_field
+                    })
+                    .collect(),
+                _ => todo!(),
             };
             let converted_fields = converted_fields.join(", ");
-            return format!("{}${}${}({})", SWIFT_BRIDGE_PREFIX, self.name, self.combine_field_types_string(types), converted_fields);
+            return format!(
+                "{}${}${}({})",
+                SWIFT_BRIDGE_PREFIX,
+                self.name,
+                self.combine_field_types_string(types),
+                converted_fields
+            );
         }
         if let Some(_only) = self.only_encoding(types) {
             return format!("{{ let _ = {}; }}()", expression);
@@ -522,10 +619,16 @@ impl SharedStruct {
         if self.is_tuple {
             let combined_types = self.combine_field_types_string(types);
             let fields: Vec<String> = match &self.fields {
-                StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().enumerate().map(|(idx, field)|{
-                    let field = BridgedType::new_with_type(&field.ty, types).unwrap().to_c(types);
-                    return format!("{} _{}", field, idx);
-                }).collect(),
+                StructFields::Unnamed(unnamed_fields) => unnamed_fields
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, field)| {
+                        let field = BridgedType::new_with_type(&field.ty, types)
+                            .unwrap()
+                            .to_c(types);
+                        return format!("{} _{}", field, idx);
+                    })
+                    .collect(),
                 _ => todo!(),
             };
             let fields = fields.join("; ");
@@ -539,9 +642,12 @@ impl SharedStruct {
         if self.is_tuple {
             return match &self.fields {
                 StructFields::Named(_) => todo!(),
-                StructFields::Unnamed(unnamed_fields) => unnamed_fields.iter().map(|field|{
-                    return BridgedType::new_with_type(&field.ty, types).unwrap();
-                }).any(|ty|ty.contains_owned_string_recursive(types)),
+                StructFields::Unnamed(unnamed_fields) => unnamed_fields
+                    .iter()
+                    .map(|field| {
+                        return BridgedType::new_with_type(&field.ty, types).unwrap();
+                    })
+                    .any(|ty| ty.contains_owned_string_recursive(types)),
                 StructFields::Unit => todo!(),
             };
         }

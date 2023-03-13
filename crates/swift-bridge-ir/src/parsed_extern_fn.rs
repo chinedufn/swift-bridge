@@ -481,7 +481,12 @@ impl ParsedExternFn {
     /// Generates something like:
     /// void __swift_bridge__$some_function$param0(void* boxed_fn, uint8_t arg);
     /// void __swift_bridge__$some_function$_free$param0(void* boxed_fn);
-    pub fn boxed_fn_to_c_header_fns(&self, idx: usize, boxed_fn: &BridgeableBoxedFnOnce, types: &TypeDeclarations) -> String {
+    pub fn boxed_fn_to_c_header_fns(
+        &self,
+        idx: usize,
+        boxed_fn: &BridgeableBoxedFnOnce,
+        types: &TypeDeclarations,
+    ) -> String {
         let call_boxed_fn_link_name = self.call_boxed_fn_link_name(idx);
         let free_boxed_fn_link_name = self.free_boxed_fn_link_name(idx);
 

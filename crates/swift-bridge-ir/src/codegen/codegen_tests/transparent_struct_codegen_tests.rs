@@ -749,7 +749,7 @@ public func some_function(_ arg: (Int32, UInt8)) -> (Int32, UInt8) {
             r#"
 typedef struct __swift_bridge__$tuple$I32U8 { int32_t _0; uint8_t _1; } __swift_bridge__$tuple$I32U8;
 "#,
-r#"
+            r#"
 struct __swift_bridge__$tuple$I32U8 __swift_bridge__$some_function(struct __swift_bridge__$tuple$I32U8 arg);
 "#,
         ])
@@ -813,7 +813,7 @@ public func some_function(_ arg1: (Int16, UInt32)) -> (Int16, UInt32) {
             r#"
 typedef struct __swift_bridge__$tuple$I16U32 { int16_t _0; uint32_t _1; } __swift_bridge__$tuple$I16U32;
 "#,
-r#"
+            r#"
 struct __swift_bridge__$tuple$I16U32 __swift_bridge__$some_function(struct __swift_bridge__$tuple$I16U32 arg1);
 "#,
         ])
@@ -876,7 +876,7 @@ public func some_function<GenericIntoRustString: IntoRustString>(_ arg1: (Generi
             r#"
 typedef struct __swift_bridge__$tuple$StringU32 { void* _0; uint32_t _1; } __swift_bridge__$tuple$StringU32;
 "#,
-r#"
+            r#"
 struct __swift_bridge__$tuple$StringU32 __swift_bridge__$some_function(struct __swift_bridge__$tuple$StringU32 arg1);
 "#,
         ])
@@ -943,7 +943,7 @@ public func some_function(_ arg1: (SomeType, UInt32)) -> (SomeType, UInt32) {
             r#"
 typedef struct __swift_bridge__$tuple$SomeTypeU32 { void* _0; uint32_t _1; } __swift_bridge__$tuple$SomeTypeU32;
 "#,
-r#"
+            r#"
 struct __swift_bridge__$tuple$SomeTypeU32 __swift_bridge__$some_function(struct __swift_bridge__$tuple$SomeTypeU32 arg1);
 "#,
         ])

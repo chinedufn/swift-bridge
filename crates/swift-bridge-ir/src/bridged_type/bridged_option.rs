@@ -1,4 +1,7 @@
-use crate::{bridged_type::{BridgedType, CustomBridgedType, SharedType, StdLibType, TypePosition}, parse::TypeDeclarations};
+use crate::{
+    bridged_type::{BridgedType, CustomBridgedType, SharedType, StdLibType, TypePosition},
+    parse::TypeDeclarations,
+};
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::ops::Deref;
