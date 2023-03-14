@@ -334,6 +334,10 @@ impl SharedStruct {
         })
     }
 
+    /// Example 
+    /// 
+    /// (i32, u32) becomes (Int32, UInt32)
+    /// (OpaqueRustType, u8) becomes (OpaqueRustType, UInt8)
     fn combine_field_types_into_swift_name(
         &self,
         type_pos: TypePosition,
@@ -360,6 +364,10 @@ impl SharedStruct {
         }
     }
 
+    /// Example 
+    /// 
+    /// (i32, u32) becomes Int32UInt32
+    /// (OpaqueRustType, u8) becomes OpaqueRustTypeUInt8
     fn combine_field_types_into_ffi_name_string(&self, types: &TypeDeclarations) -> String {
         match &self.fields {
             StructFields::Named(_) => todo!(),
@@ -375,6 +383,10 @@ impl SharedStruct {
         }
     }
 
+    /// Example 
+    /// 
+    /// (i32, u32) becomes vec![quote!{i32}, quote!{u32}]
+    /// (OpaqueRustType, u8) becomes vec![quote!{*mut super::OpaqueRustType}, quote!{u8}]
     fn combine_field_types_into_ffi_name_tokens(
         &self,
         swift_bridge_path: &Path,
