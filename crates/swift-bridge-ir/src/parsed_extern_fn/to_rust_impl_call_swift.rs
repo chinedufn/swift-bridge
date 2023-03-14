@@ -206,7 +206,7 @@ impl ParsedExternFn {
                             if let Some(built_in) = BridgedType::new_with_fn_arg(fn_arg, types) {
                                 let ty = built_in.maybe_convert_pointer_to_super_pointer(types);
 
-                                let maybe_unused = if built_in.can_be_encoded_with_zero_bytes(types)
+                                let maybe_unused = if built_in.can_be_encoded_with_zero_bytes()
                                 {
                                     "_"
                                 } else {

@@ -247,7 +247,7 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
-    fn only_encoding(&self, _types: &TypeDeclarations) -> Option<super::OnlyEncoding> {
+    fn only_encoding(&self) -> Option<super::OnlyEncoding> {
         todo!()
     }
 

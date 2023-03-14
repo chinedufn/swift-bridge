@@ -25,14 +25,14 @@ impl BuiltInResult {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
-        if self.is_custom_result_type(types) {
+        if self.is_custom_result_type() {
             let ty = format_ident!("{}", self.custom_c_struct_name());
             return quote! {
                 #ty
             };
         }
 
-        if self.ok_ty.can_be_encoded_with_zero_bytes(types) {
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
             return self
                 .err_ty
                 .to_ffi_compatible_rust_type(swift_bridge_path, types);
@@ -71,11 +71,11 @@ impl BuiltInResult {
             span,
         );
 
-        if self.is_custom_result_type(types) {
-            if self.err_ty.can_be_encoded_with_zero_bytes(types) {
+        if self.is_custom_result_type() {
+            if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!();
             }
-            if self.ok_ty.can_be_encoded_with_zero_bytes(types) {
+            if self.ok_ty.can_be_encoded_with_zero_bytes() {
                 let ffi_enum_name = self.to_ffi_compatible_rust_type(swift_bridge_path, types);
                 let err_ffi = self.err_ty.convert_rust_expression_to_ffi_type(
                     &quote!(err),
@@ -111,7 +111,7 @@ impl BuiltInResult {
             };
         }
 
-        if self.ok_ty.can_be_encoded_with_zero_bytes(types) {
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
             quote! {
                 match #expression {
                     Ok(ok) => std::ptr::null_mut(),
@@ -184,10 +184,10 @@ impl BuiltInResult {
                 )
             }
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
-                if self.err_ty.can_be_encoded_with_zero_bytes(types) {
+                if self.err_ty.can_be_encoded_with_zero_bytes() {
                     todo!()
                 }
-                if self.is_custom_result_type(types) {
+                if self.is_custom_result_type() {
                     return format!("{}${}", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name());
                 }
                 "__private__ResultPtrAndPtr".to_string()
@@ -201,13 +201,13 @@ impl BuiltInResult {
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
-        if self.is_custom_result_type(types) {
-            if self.err_ty.can_be_encoded_with_zero_bytes(types) {
+        if self.is_custom_result_type() {
+            if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!();
             }
             let c_ok_name = self.c_ok_tag_name();
             let c_err_name = self.c_err_tag_name();
-            let ok_swift_type = if self.ok_ty.can_be_encoded_with_zero_bytes(types) {
+            let ok_swift_type = if self.ok_ty.can_be_encoded_with_zero_bytes() {
                 "".to_string()
             } else {
                 " ".to_string()
@@ -238,7 +238,7 @@ impl BuiltInResult {
             };
         }
 
-        if let Some(ok) = self.ok_ty.only_encoding(types) {
+        if let Some(ok) = self.ok_ty.only_encoding() {
             let mut ok = ok.swift;
 
             // There is a Swift compiler bug in Xcode 13 where using an explicit `()` here somehow leads
@@ -292,7 +292,7 @@ impl BuiltInResult {
             .err_ty
             .convert_swift_expression_to_ffi_type("err", types, type_pos);
 
-        if self.ok_ty.can_be_encoded_with_zero_bytes(types) {
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
             format!(
                 "{{ switch {val} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()",
                 val = expression
@@ -306,7 +306,7 @@ impl BuiltInResult {
     }
 
     pub fn to_c(&self, types: &TypeDeclarations) -> String {
-        if self.is_custom_result_type(types) {
+        if self.is_custom_result_type() {
             return format!(
                 "struct {}${}",
                 SWIFT_BRIDGE_PREFIX,
@@ -316,7 +316,7 @@ impl BuiltInResult {
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
-        if self.ok_ty.can_be_encoded_with_zero_bytes(types) {
+        if self.ok_ty.can_be_encoded_with_zero_bytes() {
             format!("{}", self.err_ty.to_c_type(types))
         } else {
             format!("struct __private__ResultPtrAndPtr")
@@ -328,15 +328,15 @@ impl BuiltInResult {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> Option<TokenStream> {
-        if !self.is_custom_result_type(types) {
+        if !self.is_custom_result_type() {
             return None;
         }
 
-        if self.err_ty.can_be_encoded_with_zero_bytes(types) {
+        if self.err_ty.can_be_encoded_with_zero_bytes() {
             todo!()
         }
         let ty = self.to_ffi_compatible_rust_type(swift_bridge_path, types);
-        let ok = if self.ok_ty.can_be_encoded_with_zero_bytes(types) {
+        let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
             quote! {}
         } else {
             let ty = self
@@ -358,10 +358,10 @@ impl BuiltInResult {
     }
 
     pub fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
-        if !self.is_custom_result_type(types) {
+        if !self.is_custom_result_type() {
             return None;
         }
-        if self.err_ty.can_be_encoded_with_zero_bytes(types) {
+        if self.err_ty.can_be_encoded_with_zero_bytes() {
             todo!();
         }
         let c_type = format!("{}${}", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name());
@@ -369,7 +369,7 @@ impl BuiltInResult {
         let c_tag_name = format!("{}$Tag", c_type.clone());
         let c_fields_name = format!("{}$Fields", c_type);
 
-        let ok_c_field_name = if self.ok_ty.can_be_encoded_with_zero_bytes(types) {
+        let ok_c_field_name = if self.ok_ty.can_be_encoded_with_zero_bytes() {
             "".to_string()
         } else {
             format!("{} ok; ", self.ok_ty.to_c_type(types))
@@ -392,15 +392,15 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         ));
     }
 
-    fn is_custom_result_type(&self, types: &TypeDeclarations) -> bool {
+    fn is_custom_result_type(&self) -> bool {
         // ResultPtrAndPtr
         if self.ok_ty.is_passed_via_pointer() && self.err_ty.is_passed_via_pointer() {
             return false;
         }
 
         // ResultVoidAndPtr or ResultPtrAndVoid
-        if (self.ok_ty.only_encoding(types).is_some() && self.err_ty.is_passed_via_pointer())
-            || (self.ok_ty.is_passed_via_pointer() && self.err_ty.only_encoding(types).is_some())
+        if (self.ok_ty.only_encoding().is_some() && self.err_ty.is_passed_via_pointer())
+            || (self.ok_ty.is_passed_via_pointer() && self.err_ty.only_encoding().is_some())
         {
             return false;
         }
@@ -414,8 +414,8 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
-        if self.is_custom_result_type(types) {
-            let ok = if self.ok_ty.can_be_encoded_with_zero_bytes(types) {
+        if self.is_custom_result_type() {
+            let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
                 "()".to_string()
             } else {
                 self.ok_ty.convert_ffi_expression_to_swift_type(

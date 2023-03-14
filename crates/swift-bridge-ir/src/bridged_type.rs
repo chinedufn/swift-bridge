@@ -62,14 +62,14 @@ pub(crate) trait BridgeableType: Debug {
     /// and therefore can be encoded with zero bytes.
     /// For example `()` and `struct Foo;` can have exactly one representation,
     /// but `u8` cannot since there are 255 possible `u8`s.
-    fn can_be_encoded_with_zero_bytes(&self, types: &TypeDeclarations) -> bool {
-        self.only_encoding(types).is_some()
+    fn can_be_encoded_with_zero_bytes(&self) -> bool {
+        self.only_encoding().is_some()
     }
 
     /// Some if this type can be encoded to exactly one representation.
     /// For example `()` and `struct Foo;` can have exactly one representation,
     /// but `u8` does not since there are 255 possible `u8`s.
-    fn only_encoding(&self, types: &TypeDeclarations) -> Option<OnlyEncoding>;
+    fn only_encoding(&self) -> Option<OnlyEncoding>;
 
     /// Whether or not this is a `Result<T,E>`.
     fn is_result(&self) -> bool;
@@ -446,7 +446,7 @@ impl BridgeableType for BridgedType {
         !self.is_custom_type()
     }
 
-    fn only_encoding(&self, types: &TypeDeclarations) -> Option<OnlyEncoding> {
+    fn only_encoding(&self) -> Option<OnlyEncoding> {
         match self {
             BridgedType::StdLib(StdLibType::Null) => Some(OnlyEncoding {
                 swift: "()".to_string(),
@@ -455,7 +455,7 @@ impl BridgeableType for BridgedType {
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(s))) => {
                 s.only_encoding()
             }
-            BridgedType::Bridgeable(ty) => ty.only_encoding(types),
+            BridgedType::Bridgeable(ty) => ty.only_encoding(),
             _ => None,
         }
     }
@@ -1374,7 +1374,7 @@ impl BridgedType {
         types: &TypeDeclarations,
     ) -> TokenStream {
         if !self.is_null() {
-            if let Some(repr) = self.only_encoding(types) {
+            if let Some(repr) = self.only_encoding() {
                 let repr = repr.rust;
 
                 return quote_spanned! {span=> { #value; #repr } };

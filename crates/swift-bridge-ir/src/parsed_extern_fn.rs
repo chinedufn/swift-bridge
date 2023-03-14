@@ -165,7 +165,7 @@ impl ParsedExternFn {
         let sig = &self.func.sig;
 
         if let Some(ret) = BridgedType::new_with_return_type(&sig.output, types) {
-            if ret.can_be_encoded_with_zero_bytes(types) {
+            if ret.can_be_encoded_with_zero_bytes() {
                 return quote! {};
             }
             if let Some(tokens) = ret.generate_custom_rust_ffi_type(swift_bridge_path, types) {
@@ -277,7 +277,7 @@ impl ParsedExternFn {
 
                     if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                         if self.host_lang.is_rust() {
-                            arg = if let Some(repr) = built_in.only_encoding(types) {
+                            arg = if let Some(repr) = built_in.only_encoding() {
                                 repr.rust
                             } else {
                                 built_in.convert_ffi_expression_to_rust_type(
@@ -294,7 +294,7 @@ impl ParsedExternFn {
                                 };
                             }
                         } else {
-                            if built_in.can_be_encoded_with_zero_bytes(types) {
+                            if built_in.can_be_encoded_with_zero_bytes() {
                                 continue;
                             }
 
@@ -339,7 +339,7 @@ impl ParsedExternFn {
                     } else {
                         let built_in = BridgedType::new_with_type(&pat_ty.ty, types).unwrap();
 
-                        if built_in.can_be_encoded_with_zero_bytes(types) {
+                        if built_in.can_be_encoded_with_zero_bytes() {
                             continue;
                         }
 
@@ -364,7 +364,7 @@ impl ParsedExternFn {
             ReturnType::Default => "void".to_string(),
             ReturnType::Type(_, ty) => {
                 if let Some(ty) = BridgedType::new_with_type(&ty, types) {
-                    if ty.can_be_encoded_with_zero_bytes(types) {
+                    if ty.can_be_encoded_with_zero_bytes() {
                         return "void".to_string();
                     }
 
