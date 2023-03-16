@@ -1,4 +1,4 @@
-use crate::bridged_type::{SharedStruct};
+use crate::bridged_type::{SharedStruct, StructSwiftRepr};
 use proc_macro2::{TokenStream};
 use quote::quote;
 
@@ -105,8 +105,11 @@ pub(in super::super) fn generate_vec_of_transparent_struct_functions(
 }
 
 pub(crate) fn can_generate_vec_of_transparent_struct_functions(shared_struct: &SharedStruct) -> bool {
-    // TODO: Check for trait implementation as well
-    shared_struct.derives.copy || shared_struct.derives.clone
+    match shared_struct.swift_repr {
+        StructSwiftRepr::Class => false,
+        // TODO: Check for trait implementation as well
+        StructSwiftRepr::Structure => shared_struct.derives.copy || shared_struct.derives.clone,
+    }
 }
 
 #[cfg(test)]
