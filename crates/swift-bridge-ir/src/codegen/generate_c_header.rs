@@ -2,8 +2,8 @@
 
 use crate::bridged_type::shared_struct::StructField;
 use crate::bridged_type::{BridgeableType, BridgedType, StdLibType, StructFields};
-use crate::codegen::CodegenConfig;
 use crate::codegen::generate_rust_tokens::can_generate_vec_of_transparent_struct_functions;
+use crate::codegen::CodegenConfig;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
@@ -113,11 +113,12 @@ impl SwiftBridgeModule {
                             "".to_string()
                         };
 
-                        let vec_support = if can_generate_vec_of_transparent_struct_functions(&ty_struct) {
-                            vec_transparent_struct_c_support(&name)
-                        } else {
-                            format!("")
-                        };
+                        let vec_support =
+                            if can_generate_vec_of_transparent_struct_functions(&ty_struct) {
+                                vec_transparent_struct_c_support(&name)
+                            } else {
+                                format!("")
+                            };
 
                         let ty_decl = format!(
                             r#"typedef struct {prefix}${name} {{{maybe_fields}}} {prefix}${name};

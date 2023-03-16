@@ -958,7 +958,7 @@ mod transparent_struct_vec_support_without_derives {
                         }
                     }
                 },
-            ]
+            ],
         }
     }
 

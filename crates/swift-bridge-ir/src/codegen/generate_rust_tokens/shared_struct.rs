@@ -2,8 +2,10 @@
 //! crates/swift-bridge-ir/src/codegen/codegen_tests/shared_struct_codegen_tests.rs
 
 use crate::bridged_type::{BridgedType, SharedStruct};
+use crate::codegen::generate_rust_tokens::vec::vec_of_transparent_struct::{
+    can_generate_vec_of_transparent_struct_functions, generate_vec_of_transparent_struct_functions,
+};
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
-use crate::codegen::generate_rust_tokens::vec::vec_of_transparent_struct::{generate_vec_of_transparent_struct_functions, can_generate_vec_of_transparent_struct_functions};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;

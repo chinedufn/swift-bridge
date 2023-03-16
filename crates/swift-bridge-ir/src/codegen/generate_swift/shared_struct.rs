@@ -48,7 +48,9 @@ impl SwiftBridgeModule {
                 let convert_ffi_repr_to_swift =
                     shared_struct.convert_ffi_expression_to_swift("self", &self.types);
 
-                let vectorizable_impl = if can_generate_vec_of_transparent_struct_functions(&shared_struct) {
+                let vectorizable_impl = if can_generate_vec_of_transparent_struct_functions(
+                    &shared_struct,
+                ) {
                     format!(
                         r#"
 extension {struct_name}: Vectorizable {{
@@ -86,7 +88,7 @@ extension {struct_name}: Vectorizable {{
                         struct_name = struct_name
                     )
                 } else {
-                    format!("")    
+                    format!("")
                 };
 
                 // No need to generate any code. Swift will automatically generate a
