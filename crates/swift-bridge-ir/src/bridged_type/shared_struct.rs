@@ -19,7 +19,13 @@ pub(crate) struct SharedStruct {
     pub fields: StructFields,
     pub swift_name: Option<LitStr>,
     pub already_declared: bool,
-    pub derives: Option<Vec<TokenStream>>,
+    pub derives: StructDerives,
+}
+
+#[derive(Clone)]
+pub(crate) struct StructDerives {
+    pub copy: bool,
+    pub clone: bool,
 }
 
 impl SharedStruct {

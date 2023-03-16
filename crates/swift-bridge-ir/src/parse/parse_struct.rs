@@ -1,8 +1,8 @@
-use crate::bridged_type::{SharedStruct, StructFields, StructSwiftRepr};
+use crate::bridged_type::{SharedStruct, shared_struct::StructDerives, StructFields, StructSwiftRepr};
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::move_input_cursor_to_next_comma;
 use quote::ToTokens;
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::Ident;
 use syn::parse::{Parse, ParseStream};
 use syn::{ItemStruct, LitStr, Token, Meta};
 
@@ -28,7 +28,16 @@ struct StructAttribs {
     swift_repr: Option<(StructSwiftRepr, LitStr)>,
     swift_name: Option<LitStr>,
     already_declared: bool,
-    derives: Option<Vec<TokenStream>>,
+    derives: StructDerives,
+}
+
+impl Default for StructDerives {
+    fn default() -> Self {
+        StructDerives {
+            copy: false,
+            clone: false,
+        }
+    }
 }
 
 struct ParsedAttribs(Vec<StructAttr>);
@@ -118,7 +127,13 @@ impl<'a> SharedStructDeclarationParser<'a> {
                 "derive" => {
                     match attr.parse_meta()? {
                         Meta::List(meta_list) => {
-                            attribs.derives = Some(meta_list.nested.iter().map(|val| val.to_token_stream()).collect());
+                            for derive in meta_list.nested {
+                                match derive.to_token_stream().to_string().as_str() {
+                                    "Copy" => { attribs.derives.copy = true; },
+                                    "Clone" => { attribs.derives.clone = true },
+                                    _ => {}
+                                }
+                            }
                         }
                         _ => todo!("Push parse error that derive attribute is in incorrect format")
                     }
@@ -328,6 +343,9 @@ mod tests {
             mod ffi {
                 #[derive(Copy, Clone)]
                 struct Foo;
+
+                #[derive(Clone)]
+                struct Bar;
             }
         };
 
@@ -335,13 +353,38 @@ mod tests {
 
         let ty = module.types.types()[0].unwrap_shared_struct();
         
-        let derives: Vec<String> = ty.derives.clone().unwrap().iter().map(|derive| derive.to_string()).collect();
-        assert_eq!(derives, vec!["Copy", "Clone"]);
+        assert_eq!(ty.derives.copy, true);
+        assert_eq!(ty.derives.clone, true);
+
+        let ty2 = module.types.types()[1].unwrap_shared_struct();
+
+        assert_eq!(ty2.derives.copy, false);
+        assert_eq!(ty2.derives.clone, true);
     }
 
     /// Verify that we properly parse multiple comma separated struct attributes.
     #[test]
     fn parses_multiple_struct_attributes() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[swift_bridge(swift_name = "FfiFoo", swift_repr = "class")]
+                struct Foo {
+                    fied: u8
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let ty = module.types.types()[0].unwrap_shared_struct();
+        assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
+        assert_eq!(ty.swift_repr, StructSwiftRepr::Class);
+    }
+
+    /// Verify that we properly parse multiple comma separated struct attributes and derive attributes.
+    #[test]
+    fn parses_multiple_struct_attributes_and_derive() {
         let tokens = quote! {
             #[swift_bridge::bridge]
             mod ffi {
@@ -358,8 +401,8 @@ mod tests {
         let ty = module.types.types()[0].unwrap_shared_struct();
         assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
         assert_eq!(ty.swift_repr, StructSwiftRepr::Class);
-        let derives: Vec<String> = ty.derives.clone().unwrap().iter().map(|derive| derive.to_string()).collect();
-        assert_eq!(derives, vec!["Copy", "Clone"]);
+        assert_eq!(ty.derives.copy, true);
+        assert_eq!(ty.derives.clone, true);
     }
 
     /// Verify that we can parse an `already_defined = "struct"` attribute.
