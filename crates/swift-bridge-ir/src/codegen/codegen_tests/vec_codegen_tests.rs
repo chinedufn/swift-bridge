@@ -537,8 +537,8 @@ void __swift_bridge__$some_function(void* arg);
     }
 }
 
-/// Verify that we emit Rust, Swift and C header code that allows a transparent struct be used
-/// within a Vec<T>.
+/// Verify that we emit Rust, Swift and C header code that allows
+/// a transparent struct with derive(Clone) to be used within a Vec<T>.
 mod transparent_struct_vec_support {
     use super::*;
 
@@ -682,6 +682,8 @@ void* __swift_bridge__$Vec_SomeStruct$as_ptr(void* vec_ptr);
     }
 }
 
+/// Verify that we emit Rust, Swift and C header code that allows
+/// a transparent struct with derive(Copy, Clone) to be used within a Vec<T>.
 mod transparent_struct_vec_support_with_copy {
     use super::*;
 
@@ -824,6 +826,8 @@ void* __swift_bridge__$Vec_SomeStruct$as_ptr(void* vec_ptr);
     }
 }
 
+/// Verify that we DON'T emit Rust, Swift and C header code for a transparent
+/// struct with no derived traits.
 mod transparent_struct_vec_support_without_derives {
     use super::*;
 

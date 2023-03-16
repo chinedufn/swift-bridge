@@ -120,9 +120,9 @@ mod tests {
     use crate::test_utils::assert_tokens_eq;
     use proc_macro2::{Ident, Span};
 
-    /// Verify that we can generate the functions for an opaque Rust type that get exposed to Swift
-    /// in order to power the `extension MyRustType: Vectorizable { }` implementation on the Swift
-    /// side.
+    /// Verify that we can generate the functions for shared struct with derive(Copy, Clone) that
+    /// gets exposed to Swift in order to power the `extension MyRustType: Vectorizable { }`
+    /// implementation on the Swift side.
     #[test]
     fn generates_vectorizable_impl_for_shared_struct_with_copy() {
         let expected = quote! {
@@ -201,9 +201,9 @@ mod tests {
         );
     }
 
-    /// Verify that we can generate the functions for an opaque Rust type that get exposed to Swift
-    /// in order to power the `extension MyRustType: Vectorizable { }` implementation on the Swift
-    /// side.
+    /// Verify that we can generate the functions for shared struct with derive(Clone) that
+    /// gets exposed to Swift in order to power the `extension MyRustType: Vectorizable { }`
+    /// implementation on the Swift side.
     #[test]
     fn generates_vectorizable_impl_for_shared_struct_with_clone() {
         let expected = quote! {
