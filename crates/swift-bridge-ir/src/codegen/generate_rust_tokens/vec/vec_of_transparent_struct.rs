@@ -34,9 +34,8 @@ pub(in super::super) fn generate_vec_of_transparent_struct_functions(
     
         let ffi_struct_repr = &shared_struct.ffi_name_tokens();
         let ffi_option_struct_repr = shared_struct.ffi_option_name_tokens();
-        // TODO: Check for trait implementation instead of derives
-        let derives: Vec<String> = shared_struct.derives.as_ref().unwrap().iter().map(|derive| derive.to_string()).collect();
-        let vec_map = if derives.contains(&"Copy".to_string()) {
+        // TODO: Check for trait implementation as well
+        let vec_map = if shared_struct.derives.copy {
             quote! { *v }
         } else {
             quote! { v.clone() }
@@ -106,13 +105,8 @@ pub(in super::super) fn generate_vec_of_transparent_struct_functions(
 }
 
 pub(crate) fn can_generate_vec_of_transparent_struct_functions(shared_struct: &SharedStruct) -> bool {
-    // TODO: Check for trait implementation instead of derives
-    if let Some(derives) = &shared_struct.derives {
-        let derives: Vec<String> = derives.iter().map(|derive| derive.to_string()).collect();
-        derives.contains(&"Copy".to_string()) || derives.contains(&"Clone".to_string())
-    } else {
-        false
-    }
+    // TODO: Check for trait implementation as well
+    shared_struct.derives.copy || shared_struct.derives.clone
 }
 
 #[cfg(test)]
@@ -120,7 +114,7 @@ mod tests {
     use super::*;
     use crate::test_utils::assert_tokens_eq;
     use proc_macro2::{Ident, Span};
-    use crate::bridged_type::{StructSwiftRepr, StructFields};
+    use crate::bridged_type::{StructSwiftRepr, StructFields, shared_struct::StructDerives};
 
     /// Verify that we can generate the functions for an opaque Rust type that get exposed to Swift
     /// in order to power the `extension MyRustType: Vectorizable { }` implementation on the Swift
@@ -192,7 +186,7 @@ mod tests {
             fields: StructFields::Named(vec![]),
             swift_name: None,
             already_declared: false,
-            derives: Some(vec![quote! {Copy}, quote! {Clone}]),
+            derives: StructDerives { copy: true, clone: true },
         };
         assert_tokens_eq(
             &generate_vec_of_transparent_struct_functions(&shared_struct),
@@ -270,7 +264,7 @@ mod tests {
             fields: StructFields::Named(vec![]),
             swift_name: None,
             already_declared: false,
-            derives: Some(vec![quote! {Clone}]),
+            derives: StructDerives { copy: false, clone: true },
         };
         assert_tokens_eq(
             &generate_vec_of_transparent_struct_functions(&shared_struct),
