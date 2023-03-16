@@ -14,6 +14,9 @@ use self::struct_field::UnnamedStructField;
 
 mod struct_field;
 
+#[derive(Debug)]
+pub(crate) struct UnnamedStructFields(Vec<UnnamedStructField>);
+
 #[derive(Clone)]
 pub(crate) struct SharedStruct {
     pub name: Ident,
