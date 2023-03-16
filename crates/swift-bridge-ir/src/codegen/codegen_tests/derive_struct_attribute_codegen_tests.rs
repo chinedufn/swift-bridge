@@ -2,6 +2,7 @@ use super::{CodegenTest, ExpectedCHeader, ExpectedRustTokens, ExpectedSwiftCode}
 use proc_macro2::TokenStream;
 use quote::quote;
 
+/// Verify that we can derive the `Copy` trait on a transparent struct.
 mod derive_copy_struct {
     use super::*;
 
@@ -10,7 +11,7 @@ mod derive_copy_struct {
             #[swift_bridge::bridge]
             mod ffi {
                 #[swift_bridge(swift_repr = "struct")]
-                #[derive(Copy, Clone)]
+                #[derive(Copy)]
                 struct SomeStruct {
                     field: u8,
                 }
@@ -20,7 +21,7 @@ mod derive_copy_struct {
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::ContainsMany(vec![quote! {
-            #[derive(Copy, Clone)]
+            #[derive(Copy)]
             pub struct SomeStruct {
                 pub field: u8
             }
@@ -47,6 +48,7 @@ mod derive_copy_struct {
     }
 }
 
+/// Verify that we can derive the `Clone` trait on a transparent struct.
 mod derive_clone_struct {
     use super::*;
 
