@@ -6,8 +6,15 @@ mod ffi {
     }
 
     #[swift_bridge(swift_repr = "struct")]
+    #[derive(Clone)]
     struct TransparentStructInsideVecT {
         string: String,
+        integer: i64,
+    }
+
+    #[swift_bridge(swift_repr = "struct")]
+    #[derive(Copy, Clone)]
+    struct TransparentStructInsideVecTWithCopy {
         integer: i64,
     }
 
@@ -36,6 +43,12 @@ mod ffi {
         fn rust_reflect_vec_transparent_struct(
             arg: Vec<TransparentStructInsideVecT>,
         ) -> Vec<TransparentStructInsideVecT>;
+    }
+
+    extern "Rust" {
+        fn rust_reflect_vec_transparent_struct_with_copy(
+            arg: Vec<TransparentStructInsideVecTWithCopy>,
+        ) -> Vec<TransparentStructInsideVecTWithCopy>;
     }
 }
 
@@ -68,5 +81,11 @@ fn rust_reflect_vec_transparent_enum(
 fn rust_reflect_vec_transparent_struct(
     arg: Vec<ffi::TransparentStructInsideVecT>,
 ) -> Vec<ffi::TransparentStructInsideVecT> {
+    arg
+}
+
+fn rust_reflect_vec_transparent_struct_with_copy(
+    arg: Vec<ffi::TransparentStructInsideVecTWithCopy>,
+) -> Vec<ffi::TransparentStructInsideVecTWithCopy> {
     arg
 }

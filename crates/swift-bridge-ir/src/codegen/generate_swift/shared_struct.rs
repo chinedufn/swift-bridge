@@ -1,5 +1,6 @@
 use crate::bridged_type::shared_struct::StructField;
 use crate::bridged_type::{BridgedType, SharedStruct, StructFields, StructSwiftRepr, TypePosition};
+use crate::codegen::generate_rust_tokens::can_generate_vec_of_transparent_struct_functions;
 use crate::SwiftBridgeModule;
 
 impl SwiftBridgeModule {
@@ -47,8 +48,9 @@ impl SwiftBridgeModule {
                 let convert_ffi_repr_to_swift =
                     shared_struct.convert_ffi_expression_to_swift("self", &self.types);
 
-                let vectorizable_impl = format!(
-                    r#"
+                let vectorizable_impl = if can_generate_vec_of_transparent_struct_functions(&shared_struct) {
+                    format!(
+                        r#"
 extension {struct_name}: Vectorizable {{
     public static func vecOfSelfNew() -> UnsafeMutableRawPointer {{
         __swift_bridge__$Vec_{struct_name}$new()
@@ -81,8 +83,11 @@ extension {struct_name}: Vectorizable {{
         __swift_bridge__$Vec_{struct_name}$len(vecPtr)
     }}
 }}"#,
-                    struct_name = struct_name
-                );
+                        struct_name = struct_name
+                    )
+                } else {
+                    format!("")    
+                };
 
                 // No need to generate any code. Swift will automatically generate a
                 //  struct from our C header typedef that we generate for this struct.

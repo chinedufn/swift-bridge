@@ -3,7 +3,7 @@
 
 use crate::bridged_type::{BridgedType, SharedStruct};
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
-use crate::codegen::generate_rust_tokens::vec::vec_of_transparent_struct::generate_vec_of_transparent_struct_functions;
+use crate::codegen::generate_rust_tokens::vec::vec_of_transparent_struct::{generate_vec_of_transparent_struct_functions, can_generate_vec_of_transparent_struct_functions};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
@@ -98,7 +98,11 @@ impl SwiftBridgeModule {
             automatic_derives = vec![];
         }
 
-        let vec_support = generate_vec_of_transparent_struct_functions(&shared_struct);
+        let vec_support = if can_generate_vec_of_transparent_struct_functions(&shared_struct) {
+            generate_vec_of_transparent_struct_functions(&shared_struct)
+        } else {
+            quote! {}
+        };
 
         let definition = quote! {
 			#[derive(#(#automatic_derives),*)]

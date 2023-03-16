@@ -546,6 +546,7 @@ mod transparent_struct_vec_support {
         quote! {
             mod ffi {
                 #[swift_bridge(swift_repr = "struct")]
+                #[derive(Clone)]
                 struct SomeStruct {
                     string: String,
                     integer: i64,
@@ -580,7 +581,7 @@ mod transparent_struct_vec_support {
                 #[export_name = "__swift_bridge__$Vec_SomeStruct$get"]
                 pub extern "C" fn _get(vec: *const Vec<SomeStruct>, index: usize) -> __swift_bridge__Option_SomeStruct {
                     let vec = unsafe { &*vec };
-                    let val = vec.get(index).map(|v| v.clone());
+                    let val = vec.get(index).map(|v| v.clone() );
                     __swift_bridge__Option_SomeStruct::from_rust_repr(val)
                 }
 
@@ -588,7 +589,7 @@ mod transparent_struct_vec_support {
                 #[export_name = "__swift_bridge__$Vec_SomeStruct$get_mut"]
                 pub extern "C" fn _get_mut(vec: *mut Vec<SomeStruct>, index: usize) -> __swift_bridge__Option_SomeStruct {
                     let vec = unsafe { &mut *vec };
-                    let val = vec.get_mut(index).map(|v| v.clone());
+                    let val = vec.get_mut(index).map(|v| v.clone() );
                     __swift_bridge__Option_SomeStruct::from_rust_repr(val)
                 }
 
@@ -681,6 +682,148 @@ void* __swift_bridge__$Vec_SomeStruct$as_ptr(void* vec_ptr);
     }
 }
 
+mod transparent_struct_vec_support_with_copy {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                #[swift_bridge(swift_repr = "struct")]
+                #[derive(Copy, Clone)]
+                struct SomeStruct {
+                    integer: i64,
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            const _: () = {
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeStruct$new"]
+                pub extern "C" fn _new() -> *mut Vec<SomeStruct> {
+                    Box::into_raw(Box::new(Vec::new()))
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeStruct$drop"]
+                pub extern "C" fn _drop(vec: *mut Vec<SomeStruct>) {
+                    let vec = unsafe { Box::from_raw(vec) };
+                    drop(vec)
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeStruct$len"]
+                pub extern "C" fn _len(vec: *const Vec<SomeStruct>) -> usize {
+                    unsafe { &*vec }.len()
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeStruct$get"]
+                pub extern "C" fn _get(vec: *const Vec<SomeStruct>, index: usize) -> __swift_bridge__Option_SomeStruct {
+                    let vec = unsafe { &*vec };
+                    let val = vec.get(index).map(|v| *v );
+                    __swift_bridge__Option_SomeStruct::from_rust_repr(val)
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeStruct$get_mut"]
+                pub extern "C" fn _get_mut(vec: *mut Vec<SomeStruct>, index: usize) -> __swift_bridge__Option_SomeStruct {
+                    let vec = unsafe { &mut *vec };
+                    let val = vec.get_mut(index).map(|v| *v );
+                    __swift_bridge__Option_SomeStruct::from_rust_repr(val)
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeStruct$push"]
+                pub extern "C" fn _push(vec: *mut Vec<SomeStruct>, val: __swift_bridge__SomeStruct) {
+                    unsafe { &mut *vec }.push(val.into_rust_repr())
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeStruct$pop"]
+                pub extern "C" fn _pop(vec: *mut Vec<SomeStruct>) -> __swift_bridge__Option_SomeStruct {
+                    let vec = unsafe { &mut *vec };
+                    let val = vec.pop();
+                    __swift_bridge__Option_SomeStruct::from_rust_repr(val)
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_SomeStruct$as_ptr"]
+                pub extern "C" fn _as_ptr(vec: *const Vec<SomeStruct>) -> *const SomeStruct {
+                    unsafe { & *vec }.as_ptr()
+                }
+            };
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+extension SomeStruct: Vectorizable {
+    public static func vecOfSelfNew() -> UnsafeMutableRawPointer {
+        __swift_bridge__$Vec_SomeStruct$new()
+    }
+
+    public static func vecOfSelfFree(vecPtr: UnsafeMutableRawPointer) {
+        __swift_bridge__$Vec_SomeStruct$drop(vecPtr)
+    }
+
+    public static func vecOfSelfPush(vecPtr: UnsafeMutableRawPointer, value: Self) {
+        __swift_bridge__$Vec_SomeStruct$push(vecPtr, value.intoFfiRepr())
+    }
+
+    public static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Optional<Self> {
+        let maybeStruct = __swift_bridge__$Vec_SomeStruct$pop(vecPtr)
+        return maybeStruct.intoSwiftRepr()
+    }
+
+    public static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {
+        let maybeStruct = __swift_bridge__$Vec_SomeStruct$get(vecPtr, index)
+        return maybeStruct.intoSwiftRepr()
+    }
+
+    public static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {
+        let maybeStruct = __swift_bridge__$Vec_SomeStruct$get_mut(vecPtr, index)
+        return maybeStruct.intoSwiftRepr()
+    }
+
+    public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {
+        __swift_bridge__$Vec_SomeStruct$len(vecPtr)
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void* __swift_bridge__$Vec_SomeStruct$new(void);
+void __swift_bridge__$Vec_SomeStruct$drop(void* vec_ptr);
+void __swift_bridge__$Vec_SomeStruct$push(void* vec_ptr, __swift_bridge__$SomeStruct item);
+__swift_bridge__$Option$SomeStruct __swift_bridge__$Vec_SomeStruct$pop(void* vec_ptr);
+__swift_bridge__$Option$SomeStruct __swift_bridge__$Vec_SomeStruct$get(void* vec_ptr, uintptr_t index);
+__swift_bridge__$Option$SomeStruct __swift_bridge__$Vec_SomeStruct$get_mut(void* vec_ptr, uintptr_t index);
+uintptr_t __swift_bridge__$Vec_SomeStruct$len(void* vec_ptr);
+void* __swift_bridge__$Vec_SomeStruct$as_ptr(void* vec_ptr);
+"#,
+        )
+    }
+
+    #[test]
+    fn transparent_struct_vec_support_with_copy() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Test code generation for Rust function that returns a Vec<T> where T is a transparent struct.
 mod extern_rust_fn_return_vec_of_transparent_struct {
     use super::*;
@@ -689,6 +832,7 @@ mod extern_rust_fn_return_vec_of_transparent_struct {
         quote! {
             mod ffi {
                 #[swift_bridge(swift_repr = "struct")]
+                #[derive(Clone)]
                 struct SomeStruct {
                     string: String,
                     integer: i64,
@@ -748,6 +892,7 @@ mod extern_rust_fn_arg_vec_of_transparent_struct {
         quote! {
             mod ffi {
                 #[swift_bridge(swift_repr = "struct")]
+                #[derive(Clone)]
                 struct SomeStruct {
                     string: String,
                     integer: i64,
