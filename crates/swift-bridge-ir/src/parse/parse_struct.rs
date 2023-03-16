@@ -1,10 +1,12 @@
-use crate::bridged_type::{SharedStruct, shared_struct::StructDerives, StructFields, StructSwiftRepr};
+use crate::bridged_type::{
+    shared_struct::StructDerives, SharedStruct, StructFields, StructSwiftRepr,
+};
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::move_input_cursor_to_next_comma;
-use quote::ToTokens;
 use proc_macro2::Ident;
+use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
-use syn::{ItemStruct, LitStr, Token, Meta};
+use syn::{ItemStruct, LitStr, Meta, Token};
 
 pub(crate) struct SharedStructDeclarationParser<'a> {
     pub item_struct: ItemStruct,
@@ -114,8 +116,9 @@ impl<'a> SharedStructDeclarationParser<'a> {
                                     attribs.swift_repr = Some((StructSwiftRepr::Structure, val));
                                 }
                                 StructAttrParseError::UnrecognizedAttribute(attribute) => {
-                                    self.errors
-                                        .push(ParseError::StructUnrecognizedAttribute { attribute });
+                                    self.errors.push(ParseError::StructUnrecognizedAttribute { 
+                                        attribute,
+                                    });
                                 }
                             },
                             StructAttr::AlreadyDeclared => {
@@ -123,20 +126,18 @@ impl<'a> SharedStructDeclarationParser<'a> {
                             }
                         };
                     }
-                },
-                "derive" => {
-                    match attr.parse_meta()? {
-                        Meta::List(meta_list) => {
-                            for derive in meta_list.nested {
-                                match derive.to_token_stream().to_string().as_str() {
-                                    "Copy" => { attribs.derives.copy = true; },
-                                    "Clone" => { attribs.derives.clone = true },
-                                    _ => {}
-                                }
+                }
+                "derive" => match attr.parse_meta()? {
+                    Meta::List(meta_list) => {
+                        for derive in meta_list.nested {
+                            match derive.to_token_stream().to_string().as_str() {
+                                "Copy" => attribs.derives.copy = true,
+                                "Clone" => attribs.derives.clone = true,
+                                _ => {}
                             }
                         }
-                        _ => todo!("Push parse error that derive attribute is in incorrect format")
                     }
+                    _ => todo!("Push parse error that derive attribute is in incorrect format"),
                 },
                 _ => todo!("Push unsupported attribute error."),
             }
@@ -352,7 +353,7 @@ mod tests {
         let module = parse_ok(tokens);
 
         let ty = module.types.types()[0].unwrap_shared_struct();
-        
+
         assert_eq!(ty.derives.copy, true);
         assert_eq!(ty.derives.clone, true);
 
