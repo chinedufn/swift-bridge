@@ -116,7 +116,7 @@ impl<'a> SharedStructDeclarationParser<'a> {
                                     attribs.swift_repr = Some((StructSwiftRepr::Structure, val));
                                 }
                                 StructAttrParseError::UnrecognizedAttribute(attribute) => {
-                                    self.errors.push(ParseError::StructUnrecognizedAttribute { 
+                                    self.errors.push(ParseError::StructUnrecognizedAttribute {
                                         attribute,
                                     });
                                 }
