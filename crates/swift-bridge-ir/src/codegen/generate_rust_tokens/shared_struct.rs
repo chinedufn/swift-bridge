@@ -99,7 +99,7 @@ impl SwiftBridgeModule {
         }
 
         let definition = quote! {
-			#[derive(#(#derives),*)]
+            #[derive(#(#derives),*)]
             pub struct #struct_name #struct_fields
 
             #struct_ffi_repr
