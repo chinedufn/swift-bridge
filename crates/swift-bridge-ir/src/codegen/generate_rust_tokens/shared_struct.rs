@@ -91,14 +91,17 @@ impl SwiftBridgeModule {
             }
         };
 
-        // TODO:
-        //  Parse any derives that the user has specified and combine those with our auto derives.
-        let automatic_derives = vec![quote! {Clone}];
+        let automatic_derives;
+        if let Some(derives) = shared_struct.derives.clone() {
+            automatic_derives = derives
+        } else {
+            automatic_derives = vec![];
+        }
 
         let vec_support = generate_vec_of_transparent_struct_functions(&shared_struct);
 
         let definition = quote! {
-            #[derive(#(#automatic_derives),*)]
+			#[derive(#(#automatic_derives),*)]
             pub struct #struct_name #struct_fields
 
             #struct_ffi_repr
