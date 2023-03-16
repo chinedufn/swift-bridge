@@ -32,6 +32,7 @@ mod argument_label_codegen_tests;
 mod async_function_codegen_tests;
 mod boxed_fnonce_codegen_tests;
 mod conditional_compilation_codegen_tests;
+mod derive_struct_attribute_codegen_tests;
 mod extern_rust_function_opaque_rust_type_argument_codegen_tests;
 mod extern_rust_function_opaque_rust_type_return_codegen_tests;
 mod extern_rust_method_swift_class_placement_codegen_tests;

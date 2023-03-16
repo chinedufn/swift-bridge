@@ -90,7 +90,16 @@ impl SwiftBridgeModule {
             }
         };
 
+        let mut derives: Vec<TokenStream> = vec![];
+        if shared_struct.derives.copy {
+            derives.push(quote! {Copy});
+        }
+        if shared_struct.derives.clone {
+            derives.push(quote! {Clone});
+        }
+
         let definition = quote! {
+            #[derive(#(#derives),*)]
             pub struct #struct_name #struct_fields
 
             #struct_ffi_repr
