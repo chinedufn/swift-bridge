@@ -19,6 +19,7 @@ pub(crate) struct SharedStruct {
     pub fields: StructFields,
     pub swift_name: Option<LitStr>,
     pub already_declared: bool,
+    pub derives: Option<Vec<TokenStream>>,
 }
 
 impl SharedStruct {

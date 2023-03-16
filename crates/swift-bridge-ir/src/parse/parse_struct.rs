@@ -1,9 +1,10 @@
 use crate::bridged_type::{SharedStruct, StructFields, StructSwiftRepr};
 use crate::errors::{ParseError, ParseErrors};
 use crate::parse::move_input_cursor_to_next_comma;
-use proc_macro2::Ident;
+use quote::ToTokens;
+use proc_macro2::{Ident, TokenStream};
 use syn::parse::{Parse, ParseStream};
-use syn::{ItemStruct, LitStr, Token};
+use syn::{ItemStruct, LitStr, Token, Meta};
 
 pub(crate) struct SharedStructDeclarationParser<'a> {
     pub item_struct: ItemStruct,
@@ -27,6 +28,7 @@ struct StructAttribs {
     swift_repr: Option<(StructSwiftRepr, LitStr)>,
     swift_name: Option<LitStr>,
     already_declared: bool,
+    derives: Option<Vec<TokenStream>>,
 }
 
 struct ParsedAttribs(Vec<StructAttr>);
@@ -81,32 +83,47 @@ impl<'a> SharedStructDeclarationParser<'a> {
         let mut attribs = StructAttribs::default();
 
         for attr in item_struct.attrs {
-            let sections: ParsedAttribs = attr.parse_args()?;
+            let attribute_name = attr.path.to_token_stream().to_string();
 
-            for attr in sections.0 {
-                match attr {
-                    StructAttr::SwiftRepr((repr, lit_str)) => {
-                        attribs.swift_repr = Some((repr, lit_str));
+            match attribute_name.as_str() {
+                "swift_bridge" => {
+                    let sections: ParsedAttribs = attr.parse_args()?;
+
+                    for attr in sections.0 {
+                        match attr {
+                            StructAttr::SwiftRepr((repr, lit_str)) => {
+                                attribs.swift_repr = Some((repr, lit_str));
+                            }
+                            StructAttr::SwiftName(name) => {
+                                attribs.swift_name = Some(name);
+                            }
+                            StructAttr::Error(err) => match err {
+                                StructAttrParseError::InvalidSwiftRepr(val) => {
+                                    self.errors.push(ParseError::StructInvalidSwiftRepr {
+                                        swift_repr_attr_value: val.clone(),
+                                    });
+                                    attribs.swift_repr = Some((StructSwiftRepr::Structure, val));
+                                }
+                                StructAttrParseError::UnrecognizedAttribute(attribute) => {
+                                    self.errors
+                                        .push(ParseError::StructUnrecognizedAttribute { attribute });
+                                }
+                            },
+                            StructAttr::AlreadyDeclared => {
+                                attribs.already_declared = true;
+                            }
+                        };
                     }
-                    StructAttr::SwiftName(name) => {
-                        attribs.swift_name = Some(name);
-                    }
-                    StructAttr::Error(err) => match err {
-                        StructAttrParseError::InvalidSwiftRepr(val) => {
-                            self.errors.push(ParseError::StructInvalidSwiftRepr {
-                                swift_repr_attr_value: val.clone(),
-                            });
-                            attribs.swift_repr = Some((StructSwiftRepr::Structure, val));
+                },
+                "derive" => {
+                    match attr.parse_meta()? {
+                        Meta::List(meta_list) => {
+                            attribs.derives = Some(meta_list.nested.iter().map(|val| val.to_token_stream()).collect());
                         }
-                        StructAttrParseError::UnrecognizedAttribute(attribute) => {
-                            self.errors
-                                .push(ParseError::StructUnrecognizedAttribute { attribute });
-                        }
-                    },
-                    StructAttr::AlreadyDeclared => {
-                        attribs.already_declared = true;
+                        _ => todo!("Push parse error that derive attribute is in incorrect format")
                     }
-                };
+                },
+                _ => todo!("Push unsupported attribute error."),
             }
         }
 
@@ -137,6 +154,7 @@ impl<'a> SharedStructDeclarationParser<'a> {
             fields: StructFields::from_syn_fields(item_struct.fields),
             swift_name: attribs.swift_name,
             already_declared: attribs.already_declared,
+            derives: attribs.derives,
         };
 
         Ok(shared_struct)
@@ -302,6 +320,25 @@ mod tests {
         assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
     }
 
+    /// Verify that we parse the derive(...)
+    #[test]
+    fn parse_derive_attribute() {
+        let tokens = quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                #[derive(Copy, Clone)]
+                struct Foo;
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let ty = module.types.types()[0].unwrap_shared_struct();
+        
+        let derives: Vec<String> = ty.derives.clone().unwrap().iter().map(|derive| derive.to_string()).collect();
+        assert_eq!(derives, vec!["Copy", "Clone"]);
+    }
+
     /// Verify that we properly parse multiple comma separated struct attributes.
     #[test]
     fn parses_multiple_struct_attributes() {
@@ -309,6 +346,7 @@ mod tests {
             #[swift_bridge::bridge]
             mod ffi {
                 #[swift_bridge(swift_name = "FfiFoo", swift_repr = "class")]
+                #[derive(Copy, Clone)]
                 struct Foo {
                     fied: u8
                 }
@@ -320,6 +358,8 @@ mod tests {
         let ty = module.types.types()[0].unwrap_shared_struct();
         assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
         assert_eq!(ty.swift_repr, StructSwiftRepr::Class);
+        let derives: Vec<String> = ty.derives.clone().unwrap().iter().map(|derive| derive.to_string()).collect();
+        assert_eq!(derives, vec!["Copy", "Clone"]);
     }
 
     /// Verify that we can parse an `already_defined = "struct"` attribute.

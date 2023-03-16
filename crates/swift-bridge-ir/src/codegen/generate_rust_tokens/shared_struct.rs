@@ -90,7 +90,15 @@ impl SwiftBridgeModule {
             }
         };
 
+        let automatic_derives;
+        if let Some(derives) = shared_struct.derives.clone() {
+            automatic_derives = derives
+        } else {
+            automatic_derives = vec![];
+        }
+
         let definition = quote! {
+			#[derive(#(#automatic_derives),*)]
             pub struct #struct_name #struct_fields
 
             #struct_ffi_repr
