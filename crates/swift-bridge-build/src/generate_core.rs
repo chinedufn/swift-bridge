@@ -88,7 +88,7 @@ typedef struct __private__OptionI64 { int64_t val; bool is_some; } __private__Op
 typedef struct __private__OptionUsize { uintptr_t val; bool is_some; } __private__OptionUsize;
 typedef struct __private__OptionIsize { intptr_t val; bool is_some; } __private__OptionIsize;
 typedef struct __private__OptionF32 { float val; bool is_some; } __private__OptionF32;
-typedef struct __private__OptionF64 { double val; bool is_some; } __private__OptionDouble;
+typedef struct __private__OptionF64 { double val; bool is_some; } __private__OptionF64;
 typedef struct __private__OptionBool { bool val; bool is_some; } __private__OptionBool;
 "#
     .to_string();
@@ -127,11 +127,6 @@ fn vec_of_primitive_headers(rust_ty: &str, c_ty: &str) -> String {
 
     // __private__OptionU8 ... etc
     let option_ty = format!("{}{}", "__private__Option", capatilized_first_letter);
-    let option_ty_tag = if option_ty == "__private__OptionF64" {
-        format!("struct ")
-    } else {
-        format!("")
-    };
 
     format!(
         r#"
@@ -139,15 +134,14 @@ void* __swift_bridge__$Vec_{rust_ty}$new();
 void __swift_bridge__$Vec_{rust_ty}$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_{rust_ty}$len(void* const vec);
 void __swift_bridge__$Vec_{rust_ty}$push(void* const vec, {c_ty} val);
-{option_ty_tag}{option_ty} __swift_bridge__$Vec_{rust_ty}$pop(void* const vec);
-{option_ty_tag}{option_ty} __swift_bridge__$Vec_{rust_ty}$get(void* const vec, uintptr_t index);
-{option_ty_tag}{option_ty} __swift_bridge__$Vec_{rust_ty}$get_mut(void* const vec, uintptr_t index);
+{option_ty} __swift_bridge__$Vec_{rust_ty}$pop(void* const vec);
+{option_ty} __swift_bridge__$Vec_{rust_ty}$get(void* const vec, uintptr_t index);
+{option_ty} __swift_bridge__$Vec_{rust_ty}$get_mut(void* const vec, uintptr_t index);
 {c_ty} const * __swift_bridge__$Vec_{rust_ty}$as_ptr(void* const vec);
 "#,
         rust_ty = rust_ty,
         c_ty = c_ty,
-        option_ty = option_ty,
-        option_ty_tag = option_ty_tag
+        option_ty = option_ty
     )
 }
 
