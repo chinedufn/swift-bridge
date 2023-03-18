@@ -49,8 +49,7 @@ impl SwiftBridgeModule {
                             continue;
                         }
 
-                        let name = ty_struct
-                            .swift_name_string();
+                        let name = ty_struct.swift_name_string();
                         let ffi_name = ty_struct.ffi_name_string();
                         let option_ffi_name = ty_struct.ffi_option_name_string();
 

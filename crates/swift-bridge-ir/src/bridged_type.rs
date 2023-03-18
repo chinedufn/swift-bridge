@@ -26,8 +26,8 @@ mod bridgeable_primitive;
 mod bridgeable_result;
 pub mod bridgeable_str;
 pub mod bridgeable_string;
-pub mod bridged_opaque_type;
 mod bridgeable_tuple;
+pub mod bridged_opaque_type;
 mod bridged_option;
 mod shared_enum;
 pub(crate) mod shared_struct;
@@ -755,7 +755,9 @@ impl BridgedType {
                     Some(BridgedType::StdLib(StdLibType::Null))
                 } else {
                     let types: Vec<Type> = tuple.elems.iter().map(|ty| ty.clone()).collect();
-                    return Some(BridgedType::StdLib(StdLibType::Tuple(BuiltInTuple::new_unnamed_with_types(types))));
+                    return Some(BridgedType::StdLib(StdLibType::Tuple(
+                        BuiltInTuple::new_unnamed_with_types(types),
+                    )));
                 }
             }
             _ => None,
@@ -765,9 +767,7 @@ impl BridgedType {
     pub fn new_with_return_type(ty: &ReturnType, types: &TypeDeclarations) -> Option<Self> {
         match ty {
             ReturnType::Default => Some(BridgedType::StdLib(StdLibType::Null)),
-            ReturnType::Type(_, ty) => {
-                BridgedType::new_with_type(&ty, types)
-            },
+            ReturnType::Type(_, ty) => BridgedType::new_with_type(&ty, types),
         }
     }
 
@@ -1042,7 +1042,9 @@ impl BridgedType {
                     result.to_ffi_compatible_rust_type(swift_bridge_path, types)
                 }
                 StdLibType::BoxedFnOnce(fn_once) => fn_once.to_ffi_compatible_rust_type(types),
-                StdLibType::Tuple(tuple) => tuple.to_ffi_compatible_rust_type(swift_bridge_path, types),
+                StdLibType::Tuple(tuple) => {
+                    tuple.to_ffi_compatible_rust_type(swift_bridge_path, types)
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 shared_struct.type_name_with_swift_bridge_prefix(swift_bridge_path)
@@ -1171,9 +1173,7 @@ impl BridgedType {
                             shared_struct.ffi_name_string()
                         }
                     }
-                    TypePosition::SharedStructField => {
-                        shared_struct.swift_name_string()
-                    }
+                    TypePosition::SharedStructField => shared_struct.swift_name_string(),
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         shared_struct.ffi_name_string()
                     }
@@ -1340,12 +1340,15 @@ impl BridgedType {
                 StdLibType::BoxedFnOnce(fn_once) => {
                     fn_once.convert_rust_value_to_ffi_compatible_value(expression, types)
                 }
-                StdLibType::Tuple(tuple) => tuple.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types, span),
+                StdLibType::Tuple(tuple) => tuple.convert_rust_expression_to_ffi_type(
+                    expression,
+                    swift_bridge_path,
+                    types,
+                    span,
+                ),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_rust_expression_to_ffi_type(
-                    expression,
-                )
+                shared_struct.convert_rust_expression_to_ffi_type(expression)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 quote! {
@@ -1420,13 +1423,12 @@ impl BridgedType {
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Support Box<dyn FnOnce(A, B) -> C>")
                 }
-                StdLibType::Tuple(tuple) => tuple.convert_ffi_expression_to_rust_type(value, span, swift_bridge_path, types),
+                StdLibType::Tuple(tuple) => {
+                    tuple.convert_ffi_expression_to_rust_type(value, span, swift_bridge_path, types)
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_ffi_expression_to_rust_type(
-                    value,
-                    span,
-                )
+                shared_struct.convert_ffi_expression_to_rust_type(value, span)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 quote_spanned! {span=>
@@ -1517,7 +1519,9 @@ impl BridgedType {
                 StdLibType::BoxedFnOnce(fn_once) => {
                     fn_once.convert_ffi_value_to_swift_value(type_pos)
                 }
-                StdLibType::Tuple(tuple) => tuple.convert_ffi_expression_to_swift_type(expression, type_pos, types),
+                StdLibType::Tuple(tuple) => {
+                    tuple.convert_ffi_expression_to_swift_type(expression, type_pos, types)
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 shared_struct.convert_ffi_expression_to_swift_type(expression)
@@ -1613,7 +1617,9 @@ impl BridgedType {
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Support Box<dyn FnOnce(A, B) -> C>")
                 }
-                StdLibType::Tuple(tuple) => tuple.convert_swift_expression_to_ffi_type(expression, types, type_pos),
+                StdLibType::Tuple(tuple) => {
+                    tuple.convert_swift_expression_to_ffi_type(expression, types, type_pos)
+                }
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 shared_struct.convert_swift_expression_to_ffi_type(expression)
@@ -1678,7 +1684,7 @@ impl BridgedType {
                 StdLibType::Tuple(_tuple) => {
                     // TODO: Iterate over the fields and see if any of them need imports..
                     None
-                },
+                }
                 _ => None,
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
@@ -1783,7 +1789,7 @@ impl BridgedType {
                     inner.ok_ty.contains_owned_string_recursive(types)
                         || inner.err_ty.contains_owned_string_recursive(types)
                 }
-                StdLibType::Tuple(ty) => ty.contains_owned_string_recursive(types), 
+                StdLibType::Tuple(ty) => ty.contains_owned_string_recursive(types),
                 _ => false,
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {

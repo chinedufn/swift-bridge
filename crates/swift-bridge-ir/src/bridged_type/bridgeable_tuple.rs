@@ -1,7 +1,7 @@
 use crate::bridged_type::shared_struct::UnnamedStructFields;
 use crate::bridged_type::BridgeableType;
-use crate::bridged_type::OnlyEncoding;
 use crate::bridged_type::BuiltInResult;
+use crate::bridged_type::OnlyEncoding;
 use crate::bridged_type::TypePosition;
 use crate::bridged_type::UnusedOptionNoneValue;
 use crate::parse::TypeDeclarations;
@@ -9,7 +9,7 @@ use crate::SWIFT_BRIDGE_PREFIX;
 use std::fmt::Debug;
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, quote_spanned, format_ident};
+use quote::{format_ident, quote, quote_spanned};
 use syn::{Path, Type};
 
 #[derive(Debug)]
@@ -42,8 +42,9 @@ impl BridgeableType for BuiltInTuple {
         types: &TypeDeclarations,
     ) -> Option<TokenStream> {
         let combined_types_string = self.0.combine_field_types_into_ffi_name_string(types);
-        let combined_types_tokens =
-            self.0.combine_field_types_into_ffi_name_tokens(swift_bridge_path, types);
+        let combined_types_tokens = self
+            .0
+            .combine_field_types_into_ffi_name_tokens(swift_bridge_path, types);
         let ty_name = format_ident!("{}_{}", "tuple", combined_types_string);
         let prefixed_ty_name = Ident::new(
             &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
@@ -75,10 +76,10 @@ impl BridgeableType for BuiltInTuple {
 
     fn to_c_type(&self, types: &TypeDeclarations) -> String {
         let ty_name = format!(
-                "{}${}${}",
-                SWIFT_BRIDGE_PREFIX,
-                "tuple",
-                self.0.combine_field_types_into_ffi_name_string(types)
+            "{}${}${}",
+            SWIFT_BRIDGE_PREFIX,
+            "tuple",
+            self.0.combine_field_types_into_ffi_name_string(types)
         );
         format!("struct {}", ty_name)
     }
@@ -135,7 +136,9 @@ impl BridgeableType for BuiltInTuple {
             &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
             ty_name.span(),
         );
-        let converted_fields: Vec<TokenStream> = self.0.convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types, span);
+        let converted_fields: Vec<TokenStream> =
+            self.0
+                .convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types, span);
         return quote! {
             let val = #expression;
             #prefixed_ty_name( #(#converted_fields),* )
@@ -156,7 +159,9 @@ impl BridgeableType for BuiltInTuple {
         types: &TypeDeclarations,
         type_pos: TypePosition,
     ) -> String {
-        let converted_fields = self.0.convert_swift_expression_to_ffi_type(expression, types, type_pos);
+        let converted_fields = self
+            .0
+            .convert_swift_expression_to_ffi_type(expression, types, type_pos);
         let converted_fields = converted_fields.join(", ");
         return format!(
             "{}${}${}({})",
@@ -182,7 +187,9 @@ impl BridgeableType for BuiltInTuple {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
-        let fields: Vec<TokenStream> = self.0.convert_ffi_expression_to_rust_type(expression, span, swift_bridge_path, types);
+        let fields: Vec<TokenStream> =
+            self.0
+                .convert_ffi_expression_to_rust_type(expression, span, swift_bridge_path, types);
         return quote_spanned! {
             span => ( #(#fields),* )
         };
@@ -198,7 +205,9 @@ impl BridgeableType for BuiltInTuple {
         type_pos: TypePosition,
         types: &TypeDeclarations,
     ) -> String {
-        let converted_fields: Vec<String> = self.0.convert_ffi_expression_to_swift_type(expression, type_pos, types);
+        let converted_fields: Vec<String> = self
+            .0
+            .convert_ffi_expression_to_swift_type(expression, type_pos, types);
         let converted_fields = converted_fields.join(", ");
 
         return format!("let val = {}; return ({converted_fields});", expression);

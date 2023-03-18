@@ -377,10 +377,7 @@ impl ParsedExternFn {
 
                     match types.get(&ty_string).unwrap() {
                         TypeDeclaration::Shared(SharedTypeDeclaration::Struct(shared_struct)) => {
-                            format!(
-                                "struct {}",
-                                shared_struct.swift_name_string()
-                            )
+                            format!("struct {}", shared_struct.swift_name_string())
                         }
                         TypeDeclaration::Shared(SharedTypeDeclaration::Enum(_shared_enum)) => {
                             //
