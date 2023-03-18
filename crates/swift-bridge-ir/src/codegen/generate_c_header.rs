@@ -1,9 +1,8 @@
 //! Tests can be found in src/codegen/codegen_tests.rs and its submodules.
 
 use crate::bridged_type::shared_struct::StructField;
-use crate::bridged_type::{BridgeableType, BridgedType, StdLibType, StructFields, TypePosition};
+use crate::bridged_type::{BridgeableType, BridgedType, StdLibType, StructFields};
 use crate::codegen::CodegenConfig;
-use crate::parse::HostLang;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use crate::{SwiftBridgeModule, SWIFT_BRIDGE_PREFIX};
@@ -51,8 +50,8 @@ impl SwiftBridgeModule {
                         }
 
                         let name = ty_struct
-                            .swift_name_string(TypePosition::FnArg(HostLang::Rust, 0), &self.types);
-                        let ffi_name = ty_struct.ffi_name_string(&self.types);
+                            .swift_name_string();
+                        let ffi_name = ty_struct.ffi_name_string();
                         let option_ffi_name = ty_struct.ffi_option_name_string();
 
                         let mut fields = vec![];

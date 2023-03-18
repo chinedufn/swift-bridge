@@ -1,6 +1,5 @@
 use crate::bridged_type::shared_struct::StructField;
 use crate::bridged_type::{BridgedType, SharedStruct, StructFields, StructSwiftRepr, TypePosition};
-use crate::parse::HostLang;
 use crate::SwiftBridgeModule;
 
 impl SwiftBridgeModule {
@@ -8,14 +7,13 @@ impl SwiftBridgeModule {
     pub(super) fn generate_shared_struct_string(
         &self,
         shared_struct: &SharedStruct,
-        host_lang: HostLang,
     ) -> Option<String> {
         if shared_struct.already_declared {
             return None;
         }
 
         let struct_name =
-            &shared_struct.swift_name_string(TypePosition::FnArg(host_lang, 0), &self.types);
+            &shared_struct.swift_name_string();
         let option_ffi_name = shared_struct.ffi_option_name_string();
 
         match shared_struct.swift_repr {
@@ -90,7 +88,7 @@ extension {option_ffi_name} {{
                     initializer_params = initializer_params,
                     initializer_body = initializer_body,
                     fields = fields,
-                    ffi_repr_name = shared_struct.ffi_name_string(&self.types),
+                    ffi_repr_name = shared_struct.ffi_name_string(),
                     option_ffi_name = option_ffi_name,
                     convert_swift_to_ffi_repr = convert_swift_to_ffi_repr,
                     convert_ffi_repr_to_swift = convert_ffi_repr_to_swift

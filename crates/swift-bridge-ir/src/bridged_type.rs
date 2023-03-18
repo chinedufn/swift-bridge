@@ -500,14 +500,7 @@ impl BridgeableType for BridgedType {
                 StdLibType::Tuple(ty) => ty.generate_custom_rust_ffi_type(swift_bridge_path, types),
                 _ => None,
             },
-            BridgedType::Foreign(ty) => match ty {
-                CustomBridgedType::Shared(ty) => match ty {
-                    SharedType::Struct(ty) => {
-                        ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
-                    }
-                    SharedType::Enum(_) => None,
-                },
-            },
+            BridgedType::Foreign(_) => None,
             BridgedType::Bridgeable(ty) => {
                 ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
             }
@@ -521,12 +514,7 @@ impl BridgeableType for BridgedType {
                 StdLibType::Tuple(ty) => ty.generate_custom_c_ffi_type(types),
                 _ => None,
             },
-            BridgedType::Foreign(ty) => match ty {
-                CustomBridgedType::Shared(ty) => match ty {
-                    SharedType::Struct(ty) => ty.generate_custom_c_ffi_type(types),
-                    SharedType::Enum(_) => None,
-                },
-            },
+            BridgedType::Foreign(_) => None,
             BridgedType::Bridgeable(_) => None,
         }
     }
@@ -1057,7 +1045,7 @@ impl BridgedType {
                 StdLibType::Tuple(tuple) => tuple.to_ffi_compatible_rust_type(swift_bridge_path, types),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.generate_prefixed_type_name_tokens(swift_bridge_path, types)
+                shared_struct.generate_prefixed_type_name_tokens(swift_bridge_path)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 let ty_name = &shared_enum.name;
@@ -1178,16 +1166,16 @@ impl BridgedType {
                     TypePosition::FnArg(func_host_lang, _)
                     | TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_rust() {
-                            shared_struct.swift_name_string(type_pos, types)
+                            shared_struct.swift_name_string()
                         } else {
-                            shared_struct.ffi_name_string(types)
+                            shared_struct.ffi_name_string()
                         }
                     }
                     TypePosition::SharedStructField => {
-                        shared_struct.swift_name_string(type_pos, types)
+                        shared_struct.swift_name_string()
                     }
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
-                        shared_struct.ffi_name_string(types)
+                        shared_struct.ffi_name_string()
                     }
                 }
             }
@@ -1250,7 +1238,7 @@ impl BridgedType {
                 StdLibType::Tuple(tuple) => tuple.to_c_type(types),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                format!("struct {}", shared_struct.ffi_name_string(types))
+                format!("struct {}", shared_struct.ffi_name_string())
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 format!("struct {}", shared_enum.ffi_name_string())
@@ -1357,9 +1345,6 @@ impl BridgedType {
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 shared_struct.convert_rust_expression_to_ffi_type(
                     expression,
-                    span,
-                    swift_bridge_path,
-                    types,
                 )
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
@@ -1441,8 +1426,6 @@ impl BridgedType {
                 shared_struct.convert_ffi_expression_to_rust_type(
                     value,
                     span,
-                    swift_bridge_path,
-                    types,
                 )
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
@@ -1537,7 +1520,7 @@ impl BridgedType {
                 StdLibType::Tuple(tuple) => tuple.convert_ffi_expression_to_swift_type(expression, type_pos, types),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_ffi_expression_to_swift_type(expression, type_pos, types)
+                shared_struct.convert_ffi_expression_to_swift_type(expression)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 format!("{}.intoSwiftRepr()", expression)
@@ -1633,7 +1616,7 @@ impl BridgedType {
                 StdLibType::Tuple(tuple) => tuple.convert_swift_expression_to_ffi_type(expression, types, type_pos),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.convert_swift_expression_to_ffi_type(expression, type_pos, types)
+                shared_struct.convert_swift_expression_to_ffi_type(expression)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 format!("{}.intoFfiRepr()", expression)
@@ -1803,8 +1786,9 @@ impl BridgedType {
                 StdLibType::Tuple(ty) => ty.contains_owned_string_recursive(types), 
                 _ => false,
             },
-            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.contains_owned_string_recursive(types)
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
+                // TODO: Check fields for String
+                false
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
                 // TODO: Check fields for &str

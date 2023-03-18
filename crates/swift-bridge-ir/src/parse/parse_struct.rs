@@ -137,7 +137,6 @@ impl<'a> SharedStructDeclarationParser<'a> {
             fields: StructFields::from_syn_fields(item_struct.fields),
             swift_name: attribs.swift_name,
             already_declared: attribs.already_declared,
-            is_tuple: false,
         };
 
         Ok(shared_struct)
