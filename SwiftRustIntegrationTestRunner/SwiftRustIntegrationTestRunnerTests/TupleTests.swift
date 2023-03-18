@@ -12,7 +12,7 @@ import XCTest
 
 /// Tests tuples
 final class TupleTest: XCTestCase {
-
+    // Verify that we can pass and return Rust tuples.
     func testSwiftCallsRustTuples() throws {
         XCTContext.runActivity(named: "Verify that we can pass and return a (primitive type, primitive type).") {
             _ in
