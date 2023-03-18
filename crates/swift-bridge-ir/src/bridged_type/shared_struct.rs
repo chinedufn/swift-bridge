@@ -29,30 +29,6 @@ impl UnnamedStructFields {
         .collect();
         Self(unnamed_fields)
     }
-
-    /// Example
-    ///
-    /// (i32, u32) becomes (Int32, UInt32)
-    /// (OpaqueRustType, u8) becomes (OpaqueRustType, UInt8)
-    pub fn combine_field_types_into_swift_name(
-        &self,
-        type_pos: TypePosition,
-        types: &TypeDeclarations,
-    ) -> String {
-        let names: Vec<String> = self.0
-        .iter()
-        .enumerate()
-        .map(|(_idx, field)| {
-            BridgedType::new_with_type(&field.ty, types)
-                .unwrap()
-                .to_swift_type(type_pos, types)
-        })
-        .collect();
-        let names = names.join(", ");
-        let names = "(".to_string() + &names;
-        let names = names + ")";
-        return names;
-    }
     pub fn convert_swift_expression_to_ffi_type(
         &self,
         expression: &str,
@@ -76,6 +52,30 @@ impl UnnamedStructFields {
 
     /// Example
     ///
+    /// (i32, u32) becomes (Int32, UInt32)
+    /// (OpaqueRustType, u8) becomes (OpaqueRustType, UInt8)
+    pub fn to_swift_tuple_signature(
+        &self,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+    ) -> String {
+        let names: Vec<String> = self.0
+        .iter()
+        .enumerate()
+        .map(|(_idx, field)| {
+            BridgedType::new_with_type(&field.ty, types)
+                .unwrap()
+                .to_swift_type(type_pos, types)
+        })
+        .collect();
+        let names = names.join(", ");
+        let names = "(".to_string() + &names;
+        let names = names + ")";
+        return names;
+    }
+
+    /// Example
+    ///
     /// (i32, u32) becomes Int32UInt32
     /// (OpaqueRustType, u8) becomes OpaqueRustTypeUInt8
     pub fn combine_field_types_into_ffi_name_string(&self, types: &TypeDeclarations) -> String {
@@ -87,6 +87,40 @@ impl UnnamedStructFields {
                         .to_alpha_numeric_underscore_name()
                 })
                 .fold("".to_string(), |sum, s| sum + &s)
+    }
+    /// Example
+    ///
+    /// (i32, u32) becomes vec![quote!{i32}, quote!{u32}]
+    /// (OpaqueRustType, u8) becomes vec![quote!{*mut super::OpaqueRustType}, quote!{u8}]
+    pub fn combine_field_types_into_ffi_name_tokens(
+        &self,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> Vec<TokenStream> {
+        self.0
+        .iter()
+        .map(|field| {
+            BridgedType::new_with_type(&field.ty, types)
+                .unwrap()
+                .to_ffi_compatible_rust_type(swift_bridge_path, types)
+        })
+        .collect()
+    }
+    /// Example
+    ///
+    /// (i32, u32) becomes vec!["int32_t _0", "uint32_t _1;"]
+    /// (OpaqueRustType, u8) becomes vec!["void* _0", "uint8_t _1;"]
+    pub fn combine_field_types_into_c_type(&self, types: &TypeDeclarations) -> Vec<String> {
+        self.0
+        .iter()
+        .enumerate()
+        .map(|(idx, field)| {
+            let field = BridgedType::new_with_type(&field.ty, types)
+                .unwrap()
+                .to_c(types);
+            return format!("{} _{}", field, idx);
+        })
+        .collect()
     }
     pub fn convert_ffi_expression_to_swift_type(
         &self,
@@ -153,36 +187,6 @@ impl UnnamedStructFields {
                 span,
             )
         }).collect()
-    }
-    /// Example
-    ///
-    /// (i32, u32) becomes vec![quote!{i32}, quote!{u32}]
-    /// (OpaqueRustType, u8) becomes vec![quote!{*mut super::OpaqueRustType}, quote!{u8}]
-    pub fn combine_field_types_into_ffi_name_tokens(
-        &self,
-        swift_bridge_path: &Path,
-        types: &TypeDeclarations,
-    ) -> Vec<TokenStream> {
-        self.0
-        .iter()
-        .map(|field| {
-            BridgedType::new_with_type(&field.ty, types)
-                .unwrap()
-                .to_ffi_compatible_rust_type(swift_bridge_path, types)
-        })
-        .collect()
-    }
-    pub fn combine_field_types_into_c_type(&self, types: &TypeDeclarations) -> Vec<String> {
-        self.0
-        .iter()
-        .enumerate()
-        .map(|(idx, field)| {
-            let field = BridgedType::new_with_type(&field.ty, types)
-                .unwrap()
-                .to_c(types);
-            return format!("{} _{}", field, idx);
-        })
-        .collect()
     }
     pub fn contains_owned_string_recursive(&self, types: &TypeDeclarations) -> bool {
         self.0
@@ -481,7 +485,7 @@ impl SharedStruct {
         }
     }
 
-    pub fn generate_prefixed_type_name_tokens(
+    pub fn type_name_with_swift_bridge_prefix(
         &self,
         swift_bridge_path: &Path,
     ) -> TokenStream {

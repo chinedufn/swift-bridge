@@ -70,7 +70,7 @@ impl BridgeableType for BuiltInTuple {
     }
 
     fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
-        self.0.combine_field_types_into_swift_name(type_pos, types)
+        self.0.to_swift_tuple_signature(type_pos, types)
     }
 
     fn to_c_type(&self, types: &TypeDeclarations) -> String {

@@ -1045,7 +1045,7 @@ impl BridgedType {
                 StdLibType::Tuple(tuple) => tuple.to_ffi_compatible_rust_type(swift_bridge_path, types),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
-                shared_struct.generate_prefixed_type_name_tokens(swift_bridge_path)
+                shared_struct.type_name_with_swift_bridge_prefix(swift_bridge_path)
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 let ty_name = &shared_enum.name;
