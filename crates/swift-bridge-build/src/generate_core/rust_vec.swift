@@ -1,6 +1,3 @@
-// TODO:
-//  Implement iterator https://developer.apple.com/documentation/swift/iteratorprotocol
-
 public class RustVec<T: Vectorizable> {
     var ptr: UnsafeMutableRawPointer
     var isOwned: Bool = true

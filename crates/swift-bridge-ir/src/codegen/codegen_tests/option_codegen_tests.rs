@@ -26,10 +26,13 @@ mod extern_rust_fn_option_primitive {
                 arg: swift_bridge::option::OptionU8
             ) -> swift_bridge::option::OptionF32 {
                 if let Some(val) = super::some_function(
-                    if arg.is_some {
-                        Some(arg.val)
-                    } else {
-                        None
+                    {
+                        let val = arg;
+                        if val.is_some {
+                            Some(val.val)
+                        } else {
+                            None
+                        }
                     }
                 ) {
                     swift_bridge::option::OptionF32 { val, is_some: true}
@@ -44,7 +47,7 @@ mod extern_rust_fn_option_primitive {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 func some_function(_ arg: Optional<UInt8>) -> Optional<Float> {
-    { let val = __swift_bridge__$some_function({ let val = arg; return __private__OptionU8(val: val ?? 123, is_some: val != nil); }()); if val.is_some { return val.val } else { return nil } }()
+    __swift_bridge__$some_function(arg.intoFfiRepr()).intoSwiftRepr()
 }
 "#,
         )
@@ -58,6 +61,75 @@ struct __private__OptionF32 __swift_bridge__$some_function(struct __private__Opt
 
     #[test]
     fn extern_rust_fn_option_primitive() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}
+
+/// Test code generation for a Swift function that accepts and returns an Option<T> where T is a
+/// primitive.
+mod extern_swift_fn_option_primitive {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Swift" {
+                    fn some_function (arg: Option<u8>) -> Option<f32>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub fn some_function(arg: Option<u8>) -> Option<f32> {
+                    {
+                        let val = unsafe {
+                            __swift_bridge__some_function(
+                                if let Some(val) = arg {
+                                   swift_bridge::option::OptionU8 { val, is_some: true }
+                                } else {
+                                   swift_bridge::option::OptionU8 { val: 123, is_some: false }
+                                }
+                            )
+                        };
+                        if val.is_some {
+                            Some(val.val)
+                        } else {
+                            None
+                        }
+                    }
+                }
+            },
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(arg: swift_bridge::option::OptionU8) -> swift_bridge::option::OptionF32;
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ arg: __private__OptionU8) -> __private__OptionF32 {
+    some_function(arg: arg.intoSwiftRepr()).intoFfiRepr()
+}
+"#,
+        )
+    }
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ExactAfterTrim(r#""#);
+
+    #[test]
+    fn extern_swift_fn_option_primitive() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -893,10 +965,13 @@ mod shared_struct_with_option_field_ffi_repr {
                          {
                             let val = self;
                             SomeStruct {
-                                field: if val.field.is_some {
-                                    Some(val.field.val)
-                                } else {
-                                   None
+                                field: {
+                                    let val = val.field;
+                                    if val.is_some {
+                                        Some(val.val)
+                                    } else {
+                                        None
+                                    }
                                 }
                             }
                         }
@@ -918,13 +993,13 @@ public struct SomeStruct {
 
     @inline(__always)
     func intoFfiRepr() -> __swift_bridge__$SomeStruct {
-        { let val = self; return __swift_bridge__$SomeStruct(field: { let val = val.field; return __private__OptionU8(val: val ?? 123, is_some: val != nil); }()); }()
+        { let val = self; return __swift_bridge__$SomeStruct(field: val.field.intoFfiRepr()); }()
     }
 }
 extension __swift_bridge__$SomeStruct {
     @inline(__always)
     func intoSwiftRepr() -> SomeStruct {
-        { let val = self; return SomeStruct(field: { let val = val.field; if val.is_some { return val.val } else { return nil } }()); }()
+        { let val = self; return SomeStruct(field: val.field.intoSwiftRepr()); }()
     }
 }
 "#,
