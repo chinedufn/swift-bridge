@@ -218,10 +218,7 @@ impl SharedStruct {
     }
 
     pub(crate) fn ffi_name_string(&self) -> String {
-        let name = match self.swift_name.as_ref() {
-            Some(ty) => ty.value(),
-            None => self.name.to_string(),
-        };
+        let name = self.swift_name_string();
 
         format!("{}${}", SWIFT_BRIDGE_PREFIX, name)
     }
@@ -248,10 +245,7 @@ impl SharedStruct {
 
     /// __swift_bridge__$Option$SomeStruct
     pub fn ffi_option_name_string(&self) -> String {
-        let name = match self.swift_name.as_ref() {
-            Some(ty) => ty.value(),
-            None => self.name.to_string(),
-        };
+        let name = self.swift_name_string();
         format!("{}$Option${}", SWIFT_BRIDGE_PREFIX, name,)
     }
 
@@ -266,10 +260,7 @@ impl SharedStruct {
 
         let struct_name = &self.name;
         let empty_fields = self.fields.empty_field_wrapper();
-        let name = match self.swift_name.as_ref() {
-            Some(ty) => ty.value(),
-            None => self.name.to_string(),
-        };
+        let name = self.swift_name_string();
         Some(OnlyEncoding {
             swift: format!("{}()", name),
             rust: quote! {#struct_name #empty_fields},
@@ -425,10 +416,7 @@ impl SharedStruct {
         expression: &str,
         types: &TypeDeclarations,
     ) -> String {
-        let name = match self.swift_name.as_ref() {
-            Some(ty) => ty.value(),
-            None => self.name.to_string(),
-        };
+        let name = self.swift_name_string();
         let struct_name = &name;
 
         let converted_fields: Vec<String> = self
