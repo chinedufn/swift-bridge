@@ -1,13 +1,3 @@
-// /// `impl BridgeableType for {u8, i8, u16, i16 ... etc}`
-// TODO: Write this macro
-// macro_rules! make_bridgeable_primitive {
-//     ($type:ty) => {
-//         impl BridgeableType for $type {
-//             //
-//         }
-//     };
-// }
-
 use crate::bridged_type::StdLibType;
 
 /// Primitive types such as `()`, `u8` and `bool`.
