@@ -205,7 +205,10 @@ impl BridgeableType for BuiltInTuple {
             .convert_ffi_expression_to_swift_type(expression, type_pos, types);
         let converted_fields = converted_fields.join(", ");
 
-        return format!("{{ let val = {}; return ({converted_fields}); }}()", expression);
+        return format!(
+            "{{ let val = {}; return ({converted_fields}); }}()",
+            expression
+        );
     }
 
     fn convert_ffi_option_expression_to_swift_type(&self, _expression: &str) -> String {

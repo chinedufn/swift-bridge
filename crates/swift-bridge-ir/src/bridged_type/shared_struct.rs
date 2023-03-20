@@ -22,10 +22,7 @@ impl UnnamedStructFields {
         let unnamed_fields = types
             .into_iter()
             .enumerate()
-            .map(|(idx, ty)| UnnamedStructField {
-                ty: ty,
-                idx: idx,
-            })
+            .map(|(idx, ty)| UnnamedStructField { ty: ty, idx: idx })
             .collect();
         Self(unnamed_fields)
     }

@@ -26,9 +26,9 @@ mod bridgeable_primitive;
 mod bridgeable_result;
 pub mod bridgeable_str;
 pub mod bridgeable_string;
-mod built_in_tuple;
 pub mod bridged_opaque_type;
 mod bridged_option;
+mod built_in_tuple;
 mod shared_enum;
 pub(crate) mod shared_struct;
 
