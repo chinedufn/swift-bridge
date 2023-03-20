@@ -136,8 +136,7 @@ impl BridgeableType for BuiltInTuple {
             self.0
                 .convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types, span);
         return quote! {
-            let val = #expression;
-            #prefixed_ty_name( #(#converted_fields),* )
+            { let val = #expression; #prefixed_ty_name( #(#converted_fields),* ) }
         };
     }
 
@@ -206,7 +205,7 @@ impl BridgeableType for BuiltInTuple {
             .convert_ffi_expression_to_swift_type(expression, type_pos, types);
         let converted_fields = converted_fields.join(", ");
 
-        return format!("let val = {}; return ({converted_fields});", expression);
+        return format!("{{ let val = {}; return ({converted_fields}); }}()", expression);
     }
 
     fn convert_ffi_option_expression_to_swift_type(&self, _expression: &str) -> String {

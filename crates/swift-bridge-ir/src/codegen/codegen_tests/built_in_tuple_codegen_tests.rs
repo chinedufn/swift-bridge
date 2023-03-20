@@ -21,8 +21,7 @@ mod extern_rust_tuple_primitives {
         ExpectedRustTokens::ContainsMany(vec![
             quote! {
                 pub extern "C" fn __swift_bridge__some_function (arg: __swift_bridge__tuple_I32U8) -> __swift_bridge__tuple_I32U8 {
-                    let val = super::some_function((arg.0, arg.1));
-                    __swift_bridge__tuple_I32U8(val.0, val.1)
+                    { let val = super::some_function((arg.0, arg.1)); __swift_bridge__tuple_I32U8(val.0, val.1) }
                 }
             },
             quote! {
@@ -37,7 +36,7 @@ mod extern_rust_tuple_primitives {
         ExpectedSwiftCode::ContainsManyAfterTrim(vec![
             r#"
 public func some_function(_ arg: (Int32, UInt8)) -> (Int32, UInt8) {
-    let val = __swift_bridge__$some_function(__swift_bridge__$tuple$I32U8(_0: arg.0, _1: arg.1)); return (val._0, val._1);
+    { let val = __swift_bridge__$some_function(__swift_bridge__$tuple$I32U8(_0: arg.0, _1: arg.1)); return (val._0, val._1); }()
 }
 "#,
         ])
@@ -85,8 +84,7 @@ mod extern_rust_tuple_string_primitive {
         ExpectedRustTokens::ContainsMany(vec![
             quote! {
                 pub extern "C" fn __swift_bridge__some_function (arg1: __swift_bridge__tuple_StringU32) -> __swift_bridge__tuple_StringU32 {
-                    let val = super::some_function((unsafe { Box::from_raw(arg1.0).0 }, arg1.1));
-                    __swift_bridge__tuple_StringU32(swift_bridge::string::RustString(val.0).box_into_raw(), val.1)
+                    { let val = super::some_function((unsafe { Box::from_raw(arg1.0).0 }, arg1.1)); __swift_bridge__tuple_StringU32(swift_bridge::string::RustString(val.0).box_into_raw(), val.1) }
                 }
             },
             quote! {
@@ -101,7 +99,7 @@ mod extern_rust_tuple_string_primitive {
         ExpectedSwiftCode::ContainsManyAfterTrim(vec![
             r#"
 public func some_function<GenericIntoRustString: IntoRustString>(_ arg1: (GenericIntoRustString, UInt32)) -> (RustString, UInt32) {
-    let val = __swift_bridge__$some_function(__swift_bridge__$tuple$StringU32(_0: { let rustString = arg1.0.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), _1: arg1.1)); return (RustString(ptr: val._0), val._1);
+    { let val = __swift_bridge__$some_function(__swift_bridge__$tuple$StringU32(_0: { let rustString = arg1.0.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), _1: arg1.1)); return (RustString(ptr: val._0), val._1); }()
 }
 "#,
         ])
@@ -150,11 +148,11 @@ mod extern_rust_tuple_opaque_rust_primitive {
         ExpectedRustTokens::ContainsMany(vec![
             quote! {
                 pub extern "C" fn __swift_bridge__some_function (arg1: __swift_bridge__tuple_SomeTypeU32) -> __swift_bridge__tuple_SomeTypeU32 {
-                    let val = super::some_function((unsafe { * Box::from_raw(arg1.0) }, arg1.1));
+                    { let val = super::some_function((unsafe { * Box::from_raw(arg1.0) }, arg1.1));
                     __swift_bridge__tuple_SomeTypeU32(Box::into_raw(Box::new({
                         let val: super::SomeType = val.0;
                         val
-                    })) as *mut super::SomeType, val.1)
+                    })) as *mut super::SomeType, val.1) }
                 }
             },
             quote! {
@@ -169,7 +167,7 @@ mod extern_rust_tuple_opaque_rust_primitive {
         ExpectedSwiftCode::ContainsManyAfterTrim(vec![
             r#"
 public func some_function(_ arg1: (SomeType, UInt32)) -> (SomeType, UInt32) {
-    let val = __swift_bridge__$some_function(__swift_bridge__$tuple$SomeTypeU32(_0: {arg1.0.isOwned = false; return arg1.0.ptr;}(), _1: arg1.1)); return (SomeType(ptr: val._0), val._1);
+    { let val = __swift_bridge__$some_function(__swift_bridge__$tuple$SomeTypeU32(_0: {arg1.0.isOwned = false; return arg1.0.ptr;}(), _1: arg1.1)); return (SomeType(ptr: val._0), val._1); }()
 }
 "#,
         ])
