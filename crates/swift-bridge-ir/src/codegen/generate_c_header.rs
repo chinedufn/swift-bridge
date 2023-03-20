@@ -77,7 +77,7 @@ impl SwiftBridgeModule {
 
                                         let name = field.swift_name_string();
 
-                                        fields.push(format!("{} {}", ty.to_c(), name));
+                                        fields.push(format!("{} {}", ty.to_c(&self.types), name));
                                     }
                                 }
                                 StructFields::Unnamed(types) => {
@@ -90,7 +90,7 @@ impl SwiftBridgeModule {
 
                                         let name = format!("_{}", idx);
 
-                                        fields.push(format!("{} {}", ty.to_c(), name));
+                                        fields.push(format!("{} {}", ty.to_c(&self.types), name));
                                     }
                                 }
                                 StructFields::Unit => {
@@ -180,7 +180,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                             if let Some(include) = ty.to_c_include() {
                                                 bookkeeping.includes.insert(include);
                                             }
-                                            let ty = ty.to_c();
+                                            let ty = ty.to_c(&self.types);
                                             let field_name = named_field.name.to_string();
                                             params.push(format!("{} {};", ty, field_name));
                                         }
@@ -200,7 +200,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                             if let Some(include) = ty.to_c_include() {
                                                 bookkeeping.includes.insert(include);
                                             }
-                                            let ty = ty.to_c();
+                                            let ty = ty.to_c(&self.types);
                                             params.push(format!("{} _{};", ty, unnamed_field.idx));
                                         }
                                         let params = params.join(" ");
@@ -319,7 +319,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         continue;
                     }
 
-                    let fns = func.boxed_fn_to_c_header_fns(idx, &boxed_fn);
+                    let fns = func.boxed_fn_to_c_header_fns(idx, &boxed_fn, &self.types);
                     header += &format!("{fns}");
                     header += "\n";
                 }
@@ -403,11 +403,11 @@ fn declare_func(
 
     if let ReturnType::Type(_, ty) = &func.func.sig.output {
         if let Some(ty) = BridgedType::new_with_type(&ty, types) {
-            if let Some(declaration) = &ty.generate_custom_c_ffi_type() {
+            if let Some(declaration) = &ty.generate_custom_c_ffi_type(types) {
                 custom_type_declarations.insert(declaration.clone());
             }
             if let BridgedType::StdLib(StdLibType::RefSlice(ref_slice)) = ty {
-                bookkeeping.slice_types.insert(ref_slice.ty.to_c());
+                bookkeeping.slice_types.insert(ref_slice.ty.to_c(types));
             }
         }
     }
@@ -423,7 +423,7 @@ fn declare_func(
         let maybe_ret = if maybe_ret.is_null() {
             "".to_string()
         } else {
-            format!(", {} ret", maybe_ret.to_c())
+            format!(", {} ret", maybe_ret.to_c(types))
         };
 
         let maybe_params = if func.sig.inputs.is_empty() {

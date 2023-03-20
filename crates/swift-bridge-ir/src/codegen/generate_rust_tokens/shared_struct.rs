@@ -60,13 +60,14 @@ impl SwiftBridgeModule {
             .fields
             .wrap_declaration_fields(&repr_c_struct_fields);
 
-        let convert_rust_to_ffi = shared_struct.convert_rust_expression_to_ffi_repr(
-            &quote! { self },
+        let into_ffi_repr_impl = shared_struct.generate_into_ffi_repr_method(
+            &quote! {self},
             &self.types,
             &self.swift_bridge_path,
             // TODO: Add a UI test and then add a better span
             Span::call_site(),
         );
+
         let convert_ffi_to_rust = shared_struct.convert_ffi_repr_to_rust(
             &quote! { self },
             swift_bridge_path,
@@ -108,13 +109,7 @@ impl SwiftBridgeModule {
                 type FfiRepr = #struct_ffi_name;
             }
 
-            impl #struct_name {
-                #[doc(hidden)]
-                #[inline(always)]
-                pub fn into_ffi_repr(self) -> #struct_ffi_name {
-                    #convert_rust_to_ffi
-                }
-            }
+            #into_ffi_repr_impl
 
             impl #struct_ffi_name {
                 #[doc(hidden)]

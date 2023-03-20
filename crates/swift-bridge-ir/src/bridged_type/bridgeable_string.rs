@@ -36,7 +36,7 @@ impl BridgeableType for BridgedString {
         None
     }
 
-    fn generate_custom_c_ffi_type(&self) -> Option<String> {
+    fn generate_custom_c_ffi_type(&self, _types: &TypeDeclarations) -> Option<String> {
         None
     }
 
@@ -62,7 +62,7 @@ impl BridgeableType for BridgedString {
         }
     }
 
-    fn to_c_type(&self) -> String {
+    fn to_c_type(&self, _types: &TypeDeclarations) -> String {
         "void*".to_string()
     }
 
@@ -129,6 +129,7 @@ impl BridgeableType for BridgedString {
     fn convert_swift_expression_to_ffi_type(
         &self,
         expression: &str,
+        _types: &TypeDeclarations,
         _type_pos: TypePosition,
     ) -> String {
         format!(
@@ -278,7 +279,7 @@ impl BridgeableType for BridgedString {
         false
     }
 
-    fn contains_owned_string_recursive(&self) -> bool {
+    fn contains_owned_string_recursive(&self, _types: &TypeDeclarations) -> bool {
         true
     }
 
@@ -291,6 +292,6 @@ impl BridgeableType for BridgedString {
     }
 
     fn to_alpha_numeric_underscore_name(&self) -> String {
-        todo!()
+        "String".to_string()
     }
 }

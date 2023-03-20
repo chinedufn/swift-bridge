@@ -114,12 +114,12 @@ impl BridgeableBoxedFnOnce {
 
     /// Box<dyn FnOnce(u8, SomeRustType)> becomes:
     /// uint8_t arg0, *void arg1
-    pub fn params_to_c_types(&self) -> String {
+    pub fn params_to_c_types(&self, types: &TypeDeclarations) -> String {
         self.params
             .iter()
             .enumerate()
             .map(|(idx, ty)| {
-                let ty = ty.to_c();
+                let ty = ty.to_c(types);
 
                 format!("{ty} arg{idx}")
             })
@@ -166,7 +166,7 @@ impl BridgeableBoxedFnOnce {
 
     /// Box<dyn FnOnce(u8, SomeType)> would become:
     /// ", arg0, { arg1.isOwned = false; arg1 }()"
-    pub fn to_from_swift_to_rust_ffi_call_args(&self) -> String {
+    pub fn to_from_swift_to_rust_ffi_call_args(&self, types: &TypeDeclarations) -> String {
         let mut args = "".to_string();
 
         if self.params.is_empty() {
@@ -179,6 +179,7 @@ impl BridgeableBoxedFnOnce {
                 ", {}",
                 ty.convert_swift_expression_to_ffi_type(
                     &arg_name,
+                    types,
                     TypePosition::FnArg(HostLang::Rust, idx)
                 )
             );
@@ -210,11 +211,11 @@ impl BridgeableBoxedFnOnce {
     /// Generate the generate bounds for the Swift side.
     /// For example:
     /// "<GenericRustString: IntoRustString>"
-    pub fn maybe_swift_generics(&self) -> String {
+    pub fn maybe_swift_generics(&self, types: &TypeDeclarations) -> String {
         let mut maybe_generics = HashSet::new();
 
         for bridged_arg in &self.params {
-            if bridged_arg.contains_owned_string_recursive() {
+            if bridged_arg.contains_owned_string_recursive(types) {
                 maybe_generics.insert(SwiftFuncGenerics::String);
             } else if bridged_arg.contains_ref_string_recursive() {
                 maybe_generics.insert(SwiftFuncGenerics::Str);

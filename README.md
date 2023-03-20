@@ -131,6 +131,7 @@ In addition to allowing you to share your own custom structs, enums and classes 
 | Option\<T>                                                      | Optional\<T>                                                     |                                                                                    |
 | fn x() -> Result\<T, E>                                         | func x() throws -> T                                             |                                                                                    |
 | fn x(arg: Result\<T, E>)                                        | func x(arg: RustResult\<T, E>)                                   |                                                                                    |
+| (A, B, C, ...)| (A, B, C, ...)
 | Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                                                                                    |
 |                                                                 | Have a Swift standard library type in mind?<br /> Open an issue! |                                                                                    |
 <!-- ANCHOR_END: built-in-types-table -->

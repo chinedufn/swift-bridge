@@ -109,6 +109,7 @@ impl BridgedOption {
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
                 }
+                StdLibType::Tuple(_) => todo!(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let option_name = shared_struct.ffi_option_name_tokens();
@@ -184,6 +185,7 @@ impl BridgedOption {
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
                 }
+                StdLibType::Tuple(_) => todo!(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 quote! {
@@ -248,6 +250,7 @@ impl BridgedOption {
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
                 }
+                StdLibType::Tuple(_) => todo!(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
                 format!("{expression}.intoSwiftRepr()", expression = expression)
@@ -310,6 +313,7 @@ impl BridgedOption {
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
                 }
+                StdLibType::Tuple(_) => todo!(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let ffi_name = shared_struct.ffi_option_name_string();
@@ -398,6 +402,9 @@ impl BridgedOption {
                 StdLibType::Result(_) => {
                     todo!()
                 }
+                StdLibType::Tuple(_) => {
+                    todo!()
+                }
             },
             BridgedType::Foreign(_) => {
                 todo!()
@@ -447,6 +454,7 @@ impl BridgedOption {
                 StdLibType::BoxedFnOnce(_) => {
                     todo!("Option<Box<dyn FnOnce(A, B) -> C>> is not yet supported")
                 }
+                StdLibType::Tuple(_) => todo!(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 format!("struct {}", shared_struct.ffi_option_name_string())

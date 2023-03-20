@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1745111529BE189B00B96A1A /* TupleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1745111429BE189B00B96A1A /* TupleTests.swift */; };
 		178F1CD3298E97FB00335AA0 /* ArgumentAttributesTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178F1CD2298E97FB00335AA0 /* ArgumentAttributesTest.swift */; };
 		2202BC0827B2DD1700D43CC4 /* SharedEnumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */; };
 		22043293274A8FDF00BAE645 /* VecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22043292274A8FDF00BAE645 /* VecTests.swift */; };
@@ -67,6 +68,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1745111429BE189B00B96A1A /* TupleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TupleTests.swift; sourceTree = "<group>"; };
 		178F1CD2298E97FB00335AA0 /* ArgumentAttributesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArgumentAttributesTest.swift; sourceTree = "<group>"; };
 		2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedEnumTests.swift; sourceTree = "<group>"; };
 		22043292274A8FDF00BAE645 /* VecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VecTests.swift; sourceTree = "<group>"; };
@@ -225,6 +227,7 @@
 				22C0625428CE6C9A007A6F67 /* CallbackTests.swift */,
 				C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */,
 				178F1CD2298E97FB00335AA0 /* ArgumentAttributesTest.swift */,
+				1745111429BE189B00B96A1A /* TupleTests.swift */,
 			);
 			path = SwiftRustIntegrationTestRunnerTests;
 			sourceTree = "<group>";
@@ -430,6 +433,7 @@
 				22FD1C562753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift in Sources */,
 				228FE61027416C0300805D9E /* OpaqueRustStructTests.swift in Sources */,
 				22D092A327B7E865009A4C2B /* AsyncTests.swift in Sources */,
+				1745111529BE189B00B96A1A /* TupleTests.swift in Sources */,
 				22046383282B4E3F00A09119 /* FunctionAttributeGetTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
