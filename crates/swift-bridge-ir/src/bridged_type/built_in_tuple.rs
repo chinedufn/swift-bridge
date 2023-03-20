@@ -15,6 +15,17 @@ use syn::{Path, Type};
 #[derive(Debug)]
 pub(crate) struct BuiltInTuple(UnnamedStructFields);
 
+impl BuiltInTuple {
+    fn prefixed_ty_name(&self, types: &TypeDeclarations) -> Ident {
+        let combined_types = self.0.combine_field_types_into_ffi_name_string(types);
+        let ty_name = format_ident!("{}_{}", "tuple", combined_types);
+        Ident::new(
+            &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
+            ty_name.span(),
+        )
+    }
+}
+
 impl BridgeableType for BuiltInTuple {
     fn is_built_in_type(&self) -> bool {
         todo!();
@@ -41,15 +52,10 @@ impl BridgeableType for BuiltInTuple {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> Option<TokenStream> {
-        let combined_types_string = self.0.combine_field_types_into_ffi_name_string(types);
         let combined_types_tokens = self
             .0
             .combine_field_types_into_ffi_name_tokens(swift_bridge_path, types);
-        let ty_name = format_ident!("{}_{}", "tuple", combined_types_string);
-        let prefixed_ty_name = Ident::new(
-            &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
-            ty_name.span(),
-        );
+        let prefixed_ty_name = self.prefixed_ty_name(types);
         Some(quote! {
             #[repr(C)]
             #[doc(hidden)]
@@ -93,12 +99,7 @@ impl BridgeableType for BuiltInTuple {
         _swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
-        let combined_types = self.0.combine_field_types_into_ffi_name_string(types);
-        let ty_name = format_ident!("{}_{}", "tuple", combined_types);
-        let prefixed_ty_name = Ident::new(
-            &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
-            ty_name.span(),
-        );
+        let prefixed_ty_name = self.prefixed_ty_name(types);
 
         quote! { #prefixed_ty_name }
     }
@@ -130,12 +131,7 @@ impl BridgeableType for BuiltInTuple {
         types: &TypeDeclarations,
         span: Span,
     ) -> TokenStream {
-        let combined_types = self.0.combine_field_types_into_ffi_name_string(types);
-        let ty_name = format_ident!("{}_{}", "tuple", combined_types);
-        let prefixed_ty_name = Ident::new(
-            &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
-            ty_name.span(),
-        );
+        let prefixed_ty_name = self.prefixed_ty_name(types);
         let converted_fields: Vec<TokenStream> =
             self.0
                 .convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types, span);

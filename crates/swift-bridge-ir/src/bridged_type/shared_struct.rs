@@ -20,10 +20,10 @@ pub(crate) struct UnnamedStructFields(Vec<UnnamedStructField>);
 impl UnnamedStructFields {
     pub fn new_with_types(types: Vec<Type>) -> Self {
         let unnamed_fields = types
-            .iter()
+            .into_iter()
             .enumerate()
             .map(|(idx, ty)| UnnamedStructField {
-                ty: ty.clone(),
+                ty: ty,
                 idx: idx,
             })
             .collect();
