@@ -402,6 +402,9 @@ impl BridgedOption {
                 StdLibType::Result(_) => {
                     todo!()
                 }
+                StdLibType::Tuple(_) => {
+                    todo!()
+                }
             },
             BridgedType::Foreign(_) => {
                 todo!()
