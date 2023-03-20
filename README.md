@@ -2,10 +2,13 @@
 
 > `swift-bridge` facilitates Rust and Swift interop.
 
-`swift-bridge` is a library that helps you pass and share high-level types such as `Option<T>`, `String`,
-`struct` and `Class` between Rust and Swift.
+`swift-bridge` makes it easy to pass and share high-level types between Rust and Swift,
+such as `String`, `Option<T>`,  `Result<T, E>`, `struct`, `class` and more.
 
-It also helps you bridge higher level language features between Rust and Swift, such as async functions and generics.
+It also helps you bridge higher level language features, such as async functions and generics.
+
+Using `swift-bridge` should be safer, more performant and more ergonomic than managing Rust and Swift
+FFI by hand.
 
 ## Installation
 
@@ -132,6 +135,12 @@ In addition to allowing you to share your own custom structs, enums and classes 
 | Have a Rust standard library type in mind?<br /> Open an issue! |                                                                  |                                                                                    |
 |                                                                 | Have a Swift standard library type in mind?<br /> Open an issue! |                                                                                    |
 <!-- ANCHOR_END: built-in-types-table -->
+
+## Performance
+
+`swift-bridge` aims to be useful in performance critical environments.
+
+None of its generated FFI code uses object serialization, cloning, synchronization or any other form of unnecessary overhead.
 
 ## To Test
 

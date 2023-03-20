@@ -1,6 +1,3 @@
-// TODO:
-//  Implement iterator https://developer.apple.com/documentation/swift/iteratorprotocol
-
 public class RustVec<T: Vectorizable> {
     var ptr: UnsafeMutableRawPointer
     var isOwned: Bool = true
@@ -80,28 +77,11 @@ extension RustVec: Collection {
     }
 }
 
-extension RustVec: RandomAccessCollection {
-}
+extension RustVec: RandomAccessCollection {}
 
 extension UnsafeBufferPointer {
     func toFfiSlice () -> __private__FfiSlice {
         __private__FfiSlice(start: UnsafeMutablePointer(mutating: self.baseAddress), len: UInt(self.count))
-    }
-}
-
-extension Array {
-    /// Get an UnsafeBufferPointer to the array's content's first byte with the array's length.
-    ///
-    /// ```
-    /// // BAD! Swift will immediately free the arrays memory and so your pointer is invalid.
-    /// let pointer = useMyPointer([1, 2, 3].toUnsafeBufferPointer())
-    ///
-    /// // GOOD! The array will outlive the buffer pointer.
-    /// let array = [1, 2, 3]
-    /// useMyPointer(array.toUnsafeBufferPointer())
-    /// ```
-    func toUnsafeBufferPointer() -> UnsafeBufferPointer<Element> {
-        UnsafeBufferPointer(start: UnsafePointer(self), count: self.count)
     }
 }
 

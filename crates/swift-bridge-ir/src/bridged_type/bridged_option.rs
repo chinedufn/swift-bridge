@@ -1,4 +1,6 @@
+use crate::bridged_type::built_in_primitive::BuiltInPrimitive;
 use crate::bridged_type::{BridgedType, CustomBridgedType, SharedType, StdLibType, TypePosition};
+use crate::parse::TypeDeclarations;
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::ops::Deref;
@@ -147,7 +149,16 @@ impl BridgedOption {
                 | StdLibType::F32
                 | StdLibType::F64
                 | StdLibType::Bool => {
-                    quote! { if #expression.is_some { Some(#expression.val) } else { None } }
+                    quote! {
+                        {
+                            let val = #expression;
+                            if val.is_some {
+                                Some(val.val)
+                            } else {
+                                None
+                            }
+                        }
+                    }
                 }
                 StdLibType::Pointer(_) => {
                     todo!("Option<*const T> and Option<*mut T> are not yet supported.")
@@ -209,7 +220,7 @@ impl BridgedOption {
                 | StdLibType::F32
                 | StdLibType::F64
                 | StdLibType::Bool => {
-                    format!("{{ let val = {expression}; if val.is_some {{ return val.val }} else {{ return nil }} }}()", expression = expression)
+                    format!("{expression}.intoSwiftRepr()")
                 }
                 StdLibType::Pointer(_) => {
                     todo!("Support Option<*const T> and Option<*mut T>")
@@ -255,15 +266,6 @@ impl BridgedOption {
         expression: &str,
         type_pos: TypePosition,
     ) -> String {
-        let convert_primitive = move |primitive_kind: &str, unused_none: &str| {
-            format!(
-                "{{ let val = {expression}; return __private__Option{primitive_kind}(val: val ?? {unused_none}, is_some: val != nil); }}()",
-                primitive_kind = primitive_kind,
-                expression = expression,
-                unused_none = unused_none
-            )
-        };
-
         match self.ty.deref() {
             BridgedType::Bridgeable(b) => {
                 b.convert_option_swift_expression_to_ffi_type(expression, type_pos)
@@ -272,19 +274,21 @@ impl BridgedOption {
                 StdLibType::Null => {
                     todo!("Option<()> is not yet supported")
                 }
-                StdLibType::U8 => convert_primitive("U8", "123"),
-                StdLibType::I8 => convert_primitive("I8", "123"),
-                StdLibType::U16 => convert_primitive("U16", "123"),
-                StdLibType::I16 => convert_primitive("I16", "123"),
-                StdLibType::U32 => convert_primitive("U32", "123"),
-                StdLibType::I32 => convert_primitive("I32", "123"),
-                StdLibType::U64 => convert_primitive("U64", "123"),
-                StdLibType::I64 => convert_primitive("I64", "123"),
-                StdLibType::Usize => convert_primitive("Usize", "123"),
-                StdLibType::Isize => convert_primitive("Isize", "123"),
-                StdLibType::F32 => convert_primitive("F32", "123.4"),
-                StdLibType::F64 => convert_primitive("F64", "123.4"),
-                StdLibType::Bool => convert_primitive("Bool", "false"),
+                StdLibType::U8
+                | StdLibType::I8
+                | StdLibType::U16
+                | StdLibType::I16
+                | StdLibType::U32
+                | StdLibType::I32
+                | StdLibType::U64
+                | StdLibType::I64
+                | StdLibType::Usize
+                | StdLibType::Isize
+                | StdLibType::F32
+                | StdLibType::F64
+                | StdLibType::Bool => {
+                    format!("{expression}.intoFfiRepr()")
+                }
                 StdLibType::Pointer(_) => {
                     todo!("Option<*const T> and Option<*mut T> are not yet supported")
                 }
@@ -326,6 +330,84 @@ impl BridgedOption {
                     ffi_name = ffi_name,
                     expression = expression
                 )
+            }
+        }
+    }
+
+    pub fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+        match type_pos {
+            TypePosition::FnArg(func_host_lang, _) => {
+                if func_host_lang.is_swift() {
+                    self.to_ffi_compatible_swift_type(&types)
+                } else {
+                    format!("Optional<{}>", self.ty.to_swift_type(type_pos, types))
+                }
+            }
+            TypePosition::FnReturn(func_host_lang) => {
+                if func_host_lang.is_swift() {
+                    self.to_ffi_compatible_swift_type(&types)
+                } else {
+                    format!("Optional<{}>", self.ty.to_swift_type(type_pos, types))
+                }
+            }
+            TypePosition::SharedStructField => {
+                format!("Optional<{}>", self.ty.to_swift_type(type_pos, types))
+            }
+            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                unimplemented!()
+            }
+        }
+    }
+
+    fn to_ffi_compatible_swift_type(&self, _types: &TypeDeclarations) -> String {
+        match self.ty.deref() {
+            BridgedType::StdLib(stdlib_type) => match stdlib_type {
+                StdLibType::Null => {
+                    todo!()
+                }
+                StdLibType::U8
+                | StdLibType::I8
+                | StdLibType::U16
+                | StdLibType::I16
+                | StdLibType::U32
+                | StdLibType::I32
+                | StdLibType::U64
+                | StdLibType::I64
+                | StdLibType::Usize
+                | StdLibType::Isize
+                | StdLibType::F32
+                | StdLibType::F64
+                | StdLibType::Bool => BuiltInPrimitive::new_with_stdlib_type(stdlib_type)
+                    .unwrap()
+                    .to_option_ffi_repr_name()
+                    .to_string(),
+                StdLibType::Pointer(_) => {
+                    todo!()
+                }
+                StdLibType::RefSlice(_) => {
+                    todo!()
+                }
+                StdLibType::Str => {
+                    todo!()
+                }
+                StdLibType::Vec(_) => {
+                    todo!()
+                }
+                StdLibType::BoxedFnOnce(_) => {
+                    todo!()
+                }
+                StdLibType::Option(_) => {
+                    todo!()
+                }
+                StdLibType::Result(_) => {
+                    todo!()
+                }
+            },
+            BridgedType::Foreign(_) => {
+                todo!()
+            }
+            BridgedType::Bridgeable(_) => {
+                todo!()
             }
         }
     }

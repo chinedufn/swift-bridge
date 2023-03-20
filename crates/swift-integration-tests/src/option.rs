@@ -109,20 +109,60 @@ mod ffi {
             arg: Option<OptionStruct>,
         ) -> Option<OptionStruct>;
 
-        fn run_option_tests();
+        fn test_rust_calls_swift_option_primitive();
     }
 
     extern "Swift" {
-        // TODO: Change these to use the same reflect pattern that we use above when we support
-        //  extern "Swift" fn optional args.
-        // fn create_swift_option_u8_some() -> Option<u8>;
-        // fn create_swift_option_u8_none() -> Option<u8>;
+        fn swift_reflect_option_u8(arg: Option<u8>) -> Option<u8>;
+        fn swift_reflect_option_i8(arg: Option<i8>) -> Option<i8>;
+        fn swift_reflect_option_u16(arg: Option<u16>) -> Option<u16>;
+        fn swift_reflect_option_i16(arg: Option<i16>) -> Option<i16>;
+        fn swift_reflect_option_u32(arg: Option<u32>) -> Option<u32>;
+        fn swift_reflect_option_i32(arg: Option<i32>) -> Option<i32>;
+        fn swift_reflect_option_u64(arg: Option<u64>) -> Option<u64>;
+        fn swift_reflect_option_i64(arg: Option<i64>) -> Option<i64>;
+        fn swift_reflect_option_usize(arg: Option<usize>) -> Option<usize>;
+        fn swift_reflect_option_isize(arg: Option<isize>) -> Option<isize>;
+        fn swift_reflect_option_f32(arg: Option<f32>) -> Option<f32>;
+        fn swift_reflect_option_f64(arg: Option<f64>) -> Option<f64>;
+        fn swift_reflect_option_bool(arg: Option<bool>) -> Option<bool>;
     }
 }
 
-fn run_option_tests() {
-    // assert_eq!(ffi::create_swift_option_u8_some(), Some(55));
-    // assert_eq!(ffi::create_swift_option_u8_none(), None);
+fn test_rust_calls_swift_option_primitive() {
+    assert_eq!(ffi::swift_reflect_option_u8(Some(55)), Some(55));
+    assert_eq!(ffi::swift_reflect_option_u8(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_i8(Some(55)), Some(55));
+    assert_eq!(ffi::swift_reflect_option_i8(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_u16(Some(55)), Some(55));
+    assert_eq!(ffi::swift_reflect_option_u16(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_i16(Some(55)), Some(55));
+    assert_eq!(ffi::swift_reflect_option_i16(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_u32(Some(55)), Some(55));
+    assert_eq!(ffi::swift_reflect_option_u32(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_i32(Some(55)), Some(55));
+    assert_eq!(ffi::swift_reflect_option_i32(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_u64(Some(55)), Some(55));
+    assert_eq!(ffi::swift_reflect_option_u64(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_i64(Some(55)), Some(55));
+    assert_eq!(ffi::swift_reflect_option_i64(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_f32(Some(55.)), Some(55.));
+    assert_eq!(ffi::swift_reflect_option_f32(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_f64(Some(55.)), Some(55.));
+    assert_eq!(ffi::swift_reflect_option_f64(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_bool(Some(true)), Some(true));
+    assert_eq!(ffi::swift_reflect_option_bool(Some(false)), Some(false));
+    assert_eq!(ffi::swift_reflect_option_bool(None), None);
 }
 
 pub struct OptTestOpaqueRustType {

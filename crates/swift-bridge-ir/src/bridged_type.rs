@@ -22,13 +22,13 @@ pub(crate) use self::shared_struct::{SharedStruct, StructFields, StructSwiftRepr
 
 pub(crate) mod boxed_fn;
 mod bridgeable_pointer;
-mod bridgeable_primitive;
 mod bridgeable_result;
 pub mod bridgeable_str;
 pub mod bridgeable_string;
 pub mod bridged_opaque_type;
 mod bridged_option;
 mod built_in_tuple;
+mod built_in_primitive;
 mod shared_enum;
 pub(crate) mod shared_struct;
 
@@ -1143,22 +1143,7 @@ impl BridgedType {
                 StdLibType::Vec(ty) => {
                     format!("RustVec<{}>", ty.ty.to_swift_type(type_pos, types))
                 }
-                StdLibType::Option(opt) => match type_pos {
-                    TypePosition::FnArg(func_host_lang, _)
-                    | TypePosition::FnReturn(func_host_lang) => {
-                        if func_host_lang.is_swift() {
-                            opt.ty.to_swift_type(type_pos, types)
-                        } else {
-                            format!("Optional<{}>", opt.ty.to_swift_type(type_pos, types))
-                        }
-                    }
-                    TypePosition::SharedStructField => {
-                        format!("Optional<{}>", opt.ty.to_swift_type(type_pos, types))
-                    }
-                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
-                        unimplemented!()
-                    }
-                },
+                StdLibType::Option(opt) => opt.to_swift_type(type_pos, types),
                 StdLibType::Result(result) => result.to_swift_type(type_pos, types),
                 StdLibType::BoxedFnOnce(boxed_fn) => boxed_fn.to_swift_type().to_string(),
                 StdLibType::Tuple(tuple) => tuple.to_swift_type(type_pos, types),
