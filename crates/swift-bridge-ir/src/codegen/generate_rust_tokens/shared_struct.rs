@@ -64,6 +64,7 @@ impl SwiftBridgeModule {
             &quote! {self},
             &self.types,
             &self.swift_bridge_path,
+            // TODO: Add a UI test and then add a better span
             Span::call_site(),
         );
 
