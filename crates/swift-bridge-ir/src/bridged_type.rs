@@ -12,7 +12,7 @@ use crate::bridged_type::boxed_fn::BridgeableBoxedFnOnce;
 use crate::bridged_type::bridgeable_pointer::{BuiltInPointer, Pointee, PointerKind};
 use crate::bridged_type::bridgeable_result::BuiltInResult;
 use crate::bridged_type::bridgeable_string::BridgedString;
-use crate::bridged_type::bridgeable_tuple::BuiltInTuple;
+use crate::bridged_type::built_in_tuple::BuiltInTuple;
 
 use crate::parse::{HostLang, TypeDeclaration, TypeDeclarations};
 
@@ -26,7 +26,7 @@ mod bridgeable_primitive;
 mod bridgeable_result;
 pub mod bridgeable_str;
 pub mod bridgeable_string;
-mod bridgeable_tuple;
+mod built_in_tuple;
 pub mod bridged_opaque_type;
 mod bridged_option;
 mod shared_enum;
