@@ -7,8 +7,6 @@ Rust's `(A, B, C, ...)` is seen on the Swift side as a `(A, B, C, ...)`.
 ```rust
 // Rust
 
-// Rust
-
 mod ffi {
     extern "Rust" {
         fn get_midpoint(
@@ -31,8 +29,6 @@ fn get_midpoint(
 ```
 
 ```swift
-// Swift
-
 // Swift
 
 func make_point() -> (Float, Float, Float) {
