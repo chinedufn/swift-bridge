@@ -219,7 +219,6 @@ fn gen_function_exposes_swift_to_rust(
                     ty_name = ty_name,
                     call_fn = call_fn
                 );
-
                 call_fn = built_in.convert_swift_expression_to_ffi_type(
                     &call_fn,
                     types,

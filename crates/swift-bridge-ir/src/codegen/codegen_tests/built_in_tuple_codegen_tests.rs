@@ -21,7 +21,7 @@ mod extern_rust_tuple_primitives {
         ExpectedRustTokens::ContainsMany(vec![
             quote! {
                 pub extern "C" fn __swift_bridge__some_function (arg: __swift_bridge__tuple_I32U8) -> __swift_bridge__tuple_I32U8 {
-                    { let val = super::some_function((arg.0, arg.1)); __swift_bridge__tuple_I32U8(val.0, val.1) }
+                    { let val = super::some_function({let val = arg; (val.0, val.1)}); __swift_bridge__tuple_I32U8(val.0, val.1) }
                 }
             },
             quote! {
@@ -84,7 +84,7 @@ mod extern_rust_tuple_string_primitive {
         ExpectedRustTokens::ContainsMany(vec![
             quote! {
                 pub extern "C" fn __swift_bridge__some_function (arg1: __swift_bridge__tuple_StringU32) -> __swift_bridge__tuple_StringU32 {
-                    { let val = super::some_function((unsafe { Box::from_raw(arg1.0).0 }, arg1.1)); __swift_bridge__tuple_StringU32(swift_bridge::string::RustString(val.0).box_into_raw(), val.1) }
+                    { let val = super::some_function({ let val = arg1; (unsafe { Box::from_raw(val.0).0 }, val.1)}); __swift_bridge__tuple_StringU32(swift_bridge::string::RustString(val.0).box_into_raw(), val.1) }
                 }
             },
             quote! {
@@ -148,7 +148,7 @@ mod extern_rust_tuple_opaque_rust_primitive {
         ExpectedRustTokens::ContainsMany(vec![
             quote! {
                 pub extern "C" fn __swift_bridge__some_function (arg1: __swift_bridge__tuple_SomeTypeU32) -> __swift_bridge__tuple_SomeTypeU32 {
-                    { let val = super::some_function((unsafe { * Box::from_raw(arg1.0) }, arg1.1));
+                    { let val = super::some_function({let val = arg1; (unsafe { * Box::from_raw(val.0) }, val.1)});
                     __swift_bridge__tuple_SomeTypeU32(Box::into_raw(Box::new({
                         let val: super::SomeType = val.0;
                         val
@@ -186,6 +186,73 @@ struct __swift_bridge__$tuple$SomeTypeU32 __swift_bridge__$some_function(struct 
 
     #[test]
     fn extern_rust_tuple_opaque_rust_primitive() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we can use a (primitive type, primitive type) as Swift function arg and return type.
+mod extern_swift_tuple_primitives {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Swift" {
+                    fn some_function(arg: (i32, u8)) -> (i32, u8);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub fn some_function (arg: (i32, u8)) -> (i32, u8) {
+                    {
+                        let val = unsafe { __swift_bridge__some_function ({ let val = arg ; __swift_bridge__tuple_I32U8 (val . 0 , val . 1) }) };
+                        (val.0, val.1)
+                    }
+                }
+            },
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(arg: __swift_bridge__tuple_I32U8) -> __swift_bridge__tuple_I32U8;
+            },
+            quote! {
+                #[repr(C)]
+                #[doc(hidden)]
+                pub struct __swift_bridge__tuple_I32U8(i32, u8);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ arg: __swift_bridge__$tuple$I32U8) -> __swift_bridge__$tuple$I32U8 {
+    { let val = some_function(arg: { let val = arg; return (val._0, val._1); }()); return __swift_bridge__$tuple$I32U8(_0: val.0, _1: val.1); }()
+}
+"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"typedef struct __swift_bridge__$tuple$I32U8 { int32_t _0; uint8_t _1; } __swift_bridge__$tuple$I32U8;
+"#,
+        ])
+    }
+
+    #[test]
+    fn extern_swift_tuple_primitives() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
