@@ -68,7 +68,7 @@ impl ToTokens for SwiftBridgeModule {
                     extern_swift_fn_tokens.push(func.to_extern_c_function_tokens(
                         &self.swift_bridge_path,
                         &self.types,
-                        &mut HashMap::new(),
+                        &mut custom_type_definitions,
                     ));
                 }
             };

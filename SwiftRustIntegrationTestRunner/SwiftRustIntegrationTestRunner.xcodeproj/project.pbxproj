@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1745111529BE189B00B96A1A /* TupleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1745111429BE189B00B96A1A /* TupleTests.swift */; };
+		1784BE2829CE86D600AE5A4A /* Tuple.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1784BE2729CE86D600AE5A4A /* Tuple.swift */; };
 		178F1CD3298E97FB00335AA0 /* ArgumentAttributesTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178F1CD2298E97FB00335AA0 /* ArgumentAttributesTest.swift */; };
 		2202BC0827B2DD1700D43CC4 /* SharedEnumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */; };
 		22043293274A8FDF00BAE645 /* VecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22043292274A8FDF00BAE645 /* VecTests.swift */; };
@@ -69,6 +70,7 @@
 
 /* Begin PBXFileReference section */
 		1745111429BE189B00B96A1A /* TupleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TupleTests.swift; sourceTree = "<group>"; };
+		1784BE2729CE86D600AE5A4A /* Tuple.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tuple.swift; sourceTree = "<group>"; };
 		178F1CD2298E97FB00335AA0 /* ArgumentAttributesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArgumentAttributesTest.swift; sourceTree = "<group>"; };
 		2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedEnumTests.swift; sourceTree = "<group>"; };
 		22043292274A8FDF00BAE645 /* VecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VecTests.swift; sourceTree = "<group>"; };
@@ -187,6 +189,7 @@
 				225908FD28DA0F9F0080C737 /* Result.swift */,
 				22BC4BBB294BA0EC0032B8A8 /* SharedEnumAttributes.swift */,
 				C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */,
+				1784BE2729CE86D600AE5A4A /* Tuple.swift */,
 			);
 			path = SwiftRustIntegrationTestRunner;
 			sourceTree = "<group>";
@@ -385,6 +388,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				22BC10F62799283100A0D046 /* SharedStruct.swift in Sources */,
+				1784BE2829CE86D600AE5A4A /* Tuple.swift in Sources */,
 				226F944B27BF79B400243D86 /* String.swift in Sources */,
 				22043297274B0AB000BAE645 /* Option.swift in Sources */,
 				220432EA2753092C00BAE645 /* RustFnUsesOpaqueSwiftType.swift in Sources */,
