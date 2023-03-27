@@ -892,7 +892,7 @@ impl BridgedType {
                 }
                 StdLibType::Result(result) => result.to_rust_type_path(types),
                 StdLibType::BoxedFnOnce(fn_once) => fn_once.to_rust_type_path(types),
-                StdLibType::Tuple(tuple) => tuple.to_rust_type_path(types),
+                StdLibType::Tuple(_tuple) => todo!(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let ty_name = &shared_struct.name;

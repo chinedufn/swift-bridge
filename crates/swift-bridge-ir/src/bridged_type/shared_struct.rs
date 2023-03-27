@@ -76,8 +76,8 @@ impl UnnamedStructFields {
 
     /// Example
     ///
-    /// (i32, u32) becomes I32U32
-    /// (OpaqueRustType, u8) becomes OpaqueRustTypeU8
+    /// (i32, u32) becomes Int32UInt32
+    /// (OpaqueRustType, u8) becomes OpaqueRustTypeUInt8
     pub fn combine_field_types_into_ffi_name_string(&self, types: &TypeDeclarations) -> String {
         self.0
             .iter()
@@ -197,15 +197,6 @@ impl UnnamedStructFields {
                 return BridgedType::new_with_type(&field.ty, types).unwrap();
             })
             .any(|ty| ty.contains_owned_string_recursive(types))
-    }
-    pub fn to_rust_type_path_tokens(&self, types: &TypeDeclarations) -> Vec<TokenStream> {
-        self.0
-            .iter()
-            .map(|field| {
-                let ty = BridgedType::new_with_type(&field.ty, types).unwrap();
-                ty.to_rust_type_path(types)
-            })
-            .collect()
     }
 }
 

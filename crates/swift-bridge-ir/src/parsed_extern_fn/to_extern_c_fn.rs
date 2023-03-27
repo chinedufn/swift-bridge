@@ -32,11 +32,7 @@ impl ParsedExternFn {
     ) -> TokenStream {
         let link_name = self.link_name();
 
-        let params = self.to_extern_c_param_names_and_types(
-            swift_bridge_path,
-            types,
-            custom_type_definitions,
-        );
+        let params = self.to_extern_c_param_names_and_types(swift_bridge_path, types);
 
         let prefixed_fn_name = self.prefixed_fn_name();
 

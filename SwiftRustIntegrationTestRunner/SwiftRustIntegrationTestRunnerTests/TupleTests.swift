@@ -29,8 +29,4 @@ final class TupleTest: XCTestCase {
         }
     }
     
-    /// Verify that Rust can call Swift functions that accept and return Tuples.
-    func testRustCallsSwiftTuple() throws {
-        test_rust_calls_swift_tuples()
-    }
 }
