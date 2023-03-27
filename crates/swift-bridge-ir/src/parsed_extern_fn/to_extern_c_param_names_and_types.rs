@@ -3,6 +3,7 @@ use crate::parse::{HostLang, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
+use std::collections::HashMap;
 use std::ops::Deref;
 use syn::spanned::Spanned;
 use syn::{FnArg, Path, Type};
@@ -12,6 +13,7 @@ impl ParsedExternFn {
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
+        custom_type_definitions: &mut HashMap<String, TokenStream>,
     ) -> TokenStream {
         let mut params = vec![];
         let inputs = &self.func.sig.inputs;
@@ -41,6 +43,11 @@ impl ParsedExternFn {
 
                     if !pat_ty_is_self {
                         if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
+                            if let Some(tokens) =
+                                built_in.generate_custom_rust_ffi_type(swift_bridge_path, types)
+                            {
+                                custom_type_definitions.insert(tokens.to_string(), tokens);
+                            }
                             if built_in.can_be_encoded_with_zero_bytes() {
                                 continue;
                             }
@@ -127,7 +134,11 @@ mod tests {
 
         for method in methods {
             assert_tokens_contain(
-                &method.to_extern_c_param_names_and_types(&module.swift_bridge_path, &module.types),
+                &method.to_extern_c_param_names_and_types(
+                    &module.swift_bridge_path,
+                    &module.types,
+                    &mut HashMap::new(),
+                ),
                 &quote! { this },
             );
         }
@@ -153,7 +164,11 @@ mod tests {
         let funcs = &module.functions;
 
         assert_tokens_eq(
-            &funcs[0].to_extern_c_param_names_and_types(&module.swift_bridge_path, &module.types),
+            &funcs[0].to_extern_c_param_names_and_types(
+                &module.swift_bridge_path,
+                &module.types,
+                &mut HashMap::new(),
+            ),
             expected_params,
         );
     }

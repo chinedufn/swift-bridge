@@ -24,6 +24,30 @@ impl BuiltInTuple {
             ty_name.span(),
         )
     }
+
+    /// Get the FFI compatible Swift type.
+    ///
+    /// Example
+    ///
+    /// `(Int32, UInt32)` becomes `__swift_bridge__$tuple$I32U32`.
+    fn to_ffi_compatible_swift_type(
+        &self,
+        expression: &str,
+        types: &TypeDeclarations,
+        type_pos: TypePosition,
+    ) -> String {
+        let converted_fields = self
+            .0
+            .convert_swift_expression_to_ffi_type(expression, types, type_pos);
+        let converted_fields = converted_fields.join(", ");
+        format!(
+            "{}${}${}({})",
+            SWIFT_BRIDGE_PREFIX,
+            "tuple",
+            self.0.combine_field_types_into_ffi_name_string(types),
+            converted_fields
+        )
+    }
 }
 
 impl BridgeableType for BuiltInTuple {
@@ -72,12 +96,34 @@ impl BridgeableType for BuiltInTuple {
         Some(c_decl)
     }
 
-    fn to_rust_type_path(&self, _types: &TypeDeclarations) -> TokenStream {
-        todo!();
+    fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
+        let rust_type_path = self.0.to_rust_type_path_tokens(types);
+        quote! {
+            ( #(#rust_type_path),*)
+        }
     }
 
     fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
-        self.0.to_swift_tuple_signature(type_pos, types)
+        match type_pos {
+            TypePosition::FnArg(host_lang, _) => {
+                if host_lang.is_swift() {
+                    let field_signatures = self.0.combine_field_types_into_ffi_name_string(types);
+                    format!("__swift_bridge__$tuple${field_signatures}")
+                } else {
+                    self.0.to_swift_tuple_signature(type_pos, types)
+                }
+            }
+            TypePosition::FnReturn(host_lang) => {
+                if host_lang.is_swift() {
+                    let field_signatures = self.0.combine_field_types_into_ffi_name_string(types);
+                    format!("__swift_bridge__$tuple${field_signatures}")
+                } else {
+                    self.0.to_swift_tuple_signature(type_pos, types)
+                }
+            }
+            TypePosition::SharedStructField => todo!(),
+            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
+        }
     }
 
     fn to_c_type(&self, types: &TypeDeclarations) -> String {
@@ -154,17 +200,21 @@ impl BridgeableType for BuiltInTuple {
         types: &TypeDeclarations,
         type_pos: TypePosition,
     ) -> String {
-        let converted_fields = self
-            .0
-            .convert_swift_expression_to_ffi_type(expression, types, type_pos);
-        let converted_fields = converted_fields.join(", ");
-        return format!(
-            "{}${}${}({})",
-            SWIFT_BRIDGE_PREFIX,
-            "tuple",
-            self.0.combine_field_types_into_ffi_name_string(types),
-            converted_fields
-        );
+        match type_pos {
+            TypePosition::FnArg(_, _) => {
+                self.to_ffi_compatible_swift_type(expression, types, type_pos)
+            }
+            TypePosition::FnReturn(host_lang) => {
+                if host_lang.is_swift() {
+                    let ffi_type = self.to_ffi_compatible_swift_type("val", types, type_pos);
+                    format!("{{ let val = {expression}; return {ffi_type}; }}()")
+                } else {
+                    self.to_ffi_compatible_swift_type(expression, types, type_pos)
+                }
+            }
+            TypePosition::SharedStructField => todo!(),
+            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
+        }
     }
 
     fn convert_option_swift_expression_to_ffi_type(
@@ -182,11 +232,17 @@ impl BridgeableType for BuiltInTuple {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
-        let fields: Vec<TokenStream> =
-            self.0
-                .convert_ffi_expression_to_rust_type(expression, span, swift_bridge_path, types);
+        let fields: Vec<TokenStream> = self.0.convert_ffi_expression_to_rust_type(
+            &quote! {val},
+            span,
+            swift_bridge_path,
+            types,
+        );
         return quote_spanned! {
-            span => ( #(#fields),* )
+            span => {
+                let val = #expression;
+                ( #(#fields),* )
+            }
         };
     }
 
