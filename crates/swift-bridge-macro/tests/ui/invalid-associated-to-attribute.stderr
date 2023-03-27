@@ -1,0 +1,17 @@
+error: The associated_to attribute can only be used on static methods.
+  --> tests/ui/invalid-associated-to-attribute.rs:10:29
+   |
+10 |         fn immutable_method(&self);
+   |                             ^^^^^
+
+error: The associated_to attribute can only be used on static methods.
+  --> tests/ui/invalid-associated-to-attribute.rs:13:27
+   |
+13 |         fn mutable_method(&mut self);
+   |                           ^^^^^^^^^
+
+error: The associated_to attribute can only be used on static methods.
+  --> tests/ui/invalid-associated-to-attribute.rs:16:25
+   |
+16 |         fn owned_method(self);
+   |                         ^^^^

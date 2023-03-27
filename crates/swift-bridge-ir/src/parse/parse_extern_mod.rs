@@ -297,6 +297,11 @@ impl<'a> ForeignModParser<'a> {
     ) -> syn::Result<Option<TypeDeclaration>> {
         let associated_type = match first {
             Some(FnArg::Receiver(recv)) => {
+                if let Some(_) = attributes.associated_to {
+                    self.errors.push(ParseError::InvalidAssociatedTo {
+                        self_: first.unwrap().clone(),
+                    })
+                }
                 if local_type_declarations.len() == 1 {
                     let ty = local_type_declarations.iter_mut().next().unwrap().1;
                     let associated_type = Some(TypeDeclaration::Opaque(ty.clone()));
