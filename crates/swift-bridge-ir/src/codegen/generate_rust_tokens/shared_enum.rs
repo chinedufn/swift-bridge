@@ -138,7 +138,7 @@ impl SwiftBridgeModule {
         };
 
         // User derives
-        let mut derive_impls = vec![];
+        let mut derive_impl_ffi_bridges = vec![];
 
         if shared_enum.derive.debug {
             derives.push(quote! {::std::fmt::Debug});
@@ -147,7 +147,7 @@ impl SwiftBridgeModule {
             let export_name = format!("{}$_Debug", shared_enum.ffi_name_string());
             // __swift_bridge__SomeEnum_Debug
             let fn_name = format_ident!("{}_Debug", enum_ffi_name);
-            derive_impls.push(quote! {
+            derive_impl_ffi_bridges.push(quote! {
                 #[export_name = #export_name]
                 pub extern "C" fn #fn_name(this: #enum_ffi_name) -> *mut swift_bridge::string::RustString {
                     swift_bridge::string::RustString(format!("{:?}", this.into_rust_repr())).box_into_raw()
@@ -235,7 +235,7 @@ impl SwiftBridgeModule {
 
             #vec_support
 
-            #(#derive_impls),*
+            #(#derive_impl_ffi_bridges),*
         };
 
         Some(definition)
