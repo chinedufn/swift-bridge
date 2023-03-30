@@ -149,7 +149,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         }
 
                         let derive_debug_impl = if ty_enum.derive.debug {
-                            format!("void* {ffi_name}$_Debug({ffi_name} this);")
+                            format!("void* {ffi_name}$Debug({ffi_name} this);")
                         } else {
                             "".to_string()
                         };

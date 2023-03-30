@@ -27,7 +27,7 @@ mod derive_debug_enum {
                 }
             },
             quote! {
-                #[export_name = "__swift_bridge__$SomeEnum$_Debug"]
+                #[export_name = "__swift_bridge__$SomeEnum$Debug"]
                 pub extern "C" fn __swift_bridge__SomeEnum_Debug(this: __swift_bridge__SomeEnum) -> *mut swift_bridge::string::RustString {
                     swift_bridge::string::RustString(format!("{:?}", this.into_rust_repr())).box_into_raw()
                 }
@@ -40,7 +40,7 @@ mod derive_debug_enum {
             r#" 
 extension SomeEnum: CustomDebugStringConvertible {
     public var debugDescription: String {
-        RustString(ptr: __swift_bridge__$SomeEnum$_Debug(self.intoFfiRepr())).toString()
+        RustString(ptr: __swift_bridge__$SomeEnum$Debug(self.intoFfiRepr())).toString()
     }
 }
 "#,
@@ -50,7 +50,7 @@ extension SomeEnum: CustomDebugStringConvertible {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsAfterTrim(
             r#" 
-void* __swift_bridge__$SomeEnum$_Debug(__swift_bridge__$SomeEnum this);
+void* __swift_bridge__$SomeEnum$Debug(__swift_bridge__$SomeEnum this);
 "#,
         )
     }

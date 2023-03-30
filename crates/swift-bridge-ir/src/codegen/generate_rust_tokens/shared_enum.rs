@@ -144,8 +144,8 @@ impl SwiftBridgeModule {
         if shared_enum.derive.debug && !shared_enum.has_one_or_more_variants_with_data() {
             derives.push(quote! {::std::fmt::Debug});
 
-            // __swift_bridge__$SomeEnum$_Debug
-            let export_name = format!("{}$_Debug", shared_enum.ffi_name_string());
+            // __swift_bridge__$SomeEnum$Debug
+            let export_name = format!("{}$Debug", shared_enum.ffi_name_string());
             // __swift_bridge__SomeEnum_Debug
             let fn_name = format_ident!("{}_Debug", enum_ffi_name);
             derive_impl_ffi_bridges.push(quote! {

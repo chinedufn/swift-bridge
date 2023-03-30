@@ -135,7 +135,7 @@ extension {enum_name}: Vectorizable {{
                 r#"
 extension {enum_name}: CustomDebugStringConvertible {{
     public var debugDescription: String {{
-        RustString(ptr: __swift_bridge__${enum_name}$_Debug(self.intoFfiRepr())).toString()
+        RustString(ptr: __swift_bridge__${enum_name}$Debug(self.intoFfiRepr())).toString()
     }}
 }}"#
             )
