@@ -185,6 +185,7 @@ impl EnumVariant {
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
                 let variant_field = ty.convert_swift_expression_to_ffi_type(
                     &format!("{}", ffi_field_name),
+                    types,
                     TypePosition::SharedStructField,
                 );
                 norm_field.struct_ffi_field_setter_string(variant_field)

@@ -16,6 +16,7 @@ mod slice;
 mod string;
 mod swift_function_uses_opaque_rust_type;
 mod swift_function_uses_opaque_swift_type;
+mod tuple;
 mod vec;
 
 mod enum_attributes;

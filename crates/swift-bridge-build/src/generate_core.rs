@@ -1,6 +1,9 @@
 use crate::generate_core::boxed_fn_support::{
     C_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN, SWIFT_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN,
 };
+use crate::generate_core::option_support::{
+    swift_option_primitive_support, C_OPTION_PRIMITIVE_SUPPORT,
+};
 use crate::generate_core::result_support::{C_RESULT_SUPPORT, SWIFT_RUST_RESULT};
 use std::path::Path;
 
@@ -11,6 +14,7 @@ const STRING_SWIFT: &'static str = include_str!("./generate_core/string.swift");
 const RUST_VEC_SWIFT: &'static str = include_str!("./generate_core/rust_vec.swift");
 
 mod boxed_fn_support;
+mod option_support;
 mod result_support;
 
 pub(super) fn write_core_swift_and_c(out_dir: &Path) {
@@ -22,6 +26,8 @@ pub(super) fn write_core_swift_and_c(out_dir: &Path) {
     swift += &SWIFT_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN;
     swift += "\n";
     swift += &SWIFT_RUST_RESULT;
+    swift += "\n";
+    swift += &swift_option_primitive_support();
 
     std::fs::write(core_swift_out, swift).unwrap();
 
@@ -57,6 +63,9 @@ fn core_swift() -> String {
         ("Int", "isize"),
         //
         ("Bool", "bool"),
+        //
+        ("Float", "f32"),
+        ("Double", "f64"),
     ] {
         core_swift += &conform_to_vectorizable(swift_ty, rust_ty);
     }
@@ -74,21 +83,9 @@ typedef struct RustStr { uint8_t* const start; uintptr_t len; } RustStr;
 typedef struct __private__FfiSlice { void* const start; uintptr_t len; } __private__FfiSlice;
 void* __swift_bridge__null_pointer(void);
 
-typedef struct __private__OptionU8 { uint8_t val; bool is_some; } __private__OptionU8;
-typedef struct __private__OptionI8 { int8_t val; bool is_some; } __private__OptionI8;
-typedef struct __private__OptionU16 { uint16_t val; bool is_some; } __private__OptionU16;
-typedef struct __private__OptionI16 { int16_t val; bool is_some; } __private__OptionI16;
-typedef struct __private__OptionU32 { uint32_t val; bool is_some; } __private__OptionU32;
-typedef struct __private__OptionI32 { int32_t val; bool is_some; } __private__OptionI32;
-typedef struct __private__OptionU64 { uint64_t val; bool is_some; } __private__OptionU64;
-typedef struct __private__OptionI64 { int64_t val; bool is_some; } __private__OptionI64;
-typedef struct __private__OptionUsize { uintptr_t val; bool is_some; } __private__OptionUsize;
-typedef struct __private__OptionIsize { intptr_t val; bool is_some; } __private__OptionIsize;
-typedef struct __private__OptionF32 { float val; bool is_some; } __private__OptionF32;
-typedef struct __private__OptionF64 { double val; bool is_some; } __private__OptionDouble;
-typedef struct __private__OptionBool { bool val; bool is_some; } __private__OptionBool;
 "#
     .to_string();
+    header += &C_OPTION_PRIMITIVE_SUPPORT;
 
     for (rust_ty, c_ty) in vec![
         ("u8", "uint8_t"),
@@ -104,6 +101,9 @@ typedef struct __private__OptionBool { bool val; bool is_some; } __private__Opti
         ("isize", "intptr_t"),
         //
         ("bool", "bool"),
+        //
+        ("f32", "float"),
+        ("f64", "double"),
     ] {
         header += &vec_of_primitive_headers(rust_ty, c_ty);
     }
