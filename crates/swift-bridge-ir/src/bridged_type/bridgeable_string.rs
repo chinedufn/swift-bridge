@@ -66,7 +66,7 @@ impl BridgeableType for BridgedString {
         "void*".to_string()
     }
 
-    fn to_c_include(&self) -> Option<&'static str> {
+    fn to_c_include(&self, _types: &TypeDeclarations) -> Option<Vec<&'static str>> {
         None
     }
 

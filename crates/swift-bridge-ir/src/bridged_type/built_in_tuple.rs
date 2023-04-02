@@ -136,8 +136,8 @@ impl BridgeableType for BuiltInTuple {
         format!("struct {}", ty_name)
     }
 
-    fn to_c_include(&self) -> Option<&'static str> {
-        todo!()
+    fn to_c_include(&self, types: &TypeDeclarations) -> Option<Vec<&'static str>> {
+        self.0.to_c_include(types)
     }
 
     fn to_ffi_compatible_rust_type(

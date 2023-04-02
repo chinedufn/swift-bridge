@@ -81,7 +81,7 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
-    fn to_c_include(&self) -> Option<&'static str> {
+    fn to_c_include(&self, _types: &TypeDeclarations) -> Option<Vec<&'static str>> {
         todo!()
     }
 

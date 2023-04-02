@@ -118,7 +118,7 @@ pub(crate) trait BridgeableType: Debug {
 
     /// Generate a C include statement to put in the C header.
     /// For example, for a `u8` we would generate a `#include <stdint.h>` line.
-    fn to_c_include(&self) -> Option<&'static str>;
+    fn to_c_include(&self, types: &TypeDeclarations) -> Option<Vec<&'static str>>;
 
     /// Get the FFI compatible Rust type.
     ///
@@ -531,7 +531,7 @@ impl BridgeableType for BridgedType {
         self.to_c(types)
     }
 
-    fn to_c_include(&self) -> Option<&'static str> {
+    fn to_c_include(&self, _types: &TypeDeclarations) -> Option<Vec<&'static str>> {
         todo!()
     }
 
@@ -1645,9 +1645,9 @@ impl BridgedType {
         }
     }
 
-    pub fn to_c_include(&self) -> Option<&'static str> {
+    pub fn to_c_include(&self, types: &TypeDeclarations) -> Option<Vec<&'static str>> {
         match self {
-            BridgedType::Bridgeable(b) => b.to_c_include(),
+            BridgedType::Bridgeable(b) => b.to_c_include(types),
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::U8
                 | StdLibType::I8
@@ -1658,18 +1658,15 @@ impl BridgedType {
                 | StdLibType::U64
                 | StdLibType::I64
                 | StdLibType::Usize
-                | StdLibType::Isize => Some("stdint.h"),
-                StdLibType::Bool => Some("stdbool.h"),
+                | StdLibType::Isize => Some(vec!["stdint.h"]),
+                StdLibType::Bool => Some(vec!["stdbool.h"]),
                 StdLibType::Pointer(ptr) => match &ptr.pointee {
-                    Pointee::BuiltIn(ty) => ty.to_c_include(),
+                    Pointee::BuiltIn(ty) => ty.to_c_include(types),
                     Pointee::Void(_) => None,
                 },
-                StdLibType::RefSlice(slice) => slice.ty.to_c_include(),
-                StdLibType::Vec(_vec) => Some("stdint.h"),
-                StdLibType::Tuple(_tuple) => {
-                    // TODO: Iterate over the fields and see if any of them need imports..
-                    None
-                }
+                StdLibType::RefSlice(slice) => slice.ty.to_c_include(types),
+                StdLibType::Vec(_vec) => Some(vec!["stdint.h"]),
+                StdLibType::Tuple(tuple) => tuple.to_c_include(types),
                 _ => None,
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
@@ -1855,9 +1852,14 @@ impl BridgedType {
                 StdLibType::U8 => "U8".to_string(),
                 StdLibType::U16 => "U16".to_string(),
                 StdLibType::U32 => "U32".to_string(),
+                StdLibType::Usize => "UInt".to_string(),
                 StdLibType::I8 => "I8".to_string(),
                 StdLibType::I16 => "I16".to_string(),
                 StdLibType::I32 => "I32".to_string(),
+                StdLibType::Isize => "Int".to_string(),
+                StdLibType::Bool => "Bool".to_string(),
+                StdLibType::F32 => "F32".to_string(),
+                StdLibType::F64 => "F64".to_string(),
                 _ => todo!(),
             },
             BridgedType::Foreign(ty) => match ty {

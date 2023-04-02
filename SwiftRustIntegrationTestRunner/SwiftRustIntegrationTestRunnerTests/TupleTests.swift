@@ -27,6 +27,13 @@ final class TupleTest: XCTestCase {
             XCTAssertEqual(tuple.1.toString(), "foo")
             XCTAssertEqual(tuple.2, 128)
         }
+        XCTContext.runActivity(named: "Verify that we can pass and return a (F64, UInt, Bool).") {
+            _ in
+            let tuple = rust_reflect_tuple_f64_and_usize_and_bool((0.1, 123, true))
+            XCTAssertEqual(tuple.0, 0.1)
+            XCTAssertEqual(tuple.1, 123)
+            XCTAssertEqual(tuple.2, true)
+        }
     }
     
     /// Verify that Rust can call Swift functions that accept and return Tuples.
