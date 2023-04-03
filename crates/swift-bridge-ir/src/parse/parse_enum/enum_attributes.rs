@@ -1,4 +1,5 @@
 use crate::bridged_type::DeriveAttrs;
+use crate::errors::ParseError;
 use crate::parse::move_input_cursor_to_next_comma;
 use proc_macro2::Ident;
 use quote::ToTokens;
@@ -7,8 +8,9 @@ use syn::{Attribute, LitStr, Path, Token};
 
 #[derive(Default)]
 pub(super) struct SharedEnumAllAttributes {
-    pub(super) swift_bridge: SharedEnumSwiftBridgeAttributes,
-    pub(super) derive: DeriveAttrs,
+    pub errors: Vec<ParseError>,
+    pub swift_bridge: SharedEnumSwiftBridgeAttributes,
+    pub derive: DeriveAttrs,
 }
 
 impl SharedEnumAllAttributes {
@@ -30,7 +32,13 @@ impl SharedEnumAllAttributes {
                         }
                     }
                 }
-                "swift_bridge" => attributes.swift_bridge = attr.parse_args()?,
+                "swift_bridge" => {
+                    attributes.swift_bridge = attr.parse_args()?;
+                    // note: this will empty attributes.swift_bridge.errors, maybe it would be better to clone?
+                    attributes
+                        .errors
+                        .append(&mut attributes.swift_bridge.errors);
+                }
                 _ => todo!("Push unsupported attribute error."),
             };
         }
@@ -49,8 +57,21 @@ pub(super) enum EnumAttrParseError {
     UnrecognizedAttribute(Ident),
 }
 
+impl Into<ParseError> for EnumAttrParseError {
+    fn into(self) -> ParseError {
+        // this is repetitive, we should use ParseError
+        // but we probably don't want any non-enum errors
+        match self {
+            EnumAttrParseError::UnrecognizedAttribute(attribute) => {
+                ParseError::EnumUnrecognizedAttribute { attribute }
+            }
+        }
+    }
+}
+
 #[derive(Default)]
 pub(super) struct SharedEnumSwiftBridgeAttributes {
+    pub errors: Vec<ParseError>,
     pub already_declared: bool,
     pub swift_name: Option<LitStr>,
 }
@@ -59,7 +80,7 @@ impl SharedEnumSwiftBridgeAttributes {
     pub(super) fn store_attrib(&mut self, attrib: EnumAttr) -> syn::Result<()> {
         match attrib {
             EnumAttr::AlreadyDeclared => self.already_declared = true,
-            EnumAttr::Error(_err) => {} // TODO: error handling
+            EnumAttr::Error(error) => self.errors.push(error.into()),
             EnumAttr::SwiftName(name) => self.swift_name = Some(name),
         };
         Ok(())

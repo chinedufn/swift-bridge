@@ -14,6 +14,12 @@ impl ParseErrors {
         self.errors.push(error);
     }
 
+    pub fn append(&mut self, errors: Vec<ParseError>) {
+        for error in errors {
+            self.push(error);
+        }
+    }
+
     pub fn combine_all(mut self) -> Result<(), syn::Error> {
         if self.errors.len() == 0 {
             return Ok(());

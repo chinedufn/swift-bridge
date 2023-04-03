@@ -7,10 +7,8 @@ use self::enum_attributes::SharedEnumAllAttributes;
 mod enum_attributes;
 
 pub(crate) struct SharedEnumDeclarationParser<'a> {
-    pub item_enum: ItemEnum,
-    // Will be used in a future commit..
-    #[allow(unused)]
     pub errors: &'a mut ParseErrors,
+    pub item_enum: ItemEnum,
 }
 
 impl<'a> SharedEnumDeclarationParser<'a> {
@@ -18,6 +16,7 @@ impl<'a> SharedEnumDeclarationParser<'a> {
         let item_enum = self.item_enum;
 
         let attribs = SharedEnumAllAttributes::from_attributes(&item_enum.attrs)?;
+        self.errors.append(attribs.errors);
 
         let mut variants = vec![];
 
