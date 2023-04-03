@@ -140,7 +140,9 @@ impl SwiftBridgeModule {
         // User derives
         let mut derive_impl_ffi_bridges = vec![];
 
-        // Current derive(Debug) implementation could cause memory safety issues: https://github.com/chinedufn/swift-bridge/pull/194#discussion_r1134386788
+        // We currently only allow derive(Debug) on non data carrying enums in order
+        // to prevent a potential memory safety issue.
+        // https://github.com/chinedufn/swift-bridge/pull/194#discussion_r1134386788
         if shared_enum.derive.debug && !shared_enum.has_one_or_more_variants_with_data() {
             derives.push(quote! {::std::fmt::Debug});
 
