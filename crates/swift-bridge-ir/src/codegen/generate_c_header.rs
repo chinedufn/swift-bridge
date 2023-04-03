@@ -71,8 +71,10 @@ impl SwiftBridgeModule {
                                     for field in f.iter() {
                                         let ty = BridgedType::new_with_type(&field.ty, &self.types)
                                             .unwrap();
-                                        if let Some(include) = ty.to_c_include() {
-                                            bookkeeping.includes.insert(include);
+                                        if let Some(includes) = ty.to_c_include(&self.types) {
+                                            for include in includes {
+                                                bookkeeping.includes.insert(include);
+                                            }
                                         }
 
                                         let name = field.swift_name_string();
@@ -84,8 +86,10 @@ impl SwiftBridgeModule {
                                     for (idx, field) in types.iter().enumerate() {
                                         let ty = BridgedType::new_with_type(&field.ty, &self.types)
                                             .unwrap();
-                                        if let Some(include) = ty.to_c_include() {
-                                            bookkeeping.includes.insert(include);
+                                        if let Some(includes) = ty.to_c_include(&self.types) {
+                                            for include in includes {
+                                                bookkeeping.includes.insert(include);
+                                            }
                                         }
 
                                         let name = format!("_{}", idx);
@@ -177,8 +181,10 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                                 &self.types,
                                             )
                                             .unwrap();
-                                            if let Some(include) = ty.to_c_include() {
-                                                bookkeeping.includes.insert(include);
+                                            if let Some(includes) = ty.to_c_include(&self.types) {
+                                                for include in includes {
+                                                    bookkeeping.includes.insert(include);
+                                                }
                                             }
                                             let ty = ty.to_c(&self.types);
                                             let field_name = named_field.name.to_string();
@@ -197,8 +203,10 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                                 &self.types,
                                             )
                                             .unwrap();
-                                            if let Some(include) = ty.to_c_include() {
-                                                bookkeeping.includes.insert(include);
+                                            if let Some(includes) = ty.to_c_include(&self.types) {
+                                                for include in includes {
+                                                    bookkeeping.includes.insert(include);
+                                                }
                                             }
                                             let ty = ty.to_c(&self.types);
                                             params.push(format!("{} _{};", ty, unnamed_field.idx));

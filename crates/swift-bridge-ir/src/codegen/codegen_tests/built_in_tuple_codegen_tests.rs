@@ -45,6 +45,9 @@ public func some_function(_ arg: (Int32, UInt8)) -> (Int32, UInt8) {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
+#include <stdint.h>
+"#,
+            r#"
 typedef struct __swift_bridge__$tuple$I32U8 { int32_t _0; uint8_t _1; } __swift_bridge__$tuple$I32U8;
 "#,
             r#"
@@ -107,6 +110,9 @@ public func some_function<GenericIntoRustString: IntoRustString>(_ arg1: (Generi
 
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+#include <stdint.h>
+"#,
             r#"
 typedef struct __swift_bridge__$tuple$StringU32 { void* _0; uint32_t _1; } __swift_bridge__$tuple$StringU32;
 "#,
@@ -176,6 +182,9 @@ public func some_function(_ arg1: (SomeType, UInt32)) -> (SomeType, UInt32) {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
             r#"
+#include <stdint.h>
+"#,
+            r#"
 typedef struct __swift_bridge__$tuple$SomeTypeU32 { void* _0; uint32_t _1; } __swift_bridge__$tuple$SomeTypeU32;
 "#,
             r#"
@@ -186,6 +195,76 @@ struct __swift_bridge__$tuple$SomeTypeU32 __swift_bridge__$some_function(struct 
 
     #[test]
     fn extern_rust_tuple_opaque_rust_primitive() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we can use a (f32, isize, bool) as Rust function arg and return type.
+mod extern_rust_tuple_f32_isize_bool {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    fn some_function(arg1: (f32, isize, bool)) -> (f32, isize, bool);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub extern "C" fn __swift_bridge__some_function (arg1: __swift_bridge__tuple_F32IntBool) -> __swift_bridge__tuple_F32IntBool {
+                    { let val = super::some_function({let val = arg1; (val.0, val.1, val.2)});
+                    __swift_bridge__tuple_F32IntBool(val.0, val.1, val.2) }
+                }
+            },
+            quote! {
+                #[repr(C)]
+                #[doc(hidden)]
+                pub struct __swift_bridge__tuple_F32IntBool(f32, isize, bool);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+public func some_function(_ arg1: (Float, Int, Bool)) -> (Float, Int, Bool) {
+    { let val = __swift_bridge__$some_function(__swift_bridge__$tuple$F32IntBool(_0: arg1.0, _1: arg1.1, _2: arg1.2)); return (val._0, val._1, val._2); }()
+}
+"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+#include <stdint.h>
+"#,
+            r#"
+#include <stdbool.h>
+"#,
+            r#"
+typedef struct __swift_bridge__$tuple$F32IntBool { float _0; intptr_t _1; bool _2; } __swift_bridge__$tuple$F32IntBool;
+"#,
+            r#"
+struct __swift_bridge__$tuple$F32IntBool __swift_bridge__$some_function(struct __swift_bridge__$tuple$F32IntBool arg1);
+"#,
+        ])
+    }
+
+    #[test]
+    fn extern_rust_tuple_f32_isize_bool() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

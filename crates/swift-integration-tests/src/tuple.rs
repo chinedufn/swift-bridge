@@ -9,6 +9,9 @@ mod ffi {
         fn rust_reflect_tuple_opaque_rust_and_string_and_primitive(
             tuple: (TupleTestOpaqueRustType, String, u8),
         ) -> (TupleTestOpaqueRustType, String, u8);
+        fn rust_reflect_tuple_f64_and_usize_and_bool(
+            tuple: (f64, usize, bool),
+        ) -> (f64, usize, bool);
     }
     extern "Swift" {
         fn swift_reflect_tuple_primitives(arg: (i32, u32)) -> (i32, u32);
@@ -36,6 +39,10 @@ fn rust_reflect_tuple_primitives(tuple: (i16, u32)) -> (i16, u32) {
 fn rust_reflect_tuple_opaque_rust_and_string_and_primitive(
     tuple: (TupleTestOpaqueRustType, String, u8),
 ) -> (TupleTestOpaqueRustType, String, u8) {
+    tuple
+}
+
+fn rust_reflect_tuple_f64_and_usize_and_bool(tuple: (f64, usize, bool)) -> (f64, usize, bool) {
     tuple
 }
 

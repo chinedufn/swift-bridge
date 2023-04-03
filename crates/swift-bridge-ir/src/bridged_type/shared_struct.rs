@@ -207,6 +207,22 @@ impl UnnamedStructFields {
             })
             .collect()
     }
+    pub fn to_c_include(&self, types: &TypeDeclarations) -> Option<Vec<&'static str>> {
+        let mut includes = vec![];
+        for field in self.0.iter() {
+            let ty = BridgedType::new_with_type(&field.ty, types).unwrap();
+            if let Some(field_includes) = ty.to_c_include(types) {
+                for include in field_includes {
+                    includes.push(include);
+                }
+            }
+        }
+        if includes.len() > 0 {
+            Some(includes)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Clone)]

@@ -401,7 +401,7 @@ impl ParsedExternFn {
 
         if let ReturnType::Type(_, ty) = &self.func.sig.output {
             if let Some(ty) = BridgedType::new_with_type(&ty, types) {
-                if let Some(include) = ty.to_c_include() {
+                if let Some(include) = ty.to_c_include(types) {
                     includes.push(include);
                 }
             }
@@ -410,7 +410,7 @@ impl ParsedExternFn {
         for param in &self.func.sig.inputs {
             if let FnArg::Typed(pat_ty) = param {
                 if let Some(ty) = BridgedType::new_with_type(&pat_ty.ty, types) {
-                    if let Some(include) = ty.to_c_include() {
+                    if let Some(include) = ty.to_c_include(types) {
                         includes.push(include);
                     }
                 }
@@ -418,7 +418,7 @@ impl ParsedExternFn {
         }
 
         if includes.len() > 0 {
-            Some(includes)
+            Some(includes.into_iter().flatten().collect())
         } else {
             None
         }

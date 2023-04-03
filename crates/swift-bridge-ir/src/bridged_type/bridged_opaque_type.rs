@@ -145,7 +145,7 @@ impl BridgeableType for OpaqueForeignType {
         }
     }
 
-    fn to_c_include(&self) -> Option<&'static str> {
+    fn to_c_include(&self, _types: &TypeDeclarations) -> Option<Vec<&'static str>> {
         None
     }
 
