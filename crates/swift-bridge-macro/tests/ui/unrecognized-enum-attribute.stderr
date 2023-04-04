@@ -1,5 +1,5 @@
 error: Did not recognize enum attribute "InvalidAttribute".
- --> tests/ui/unrecognized-enum-attribute.rs:6:20
+ --> tests/ui/unrecognized-enum-attribute.rs:7:20
   |
-6 |     #[swift_bridge(InvalidAttribute)]
+7 |     #[swift_bridge(InvalidAttribute)]
   |                    ^^^^^^^^^^^^^^^^

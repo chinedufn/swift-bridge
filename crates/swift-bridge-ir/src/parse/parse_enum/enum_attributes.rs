@@ -34,7 +34,6 @@ impl SharedEnumAllAttributes {
                 }
                 "swift_bridge" => {
                     attributes.swift_bridge = attr.parse_args()?;
-                    // note: this will empty attributes.swift_bridge.errors, maybe it would be better to clone?
                     attributes
                         .errors
                         .append(&mut attributes.swift_bridge.errors);
@@ -49,24 +48,8 @@ impl SharedEnumAllAttributes {
 
 pub(super) enum EnumAttr {
     AlreadyDeclared,
-    Error(EnumAttrParseError),
+    Error(ParseError),
     SwiftName(LitStr),
-}
-
-pub(super) enum EnumAttrParseError {
-    UnrecognizedAttribute(Ident),
-}
-
-impl Into<ParseError> for EnumAttrParseError {
-    fn into(self) -> ParseError {
-        // this is repetitive, we should use ParseError
-        // but we probably don't want any non-enum errors
-        match self {
-            EnumAttrParseError::UnrecognizedAttribute(attribute) => {
-                ParseError::EnumUnrecognizedAttribute { attribute }
-            }
-        }
-    }
 }
 
 #[derive(Default)]
@@ -80,7 +63,7 @@ impl SharedEnumSwiftBridgeAttributes {
     pub(super) fn store_attrib(&mut self, attrib: EnumAttr) -> syn::Result<()> {
         match attrib {
             EnumAttr::AlreadyDeclared => self.already_declared = true,
-            EnumAttr::Error(error) => self.errors.push(error.into()),
+            EnumAttr::Error(error) => self.errors.push(error),
             EnumAttr::SwiftName(name) => self.swift_name = Some(name),
         };
         Ok(())
@@ -116,7 +99,7 @@ impl Parse for EnumAttr {
             }
             _ => {
                 move_input_cursor_to_next_comma(input);
-                EnumAttr::Error(EnumAttrParseError::UnrecognizedAttribute(key))
+                EnumAttr::Error(ParseError::EnumUnrecognizedAttribute { attribute: key })
             }
         };
 
