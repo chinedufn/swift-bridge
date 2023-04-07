@@ -152,7 +152,9 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                             variants += &variant;
                         }
 
-                        let derive_debug_impl = if ty_enum.derive.debug {
+                        let derive_debug_impl = if ty_enum.derive.debug
+                            && !ty_enum.has_one_or_more_variants_with_data()
+                        {
                             format!("void* {ffi_name}$Debug({ffi_name} this);")
                         } else {
                             "".to_string()
