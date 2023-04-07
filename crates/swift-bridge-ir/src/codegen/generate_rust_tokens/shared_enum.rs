@@ -140,14 +140,15 @@ impl SwiftBridgeModule {
         // User derives
         let mut derive_impl_ffi_bridges = vec![];
 
-        // We currently only allow derive(Debug) on non data carrying enums in order
-        // to prevent a potential memory safety issue.
-        // https://github.com/chinedufn/swift-bridge/pull/194#discussion_r1134386788
         if shared_enum.derive.debug {
             // We don't want to confuse the developer if one of our variants has data and Debug isn't derived,
             // so we still want to derive(Debug) on the Rust side.
             // TODO: push a warning if one of our variants has data?
             derives.push(quote! {::std::fmt::Debug});
+
+            // We currently only allow derive(Debug) on non data carrying enums in order
+            // to prevent a potential memory safety issue.
+            // https://github.com/chinedufn/swift-bridge/pull/194#discussion_r1134386788
             if !shared_enum.has_one_or_more_variants_with_data() {
                 // __swift_bridge__$SomeEnum$Debug
                 let export_name = format!("{}$Debug", shared_enum.ffi_name_string());
