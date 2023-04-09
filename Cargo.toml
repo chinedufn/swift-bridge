@@ -13,6 +13,9 @@ default = []
 # Enables bridging of async functions.
 async = ["tokio", "once_cell"]
 
+# Prioritises compatibility over performance
+compatibility = ["swift-bridge-macro/compatibility"]
+
 [build-dependencies]
 swift-bridge-build = {version = "0.1.51", path = "crates/swift-bridge-build"}
 

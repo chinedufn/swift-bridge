@@ -109,7 +109,10 @@ pub(crate) fn can_generate_vec_of_transparent_struct_functions(
     match shared_struct.swift_repr {
         StructSwiftRepr::Class => false,
         // TODO: Check for trait implementation as well
+        #[cfg(feature = "compatibility")]
         StructSwiftRepr::Structure => shared_struct.derives.copy || shared_struct.derives.clone,
+        #[cfg(not(feature = "compatibility"))]
+        StructSwiftRepr::Structure => shared_struct.derives.copy,
     }
 }
 
@@ -205,6 +208,7 @@ mod tests {
     /// gets exposed to Swift in order to power the `extension MyRustType: Vectorizable { }`
     /// implementation on the Swift side.
     #[test]
+    #[cfg(feature = "compatibility")]
     fn generates_vectorizable_impl_for_shared_struct_with_clone() {
         let expected = quote! {
             const _: () = {

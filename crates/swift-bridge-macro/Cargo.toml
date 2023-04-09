@@ -10,6 +10,11 @@ license = "Apache-2.0/MIT"
 [lib]
 proc-macro = true
 
+[features]
+
+# Prioritises compatibility over performance
+compatibility = ["swift-bridge-ir/compatibility"]
+
 [dependencies]
 proc-macro2 = "1"
 quote = "1"

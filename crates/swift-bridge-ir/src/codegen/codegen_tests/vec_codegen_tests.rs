@@ -539,6 +539,7 @@ void __swift_bridge__$some_function(void* arg);
 
 /// Verify that we emit Rust, Swift and C header code that allows
 /// a transparent struct with derive(Clone) to be used within a Vec<T>.
+#[cfg(feature = "compatibility")]
 mod transparent_struct_vec_support {
     use super::*;
 
@@ -1033,6 +1034,7 @@ void* __swift_bridge__$Vec_SomeStruct$as_ptr(void* vec_ptr);
 }
 
 /// Test code generation for Rust function that returns a Vec<T> where T is a transparent struct.
+#[cfg(feature = "compatibility")]
 mod extern_rust_fn_return_vec_of_transparent_struct {
     use super::*;
 
