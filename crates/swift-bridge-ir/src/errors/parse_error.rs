@@ -56,6 +56,8 @@ pub(crate) enum ParseError {
     ArgCopyAndRefMut { arg: FnArg },
     /// There was an unsupported item in the module, such as a `use` statement.
     InvalidModuleItem { item: Item },
+    /// The associated_to attribute is used for only an associated method.
+    InvalidAssociatedTo { self_: FnArg },
 }
 
 /// An error while parsing a function attribute.
@@ -205,6 +207,11 @@ struct {struct_name};
             ParseError::InvalidModuleItem { item } => {
                 let message = format!(r#"Only `extern` blocks, structs and enums are supported."#);
                 Error::new_spanned(item, message)
+            }
+            ParseError::InvalidAssociatedTo { self_ } => {
+                let message =
+                    format!(r#"The associated_to attribute can only be used on static methods."#);
+                Error::new_spanned(self_, message)
             }
         }
     }

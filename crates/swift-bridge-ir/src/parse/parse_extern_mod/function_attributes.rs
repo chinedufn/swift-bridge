@@ -80,6 +80,7 @@ impl Parse for FunctionAttr {
         let key: Ident = input.parse()?;
 
         let attrib = match key.to_string().as_str() {
+            // TODO: Replace this with "static_method_of" before we release 0.2.0.
             "associated_to" => {
                 input.parse::<Token![=]>()?;
                 let value: Ident = input.parse()?;

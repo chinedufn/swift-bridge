@@ -46,7 +46,7 @@ impl BridgeableType for OpaqueForeignType {
         None
     }
 
-    fn generate_custom_c_ffi_type(&self) -> Option<String> {
+    fn generate_custom_c_ffi_type(&self, _types: &TypeDeclarations) -> Option<String> {
         None
     }
 
@@ -133,7 +133,7 @@ impl BridgeableType for OpaqueForeignType {
         }
     }
 
-    fn to_c_type(&self) -> String {
+    fn to_c_type(&self, _types: &TypeDeclarations) -> String {
         if self.host_lang.is_rust() {
             if self.has_swift_bridge_copy_annotation {
                 format!("struct {}", self.copy_ffi_repr_type_string())
@@ -145,7 +145,7 @@ impl BridgeableType for OpaqueForeignType {
         }
     }
 
-    fn to_c_include(&self) -> Option<&'static str> {
+    fn to_c_include(&self, _types: &TypeDeclarations) -> Option<Vec<&'static str>> {
         None
     }
 
@@ -295,6 +295,7 @@ impl BridgeableType for OpaqueForeignType {
     fn convert_swift_expression_to_ffi_type(
         &self,
         expression: &str,
+        _types: &TypeDeclarations,
         type_pos: TypePosition,
     ) -> String {
         let ty_name = &self.ty;
@@ -610,7 +611,7 @@ impl BridgeableType for OpaqueForeignType {
         false
     }
 
-    fn contains_owned_string_recursive(&self) -> bool {
+    fn contains_owned_string_recursive(&self, _types: &TypeDeclarations) -> bool {
         false
     }
 

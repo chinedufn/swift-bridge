@@ -109,6 +109,7 @@ impl ParsedExternFn {
 
                                 bridged_ty.convert_swift_expression_to_ffi_type(
                                     &arg,
+                                    types,
                                     TypePosition::FnArg(self.host_lang, arg_idx),
                                 )
                             } else {

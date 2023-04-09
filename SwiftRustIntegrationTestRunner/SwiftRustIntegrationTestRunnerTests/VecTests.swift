@@ -141,6 +141,9 @@ class VecTests: XCTestCase {
         XCTAssertEqual(RustVec<Int>().len(), 0);
         
         XCTAssertEqual(RustVec<Bool>().len(), 0);
+
+        XCTAssertEqual(RustVec<Float>().len(), 0);
+        XCTAssertEqual(RustVec<Double>().len(), 0);
     }
 }
 

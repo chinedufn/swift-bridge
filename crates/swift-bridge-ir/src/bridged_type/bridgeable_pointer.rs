@@ -53,7 +53,7 @@ impl BridgeableType for BuiltInPointer {
         None
     }
 
-    fn generate_custom_c_ffi_type(&self) -> Option<String> {
+    fn generate_custom_c_ffi_type(&self, _types: &TypeDeclarations) -> Option<String> {
         None
     }
 
@@ -77,11 +77,11 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
-    fn to_c_type(&self) -> String {
+    fn to_c_type(&self, _types: &TypeDeclarations) -> String {
         todo!()
     }
 
-    fn to_c_include(&self) -> Option<&'static str> {
+    fn to_c_include(&self, _types: &TypeDeclarations) -> Option<Vec<&'static str>> {
         todo!()
     }
 
@@ -143,6 +143,7 @@ impl BridgeableType for BuiltInPointer {
     fn convert_swift_expression_to_ffi_type(
         &self,
         _expression: &str,
+        _types: &TypeDeclarations,
         _type_pos: TypePosition,
     ) -> String {
         todo!()
@@ -234,7 +235,7 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
-    fn contains_owned_string_recursive(&self) -> bool {
+    fn contains_owned_string_recursive(&self, _types: &TypeDeclarations) -> bool {
         todo!()
     }
 

@@ -9,7 +9,7 @@ export RUSTFLAGS="-D warnings"
 # Change to the root directory of the Xcode project
 THIS_DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 ROOT_DIR="$THIS_DIR"
-cd $ROOT_DIR
+cd "$ROOT_DIR"
 
 cd SwiftRustIntegrationTestRunner
 # If project files don't exist before Xcode begins building we get something like:

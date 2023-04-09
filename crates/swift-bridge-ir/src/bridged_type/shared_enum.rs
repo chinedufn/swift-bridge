@@ -9,12 +9,18 @@ pub(crate) use self::enum_variant::EnumVariant;
 
 use super::StructFields;
 
+#[derive(Default, Clone)]
+pub(crate) struct DeriveAttrs {
+    pub debug: bool,
+}
+
 #[derive(Clone)]
 pub(crate) struct SharedEnum {
     pub name: Ident,
     pub variants: Vec<EnumVariant>,
     pub already_declared: bool,
     pub swift_name: Option<LitStr>,
+    pub derive: DeriveAttrs,
 }
 
 impl SharedEnum {

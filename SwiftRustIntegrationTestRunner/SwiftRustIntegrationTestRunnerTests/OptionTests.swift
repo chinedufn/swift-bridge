@@ -9,70 +9,52 @@ import XCTest
 @testable import SwiftRustIntegrationTestRunner
 
 class OptionTests: XCTestCase {
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-    
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-    
-    func testSwiftCallRustOptionU8() throws {
+
+    /// Verify that Swift can call Rust functions that accept and return Option<T>
+    /// where T is a primitive.
+    func testSwiftCallRustOptionPrimitive() throws {
         XCTAssertEqual(rust_reflect_option_u8(70), 70)
         XCTAssertEqual(rust_reflect_option_u8(nil), nil)
-    }
-     
-    func testSwiftCallRustOptionI8() throws {
+        
         XCTAssertEqual(rust_reflect_option_i8(70), 70)
         XCTAssertEqual(rust_reflect_option_i8(nil), nil)
-    }
-     
-    func testSwiftCallRustOptionU16() throws {
+        
         XCTAssertEqual(rust_reflect_option_u16(70), 70)
         XCTAssertEqual(rust_reflect_option_u16(nil), nil)
-    }
-     
-    func testSwiftCallRustOptionI16() throws {
+        
         XCTAssertEqual(rust_reflect_option_i16(70), 70)
         XCTAssertEqual(rust_reflect_option_i16(nil), nil)
-    }
-
-    func testSwiftCallRustOptionU32() throws {
+        
         XCTAssertEqual(rust_reflect_option_u32(70), 70)
         XCTAssertEqual(rust_reflect_option_u32(nil), nil)
-    }
-     
-    func testSwiftCallRustOptionI32() throws {
+        
         XCTAssertEqual(rust_reflect_option_i32(70), 70)
         XCTAssertEqual(rust_reflect_option_i32(nil), nil)
-    }
-
-    func testSwiftCallRustOptionU64() throws {
+        
         XCTAssertEqual(rust_reflect_option_u64(70), 70)
         XCTAssertEqual(rust_reflect_option_u64(nil), nil)
-    }
-     
-    func testSwiftCallRustOptionI64() throws {
+        
         XCTAssertEqual(rust_reflect_option_i64(70), 70)
         XCTAssertEqual(rust_reflect_option_i64(nil), nil)
-    }
-
-    func testSwiftCallRustOptionF32() throws {
+        
         XCTAssertEqual(rust_reflect_option_f32(70.0), 70.0)
         XCTAssertEqual(rust_reflect_option_f32(nil), nil)
-    }
-     
-    func testSwiftCallRustOptionF64() throws {
+        
         XCTAssertEqual(rust_reflect_option_f64(70.0), 70.0)
         XCTAssertEqual(rust_reflect_option_f64(nil), nil)
-    }
-
-    func testSwiftCallRustOptionBool() throws {
+        
         XCTAssertEqual(rust_reflect_option_bool(true), true)
         XCTAssertEqual(rust_reflect_option_bool(false), false)
         XCTAssertEqual(rust_reflect_option_bool(nil), nil)
     }
+
+    /// Verify that Rust can call Swift functions that accept and return Option<T>.
+    func testRustCallSwiftOptionPrimitive() throws {
+        test_rust_calls_swift_option_primitive()
+    }
     
+    /// Verify that Swift can call a Rust function that accepts and returns an Option<T>
+    /// where T is a String.
     func testSwiftCallRustReturnOptionString() throws {
         let string = rust_reflect_option_string("hello world")
         XCTAssertEqual(string!.toString(), "hello world")
@@ -118,7 +100,7 @@ class OptionTests: XCTestCase {
     
     func testSwiftCallRustWithOptionOpaqueRustCopyType() throws {
         let val = new_opaque_rust_copy_type(123)
-        let reflect: OptTestOpaqueRustCopyType? = rust_reflect_option_opaque_rust_copy_type(val)
+        let _: OptTestOpaqueRustCopyType? = rust_reflect_option_opaque_rust_copy_type(val)
         
         // TODO: Support methods on generic types
         // XCTAssertEqual(reflect!.field(), 123)
@@ -127,7 +109,7 @@ class OptionTests: XCTestCase {
     
     func testSwiftCallRustWithOptionGenericOpaqueRustType() throws {
         let val = new_generic_opaque_rust_type(123)
-        let reflect = rust_reflect_option_generic_opaque_rust_type(val)
+        let _: OptTestGenericOpaqueRustType<UInt8>? = rust_reflect_option_generic_opaque_rust_type(val)
         
         // TODO: Support methods on generic types
         // XCTAssertEqual(reflect!.field(), 123)
@@ -136,7 +118,7 @@ class OptionTests: XCTestCase {
     
      func testSwiftCallRustWithOptionGenericOpaqueRustCopyType() throws {
         let val = new_generic_opaque_rust_copy_type(123)
-        let reflect: OptTestGenericOpaqueRustCopyType? = rust_reflect_option_generic_opaque_rust_copy_type(val)
+        let _: OptTestGenericOpaqueRustCopyType? = rust_reflect_option_generic_opaque_rust_copy_type(val)
          
         // TODO: Support methods on generic types
         // XCTAssertEqual(reflect!.field(), 123)
@@ -166,7 +148,7 @@ class OptionTests: XCTestCase {
         XCTAssertEqual(reflected.f64, 123.4)
         XCTAssertEqual(reflected.boolean, true)
     }
-    
+ 
     func testStructWithOptionFieldsNone() {
         let val = StructWithOptionFields(
             u8: nil, i8: nil, u16: nil, i16: nil,
@@ -211,10 +193,6 @@ class OptionTests: XCTestCase {
         
         XCTAssertEqual(reflectedSome!.field, 123)
         XCTAssertNil(reflectedNone)
-    }
-    
-    func testRustCallSwiftReturnOption() {
-        run_option_tests()
     }
 }
 

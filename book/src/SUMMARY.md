@@ -25,6 +25,7 @@
   - [Option<T> <---> Optional<T>](./built-in/option/README.md)
   - [Result<T, E> <---> RustResult<T, E>](./built-in/result/README.md)
   - [Box<dyn FnOnce(A, B) -> C>](./built-in/boxed-functions/README.md)
+  - [(A, B, C, ...) <---> (A, B, C, ...)](./built-in/tuple/README.md)
 
 - [Safety](./safety/README.md)
 

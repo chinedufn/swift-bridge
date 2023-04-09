@@ -30,5 +30,12 @@ class SharedEnumAttributeTests: XCTestCase {
             AlreadyDeclaredEnumTest.Variant
         )
     }
+    
+    
+    /// Verify that we can use the generated Debug impl.
+    func testSharedEnumDeriveDebug() throws {
+        let debugString = String(reflecting: DeriveDebugEnum.Variant)
+        XCTAssertEqual(debugString, "Variant")
+    }
 }
 
