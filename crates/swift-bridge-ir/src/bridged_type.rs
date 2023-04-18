@@ -1864,7 +1864,7 @@ impl BridgedType {
             },
             BridgedType::Foreign(ty) => match ty {
                 CustomBridgedType::Shared(ty) => match ty {
-                    SharedType::Struct(_ty) => todo!(),
+                    SharedType::Struct(ty) => ty.name.to_string(),
                     SharedType::Enum(ty) => ty.name.to_string(),
                 },
             },

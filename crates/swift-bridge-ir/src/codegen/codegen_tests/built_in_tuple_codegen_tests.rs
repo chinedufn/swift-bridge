@@ -341,3 +341,151 @@ func __swift_bridge__some_function (_ arg: __swift_bridge__$tuple$I32U8) -> __sw
         .test();
     }
 }
+
+/// Verify that we can use a (opaque type, String) as Swift function arg and return type.
+mod extern_swift_tuple_opaque_and_string {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+                }
+                extern "Swift" {
+                    fn some_function(arg: (SomeType, String)) -> (SomeType, String);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub fn some_function (arg: (super::SomeType, String)) -> (super::SomeType, String) {
+                    {
+                        let val = unsafe { __swift_bridge__some_function ({ let val = arg ; __swift_bridge__tuple_SomeTypeString (Box::into_raw(Box::new({
+                            let val: super::SomeType = val.0;
+                            val
+                        })) as *mut super::SomeType , swift_bridge::string::RustString(val.1).box_into_raw()) }) };
+                        (unsafe { * Box::from_raw(val.0) }, unsafe { Box::from_raw(val.1).0 })
+                    }
+                }
+            },
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(arg: __swift_bridge__tuple_SomeTypeString) -> __swift_bridge__tuple_SomeTypeString;
+            },
+            quote! {
+                #[repr(C)]
+                #[doc(hidden)]
+                pub struct __swift_bridge__tuple_SomeTypeString(*mut super::SomeType, *mut swift_bridge::string::RustString);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ arg: __swift_bridge__$tuple$SomeTypeString) -> __swift_bridge__$tuple$SomeTypeString {
+    { let val = some_function(arg: { let val = arg; return (SomeType(ptr: val._0), RustString(ptr: val._1)); }()); return __swift_bridge__$tuple$SomeTypeString(_0: {val.0.isOwned = false; return val.0.ptr;}(), _1: { let rustString = val.1.intoRustString(); rustString.isOwned = false; return rustString.ptr }()); }()
+}
+"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"typedef struct __swift_bridge__$tuple$SomeTypeString { void* _0; void* _1; } __swift_bridge__$tuple$SomeTypeString;
+"#,
+        ])
+    }
+
+    #[test]
+    fn extern_swift_tuple_opaque_and_string() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we can use a (transparent struct type, transparent enum type) as Swift function arg and return type.
+mod extern_swift_tuple_transparent_struct_and_transparent_enum {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                enum SomeEnum {
+                    Variant1,
+                    Variant2,
+                }
+                #[swift_bridge(swift_repr = "struct")]
+                struct SomeStruct {
+                    field: u8
+                }
+                extern "Swift" {
+                    fn some_function(arg: (SomeStruct, SomeEnum)) -> (SomeStruct, SomeEnum);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub fn some_function (arg: (SomeStruct, SomeEnum)) -> (SomeStruct, SomeEnum) {
+                    {
+                        let val = unsafe { __swift_bridge__some_function ({ let val = arg ; __swift_bridge__tuple_SomeStructSomeEnum (val.0.into_ffi_repr(), val.1.into_ffi_repr()) }) };
+                        (val.0.into_rust_repr(), val.1.into_rust_repr())
+                    }
+                }
+            },
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(arg: __swift_bridge__tuple_SomeStructSomeEnum) -> __swift_bridge__tuple_SomeStructSomeEnum;
+            },
+            quote! {
+                #[repr(C)]
+                #[doc(hidden)]
+                pub struct __swift_bridge__tuple_SomeStructSomeEnum(__swift_bridge__SomeStruct, __swift_bridge__SomeEnum);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ arg: __swift_bridge__$tuple$SomeStructSomeEnum) -> __swift_bridge__$tuple$SomeStructSomeEnum {
+    { let val = some_function(arg: { let val = arg; return (val._0.intoSwiftRepr(), val._1.intoSwiftRepr()); }()); return __swift_bridge__$tuple$SomeStructSomeEnum(_0: val.0.intoFfiRepr(), _1: val.1.intoFfiRepr()); }()
+}
+"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"typedef struct __swift_bridge__$tuple$SomeStructSomeEnum { struct __swift_bridge__$SomeStruct _0; struct __swift_bridge__$SomeEnum _1; } __swift_bridge__$tuple$SomeStructSomeEnum;
+"#,
+        ])
+    }
+
+    #[test]
+    fn extern_swift_tuple_transparent_struct_and_transparent_enum() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

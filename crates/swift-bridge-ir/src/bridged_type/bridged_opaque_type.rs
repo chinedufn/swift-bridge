@@ -315,7 +315,10 @@ impl BridgeableType for OpaqueForeignType {
                                 expression, expression
                             )
                         } else {
-                            todo!()
+                            format!(
+                                "{{{}.isOwned = false; return {}.ptr;}}()",
+                                expression, expression
+                            )
                         }
                     }
                     TypePosition::SharedStructField => {
