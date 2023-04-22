@@ -71,29 +71,29 @@ impl BridgeableType for BuiltInTuple {
         todo!();
     }
 
-    fn generate_custom_rust_ffi_type(
+    fn generate_custom_rust_ffi_types(
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
-    ) -> Option<TokenStream> {
+    ) -> Option<Vec<TokenStream>> {
         let combined_types_tokens = self
             .0
             .combine_field_types_into_ffi_name_tokens(swift_bridge_path, types);
         let prefixed_ty_name = self.prefixed_ty_name(types);
-        Some(quote! {
+        Some(vec![quote! {
             #[repr(C)]
             #[doc(hidden)]
             pub struct #prefixed_ty_name ( #(#combined_types_tokens),* );
-        })
+        }])
     }
 
-    fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
+    fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<Vec<String>> {
         let combined_types = self.0.combine_field_types_into_ffi_name_string(types);
         let fields: Vec<String> = self.0.combine_field_types_into_c_type(types);
         let fields = fields.join("; ");
         let fields = fields + ";";
         let c_decl = format!("typedef struct __swift_bridge__$tuple${combined_types} {{ {fields} }} __swift_bridge__$tuple${combined_types};");
-        Some(c_decl)
+        Some(vec![c_decl])
     }
 
     fn to_rust_type_path(&self, types: &TypeDeclarations) -> TokenStream {
@@ -334,8 +334,9 @@ impl BridgeableType for BuiltInTuple {
         todo!();
     }
 
-    fn to_alpha_numeric_underscore_name(&self) -> String {
-        todo!();
+    fn to_alpha_numeric_underscore_name(&self, types: &TypeDeclarations) -> String {
+        let fields_name = self.0.to_alpha_numeric_underscore_name(types);
+        "Tuple".to_string() + &fields_name
     }
 }
 

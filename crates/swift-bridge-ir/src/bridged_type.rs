@@ -86,12 +86,12 @@ pub(crate) trait BridgeableType: Debug {
     /// # Examples
     /// String -> None
     /// Result<String, OpaqueRust> -> None
-    /// Result<(), TransparentEnum> -> pub enum ResultVoidAndTransparentEnum { //... }
-    fn generate_custom_rust_ffi_type(
+    /// Result<(), TransparentEnum> -> Some(vec![pub enum ResultVoidAndTransparentEnum { //... }])
+    fn generate_custom_rust_ffi_types(
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
-    ) -> Option<TokenStream>;
+    ) -> Option<Vec<TokenStream>>;
 
     /// Generate the type's c declaration if needed.
     ///
@@ -99,10 +99,10 @@ pub(crate) trait BridgeableType: Debug {
     /// String -> None
     /// Result<String, OpaqueRust> -> None
     /// Result<(), TransparentEnum> ->
-    /// typedef enum __swift_bridge__$ResultVoidAndTransparentEnum$Tag { //... };
+    /// Some(vec![typedef enum __swift_bridge__$ResultVoidAndTransparentEnum$Tag { //... };])
     /// // ...
-    /// typedef struct __swift_bridge__$ResultVoidAndTransparentEnum { //... };
-    fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String>;
+    /// Some(vec![typedef struct __swift_bridge__$ResultVoidAndTransparentEnum { //... };])
+    fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<Vec<String>>;
 
     /// Get the Rust representation of this type.
     /// For a string this might be `std::string::String`.
@@ -307,7 +307,7 @@ pub(crate) trait BridgeableType: Debug {
     /// type Foo would return Foo
     /// Option<T> would return Option_{T.to_alpha_numeric_underscore_name()}
     /// () would return "Void"
-    fn to_alpha_numeric_underscore_name(&self) -> String;
+    fn to_alpha_numeric_underscore_name(&self, types: &TypeDeclarations) -> String;
 }
 
 /// Parse a BridgeableType from a stringified token stream.
@@ -487,31 +487,33 @@ impl BridgeableType for BridgedType {
         }
     }
 
-    fn generate_custom_rust_ffi_type(
+    fn generate_custom_rust_ffi_types(
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
-    ) -> Option<TokenStream> {
+    ) -> Option<Vec<TokenStream>> {
         match self {
             BridgedType::StdLib(ty) => match ty {
                 StdLibType::Result(ty) => {
-                    ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
+                    ty.generate_custom_rust_ffi_types(swift_bridge_path, types)
                 }
-                StdLibType::Tuple(ty) => ty.generate_custom_rust_ffi_type(swift_bridge_path, types),
+                StdLibType::Tuple(ty) => {
+                    ty.generate_custom_rust_ffi_types(swift_bridge_path, types)
+                }
                 _ => None,
             },
             BridgedType::Foreign(_) => None,
             BridgedType::Bridgeable(ty) => {
-                ty.generate_custom_rust_ffi_type(swift_bridge_path, types)
+                ty.generate_custom_rust_ffi_types(swift_bridge_path, types)
             }
         }
     }
 
-    fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
+    fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<Vec<String>> {
         match self {
             BridgedType::StdLib(ty) => match ty {
-                StdLibType::Result(ty) => ty.generate_custom_c_ffi_type(types),
-                StdLibType::Tuple(ty) => ty.generate_custom_c_ffi_type(types),
+                StdLibType::Result(ty) => ty.generate_custom_c_ffi_types(types),
+                StdLibType::Tuple(ty) => ty.generate_custom_c_ffi_types(types),
                 _ => None,
             },
             BridgedType::Foreign(_) => None,
@@ -694,8 +696,8 @@ impl BridgeableType for BridgedType {
         }
     }
 
-    fn to_alpha_numeric_underscore_name(&self) -> String {
-        self.to_alpha_numeric_underscore_name()
+    fn to_alpha_numeric_underscore_name(&self, types: &TypeDeclarations) -> String {
+        self.to_alpha_numeric_underscore_name(types)
     }
 }
 
@@ -822,6 +824,9 @@ impl BridgedType {
             return Some(BridgedType::StdLib(StdLibType::BoxedFnOnce(
                 BridgeableBoxedFnOnce::from_str_tokens(&tokens, types)?,
             )));
+        } else if tokens.starts_with("(") {
+            let tuple: Type = syn::parse2(TokenStream::from_str(&tokens).unwrap()).unwrap();
+            return BridgedType::new_with_type(&tuple, types);
         }
 
         let ty = match tokens {
@@ -1844,7 +1849,7 @@ impl BridgedType {
         }
     }
 
-    pub fn to_alpha_numeric_underscore_name(&self) -> String {
+    pub fn to_alpha_numeric_underscore_name(&self, types: &TypeDeclarations) -> String {
         match self {
             BridgedType::StdLib(ty) => match ty {
                 StdLibType::Result(_ty) => todo!(),
@@ -1860,6 +1865,7 @@ impl BridgedType {
                 StdLibType::Bool => "Bool".to_string(),
                 StdLibType::F32 => "F32".to_string(),
                 StdLibType::F64 => "F64".to_string(),
+                StdLibType::Tuple(ty) => ty.to_alpha_numeric_underscore_name(types),
                 _ => todo!(),
             },
             BridgedType::Foreign(ty) => match ty {
@@ -1868,7 +1874,7 @@ impl BridgedType {
                     SharedType::Enum(ty) => ty.name.to_string(),
                 },
             },
-            BridgedType::Bridgeable(b) => b.to_alpha_numeric_underscore_name(),
+            BridgedType::Bridgeable(b) => b.to_alpha_numeric_underscore_name(types),
         }
     }
 

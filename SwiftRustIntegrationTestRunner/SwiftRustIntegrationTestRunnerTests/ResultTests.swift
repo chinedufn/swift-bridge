@@ -158,4 +158,38 @@ class ResultTests: XCTestCase {
             }
         }
     }
+    
+    /// Verify that we can receive a Result<(primitive type, OpaqueRustType, String), TransparentEnum> from Rust
+    func testResultTupleTransparentEnum() throws {
+        XCTContext.runActivity(named: "Should return a tuple type") {
+            _ in
+            do {
+                let tuple: (Int32, ResultTestOpaqueRustType, RustString) = try rust_func_return_result_tuple_transparent_enum(true)
+                XCTAssertEqual(tuple.0, 123)
+                XCTAssertEqual(tuple.1.val(), ResultTestOpaqueRustType(123).val())
+                XCTAssertEqual(tuple.2.toString(), "hello")
+            } catch {
+                XCTFail()
+            }
+        }
+        
+        XCTContext.runActivity(named: "Should throw an error") {
+            _ in
+            do {
+                let _: (Int32, ResultTestOpaqueRustType, RustString) = try rust_func_return_result_tuple_transparent_enum(false)
+                XCTFail("The function should have returned an error.")
+            } catch let error as ResultTransparentEnum {
+                switch error {
+                case .NamedField(let data):
+                    XCTAssertEqual(data, -123)
+                case .UnnamedFields(_, _):
+                    XCTFail()
+                case .NoFields:
+                    XCTFail()
+                }
+            } catch {
+                XCTFail()
+            }
+        }
+    }
 }

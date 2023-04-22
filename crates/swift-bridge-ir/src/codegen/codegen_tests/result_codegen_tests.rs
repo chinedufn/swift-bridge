@@ -608,3 +608,82 @@ typedef struct __swift_bridge__$ResultVoidAndSomeErrEnum{__swift_bridge__$Result
         .test();
     }
 }
+
+/// Test code generation for Rust function that returns a Result<T, E> where T is a tuple type and
+/// E is a transparent enum type.
+mod extern_rust_fn_return_result_tuple_type_and_transparent_enum_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                enum SomeErrEnum {
+                    Variant1,
+                    Variant2,
+                }
+                extern "Rust" {
+                    fn some_function() -> Result<(i32, u32), SomeErrEnum>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                #[repr(C)]
+                pub enum ResultTupleI32U32AndSomeErrEnum{
+                    Ok(__swift_bridge__tuple_I32U32),
+                    Err(__swift_bridge__SomeErrEnum),
+                }
+            },
+            quote! {
+                #[export_name = "__swift_bridge__$some_function"]
+                pub extern "C" fn __swift_bridge__some_function() -> ResultTupleI32U32AndSomeErrEnum{
+                    match super::some_function() {
+                        Ok(ok) => ResultTupleI32U32AndSomeErrEnum::Ok({let val = ok; __swift_bridge__tuple_I32U32(val.0, val.1)}),
+                        Err(err) => ResultTupleI32U32AndSomeErrEnum::Err(err.into_ffi_repr()),
+                    }
+                }
+            },
+            quote! {
+                #[repr(C)]
+                #[doc(hidden)]
+                pub struct __swift_bridge__tuple_I32U32(i32, u32);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public func some_function() throws -> (Int32, UInt32) {
+    try { let val = __swift_bridge__$some_function(); switch val.tag { case __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$ResultOk: return { let val = val.payload.ok; return (val._0, val._1); }() case __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$ResultErr: throw val.payload.err.intoSwiftRepr() default: fatalError() } }()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+typedef enum __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Tag {__swift_bridge__$ResultTupleI32U32AndSomeErrEnum$ResultOk, __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$ResultErr} __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Tag;
+union __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Fields {struct __swift_bridge__$tuple$I32U32 ok; struct __swift_bridge__$SomeErrEnum err;};
+typedef struct __swift_bridge__$ResultTupleI32U32AndSomeErrEnum{__swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Tag tag; union __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Fields payload;} __swift_bridge__$ResultTupleI32U32AndSomeErrEnum;        
+"#,
+            r#"struct __swift_bridge__$ResultTupleI32U32AndSomeErrEnum __swift_bridge__$some_function(void)"#,
+            r#"typedef struct __swift_bridge__$tuple$I32U32 { int32_t _0; uint32_t _1; } __swift_bridge__$tuple$I32U32;"#,
+        ])
+    }
+
+    #[test]
+    fn extern_rust_fn_return_result_tuple_type_and_transparent_enum_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
