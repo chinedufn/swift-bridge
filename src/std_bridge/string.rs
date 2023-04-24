@@ -17,6 +17,8 @@ mod ffi {
 
         fn as_str(&self) -> &str;
 
+        fn as_ptr(&self) -> *const u8;
+
         fn trim(&self) -> &str;
     }
 }
@@ -46,6 +48,10 @@ impl RustString {
 
     fn as_str(&self) -> &str {
         self.0.as_str()
+    }
+
+    fn as_ptr(&self) -> *const u8 {
+        self.0.as_ptr()
     }
 
     fn trim(&self) -> &str {

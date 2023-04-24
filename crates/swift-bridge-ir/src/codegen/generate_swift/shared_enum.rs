@@ -96,6 +96,8 @@ impl SwiftBridgeModule {
             format!(
                 r#"
 extension {enum_name}: Vectorizable {{
+    public typealias Elem = {enum_name}
+
     public static func vecOfSelfNew() -> UnsafeMutableRawPointer {{
         __swift_bridge__$Vec_{enum_name}$new()
     }}
@@ -121,6 +123,10 @@ extension {enum_name}: Vectorizable {{
     public static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {{
         let maybeEnum = __swift_bridge__$Vec_{enum_name}$get_mut(vecPtr, index)
         return maybeEnum.intoSwiftRepr()
+    }}
+
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Elem> {{
+        UnsafePointer<Elem>(OpaquePointer(__swift_bridge__$Vec_{enum_name}$as_ptr(vecPtr)))
     }}
 
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {{

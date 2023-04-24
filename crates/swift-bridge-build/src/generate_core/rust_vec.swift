@@ -1,4 +1,5 @@
 public class RustVec<T: Vectorizable> {
+    public typealias Elem = T
     var ptr: UnsafeMutableRawPointer
     var isOwned: Bool = true
 
@@ -21,6 +22,10 @@ public class RustVec<T: Vectorizable> {
 
     public func get(index: UInt) -> Optional<T.SelfRef> {
          T.vecOfSelfGet(vecPtr: ptr, index: index)
+    }
+
+    public func as_ptr() -> UnsafePointer<T> {
+        UnsafePointer<T>(OpaquePointer(T.vecOfSelfAsPtr(vecPtr: ptr)))
     }
 
     /// Rust returns a UInt, but we cast to an Int because many Swift APIs such as
@@ -86,6 +91,7 @@ extension UnsafeBufferPointer {
 }
 
 public protocol Vectorizable {
+    associatedtype Elem
     associatedtype SelfRef
     associatedtype SelfRefMut
 
@@ -100,6 +106,8 @@ public protocol Vectorizable {
     static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<SelfRef>
 
     static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<SelfRefMut>
+
+    static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Elem>
 
     static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt
 }
