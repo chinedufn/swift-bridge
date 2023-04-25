@@ -13,6 +13,8 @@ mod ffi {
         async fn rust_async_func_reflect_result_opaque_rust(
             arg: Result<AsyncResultOpaqueRustType1, AsyncResultOpaqueRustType2>,
         ) -> Result<AsyncResultOpaqueRustType1, AsyncResultOpaqueRustType2>;
+        async fn rust_async_func_return_result_null_opaque_rust(
+        ) -> Result<(), AsyncResultOpaqueRustType2>;
     }
 
     extern "Rust" {
@@ -175,4 +177,9 @@ async fn rust_async_func_return_result_null_and_transparent_enum(
             123,
         ))
     }
+}
+
+async fn rust_async_func_return_result_null_opaque_rust() -> Result<(), AsyncResultOpaqueRustType2>
+{
+    Ok(())
 }
