@@ -68,6 +68,12 @@ mod ffi {
     }
 
     extern "Rust" {
+        fn rust_func_return_result_of_vec_u32() -> Result<Vec<u32>, ResultTestOpaqueRustType>;
+        fn rust_func_return_result_of_vec_opaque(
+        ) -> Result<Vec<ResultTestOpaqueRustType>, ResultTestOpaqueRustType>;
+    }
+
+    extern "Rust" {
         fn rust_func_return_result_tuple_transparent_enum(
             succeed: bool,
         ) -> Result<(i32, ResultTestOpaqueRustType, String), ResultTransparentEnum>;
@@ -180,6 +186,19 @@ fn same_custom_result_returned_twice_first() -> Result<ffi::SameEnum, ffi::SameE
 
 fn same_custom_result_returned_twice_second() -> Result<ffi::SameEnum, ffi::SameEnum> {
     todo!()
+}
+
+fn rust_func_return_result_of_vec_u32() -> Result<Vec<u32>, ResultTestOpaqueRustType> {
+    Ok(vec![0, 1, 2])
+}
+
+fn rust_func_return_result_of_vec_opaque(
+) -> Result<Vec<ResultTestOpaqueRustType>, ResultTestOpaqueRustType> {
+    Ok(vec![
+        ResultTestOpaqueRustType::new(0),
+        ResultTestOpaqueRustType::new(1),
+        ResultTestOpaqueRustType::new(2),
+    ])
 }
 
 fn rust_func_return_result_tuple_transparent_enum(

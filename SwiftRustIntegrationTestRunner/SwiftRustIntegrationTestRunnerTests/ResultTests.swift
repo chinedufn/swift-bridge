@@ -192,4 +192,21 @@ class ResultTests: XCTestCase {
             }
         }
     }
+
+    /// Verify that we can receive a Result<Vec<>, OpaqueRust> from Rust
+    func testSwiftCallRustResultVecUInt32Rust() throws {
+        let vec = try! rust_func_return_result_of_vec_u32()
+        XCTAssertEqual(vec.len(), 3)
+        for (i, value) in vec.enumerated() {
+            XCTAssertEqual(UInt32(i), value)
+        }
+    }
+
+    func testSwiftCallRustResultVecOpaqueRust() throws {
+        let vec = try! rust_func_return_result_of_vec_opaque()
+        XCTAssertEqual(vec.len(), 3)
+        for (i, value) in vec.enumerated() {
+            XCTAssertEqual(UInt32(i), value.val())
+        }
+    }
 }
