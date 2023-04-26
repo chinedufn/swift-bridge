@@ -14,6 +14,7 @@ mod ffi {
             arg: Result<AsyncResultOpaqueRustType1, AsyncResultOpaqueRustType2>,
         ) -> Result<AsyncResultOpaqueRustType1, AsyncResultOpaqueRustType2>;
         async fn rust_async_func_return_result_null_opaque_rust(
+            succeed: bool,
         ) -> Result<(), AsyncResultOpaqueRustType2>;
     }
 
@@ -179,7 +180,12 @@ async fn rust_async_func_return_result_null_and_transparent_enum(
     }
 }
 
-async fn rust_async_func_return_result_null_opaque_rust() -> Result<(), AsyncResultOpaqueRustType2>
-{
-    Ok(())
+async fn rust_async_func_return_result_null_opaque_rust(
+    succeed: bool,
+) -> Result<(), AsyncResultOpaqueRustType2> {
+    if succeed {
+        Ok(())
+    } else {
+        Err(AsyncResultOpaqueRustType2(111))
+    }
 }
