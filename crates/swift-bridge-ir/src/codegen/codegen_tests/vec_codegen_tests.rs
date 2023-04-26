@@ -93,8 +93,6 @@ mod extern_rust_type_vec_support {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 extension MyRustType: Vectorizable {
-    public typealias Elem = MyRustType
-
     public static func vecOfSelfNew() -> UnsafeMutableRawPointer {
         __swift_bridge__$Vec_MyRustType$new()
     }
@@ -134,8 +132,8 @@ extension MyRustType: Vectorizable {
         }
     }
 
-    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Elem> {
-        UnsafePointer<Elem>(OpaquePointer(__swift_bridge__$Vec_MyRustType$as_ptr(vecPtr)))
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<MyRustTypeRef> {
+        UnsafePointer<MyRustTypeRef>(OpaquePointer(__swift_bridge__$Vec_MyRustType$as_ptr(vecPtr)))
     }
 
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {
@@ -366,8 +364,6 @@ mod transparent_enum_vec_support {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 extension SomeEnum: Vectorizable {
-    public typealias Elem = SomeEnum
-
     public static func vecOfSelfNew() -> UnsafeMutableRawPointer {
         __swift_bridge__$Vec_SomeEnum$new()
     }
@@ -395,8 +391,8 @@ extension SomeEnum: Vectorizable {
         return maybeEnum.intoSwiftRepr()
     }
 
-    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Elem> {
-        UnsafePointer<Elem>(OpaquePointer(__swift_bridge__$Vec_SomeEnum$as_ptr(vecPtr)))
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Self> {
+        UnsafePointer<Self>(OpaquePointer(__swift_bridge__$Vec_SomeEnum$as_ptr(vecPtr)))
     }
 
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {

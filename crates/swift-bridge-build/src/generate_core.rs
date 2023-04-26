@@ -143,8 +143,6 @@ fn conform_to_vectorizable(swift_ty: &str, rust_ty: &str) -> String {
     format!(
         r#"
 extension {swift_ty}: Vectorizable {{
-    public typealias Elem = {swift_ty}
-
     public static func vecOfSelfNew() -> UnsafeMutableRawPointer {{
         __swift_bridge__$Vec_{rust_ty}$new()
     }}
@@ -184,8 +182,8 @@ extension {swift_ty}: Vectorizable {{
         }}
     }}
 
-    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Elem> {{
-        UnsafePointer<Elem>(OpaquePointer(__swift_bridge__$Vec_{rust_ty}$as_ptr(vecPtr)))
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Self> {{
+        UnsafePointer<Self>(OpaquePointer(__swift_bridge__$Vec_{rust_ty}$as_ptr(vecPtr)))
     }}
 
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {{
