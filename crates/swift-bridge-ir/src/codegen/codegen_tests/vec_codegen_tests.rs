@@ -132,6 +132,10 @@ extension MyRustType: Vectorizable {
         }
     }
 
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<MyRustTypeRef> {
+        UnsafePointer<MyRustTypeRef>(OpaquePointer(__swift_bridge__$Vec_MyRustType$as_ptr(vecPtr)))
+    }
+
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {
         __swift_bridge__$Vec_MyRustType$len(vecPtr)
     }
@@ -385,6 +389,10 @@ extension SomeEnum: Vectorizable {
     public static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {
         let maybeEnum = __swift_bridge__$Vec_SomeEnum$get_mut(vecPtr, index)
         return maybeEnum.intoSwiftRepr()
+    }
+
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Self> {
+        UnsafePointer<Self>(OpaquePointer(__swift_bridge__$Vec_SomeEnum$as_ptr(vecPtr)))
     }
 
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {

@@ -43,6 +43,10 @@ pub(super) fn generate_vectorizable_extension(ty: &Ident) -> String {
         }}
     }}
 
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<{ty}Ref> {{
+        UnsafePointer<{ty}Ref>(OpaquePointer(__swift_bridge__$Vec_{ty}$as_ptr(vecPtr)))
+    }}
+
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {{
         __swift_bridge__$Vec_{ty}$len(vecPtr)
     }}
@@ -101,6 +105,10 @@ extension ARustType: Vectorizable {
         } else {
             return ARustTypeRefMut(ptr: pointer!)
         }
+    }
+
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<ARustTypeRef> {
+        UnsafePointer<ARustTypeRef>(OpaquePointer(__swift_bridge__$Vec_ARustType$as_ptr(vecPtr)))
     }
 
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {
