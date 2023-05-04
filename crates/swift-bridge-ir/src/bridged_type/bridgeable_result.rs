@@ -194,6 +194,9 @@ impl BuiltInResult {
                         self.custom_c_struct_name(types)
                     );
                 }
+                if self.ok_ty.can_be_encoded_with_zero_bytes() {
+                    return "UnsafeMutableRawPointer?".to_string();
+                }
                 "__private__ResultPtrAndPtr".to_string()
             }
         }
@@ -477,11 +480,25 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         let ok = self.ok_ty.to_swift_type(type_pos, types);
         let err = self.err_ty.to_swift_type(type_pos, types);
 
+        let (ok_val, err_val, condition) = if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            (
+                ok,
+                format!("{err}(ptr: rustFnRetVal!)"),
+                "rustFnRetVal == nil",
+            )
+        } else {
+            (
+                format!("{ok}(ptr: rustFnRetVal.ok_or_err!)"),
+                format!("{err}(ptr: rustFnRetVal.ok_or_err!)"),
+                "rustFnRetVal.is_ok",
+            )
+        };
+
         format!(
-            r#"if rustFnRetVal.is_ok {{
-        wrapper.cb(.success({ok}(ptr: rustFnRetVal.ok_or_err!)))
+            r#"if {condition} {{
+        wrapper.cb(.success({ok_val}))
     }} else {{
-        wrapper.cb(.failure({err}(ptr: rustFnRetVal.ok_or_err!)))
+        wrapper.cb(.failure({err_val}))
     }}"#
         )
     }
