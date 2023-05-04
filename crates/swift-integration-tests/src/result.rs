@@ -66,6 +66,12 @@ mod ffi {
         fn same_custom_result_returned_twice_first() -> Result<SameEnum, SameEnum>;
         fn same_custom_result_returned_twice_second() -> Result<SameEnum, SameEnum>;
     }
+
+    extern "Rust" {
+        fn rust_func_return_result_tuple_transparent_enum(
+            succeed: bool,
+        ) -> Result<(i32, ResultTestOpaqueRustType, String), ResultTransparentEnum>;
+    }
 }
 
 fn rust_func_takes_result_string(arg: Result<String, String>) {
@@ -174,4 +180,14 @@ fn same_custom_result_returned_twice_first() -> Result<ffi::SameEnum, ffi::SameE
 
 fn same_custom_result_returned_twice_second() -> Result<ffi::SameEnum, ffi::SameEnum> {
     todo!()
+}
+
+fn rust_func_return_result_tuple_transparent_enum(
+    succeed: bool,
+) -> Result<(i32, ResultTestOpaqueRustType, String), ffi::ResultTransparentEnum> {
+    if succeed {
+        Ok((123, ResultTestOpaqueRustType::new(123), "hello".to_string()))
+    } else {
+        Err(ffi::ResultTransparentEnum::NamedField { data: -123 })
+    }
 }

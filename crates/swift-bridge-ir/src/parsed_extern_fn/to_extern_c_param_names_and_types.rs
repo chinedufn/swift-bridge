@@ -44,9 +44,11 @@ impl ParsedExternFn {
                     if !pat_ty_is_self {
                         if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
                             if let Some(tokens) =
-                                built_in.generate_custom_rust_ffi_type(swift_bridge_path, types)
+                                built_in.generate_custom_rust_ffi_types(swift_bridge_path, types)
                             {
-                                custom_type_definitions.insert(tokens.to_string(), tokens);
+                                for token in tokens.into_iter() {
+                                    custom_type_definitions.insert(token.to_string(), token);
+                                }
                             }
                             if built_in.can_be_encoded_with_zero_bytes() {
                                 continue;

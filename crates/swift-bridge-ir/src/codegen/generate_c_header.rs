@@ -366,6 +366,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
         }
         for custom_type_declaration in custom_type_declarations {
             header += &custom_type_declaration;
+            header += "\n";
         }
         header
     }
@@ -410,8 +411,10 @@ fn declare_custom_c_ffi_types(
 ) {
     if let ReturnType::Type(_, ty) = &func.func.sig.output {
         if let Some(ty) = BridgedType::new_with_type(&ty, types) {
-            if let Some(declaration) = &ty.generate_custom_c_ffi_type(types) {
-                custom_type_declarations.insert(declaration.clone());
+            if let Some(declarations) = &ty.generate_custom_c_ffi_types(types) {
+                for declaration in declarations {
+                    custom_type_declarations.insert(declaration.clone());
+                }
             }
         }
     }
@@ -420,8 +423,10 @@ fn declare_custom_c_ffi_types(
             FnArg::Receiver(_receiver) => {}
             FnArg::Typed(pat_ty) => {
                 let ty = BridgedType::new_with_type(&pat_ty.ty, types).unwrap();
-                if let Some(declaration) = ty.generate_custom_c_ffi_type(types) {
-                    custom_type_declarations.insert(declaration.clone());
+                if let Some(declarations) = ty.generate_custom_c_ffi_types(types) {
+                    for declaration in declarations {
+                        custom_type_declarations.insert(declaration.clone());
+                    }
                 }
             }
         };

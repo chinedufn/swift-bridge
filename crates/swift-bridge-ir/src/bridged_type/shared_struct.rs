@@ -84,7 +84,7 @@ impl UnnamedStructFields {
             .map(|field| {
                 BridgedType::new_with_type(&field.ty, types)
                     .unwrap()
-                    .to_alpha_numeric_underscore_name()
+                    .to_alpha_numeric_underscore_name(types)
             })
             .fold("".to_string(), |sum, s| sum + &s)
     }
@@ -222,6 +222,24 @@ impl UnnamedStructFields {
         } else {
             None
         }
+    }
+
+    /// Example
+    ///
+    /// (i32, u32) becomes I32U32
+    /// (OpaqueRustType, u8) becomes OpaqueRustTypeU8
+    pub fn to_alpha_numeric_underscore_name(&self, types: &TypeDeclarations) -> String {
+        let names: String = self
+            .0
+            .iter()
+            .enumerate()
+            .map(|(_idx, field)| {
+                BridgedType::new_with_type(&field.ty, types)
+                    .unwrap()
+                    .to_alpha_numeric_underscore_name(types)
+            })
+            .fold("".to_string(), |sum, s| sum + &s);
+        return names;
     }
 }
 

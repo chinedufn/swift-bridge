@@ -26,7 +26,7 @@ impl BuiltInResult {
         types: &TypeDeclarations,
     ) -> TokenStream {
         if self.is_custom_result_type() {
-            let ty = format_ident!("{}", self.custom_c_struct_name());
+            let ty = format_ident!("{}", self.custom_c_struct_name(types));
             return quote! {
                 #ty
             };
@@ -188,7 +188,11 @@ impl BuiltInResult {
                     todo!()
                 }
                 if self.is_custom_result_type() {
-                    return format!("{}${}", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name());
+                    return format!(
+                        "{}${}",
+                        SWIFT_BRIDGE_PREFIX,
+                        self.custom_c_struct_name(types)
+                    );
                 }
                 "__private__ResultPtrAndPtr".to_string()
             }
@@ -205,8 +209,8 @@ impl BuiltInResult {
             if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!();
             }
-            let c_ok_name = self.c_ok_tag_name();
-            let c_err_name = self.c_err_tag_name();
+            let c_ok_name = self.c_ok_tag_name(types);
+            let c_err_name = self.c_err_tag_name(types);
             let ok_swift_type = if self.ok_ty.can_be_encoded_with_zero_bytes() {
                 "".to_string()
             } else {
@@ -310,7 +314,7 @@ impl BuiltInResult {
             return format!(
                 "struct {}${}",
                 SWIFT_BRIDGE_PREFIX,
-                self.custom_c_struct_name()
+                self.custom_c_struct_name(types)
             );
         }
         // TODO: Choose the kind of Result representation based on whether or not the ok and error
@@ -323,15 +327,14 @@ impl BuiltInResult {
         }
     }
 
-    pub fn generate_custom_rust_ffi_type(
+    pub fn generate_custom_rust_ffi_types(
         &self,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
-    ) -> Option<TokenStream> {
+    ) -> Option<Vec<TokenStream>> {
         if !self.is_custom_result_type() {
             return None;
         }
-
         if self.err_ty.can_be_encoded_with_zero_bytes() {
             todo!()
         }
@@ -348,23 +351,45 @@ impl BuiltInResult {
         let err = self
             .err_ty
             .to_ffi_compatible_rust_type(swift_bridge_path, types);
-        return Some(quote! {
+        let mut custom_rust_ffi_types = vec![];
+        custom_rust_ffi_types.push(quote! {
             #[repr(C)]
             pub enum #ty {
                 Ok #ok,
                 Err(#err),
             }
         });
+        let ok_custom_rust_ffi_types = self
+            .ok_ty
+            .generate_custom_rust_ffi_types(swift_bridge_path, types);
+        let err_custom_rust_ffi_types = self
+            .err_ty
+            .generate_custom_rust_ffi_types(swift_bridge_path, types);
+        if let Some(ok_custom_rust_ffi_types) = ok_custom_rust_ffi_types {
+            for custom_rust_ffi_type in ok_custom_rust_ffi_types {
+                custom_rust_ffi_types.push(custom_rust_ffi_type);
+            }
+        }
+        if let Some(err_custom_rust_ffi_types) = err_custom_rust_ffi_types {
+            for custom_rust_ffi_type in err_custom_rust_ffi_types {
+                custom_rust_ffi_types.push(custom_rust_ffi_type);
+            }
+        }
+        return Some(custom_rust_ffi_types);
     }
 
-    pub fn generate_custom_c_ffi_type(&self, types: &TypeDeclarations) -> Option<String> {
+    pub fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<Vec<String>> {
         if !self.is_custom_result_type() {
             return None;
         }
         if self.err_ty.can_be_encoded_with_zero_bytes() {
             todo!();
         }
-        let c_type = format!("{}${}", SWIFT_BRIDGE_PREFIX, self.custom_c_struct_name());
+        let c_type = format!(
+            "{}${}",
+            SWIFT_BRIDGE_PREFIX,
+            self.custom_c_struct_name(types)
+        );
         let c_enum_name = c_type.clone();
         let c_tag_name = format!("{}$Tag", c_type.clone());
         let c_fields_name = format!("{}$Fields", c_type);
@@ -375,10 +400,10 @@ impl BuiltInResult {
             format!("{} ok; ", self.ok_ty.to_c_type(types))
         };
         let err_c_field_name = self.err_ty.to_c_type(types);
-        let ok_c_tag_name = self.c_ok_tag_name();
-        let err_c_tag_name = self.c_err_tag_name();
-
-        return Some(format!(
+        let ok_c_tag_name = self.c_ok_tag_name(types);
+        let err_c_tag_name = self.c_err_tag_name(types);
+        let mut custom_c_ffi_types = vec![];
+        custom_c_ffi_types.push(format!(
             "typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
 union {c_fields_name} {{{ok_c_field_name}{err_c_field_name} err;}};
 typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}} {c_enum_name};",
@@ -390,6 +415,17 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
             ok_c_tag_name = ok_c_tag_name,
             err_c_tag_name = err_c_tag_name,
         ));
+        if let Some(ok_custom_c_ffi_types) = self.ok_ty.generate_custom_c_ffi_types(types) {
+            for ok_custom_c_ffi_type in ok_custom_c_ffi_types {
+                custom_c_ffi_types.push(ok_custom_c_ffi_type);
+            }
+        }
+        if let Some(err_custom_c_ffi_types) = self.err_ty.generate_custom_c_ffi_types(types) {
+            for err_custom_c_ffi_type in err_custom_c_ffi_types {
+                custom_c_ffi_types.push(err_custom_c_ffi_type);
+            }
+        }
+        return Some(custom_c_ffi_types);
     }
 
     fn is_custom_result_type(&self) -> bool {
@@ -434,8 +470,8 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
                 expression = expression,
                 ok = ok,
                 err = err,
-                c_ok_tag_name = self.c_ok_tag_name(),
-                c_err_tag_name = self.c_err_tag_name()
+                c_ok_tag_name = self.c_ok_tag_name(types),
+                c_err_tag_name = self.c_err_tag_name(types)
             );
         }
         let ok = self.ok_ty.to_swift_type(type_pos, types);
@@ -460,9 +496,9 @@ impl BuiltInResult {
         let trimmed = trimmed.trim_end_matches(" >");
 
         // [A, B]
-        let mut ok_and_err = trimmed.split(",");
-        let ok = ok_and_err.next()?.trim();
-        let err = ok_and_err.next()?.trim();
+        let ok_and_err = trimmed.rsplit_once(",")?;
+        let ok = ok_and_err.0.trim();
+        let err = ok_and_err.1.trim();
 
         let ok = BridgedType::new_with_str(ok, types)?;
         let err = BridgedType::new_with_str(err, types)?;
@@ -475,28 +511,28 @@ impl BuiltInResult {
 }
 
 impl BuiltInResult {
-    fn custom_c_struct_name(&self) -> String {
+    fn custom_c_struct_name(&self, types: &TypeDeclarations) -> String {
         let ok = &self.ok_ty;
         let err = &self.err_ty;
 
-        let ok = ok.to_alpha_numeric_underscore_name();
-        let err = err.to_alpha_numeric_underscore_name();
+        let ok = ok.to_alpha_numeric_underscore_name(types);
+        let err = err.to_alpha_numeric_underscore_name(types);
 
         format!("Result{ok}And{err}")
     }
-    fn c_ok_tag_name(&self) -> String {
+    fn c_ok_tag_name(&self, types: &TypeDeclarations) -> String {
         format!(
             "{}${}$ResultOk",
             SWIFT_BRIDGE_PREFIX,
-            self.custom_c_struct_name()
+            self.custom_c_struct_name(types)
         )
     }
 
-    fn c_err_tag_name(&self) -> String {
+    fn c_err_tag_name(&self, types: &TypeDeclarations) -> String {
         format!(
             "{}${}$ResultErr",
             SWIFT_BRIDGE_PREFIX,
-            self.custom_c_struct_name()
+            self.custom_c_struct_name(types)
         )
     }
 }

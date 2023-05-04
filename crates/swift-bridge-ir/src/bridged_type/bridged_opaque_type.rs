@@ -38,15 +38,15 @@ impl BridgeableType for OpaqueForeignType {
         true
     }
 
-    fn generate_custom_rust_ffi_type(
+    fn generate_custom_rust_ffi_types(
         &self,
         _swift_bridge_path: &Path,
         _types: &TypeDeclarations,
-    ) -> Option<TokenStream> {
+    ) -> Option<Vec<TokenStream>> {
         None
     }
 
-    fn generate_custom_c_ffi_type(&self, _types: &TypeDeclarations) -> Option<String> {
+    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<Vec<String>> {
         None
     }
 
@@ -626,7 +626,7 @@ impl BridgeableType for OpaqueForeignType {
         self.has_swift_bridge_copy_annotation
     }
 
-    fn to_alpha_numeric_underscore_name(&self) -> String {
+    fn to_alpha_numeric_underscore_name(&self, _types: &TypeDeclarations) -> String {
         if self.generics.len() >= 1 {
             todo!()
         }
