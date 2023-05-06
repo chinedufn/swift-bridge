@@ -10,3 +10,7 @@ import Foundation
 func create_swift_string() -> String {
     "hello"
 }
+
+func reflect_swift_string(arg: RustString) -> RustString {
+    arg
+}

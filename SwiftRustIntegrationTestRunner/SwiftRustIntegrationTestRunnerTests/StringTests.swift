@@ -40,7 +40,7 @@ class StringTests: XCTestCase {
     
     func testRustStringToString() throws {
         let string = "hi"
-        
+
         XCTAssertEqual(
             create_string(string).toString(),
             "hi"

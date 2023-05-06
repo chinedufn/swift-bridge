@@ -262,3 +262,50 @@ func __swift_bridge__some_function () -> UnsafeMutableRawPointer {
         .test();
     }
 }
+
+/// Test code generation for Swift function that takes and returns an owned String argument.
+mod extern_swift_func_takes_and_returns_string {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod foo {
+                extern "Swift" {
+                    fn some_function (value: String) -> String;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            pub fn some_function (value: String) -> String {
+                unsafe {
+                    Box :: from_raw (unsafe { __swift_bridge__some_function (swift_bridge :: string :: RustString (value) . box_into_raw ()) }) . 0
+                }
+            }
+        })
+    }
+
+    const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
+        r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ value: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer {
+    { let rustString = some_function(value: RustString(ptr: value)).intoRustString(); rustString.isOwned = false; return rustString.ptr }()
+}
+"#,
+    );
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ExactAfterTrim(r#""#);
+
+    #[test]
+    fn extern_rust_fn_takes_and_returns_string() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: EXPECTED_SWIFT_CODE,
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}
