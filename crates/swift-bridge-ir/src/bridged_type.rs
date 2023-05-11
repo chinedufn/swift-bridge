@@ -902,14 +902,26 @@ impl BridgedType {
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let ty_name = &shared_struct.name;
-                quote! {
-                    #ty_name
+                if shared_struct.already_declared {
+                    quote! {
+                        super::#ty_name
+                    }
+                } else {
+                    quote! {
+                        #ty_name
+                    }
                 }
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 let enum_name = &shared_enum.name;
-                quote! {
-                    #enum_name
+                if shared_enum.already_declared {
+                    quote! {
+                        super::#enum_name
+                    }
+                } else {
+                    quote! {
+                        #enum_name
+                    }
                 }
             }
         }
