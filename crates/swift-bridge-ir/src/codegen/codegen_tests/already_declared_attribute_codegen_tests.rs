@@ -110,16 +110,35 @@ mod already_declared_struct {
                 struct FfiSomeType;
 
                 extern "Rust" {
-                    fn some_function(arg: FfiSomeType) -> FfiSomeType;
+                    fn rust_some_function(arg: FfiSomeType) -> FfiSomeType;
+                }
+
+                extern "Swift" {
+                    fn swift_some_function(arg: FfiSomeType) -> FfiSomeType;
                 }
             }
         }
     }
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
-        ExpectedRustTokens::DoesNotContain(quote! {
-            struct FfiSomeType
-        })
+        ExpectedRustTokens::ContainsManyAndDoesNotContainMany {
+            contains: vec![
+                quote! {
+                    pub extern "C" fn __swift_bridge__rust_some_function(arg: <super::FfiSomeType as swift_bridge::SharedStruct>::FfiRepr) -> <super::FfiSomeType as swift_bridge::SharedStruct>::FfiRepr {
+                        super::rust_some_function(arg.into_rust_repr()).into_ffi_repr()
+                    }
+                },
+                quote! {
+                    extern "C" {
+                        #[link_name = "__swift_bridge__$swift_some_function"]
+                        fn __swift_bridge__swift_some_function(arg: <super::FfiSomeType as swift_bridge::SharedStruct>::FfiRepr) -> <super::FfiSomeType as swift_bridge::SharedStruct>::FfiRepr;
+                    }
+                },
+            ],
+            does_not_contain: vec![quote! {
+                struct FfiSomeType
+            }],
+        }
     }
 
     fn expected_swift_code() -> ExpectedSwiftCode {
@@ -129,7 +148,7 @@ mod already_declared_struct {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ExactAfterTrim(
             r#"
-struct __swift_bridge__$FfiSomeType __swift_bridge__$some_function(struct __swift_bridge__$FfiSomeType arg);
+struct __swift_bridge__$FfiSomeType __swift_bridge__$rust_some_function(struct __swift_bridge__$FfiSomeType arg);
 "#,
         )
     }
@@ -157,7 +176,11 @@ mod already_declared_enum {
                 enum FfiSomeEnum {}
 
                 extern "Rust" {
-                    fn some_function(arg: FfiSomeEnum) -> FfiSomeEnum;
+                    fn rust_some_function(arg: FfiSomeEnum) -> FfiSomeEnum;
+                }
+
+                extern "Swift" {
+                    fn swift_some_function(arg: FfiSomeEnum) -> FfiSomeEnum;
                 }
             }
         }
@@ -165,11 +188,19 @@ mod already_declared_enum {
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::ContainsManyAndDoesNotContainMany {
-            contains: vec![quote! {
-                pub extern "C" fn __swift_bridge__some_function(arg: <super::FfiSomeEnum as swift_bridge::SharedEnum>::FfiRepr) -> <super::FfiSomeEnum as swift_bridge::SharedEnum>::FfiRepr {
-                    super::some_function(arg.into_rust_repr()).into_ffi_repr()
-                }
-            }],
+            contains: vec![
+                quote! {
+                    pub extern "C" fn __swift_bridge__rust_some_function(arg: <super::FfiSomeEnum as swift_bridge::SharedEnum>::FfiRepr) -> <super::FfiSomeEnum as swift_bridge::SharedEnum>::FfiRepr {
+                        super::rust_some_function(arg.into_rust_repr()).into_ffi_repr()
+                    }
+                },
+                quote! {
+                    extern "C" {
+                        #[link_name = "__swift_bridge__$swift_some_function"]
+                        fn __swift_bridge__swift_some_function(arg: <super::FfiSomeEnum as swift_bridge::SharedEnum>::FfiRepr) -> <super::FfiSomeEnum as swift_bridge::SharedEnum>::FfiRepr;
+                    }
+                },
+            ],
             does_not_contain: vec![quote! {
                 enum FfiSomeEnum
             }],
@@ -183,7 +214,7 @@ mod already_declared_enum {
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ExactAfterTrim(
             r#"
-struct __swift_bridge__$FfiSomeEnum __swift_bridge__$some_function(struct __swift_bridge__$FfiSomeEnum arg);
+struct __swift_bridge__$FfiSomeEnum __swift_bridge__$rust_some_function(struct __swift_bridge__$FfiSomeEnum arg);
 "#,
         )
     }

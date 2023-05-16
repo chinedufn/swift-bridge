@@ -21,6 +21,7 @@ pub fn bridge(
     let tokens = quote! {
         #module
     };
+
     tokens.into()
 }
 

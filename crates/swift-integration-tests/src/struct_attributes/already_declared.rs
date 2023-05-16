@@ -17,12 +17,20 @@ mod ffi2 {
     struct AlreadyDeclaredStructTest;
 
     extern "Rust" {
-        fn reflect_already_declared_struct(
+        fn rust_reflect_already_declared_struct(
+            arg: AlreadyDeclaredStructTest,
+        ) -> AlreadyDeclaredStructTest;
+    }
+
+    extern "Swift" {
+        fn swift_reflect_already_declared_struct(
             arg: AlreadyDeclaredStructTest,
         ) -> AlreadyDeclaredStructTest;
     }
 }
 
-fn reflect_already_declared_struct(arg: AlreadyDeclaredStructTest) -> AlreadyDeclaredStructTest {
+fn rust_reflect_already_declared_struct(
+    arg: AlreadyDeclaredStructTest,
+) -> AlreadyDeclaredStructTest {
     arg
 }

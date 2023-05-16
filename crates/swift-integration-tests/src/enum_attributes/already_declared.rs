@@ -16,10 +16,18 @@ mod ffi2 {
     enum AlreadyDeclaredEnumTest {}
 
     extern "Rust" {
-        fn reflect_already_declared_enum(arg: AlreadyDeclaredEnumTest) -> AlreadyDeclaredEnumTest;
+        fn rust_reflect_already_declared_enum(
+            arg: AlreadyDeclaredEnumTest,
+        ) -> AlreadyDeclaredEnumTest;
+    }
+
+    extern "Swift" {
+        fn swift_reflect_already_declared_enum(
+            arg: AlreadyDeclaredEnumTest,
+        ) -> AlreadyDeclaredEnumTest;
     }
 }
 
-fn reflect_already_declared_enum(arg: AlreadyDeclaredEnumTest) -> AlreadyDeclaredEnumTest {
+fn rust_reflect_already_declared_enum(arg: AlreadyDeclaredEnumTest) -> AlreadyDeclaredEnumTest {
     arg
 }
