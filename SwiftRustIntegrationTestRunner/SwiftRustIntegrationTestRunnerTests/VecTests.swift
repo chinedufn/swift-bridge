@@ -98,6 +98,34 @@ class VecTests: XCTestCase {
         XCTAssertEqual(reflected.get(index: 0)!, TransparentEnumInsideVecT.VariantB)
         XCTAssertEqual(reflected.pop()!, TransparentEnumInsideVecT.VariantB)
     }
+
+    /// Verify that a Vec<T> of transparent struct with derive(Copy, Clone) can be used
+    /// as an argument and return type for extern "Rust" functions.
+    func testReflectVecOfTransparentStructFromCopy() throws {
+        let vec: RustVec<TransparentStructInsideVecTWithCopy> = RustVec()
+        vec.push(value: TransparentStructInsideVecTWithCopy(integer: 10))
+        
+        let reflected = rust_reflect_vec_transparent_struct_with_copy(vec)
+        XCTAssertEqual(reflected.len(), 1)
+        XCTAssertEqual(reflected.get(index: 0)!.integer, 10)
+        let popped = try XCTUnwrap(reflected.pop())
+        XCTAssertEqual(popped.integer, 10)
+    }
+
+    /// Verify that a Vec<T> of transparent struct with derive(Clone) can be used as an
+    /// argument and return type for extern "Rust" functions.
+    func testReflectVecOfTransparentStructFromClone() throws {
+        let vec: RustVec<TransparentStructInsideVecT> = RustVec()
+        vec.push(value: TransparentStructInsideVecT(string: "string".intoRustString(), integer: 10))
+        
+        let reflected = rust_reflect_vec_transparent_struct(vec)
+        XCTAssertEqual(reflected.len(), 1)
+        XCTAssertEqual(reflected.get(index: 0)!.string.toString(), "string")
+        XCTAssertEqual(reflected.get(index: 0)!.integer, 10)
+        let popped = try XCTUnwrap(reflected.pop())
+        XCTAssertEqual(popped.string.toString(), "string")
+        XCTAssertEqual(popped.integer, 10)
+    }
     
     /// Verify that we can construct a RustVec of every primitive type.
     /// We tested all of the methods on  two different primitives above to be sure that our

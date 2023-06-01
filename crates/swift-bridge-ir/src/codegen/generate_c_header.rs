@@ -2,6 +2,7 @@
 
 use crate::bridged_type::shared_struct::StructField;
 use crate::bridged_type::{BridgeableType, BridgedType, StdLibType, StructFields};
+use crate::codegen::generate_rust_tokens::can_generate_vec_of_transparent_struct_functions;
 use crate::codegen::CodegenConfig;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
@@ -116,14 +117,22 @@ impl SwiftBridgeModule {
                             "".to_string()
                         };
 
+                        let vec_support =
+                            if can_generate_vec_of_transparent_struct_functions(&ty_struct) {
+                                vec_transparent_struct_c_support(&name)
+                            } else {
+                                format!("")
+                            };
+
                         let ty_decl = format!(
                             r#"typedef struct {prefix}${name} {{{maybe_fields}}} {prefix}${name};
-typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};"#,
+typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi_name};{vec_support}"#,
                             prefix = SWIFT_BRIDGE_PREFIX,
                             ffi_name = ffi_name,
                             option_ffi_name = option_ffi_name,
                             name = name,
-                            maybe_fields = maybe_fields
+                            maybe_fields = maybe_fields,
+                            vec_support = vec_support
                         );
 
                         header += &ty_decl;
@@ -431,6 +440,22 @@ fn declare_custom_c_ffi_types(
             }
         };
     }
+}
+
+fn vec_transparent_struct_c_support(struct_name: &str) -> String {
+    format!(
+        r#"
+void* __swift_bridge__$Vec_{struct_name}$new(void);
+void __swift_bridge__$Vec_{struct_name}$drop(void* vec_ptr);
+void __swift_bridge__$Vec_{struct_name}$push(void* vec_ptr, __swift_bridge__${struct_name} item);
+__swift_bridge__$Option${struct_name} __swift_bridge__$Vec_{struct_name}$pop(void* vec_ptr);
+__swift_bridge__$Option${struct_name} __swift_bridge__$Vec_{struct_name}$get(void* vec_ptr, uintptr_t index);
+__swift_bridge__$Option${struct_name} __swift_bridge__$Vec_{struct_name}$get_mut(void* vec_ptr, uintptr_t index);
+uintptr_t __swift_bridge__$Vec_{struct_name}$len(void* vec_ptr);
+void* __swift_bridge__$Vec_{struct_name}$as_ptr(void* vec_ptr);
+"#,
+        struct_name = struct_name
+    )
 }
 
 fn declare_func(

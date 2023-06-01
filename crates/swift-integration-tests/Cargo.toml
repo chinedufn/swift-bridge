@@ -19,4 +19,4 @@ crate-type = ["staticlib"]
 swift-bridge-build = {path = "../swift-bridge-build"}
 
 [dependencies]
-swift-bridge = {path = "../../", features = ["async"]}
+swift-bridge = {path = "../../", features = ["async", "compatibility"]}

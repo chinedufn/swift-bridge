@@ -7,6 +7,11 @@ description = "Holds the data structures and logic for bridge module parsing and
 repository = "https://github.com/chinedufn/swift-bridge"
 license = "Apache-2.0/MIT"
 
+[features]
+
+# Prioritises compatibility over performance
+compatibility = []
+
 [dependencies]
 proc-macro2 = "1"
 quote = "1"

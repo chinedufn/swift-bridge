@@ -11,6 +11,8 @@ use crate::bridge_module_attributes::CfgAttr;
 use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
 use crate::SwiftBridgeModule;
 
+pub(crate) use self::vec::vec_of_transparent_struct::can_generate_vec_of_transparent_struct_functions;
+
 mod shared_enum;
 mod shared_struct;
 mod vec;
