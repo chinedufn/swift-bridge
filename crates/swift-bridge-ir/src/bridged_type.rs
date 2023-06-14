@@ -1158,9 +1158,25 @@ impl BridgedType {
                         unimplemented!()
                     }
                 },
-                StdLibType::Vec(ty) => {
-                    format!("RustVec<{}>", ty.ty.to_swift_type(type_pos, types))
-                }
+                StdLibType::Vec(ty) => match type_pos {
+                    TypePosition::FnArg(func_host_lang, _) => {
+                        if func_host_lang.is_rust() {
+                            format!("RustVec<{}>", ty.ty.to_swift_type(type_pos, types))
+                        } else {
+                            "UnsafeMutableRawPointer".to_string()
+                        }
+                    },
+                    TypePosition::FnReturn(func_host_lang) => {
+                        if func_host_lang.is_rust() {
+                            format!("RustVec<{}>", ty.ty.to_swift_type(type_pos, types))
+                        } else {
+                            "UnsafeMutableRawPointer".to_string()
+                        }
+                    }
+                    _ => {
+                        format!("RustVec<{}>", ty.ty.to_swift_type(type_pos, types))
+                    }
+                },
                 StdLibType::Option(opt) => opt.to_swift_type(type_pos, types),
                 StdLibType::Result(result) => result.to_swift_type(type_pos, types),
                 StdLibType::BoxedFnOnce(boxed_fn) => boxed_fn.to_swift_type().to_string(),
