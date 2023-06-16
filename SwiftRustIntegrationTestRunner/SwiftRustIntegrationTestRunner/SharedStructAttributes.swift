@@ -19,3 +19,7 @@ func extern_swift_struct_rename_3(arg: StructRename3) -> StructRename3 {
     arg
 }
 
+func swift_reflect_already_declared_struct(arg: AlreadyDeclaredStructTest) -> AlreadyDeclaredStructTest {
+    arg
+}
+

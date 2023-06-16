@@ -32,6 +32,17 @@ mod built_in_tuple;
 mod shared_enum;
 pub(crate) mod shared_struct;
 
+/// Used to declare structures in a C header file.
+/// For example, struct FooStruct {struct BarStruct bar_struct;} is generated in the order of
+/// struct BarStruct {int32_t value;};
+/// struct struct FooStruct {struct BarStruct bar_struct;};
+///
+/// Please see https://github.com/chinedufn/swift-bridge/pull/225.
+pub(crate) struct CFFiStruct {
+    pub c_ffi_type: String,
+    pub fields: Vec<CFFiStruct>,
+}
+
 /// Used for types that have only one possible Rust form and Swift form,
 /// such as `()`, `struct UnitStruct;` and `enum SingleVariantEnum { Variant }`.
 pub(crate) struct OnlyEncoding {
@@ -102,7 +113,7 @@ pub(crate) trait BridgeableType: Debug {
     /// Some(vec![typedef enum __swift_bridge__$ResultVoidAndTransparentEnum$Tag { //... };])
     /// // ...
     /// Some(vec![typedef struct __swift_bridge__$ResultVoidAndTransparentEnum { //... };])
-    fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<Vec<String>>;
+    fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<CFFiStruct>;
 
     /// Get the Rust representation of this type.
     /// For a string this might be `std::string::String`.
@@ -510,7 +521,7 @@ impl BridgeableType for BridgedType {
         }
     }
 
-    fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<Vec<String>> {
+    fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<CFFiStruct> {
         match self {
             BridgedType::StdLib(ty) => match ty {
                 StdLibType::Result(ty) => ty.generate_custom_c_ffi_types(types),

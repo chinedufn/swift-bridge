@@ -1,4 +1,6 @@
-use crate::bridged_type::{BridgeableType, OnlyEncoding, TypePosition, UnusedOptionNoneValue};
+use crate::bridged_type::{
+    BridgeableType, CFFiStruct, OnlyEncoding, TypePosition, UnusedOptionNoneValue,
+};
 use crate::parse::{HostLang, OpaqueRustTypeGenerics};
 use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Ident, Span, TokenStream};
@@ -46,7 +48,7 @@ impl BridgeableType for OpaqueForeignType {
         None
     }
 
-    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<Vec<String>> {
+    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<CFFiStruct> {
         None
     }
 

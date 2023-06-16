@@ -25,9 +25,14 @@ class SharedStructAttributeTests: XCTestCase {
         let val = AlreadyDeclaredStructTest(field: 123)
         
         XCTAssertEqual(
-            reflect_already_declared_struct(val).field,
+            rust_reflect_already_declared_struct(val).field,
             123
         )
+    }
+
+    /// Verify that we can call a swift function from rust that uses a type that was already declared in a different bridge module.
+    func testSharedStructAlreadyDeclared() throws {
+        test_rust_calls_swift_already_declared_struct()
     }
 }
 
