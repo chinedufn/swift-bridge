@@ -1,6 +1,12 @@
 import Foundation
 
-func swift_arg_vec_u8(vec _: RustVec<UInt8>) {}
+func swift_arg_vec_u8(vec _: RustVec<UInt8>) {
+    assert(vec[0] == 1)
+    assert(vec[1] == 2)
+    assert(vec[2] == 3)
+    assert(vec[3] == 4)
+    assert(vec[4] == 5)
+}
 
 func swift_return_vec_u8() -> RustVec<UInt8> {
     let vec = RustVec<UInt8>()
