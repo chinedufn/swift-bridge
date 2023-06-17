@@ -643,7 +643,7 @@ func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer) {
     }
 
     fn expected_c_header() -> ExpectedCHeader {
-        ExpectedCHeader::ContainsAfterTrim("")
+        ExpectedCHeader::ExactAfterTrim("")
     }
 
     #[test]
