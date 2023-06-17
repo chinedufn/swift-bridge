@@ -1,10 +1,3 @@
-//
-//  String.swift
-//  SwiftRustIntegrationTestRunner
-//
-//  Created by Frankie Nwafili on 2/18/22.
-//
-
 import Foundation
 
 func send_bytes(vec _: RustVec<UInt8>) {}
