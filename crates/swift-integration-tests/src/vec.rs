@@ -31,13 +31,13 @@ mod ffi {
     }
 
     extern "Swift" {
-        fn receive_bytes() -> Vec<u8>;
-        fn send_bytes(vec: Vec<u8>);
+        fn swift_return_vec_u8() -> Vec<u8>;
+        fn swift_arg_vec_u8(vec: Vec<u8>);
     }
 }
 
 fn run_vec_tests() {
-    let vec = ffi::receive_bytes();
+    let vec = ffi::swift_return_vec_u8();
     assert_eq!(vec.len(), 5);
     assert_eq!(vec[0], 0);
     assert_eq!(vec[1], 1);
@@ -46,7 +46,7 @@ fn run_vec_tests() {
     assert_eq!(vec[4], 4);
 
     let vec: Vec<u8> = vec![1, 2, 3, 4, 5];
-    ffi::send_bytes(vec);
+    ffi::swift_arg_vec_u8(vec);
 }
 
 pub struct ARustTypeInsideVecT {
