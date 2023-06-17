@@ -1165,7 +1165,7 @@ impl BridgedType {
                         } else {
                             "UnsafeMutableRawPointer".to_string()
                         }
-                    },
+                    }
                     TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_rust() {
                             format!("RustVec<{}>", ty.ty.to_swift_type(type_pos, types))
