@@ -1,7 +1,7 @@
 //! Tests can be found in src/codegen/codegen_tests.rs and its submodules.
 
 use crate::bridged_type::shared_struct::StructField;
-use crate::bridged_type::{BridgeableType, BridgedType, CFFiStruct, StdLibType, StructFields};
+use crate::bridged_type::{BridgeableType, BridgedType, CFfiStruct, StdLibType, StructFields};
 use crate::codegen::CodegenConfig;
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
@@ -16,7 +16,14 @@ struct Bookkeeping {
     slice_types: HashSet<String>,
 }
 
-struct CFFiStructDeclarationBookkeeping {
+/// Used to manage the structures declaration order in a C header file. In the C header file, it is necessary to declare fields of a structure before declaring the structure itself.
+///
+/// For example, the declaration order of struct BarStruct {int32_t value;} and struct FooStruct {struct BarStruct bar_struct;} should be as follows:
+/// // C-header file
+/// struct BarStruct {int32_t value;};
+/// struct FooStruct {struct BarStruct bar_struct;};
+///
+struct CFfiStructDeclarationBookkeeping {
     encountered_custom_type_declarations: HashSet<String>,
     custom_type_declarations: Vec<String>,
 }
@@ -332,7 +339,7 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                 }
             }
         }
-        let mut c_ffi_struct_bookkeeping = CFFiStructDeclarationBookkeeping {
+        let mut c_ffi_struct_bookkeeping = CFfiStructDeclarationBookkeeping {
             encountered_custom_type_declarations: HashSet::new(),
             custom_type_declarations: Vec::new(),
         };
@@ -414,8 +421,8 @@ void* __swift_bridge__$Vec_{enum_name}$as_ptr(void* vec_ptr);
 }
 
 fn push_custom_type_declarations(
-    custom_type_declaration: &CFFiStruct,
-    c_ffi_struct_bookkeeping: &mut CFFiStructDeclarationBookkeeping,
+    custom_type_declaration: &CFfiStruct,
+    c_ffi_struct_bookkeeping: &mut CFfiStructDeclarationBookkeeping,
 ) {
     if c_ffi_struct_bookkeeping
         .encountered_custom_type_declarations
@@ -437,7 +444,7 @@ fn push_custom_type_declarations(
 fn declare_custom_c_ffi_types(
     func: &ParsedExternFn,
     types: &TypeDeclarations,
-    c_ffi_struct_bookkeeping: &mut CFFiStructDeclarationBookkeeping,
+    c_ffi_struct_bookkeeping: &mut CFfiStructDeclarationBookkeeping,
 ) {
     if let ReturnType::Type(_, ty) = &func.func.sig.output {
         if let Some(ty) = BridgedType::new_with_type(&ty, types) {

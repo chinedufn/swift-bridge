@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgeableType, BridgedType, CFFiStruct, TypePosition};
+use crate::bridged_type::{BridgeableType, BridgedType, CFfiStruct, TypePosition};
 use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
@@ -381,7 +381,7 @@ impl BuiltInResult {
         return Some(custom_rust_ffi_types);
     }
 
-    pub fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<CFFiStruct> {
+    pub fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<CFfiStruct> {
         if !self.is_custom_result_type() {
             return None;
         }
@@ -417,7 +417,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
             ok_c_tag_name = ok_c_tag_name,
             err_c_tag_name = err_c_tag_name,
         );
-        let mut custom_c_ffi_type = CFFiStruct {
+        let mut custom_c_ffi_type = CFfiStruct {
             c_ffi_type,
             fields: Vec::with_capacity(2),
         };

@@ -1,5 +1,5 @@
 use crate::bridged_type::{
-    BridgeableType, CFFiStruct, OnlyEncoding, TypePosition, UnusedOptionNoneValue,
+    BridgeableType, CFfiStruct, OnlyEncoding, TypePosition, UnusedOptionNoneValue,
 };
 use crate::parse::{HostLang, OpaqueRustTypeGenerics};
 use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
@@ -48,7 +48,7 @@ impl BridgeableType for OpaqueForeignType {
         None
     }
 
-    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<CFFiStruct> {
+    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<CFfiStruct> {
         None
     }
 

@@ -1,5 +1,5 @@
 use crate::bridged_type::{
-    BridgeableType, CFFiStruct, OnlyEncoding, TypePosition, UnusedOptionNoneValue,
+    BridgeableType, CFfiStruct, OnlyEncoding, TypePosition, UnusedOptionNoneValue,
 };
 use crate::TypeDeclarations;
 use proc_macro2::{Span, TokenStream};
@@ -38,7 +38,7 @@ impl BridgeableType for BridgedString {
         None
     }
 
-    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<CFFiStruct> {
+    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<CFfiStruct> {
         None
     }
 

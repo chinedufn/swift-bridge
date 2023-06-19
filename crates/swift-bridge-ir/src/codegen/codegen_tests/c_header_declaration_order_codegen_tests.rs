@@ -2,8 +2,9 @@ use super::{CodegenTest, ExpectedCHeader, ExpectedRustTokens, ExpectedSwiftCode}
 use proc_macro2::TokenStream;
 use quote::quote;
 
-/// Verify that fields of a structure in a C header file are generated before the structure.
-mod structure_fields_generated_before_structure {
+/// Verify that the type that if there is a `Result<Tuple, _>` the generated C header contains
+/// the tuple's fields followed by the tuple's FFI representation followed by the Result FFI repr.
+mod tuple_fields_generated_before_tuple_generated_before_result {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
@@ -43,7 +44,7 @@ typedef struct __swift_bridge__$ResultTupleI32ResultTestOpaqueRustTypeStringAndI
     }
 
     #[test]
-    fn structure_fields_generated_before_structure() {
+    fn tuple_fields_generated_before_tuple_generated_before_result() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

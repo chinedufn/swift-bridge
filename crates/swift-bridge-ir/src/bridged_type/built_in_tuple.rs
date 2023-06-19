@@ -1,6 +1,6 @@
 use crate::bridged_type::shared_struct::UnnamedStructFields;
 use crate::bridged_type::{
-    BridgeableType, BuiltInResult, CFFiStruct, OnlyEncoding, TypePosition, UnusedOptionNoneValue,
+    BridgeableType, BuiltInResult, CFfiStruct, OnlyEncoding, TypePosition, UnusedOptionNoneValue,
 };
 use crate::parse::TypeDeclarations;
 use crate::SWIFT_BRIDGE_PREFIX;
@@ -85,13 +85,13 @@ impl BridgeableType for BuiltInTuple {
         }])
     }
 
-    fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<CFFiStruct> {
+    fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<CFfiStruct> {
         let combined_types = self.0.combine_field_types_into_ffi_name_string(types);
         let fields: Vec<String> = self.0.combine_field_types_into_c_type(types);
         let fields = fields.join("; ");
         let fields = fields + ";";
         let c_decl = format!("typedef struct __swift_bridge__$tuple${combined_types} {{ {fields} }} __swift_bridge__$tuple${combined_types};");
-        Some(CFFiStruct {
+        Some(CFfiStruct {
             c_ffi_type: c_decl,
             fields: vec![],
         })
