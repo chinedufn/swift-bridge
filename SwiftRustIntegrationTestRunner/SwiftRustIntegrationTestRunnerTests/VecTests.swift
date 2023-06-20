@@ -123,6 +123,11 @@ class VecTests: XCTestCase {
         XCTAssertEqual(RustVec<Float>().len(), 0);
         XCTAssertEqual(RustVec<Double>().len(), 0);
     }
+
+    /// Verify that Rust can pass `RustVec`s to and receive `RustVec`s from Swift.
+    func testRustCallsSwiftRustVecFunctions() {
+        run_vec_tests()
+    }
 }
 
 
