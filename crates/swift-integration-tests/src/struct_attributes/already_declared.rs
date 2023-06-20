@@ -22,6 +22,10 @@ mod ffi2 {
         ) -> AlreadyDeclaredStructTest;
     }
 
+    extern "Rust" {
+        fn test_rust_calls_swift_already_declared_struct();
+    }
+
     extern "Swift" {
         fn swift_reflect_already_declared_struct(
             arg: AlreadyDeclaredStructTest,
@@ -33,4 +37,10 @@ fn rust_reflect_already_declared_struct(
     arg: AlreadyDeclaredStructTest,
 ) -> AlreadyDeclaredStructTest {
     arg
+}
+
+fn test_rust_calls_swift_already_declared_struct() {
+    let val =
+        ffi2::swift_reflect_already_declared_struct(ffi1::AlreadyDeclaredStructTest { field: 123 });
+    assert_eq!(val.field, 123);
 }

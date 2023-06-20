@@ -1,4 +1,6 @@
-use crate::bridged_type::{BridgeableType, OnlyEncoding, TypePosition, UnusedOptionNoneValue};
+use crate::bridged_type::{
+    BridgeableType, CFfiStruct, OnlyEncoding, TypePosition, UnusedOptionNoneValue,
+};
 use crate::TypeDeclarations;
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
@@ -36,7 +38,7 @@ impl BridgeableType for BridgedString {
         None
     }
 
-    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<Vec<String>> {
+    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<CFfiStruct> {
         None
     }
 

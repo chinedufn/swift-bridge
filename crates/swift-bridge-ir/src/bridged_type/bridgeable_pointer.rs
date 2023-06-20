@@ -1,5 +1,5 @@
 use crate::bridged_type::{
-    BridgeableType, BridgedType, BuiltInResult, TypePosition, UnusedOptionNoneValue,
+    BridgeableType, BridgedType, BuiltInResult, CFfiStruct, TypePosition, UnusedOptionNoneValue,
 };
 use crate::parse::TypeDeclarations;
 use crate::Path;
@@ -53,7 +53,7 @@ impl BridgeableType for BuiltInPointer {
         None
     }
 
-    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<Vec<String>> {
+    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<CFfiStruct> {
         None
     }
 

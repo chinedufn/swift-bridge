@@ -1,4 +1,4 @@
-use crate::bridged_type::{BridgeableType, BridgedType, TypePosition};
+use crate::bridged_type::{BridgeableType, BridgedType, CFfiStruct, TypePosition};
 use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
@@ -381,7 +381,7 @@ impl BuiltInResult {
         return Some(custom_rust_ffi_types);
     }
 
-    pub fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<Vec<String>> {
+    pub fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<CFfiStruct> {
         if !self.is_custom_result_type() {
             return None;
         }
@@ -405,8 +405,7 @@ impl BuiltInResult {
         let err_c_field_name = self.err_ty.to_c_type(types);
         let ok_c_tag_name = self.c_ok_tag_name(types);
         let err_c_tag_name = self.c_err_tag_name(types);
-        let mut custom_c_ffi_types = vec![];
-        custom_c_ffi_types.push(format!(
+        let c_ffi_type = format!(
             "typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
 union {c_fields_name} {{{ok_c_field_name}{err_c_field_name} err;}};
 typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}} {c_enum_name};",
@@ -417,18 +416,18 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
             err_c_field_name = err_c_field_name,
             ok_c_tag_name = ok_c_tag_name,
             err_c_tag_name = err_c_tag_name,
-        ));
-        if let Some(ok_custom_c_ffi_types) = self.ok_ty.generate_custom_c_ffi_types(types) {
-            for ok_custom_c_ffi_type in ok_custom_c_ffi_types {
-                custom_c_ffi_types.push(ok_custom_c_ffi_type);
-            }
+        );
+        let mut custom_c_ffi_type = CFfiStruct {
+            c_ffi_type,
+            fields: Vec::with_capacity(2),
+        };
+        if let Some(ok_custom_c_ffi_type) = self.ok_ty.generate_custom_c_ffi_types(types) {
+            custom_c_ffi_type.fields.push(ok_custom_c_ffi_type);
         }
-        if let Some(err_custom_c_ffi_types) = self.err_ty.generate_custom_c_ffi_types(types) {
-            for err_custom_c_ffi_type in err_custom_c_ffi_types {
-                custom_c_ffi_types.push(err_custom_c_ffi_type);
-            }
+        if let Some(err_custom_c_ffi_type) = self.err_ty.generate_custom_c_ffi_types(types) {
+            custom_c_ffi_type.fields.push(err_custom_c_ffi_type);
         }
-        return Some(custom_c_ffi_types);
+        return Some(custom_c_ffi_type);
     }
 
     fn is_custom_result_type(&self) -> bool {

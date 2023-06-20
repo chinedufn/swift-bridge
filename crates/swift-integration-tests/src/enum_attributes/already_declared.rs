@@ -22,7 +22,7 @@ mod ffi2 {
     }
 
     extern "Rust" {
-        fn test_rust_calls_swift_already_declared();
+        fn test_rust_calls_swift_already_declared_enum();
     }
 
     extern "Swift" {
@@ -35,7 +35,7 @@ mod ffi2 {
 fn rust_reflect_already_declared_enum(arg: AlreadyDeclaredEnumTest) -> AlreadyDeclaredEnumTest {
     arg
 }
-fn test_rust_calls_swift_already_declared() {
+fn test_rust_calls_swift_already_declared_enum() {
     let val = ffi2::swift_reflect_already_declared_enum(AlreadyDeclaredEnumTest::Variant);
     assert!(matches!(val, AlreadyDeclaredEnumTest::Variant));
 }
