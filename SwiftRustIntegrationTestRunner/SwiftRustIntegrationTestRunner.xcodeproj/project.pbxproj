@@ -56,6 +56,7 @@
 		22FD1C562753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */; };
 		C926E4DE294F07AA0027E7E2 /* FunctionAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */; };
 		C926E4E0294F18C50027E7E2 /* FunctionAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */; };
+		F46BCD232A42A3CB00735532 /* Vec.swift in Sources */ = {isa = PBXBuildFile; fileRef = F46BCD222A42A3CB00735532 /* Vec.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -124,6 +125,7 @@
 		22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustTypeTests.swift; sourceTree = "<group>"; };
 		C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FunctionAttributes.swift; sourceTree = "<group>"; };
 		C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FunctionAttributeTests.swift; sourceTree = "<group>"; };
+		F46BCD222A42A3CB00735532 /* Vec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vec.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -190,6 +192,7 @@
 				22BC4BBB294BA0EC0032B8A8 /* SharedEnumAttributes.swift */,
 				C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */,
 				1784BE2729CE86D600AE5A4A /* Tuple.swift */,
+				F46BCD222A42A3CB00735532 /* Vec.swift */,
 			);
 			path = SwiftRustIntegrationTestRunner;
 			sourceTree = "<group>";
@@ -393,6 +396,7 @@
 				22043297274B0AB000BAE645 /* Option.swift in Sources */,
 				220432EA2753092C00BAE645 /* RustFnUsesOpaqueSwiftType.swift in Sources */,
 				22BC4BBC294BA0EC0032B8A8 /* SharedEnumAttributes.swift in Sources */,
+				F46BCD232A42A3CB00735532 /* Vec.swift in Sources */,
 				22FD1C542753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift in Sources */,
 				220432A9274D31DC00BAE645 /* Pointer.swift in Sources */,
 				225908FE28DA0F9F0080C737 /* Result.swift in Sources */,

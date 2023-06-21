@@ -1,6 +1,13 @@
+//
+//  Vec.swift
+//  SwiftRustIntegrationTestRunner
+//
+//  Created by Niwaka on 2023/06/21.
+//
+
 import Foundation
 
-func swift_arg_vec_u8(vec _: RustVec<UInt8>) {
+func swift_arg_vec_u8(vec: RustVec<UInt8>) {
     assert(vec[0] == 1)
     assert(vec[1] == 2)
     assert(vec[2] == 3)
