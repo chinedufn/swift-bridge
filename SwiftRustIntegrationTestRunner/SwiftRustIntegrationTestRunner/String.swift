@@ -11,6 +11,6 @@ func create_swift_string() -> String {
     "hello"
 }
 
-func reflect_swift_string(arg: RustString) -> RustString {
+func reflect_rust_string(arg: RustString) -> RustString {
     arg
 }

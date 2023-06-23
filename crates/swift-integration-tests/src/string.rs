@@ -8,7 +8,7 @@ mod ffi {
 
     extern "Swift" {
         fn create_swift_string() -> String;
-        fn reflect_swift_string(arg: String) -> String;
+        fn reflect_rust_string(arg: String) -> String;
     }
 }
 
@@ -18,7 +18,7 @@ fn run_string_tests() {
     assert_eq!(&string, "hello");
 
     let foo = "foo";
-    let string = ffi::reflect_swift_string(foo.to_string());
+    let string = ffi::reflect_rust_string(foo.to_string());
     assert_eq!(string.len(), 3);
     assert_eq!(&string, foo);
 }
