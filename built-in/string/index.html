@@ -147,8 +147,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="string-----string"><a class="header" href="#string-----string">String &lt;---&gt; String</a></h1>
-<p>Rust's <code>std::string::String</code> can be passed to Swift as an owned <code>String</code>, a referenced <code>&amp;String</code> or 
-a mutably referenced <code>&amp;mut String</code>.</p>
+<p>Rust's <code>std::string::String</code> can be passed to Swift as an owned <code>String</code>, a referenced <code>&amp;String</code> or a mutably referenced <code>&amp;mut String</code>.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -176,13 +175,33 @@ mod ffi {
 	extern &quot;Swift&quot; {
 	    type SomeSwiftType;
 
-        // Swift returns a `RustString` and
-        // Rust receives a `std::string::String`.
-	    fn make_string() -&gt; String;
+	    fn make_rust_string() -&gt; String;
+	    fn make_swift_string() -&gt; String;
 	}
 }
 <span class="boring">}
 </span></code></pre></pre>
+<pre><code class="language-swift">// Swift
+
+func make_rust_string() -&gt; RustString {
+    RustString(&quot;Good Day&quot;)
+}
+
+// Swift can return anything that implements the `IntoRustString` protocol.
+// `swift-brdige` automatically implements this for Swift's `String` type.
+func make_swift_string() -&gt; String {
+    &quot;Hello World&quot;
+}
+</code></pre>
+<h2 id="ruststring"><a class="header" href="#ruststring">RustString</a></h2>
+<p>Since both Rust and Swift have their own <code>String</code> type, it is technically possible for us to automatically
+convert owned Rust <code>std::string::String</code>s into Swift <code>String</code>s.</p>
+<p>However, we do not do this since Swift does not currently have a way to construct a Swift <code>String</code> without copying.</p>
+<p>This means that if we were to automatically convert from a Rust <code>std::string::String</code> to a Swift <code>String</code> we would have to create a new
+Swift allocation and copy all of the Rust <code>std::string::String</code> bytes to that allocation.</p>
+<p><code>swift-bridge</code> seeks to avoid unnecessary allocations, so instead of performing this implicit allocation
+we pass a <code>RustString</code> type from Rust to Swift.</p>
+<p>The <code>RustString</code>'s <code>.toString()</code> method can then be called on the Swift side to get a Swift <code>String</code>.</p>
 
                     </main>
 
