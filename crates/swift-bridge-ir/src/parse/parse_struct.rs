@@ -139,7 +139,13 @@ impl<'a> SharedStructDeclarationParser<'a> {
                     }
                     _ => todo!("Push parse error that derive attribute is in incorrect format"),
                 },
-                _ => todo!("Push unsupported attribute error."),
+                attr_name => {
+                    todo!(
+                        "Push unsupported attribute error. Found unsupported attribute \"{}\" on struct \"{}\". Consult the swift-bridge manual for supported struct attributes.",
+                        attr_name,
+                        item_struct.ident.to_string(),
+                    )
+                }
             }
         }
 
