@@ -155,7 +155,7 @@
 
 #[swift_bridge::bridge]
 mod ffi {
-    #[swift_bridge::bridge(swift_repr = &quot;struct&quot;)]
+    #[swift_bridge(swift_repr = &quot;struct&quot;)]
     struct SomeSharedStruct {
         some_field: u8,
         another_field: Option&lt;u64&gt;
@@ -182,7 +182,7 @@ func another_function() -&gt; SomeSharedStruct {
 }
 </code></pre>
 <h3 id="struct-attributes"><a class="header" href="#struct-attributes">Struct Attributes</a></h3>
-<h4 id="swift_bridgebridgealready_declared"><a class="header" href="#swift_bridgebridgealready_declared">#[swift_bridge::bridge(already_declared)]</a></h4>
+<h4 id="swift_bridgealready_declared"><a class="header" href="#swift_bridgealready_declared">#[swift_bridge(already_declared)]</a></h4>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -209,7 +209,7 @@ mod ffi_2 {
 }
 <span class="boring">}
 </span></code></pre></pre>
-<h4 id="swift_bridgebridgeswift_repr--"><a class="header" href="#swift_bridgebridgeswift_repr--">#[swift_bridge::bridge(swift_repr = &quot;...&quot;)]</a></h4>
+<h4 id="swift_bridgeswift_repr--"><a class="header" href="#swift_bridgeswift_repr--">#[swift_bridge(swift_repr = &quot;...&quot;)]</a></h4>
 <p><em>Valid values are &quot;struct&quot; or &quot;class&quot;.</em></p>
 <p>How the struct should appear on the Swift side.</p>
 <p>Swift structs are copy-on-write, so we do not allow you to mutate the fields of a <code>swift_repr = &quot;struct&quot;</code>
