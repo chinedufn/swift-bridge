@@ -7,7 +7,7 @@ You can define structs whos fields can be accessed by both Rust and Swift.
 
 #[swift_bridge::bridge]
 mod ffi {
-    #[swift_bridge::bridge(swift_repr = "struct")]
+    #[swift_bridge(swift_repr = "struct")]
     struct SomeSharedStruct {
         some_field: u8,
         another_field: Option<u64>
@@ -37,7 +37,7 @@ func another_function() -> SomeSharedStruct {
 
 ### Struct Attributes
 
-#### #[swift_bridge::bridge(already_declared)]
+#### #[swift_bridge(already_declared)]
 
 ```rust
 #[swift_bridge::bridge]
@@ -63,7 +63,7 @@ mod ffi_2 {
 }
 ```
 
-#### #[swift_bridge::bridge(swift_repr = "...")]
+#### #[swift_bridge(swift_repr = "...")]
 
 _Valid values are "struct" or "class"._
 
