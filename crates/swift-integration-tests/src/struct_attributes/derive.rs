@@ -25,4 +25,10 @@ mod ffi {
     struct StructDeriveClone3 {
         field: String,
     }
+
+    #[swift_bridge(swift_repr = "struct")]
+    #[derive(serde::Deserialize)]
+    struct StructDeriveDeserialize {
+        field: String,
+    }
 }

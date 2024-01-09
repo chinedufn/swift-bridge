@@ -257,6 +257,9 @@ pub(crate) struct SharedStruct {
 pub(crate) struct StructDerives {
     pub copy: bool,
     pub clone: bool,
+    pub debug: bool,
+    pub serialize: bool,
+    pub deserialize: bool,
 }
 
 impl SharedStruct {

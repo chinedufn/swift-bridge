@@ -38,6 +38,9 @@ impl Default for StructDerives {
         StructDerives {
             copy: false,
             clone: false,
+            debug: false,
+            serialize: false,
+            deserialize: false,
         }
     }
 }
@@ -133,6 +136,9 @@ impl<'a> SharedStructDeclarationParser<'a> {
                             match derive.to_token_stream().to_string().as_str() {
                                 "Copy" => attribs.derives.copy = true,
                                 "Clone" => attribs.derives.clone = true,
+                                "Debug" => attribs.derives.debug = true,
+                                "serde :: Serialize" => attribs.derives.serialize = true,
+                                "serde :: Deserialize" => attribs.derives.deserialize = true,
                                 _ => {}
                             }
                         }
@@ -353,6 +359,9 @@ mod tests {
 
                 #[derive(Clone)]
                 struct Bar;
+
+                #[derive(serde::Deserialize)]
+                struct Baz;
             }
         };
 
@@ -367,6 +376,11 @@ mod tests {
 
         assert_eq!(ty2.derives.copy, false);
         assert_eq!(ty2.derives.clone, true);
+
+        let ty3 = module.types.types()[2].unwrap_shared_struct();
+
+        assert_eq!(ty3.derives.copy, false);
+        assert_eq!(ty3.derives.deserialize, true);
     }
 
     /// Verify that we properly parse multiple comma separated struct attributes.
