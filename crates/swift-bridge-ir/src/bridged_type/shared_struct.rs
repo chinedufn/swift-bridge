@@ -253,7 +253,7 @@ pub(crate) struct SharedStruct {
     pub derives: StructDerives,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct StructDerives {
     pub copy: bool,
     pub clone: bool,
