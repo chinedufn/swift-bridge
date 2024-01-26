@@ -52,12 +52,14 @@ func testMakeAVec () {
 
 func testMakeAnotherVec () {
     let initial: [Int16] = [3, 5, 7]
-    let vec: RustVec = get_vec_from_rust(initial.toUnsafeBufferPointer())
+    initial.withUnsafeBufferPointer({ initalPtr in
+        let vec: RustVec = get_vec_from_rust(initialPtr)
 
-    XCTAssertEqual(vec.len(), 3);
+        XCTAssertEqual(vec.len(), 3);
 
-	for (index, value) in vec.enumerate() {
-	    XCTAssertEqual(value, initial[index])
-	}
+	    for (index, value) in vec.enumerate() {
+	        XCTAssertEqual(value, initial[index])
+	    }
+    });
 }
 ```
