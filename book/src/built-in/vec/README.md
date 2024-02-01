@@ -29,8 +29,8 @@ fn make_rust_vec() -> Vec<u32> {
     vec![5, 8, 11]
 }
 
-fn make_rust_vec_with_initial_contents(initial: &[16]) -> Vec<u16> {
-    intial.to_vec()
+fn make_rust_vec_with_initial_contents(initial: &[u16]) -> Vec<u16> {
+    initial.to_vec()
 }
 ```
 
@@ -53,7 +53,7 @@ func testMakeAVec () {
 func testMakeAnotherVec () {
     let initial: [Int16] = [3, 5, 7]
     initial.withUnsafeBufferPointer({ initalPtr in
-        let vec: RustVec = get_vec_from_rust(initialPtr)
+        let vec: RustVec = make_rust_vec_with_initial_contents(initialPtr)
 
         XCTAssertEqual(vec.len(), 3);
 
