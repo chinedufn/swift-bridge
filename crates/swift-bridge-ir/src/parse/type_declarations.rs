@@ -230,7 +230,7 @@ impl TypeDeclarations {
     }
 
     pub(crate) fn get_with_type(&self, ty: &Type) -> Option<&TypeDeclaration> {
-        let ty = match ty.deref() {
+        let ty = match ty {
             Type::Reference(reference) => reference.elem.to_token_stream().to_string(),
             Type::Path(path) => path.to_token_stream().to_string(),
             _ => todo!("Handle other cases"),
