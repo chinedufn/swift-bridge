@@ -10,4 +10,5 @@ cargo build -p async-functions
 swiftc -L ../../target/debug \
   -lasync_functions \
   -import-objc-header bridging-header.h \
+  -framework CoreFoundation -framework SystemConfiguration \
   main.swift ./generated/SwiftBridgeCore.swift ./generated/async-functions/async-functions.swift

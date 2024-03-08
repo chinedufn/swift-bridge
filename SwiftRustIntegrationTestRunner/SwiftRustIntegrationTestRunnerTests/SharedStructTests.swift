@@ -34,6 +34,16 @@ class SharedStructTests: XCTestCase {
         XCTAssertEqual(val.named_field, 56)
     }
     
+    /// Verify that we can pass a transparent struct that contains a String back and forth between Rust and Swift.
+    /// `SharedStruct { field: String }`.
+    func testStructReprStructWithOneStringField() {
+        let val = rust_calls_swift_struct_repr_struct_one_string_field(
+            arg: StructReprStructWithOneStringField(field: "hello world".intoRustString())
+        );
+        XCTAssertEqual(val.field.toString(), "hello world")
+    }
+   
+    
     /// Verify that we can create a tuple struct.
     func testTupleStruct() {
         let val = StructReprStructTupleStruct(_0: 11, _1: 22)

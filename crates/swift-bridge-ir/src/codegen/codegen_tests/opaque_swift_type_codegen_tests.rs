@@ -32,6 +32,7 @@ mod extern_swift_freestanding_fn_with_owned_opaque_swift_type_arg {
                 }
             }
 
+            #[allow(improper_ctypes)]
             extern "C" {
                 #[link_name = "__swift_bridge__$some_function"]
                 fn __swift_bridge__some_function (arg: MyType);

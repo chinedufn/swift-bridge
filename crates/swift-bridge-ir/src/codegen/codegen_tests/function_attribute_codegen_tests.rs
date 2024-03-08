@@ -429,6 +429,8 @@ mod function_attribute_swift_name_extern_rust {
             pub fn call_swift_from_rust() -> String {
                 unsafe { Box::from_raw(unsafe {__swift_bridge__call_swift_from_rust () }).0 }
             }
+
+            #[allow(improper_ctypes)]
             extern "C" {
                 #[link_name = "__swift_bridge__$call_swift_from_rust"]
                 fn __swift_bridge__call_swift_from_rust() -> * mut swift_bridge::string::RustString;

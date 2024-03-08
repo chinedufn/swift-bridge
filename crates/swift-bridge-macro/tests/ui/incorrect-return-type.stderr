@@ -29,3 +29,7 @@ error[E0308]: mismatched types
    = note: expected struct `SomeType`
                 found enum `Option<SomeType>`
    = note: this error originates in the attribute macro `swift_bridge::bridge` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider using `Option::expect` to unwrap the `Option<SomeType>` value, panicking if the value is an `Option::None`
+   |
+6  | #[swift_bridge::bridge].expect("REASON")
+   |                        +++++++++++++++++

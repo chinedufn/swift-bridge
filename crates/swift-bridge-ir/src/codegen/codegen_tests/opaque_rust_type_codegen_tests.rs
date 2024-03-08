@@ -422,6 +422,7 @@ mod extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg {
                 })) as *mut super::MyType ) }
             }
 
+            #[allow(improper_ctypes)]
             extern "C" {
                 #[link_name = "__swift_bridge__$some_function"]
                 fn __swift_bridge__some_function (arg: *mut super::MyType);

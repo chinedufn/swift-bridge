@@ -259,11 +259,7 @@ impl ToTokens for SwiftBridgeModule {
         }
 
         let extern_swift_fn_tokens = if extern_swift_fn_tokens.len() > 0 {
-            quote! {
-                extern "C" {
-                    #(#extern_swift_fn_tokens)*
-                }
-            }
+            generate_extern_c_block(extern_swift_fn_tokens)
         } else {
             quote! {}
         };
@@ -307,6 +303,83 @@ impl ToTokens for SwiftBridgeModule {
             }
         };
         t.to_tokens(tokens);
+    }
+}
+
+/// Generate an `extern "C"` block such as:
+///
+/// ```no_run
+/// extern "C" {
+///     #[link_name = "some_swift_function_name"]
+///     fn __swift_bridge__some_swift_function_name();
+/// }
+/// ```
+///
+/// ## `improper_ctypes` lint suppression
+///
+/// We suppress the `improper_ctypes` lint with `#[allow(improper_ctypes)]`.
+///
+/// Given the following bridge module:
+///
+/// ```ignore
+/// #[swift_bridge::bridge]
+/// mod ffi {
+///     struct SomeStruct {
+///         string: String
+///     }
+///
+///     extern "Swift" {
+///         fn return_struct() -> SomeStruct;
+///     }
+/// }
+/// ```
+///
+/// We would generate the following struct FFI representation and `extern "C"` block:
+///
+/// ```no_run
+/// struct __swift_bridge__SomeStruct {
+///     string: *mut swift_bridge::string::RustString
+/// }
+///
+/// extern "C" {
+///     #[link_name = "__swift_bridge__$rust_calls_swift_struct_repr_struct_one_string_field"]
+///     fn __swift_bridge__return_struct() -> __swift_bridge__SomeStruct;
+/// }
+///
+/// # mod swift_bridge { pub mod string { pub struct RustString; }}
+/// ```
+///
+/// The `__swift_bridge__SomeStruct` holds a pointer to a `RustString`.
+///
+/// Since `RustString` is not FFI safe, and the Rust compiler cannot know that we only plan to use
+/// the pointer as an opaque pointer, the Rust compiler emits an `improper_ctypes` lint.
+///
+/// We silence this lint since we know that our usage is FFI safe.
+///
+/// The risk in this is that if in the future we accidentally pass a truly improper ctype over FFI
+/// this `#[allow(improper_ctypes)]` might prevent us from noticing.
+///
+/// Given that our codegen is heavily tested we are not currently concerned about this.
+///
+/// Should we become concerned about this in the future we could consider solutions such as:
+///
+/// - Generate an `__swift_bridge__SomeStruct_INNER_OPAQUE` that only held opaque pointers.
+///   We could then transmute the `__swift_bridge__SomeStruct` to/from this type when
+///   passing/receiving it across the FFI boundary.
+///     ```
+///     struct __swift_bridge__SomeStruct_INNER_OPAQUE {
+///         string: *mut std::ffi::c_void
+///     }
+///     ```
+///   - This would involve generating an extra type, but given that they would have the same layout
+///     and simply get transmuted into each other we could imagine that the optimizer would erase
+///     all overhead.
+fn generate_extern_c_block(extern_swift_fn_tokens: Vec<TokenStream>) -> TokenStream {
+    quote! {
+        #[allow(improper_ctypes)]
+        extern "C" {
+            #(#extern_swift_fn_tokens)*
+        }
     }
 }
 
@@ -361,6 +434,7 @@ mod tests {
                     unsafe { __swift_bridge__some_function() }
                 }
 
+                #[allow(improper_ctypes)]
                 extern "C" {
                     #[link_name = "__swift_bridge__$some_function"]
                     fn __swift_bridge__some_function ();
@@ -389,6 +463,7 @@ mod tests {
                     unsafe { __swift_bridge__some_function(start) }
                 }
 
+                #[allow(improper_ctypes)]
                 extern "C" {
                     #[link_name = "__swift_bridge__$some_function"]
                     fn __swift_bridge__some_function (start: bool);
@@ -620,6 +695,7 @@ mod tests {
                 }
             }
 
+            #[allow(improper_ctypes)]
             extern "C" {
                 #[link_name = "__swift_bridge__$Foo$_free"]
                 fn __swift_bridge__Foo__free (this: *mut std::ffi::c_void);
@@ -685,6 +761,7 @@ mod tests {
                 }
             }
 
+            #[allow(improper_ctypes)]
             extern "C" {
                 #[link_name = "__swift_bridge__$Foo$new"]
                 fn __swift_bridge__Foo_new() -> Foo;
@@ -805,6 +882,7 @@ mod tests {
                 }
             }
 
+            #[allow(improper_ctypes)]
             extern "C" {
                 #[link_name = "__swift_bridge__$Foo$notify"]
                 fn __swift_bridge__Foo_notify(this: swift_bridge::PointerToSwiftType);
@@ -885,6 +963,7 @@ mod tests {
                 unsafe { __swift_bridge__built_in_pointers(arg1, arg2) }
             }
 
+            #[allow(improper_ctypes)]
             extern "C" {
                 #[link_name = "__swift_bridge__$built_in_pointers"]
                 fn __swift_bridge__built_in_pointers (
@@ -912,6 +991,7 @@ mod tests {
                 unsafe { __swift_bridge__void_pointers(arg1, arg2) }
             }
 
+            #[allow(improper_ctypes)]
             extern "C" {
                 #[link_name = "__swift_bridge__$void_pointers"]
                 fn __swift_bridge__void_pointers (
