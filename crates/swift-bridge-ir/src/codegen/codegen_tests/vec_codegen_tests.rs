@@ -566,6 +566,8 @@ mod extern_swift_fn_return_vec_of_primitive_rust_type {
                 pub fn some_function() -> Vec<u8> {
                     unsafe { *Box::from_raw(unsafe { __swift_bridge__some_function() }) }
                 }
+
+                #[allow(improper_ctypes)]
                 extern "C" {
                     #[link_name = "__swift_bridge__$some_function"]
                     fn __swift_bridge__some_function() -> *mut Vec<u8>;
@@ -623,6 +625,8 @@ mod extern_swift_fn_arg_vec_of_primitive_rust_type {
                 pub fn some_function(arg: Vec<u8>) {
                     unsafe { __swift_bridge__some_function(Box::into_raw(Box::new(arg))) }
                 }
+
+                #[allow(improper_ctypes)]
                 extern "C" {
                     #[link_name = "__swift_bridge__$some_function"]
                     fn __swift_bridge__some_function(arg: *mut Vec<u8>);

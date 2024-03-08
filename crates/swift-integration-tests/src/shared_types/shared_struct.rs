@@ -17,6 +17,11 @@ mod ffi {
     #[swift_bridge(swift_repr = "struct")]
     struct StructReprStructTupleStruct(u8, u32);
 
+    #[swift_bridge(swift_repr = "struct")]
+    struct StructReprStructWithOneStringField {
+        field: String,
+    }
+
     extern "Rust" {
         fn test_rust_calls_swift();
 
@@ -34,15 +39,19 @@ mod ffi {
     extern "Swift" {
         fn rust_calls_swift_struct_with_no_fields(arg: StructWithNoFields) -> StructWithNoFields;
 
-        fn rust_calls_struct_repr_struct_one_primitive_field(
+        fn rust_calls_swift_struct_repr_struct_one_primitive_field(
             arg: StructReprStructWithOnePrimitiveField,
         ) -> StructReprStructWithOnePrimitiveField;
+
+        fn rust_calls_swift_struct_repr_struct_one_string_field(
+            arg: StructReprStructWithOneStringField,
+        ) -> StructReprStructWithOneStringField;
     }
 }
 
 fn test_rust_calls_swift() {
     self::tests::test_rust_calls_swift_struct_with_no_fields();
-    self::tests::test_rust_calls_struct_repr_struct_one_primitive_field();
+    self::tests::test_rust_calls_swift_struct_repr_struct_one_primitive_field();
 }
 
 fn swift_calls_rust_struct_with_no_fields(arg: ffi::StructWithNoFields) -> ffi::StructWithNoFields {
@@ -70,10 +79,10 @@ mod tests {
             ffi::rust_calls_swift_struct_with_no_fields(ffi::StructWithNoFields);
     }
 
-    pub(super) fn test_rust_calls_struct_repr_struct_one_primitive_field() {
+    pub(super) fn test_rust_calls_swift_struct_repr_struct_one_primitive_field() {
         let arg = ffi::StructReprStructWithOnePrimitiveField { named_field: 10 };
 
-        let val = ffi::rust_calls_struct_repr_struct_one_primitive_field(arg);
+        let val = ffi::rust_calls_swift_struct_repr_struct_one_primitive_field(arg);
 
         assert_eq!(val.named_field, 10);
     }
