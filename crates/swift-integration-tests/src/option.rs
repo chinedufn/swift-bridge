@@ -38,7 +38,6 @@ mod ffi {
         type OptTestOpaqueRefRustType;
 
         #[swift_bridge(init)]
-        #[swift_bridge(associated_to = OptTestOpaqueRustType)]
         fn new(field: u8) -> OptTestOpaqueRustType;
         fn field(self: &OptTestOpaqueRustType) -> u8;
 
