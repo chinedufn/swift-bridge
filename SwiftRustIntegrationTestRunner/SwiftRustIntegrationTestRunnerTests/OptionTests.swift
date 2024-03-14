@@ -106,13 +106,13 @@ class OptionTests: XCTestCase {
         let val = OptTestOpaqueRefRustType.new(123)
         let opt_ref = val.field_ref()
 
-        let reflect = rust_reflect_option_ref_opaque_rust_type(opt_ref)
+        var reflect = rust_reflect_option_ref_opaque_rust_type(opt_ref)
         XCTAssertEqual(reflect!.field(), 123)
         XCTAssertNil(rust_reflect_option_ref_opaque_rust_type(nil))
-        let reflect = nil
+        reflect = nil
         
-        let second_reference = rust_reflect_option_ref_opaque_rust_type(opt_ref)
-        XCTAssertEqual(second_reference!.field(), 123)
+        reflect = rust_reflect_option_ref_opaque_rust_type(opt_ref)
+        XCTAssertEqual(reflect!.field(), 123)
     }
     
     func testSwiftCallRustWithOptionOpaqueRustCopyType() throws {
