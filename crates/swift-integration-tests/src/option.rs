@@ -35,10 +35,15 @@ mod ffi {
 
     extern "Rust" {
         type OptTestOpaqueRustType;
+        type OptTestOpaqueRefRustType;
 
         #[swift_bridge(init)]
         fn new(field: u8) -> OptTestOpaqueRustType;
-        fn field(&self) -> u8;
+        fn field(self: &OptTestOpaqueRustType) -> u8;
+
+        #[swift_bridge(associated_to = OptTestOpaqueRefRustType)]
+        fn new(field: u8) -> OptTestOpaqueRefRustType;
+        fn field_ref(self: &OptTestOpaqueRefRustType) -> Option<&OptTestOpaqueRustType>;
     }
 
     extern "Rust" {
@@ -84,6 +89,10 @@ mod ffi {
         fn rust_reflect_option_opaque_rust_type(
             arg: Option<OptTestOpaqueRustType>,
         ) -> Option<OptTestOpaqueRustType>;
+
+        fn rust_reflect_option_ref_opaque_rust_type(
+            arg: Option<&OptTestOpaqueRustType>,
+        ) -> Option<&OptTestOpaqueRustType>;
 
         fn rust_reflect_option_opaque_rust_copy_type(
             arg: Option<OptTestOpaqueRustCopyType>,
@@ -178,6 +187,22 @@ impl OptTestOpaqueRustType {
     }
 }
 
+pub struct OptTestOpaqueRefRustType {
+    field: Option<OptTestOpaqueRustType>,
+}
+
+impl OptTestOpaqueRefRustType {
+    fn new(field: u8) -> Self {
+        Self {
+            field: Some(OptTestOpaqueRustType::new(field)),
+        }
+    }
+
+    fn field_ref(&self) -> Option<&OptTestOpaqueRustType> {
+        self.field.as_ref()
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct OptTestOpaqueRustCopyType {
     #[allow(unused)]
@@ -240,6 +265,12 @@ fn rust_reflect_option_vector_rust_type(arg: Option<Vec<u16>>) -> Option<Vec<u16
 fn rust_reflect_option_opaque_rust_type(
     arg: Option<OptTestOpaqueRustType>,
 ) -> Option<OptTestOpaqueRustType> {
+    arg
+}
+
+fn rust_reflect_option_ref_opaque_rust_type(
+    arg: Option<&OptTestOpaqueRustType>,
+) -> Option<&OptTestOpaqueRustType> {
     arg
 }
 

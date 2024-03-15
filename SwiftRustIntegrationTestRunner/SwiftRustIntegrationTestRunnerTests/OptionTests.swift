@@ -97,6 +97,23 @@ class OptionTests: XCTestCase {
         
         XCTAssertNil(rust_reflect_option_opaque_rust_type(nil))
     }
+
+    /// Verify that we can pass and receive an `Option<&RustType>`.
+    ///
+    /// We deinitialize the first reference and create a second to confirm that
+    /// deinitializing the reference does not deinitialize the Rust type.
+    func testSwiftCallRustWithOptionRefOpaqueRustType() throws {
+        let val = OptTestOpaqueRefRustType.new(123)
+        let opt_ref = val.field_ref()
+
+        var reflect = rust_reflect_option_ref_opaque_rust_type(opt_ref)
+        XCTAssertEqual(reflect!.field(), 123)
+        XCTAssertNil(rust_reflect_option_ref_opaque_rust_type(nil))
+        reflect = nil
+        
+        reflect = rust_reflect_option_ref_opaque_rust_type(opt_ref)
+        XCTAssertEqual(reflect!.field(), 123)
+    }
     
     func testSwiftCallRustWithOptionOpaqueRustCopyType() throws {
         let val = new_opaque_rust_copy_type(123)
