@@ -433,7 +433,7 @@ mod extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg {
     const EXPECTED_SWIFT: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
         r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer) {
+public func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer) {
     some_function(arg: MyType(ptr: arg))
 }
 "#,

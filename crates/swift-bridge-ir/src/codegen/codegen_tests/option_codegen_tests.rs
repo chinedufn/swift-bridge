@@ -119,7 +119,7 @@ mod extern_swift_fn_option_primitive {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg: __private__OptionU8) -> __private__OptionF32 {
+public func __swift_bridge__some_function (_ arg: __private__OptionU8) -> __private__OptionF32 {
     some_function(arg: arg.intoSwiftRepr()).intoFfiRepr()
 }
 "#,
