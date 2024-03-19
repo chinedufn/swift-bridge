@@ -445,7 +445,7 @@ public func callRustFromSwift() -> RustString {
     RustString(ptr: __swift_bridge__$call_rust_from_swift())
 }
 @_cdecl("__swift_bridge__$call_swift_from_rust")
-func __swift_bridge__call_swift_from_rust () -> UnsafeMutableRawPointer {
+public func __swift_bridge__call_swift_from_rust () -> UnsafeMutableRawPointer {
     { let rustString = callSwiftFromRust().intoRustString(); rustString.isOwned = false; return rustString.ptr }()
 }
 "#,

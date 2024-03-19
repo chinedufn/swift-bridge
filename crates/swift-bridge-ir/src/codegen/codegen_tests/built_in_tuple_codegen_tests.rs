@@ -316,7 +316,7 @@ mod extern_swift_tuple_primitives {
         ExpectedSwiftCode::ContainsManyAfterTrim(vec![
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg: __swift_bridge__$tuple$I32U8) -> __swift_bridge__$tuple$I32U8 {
+public func __swift_bridge__some_function (_ arg: __swift_bridge__$tuple$I32U8) -> __swift_bridge__$tuple$I32U8 {
     { let val = some_function(arg: { let val = arg; return (val._0, val._1); }()); return __swift_bridge__$tuple$I32U8(_0: val.0, _1: val.1); }()
 }
 "#,
@@ -389,7 +389,7 @@ mod extern_swift_tuple_opaque_and_string {
         ExpectedSwiftCode::ContainsManyAfterTrim(vec![
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg: __swift_bridge__$tuple$SomeTypeString) -> __swift_bridge__$tuple$SomeTypeString {
+public func __swift_bridge__some_function (_ arg: __swift_bridge__$tuple$SomeTypeString) -> __swift_bridge__$tuple$SomeTypeString {
     { let val = some_function(arg: { let val = arg; return (SomeType(ptr: val._0), RustString(ptr: val._1)); }()); return __swift_bridge__$tuple$SomeTypeString(_0: {val.0.isOwned = false; return val.0.ptr;}(), _1: { let rustString = val.1.intoRustString(); rustString.isOwned = false; return rustString.ptr }()); }()
 }
 "#,
@@ -464,7 +464,7 @@ mod extern_swift_tuple_transparent_struct_and_transparent_enum {
         ExpectedSwiftCode::ContainsManyAfterTrim(vec![
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg: __swift_bridge__$tuple$SomeStructSomeEnum) -> __swift_bridge__$tuple$SomeStructSomeEnum {
+public func __swift_bridge__some_function (_ arg: __swift_bridge__$tuple$SomeStructSomeEnum) -> __swift_bridge__$tuple$SomeStructSomeEnum {
     { let val = some_function(arg: { let val = arg; return (val._0.intoSwiftRepr(), val._1.intoSwiftRepr()); }()); return __swift_bridge__$tuple$SomeStructSomeEnum(_0: val.0.intoFfiRepr(), _1: val.1.intoFfiRepr()); }()
 }
 "#,

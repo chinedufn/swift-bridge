@@ -317,7 +317,7 @@ class __private__RustFnOnceCallback{maybe_associated_ty}${fn_name}$param{idx} {{
 
     let generated_func = format!(
         r#"@_cdecl("{link_name}")
-func {prefixed_fn_name} ({params}){ret} {{
+public func {prefixed_fn_name} ({params}){ret} {{
     {call_fn}
 }}{rust_fn_once_callback_classes}
 "#,
@@ -429,7 +429,7 @@ public func foo() {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$foo")
-func __swift_bridge__foo () {
+public func __swift_bridge__foo () {
     foo()
 } 
 "#;
@@ -452,7 +452,7 @@ func __swift_bridge__foo () {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$foo")
-func __swift_bridge__foo () -> __private__FfiSlice {
+public func __swift_bridge__foo () -> __private__FfiSlice {
     foo().toFfiSlice()
 } 
 "#;
@@ -476,7 +476,7 @@ func __swift_bridge__foo () -> __private__FfiSlice {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$MyType$foo")
-func __swift_bridge__MyType_foo (_ this: UnsafeMutableRawPointer) -> __private__FfiSlice {
+public func __swift_bridge__MyType_foo (_ this: UnsafeMutableRawPointer) -> __private__FfiSlice {
     Unmanaged<MyType>.fromOpaque(this).takeUnretainedValue().foo().toFfiSlice()
 }
 "#;
@@ -594,7 +594,7 @@ func __swift_bridge__Foo__free (ptr: UnsafeMutableRawPointer) {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$new")
-func __swift_bridge__Foo_new (_ a: UInt8) -> UnsafeMutableRawPointer {
+public func __swift_bridge__Foo_new (_ a: UInt8) -> UnsafeMutableRawPointer {
     Unmanaged.passRetained(Foo(a: a)).toOpaque()
 }
 "#;
@@ -701,12 +701,12 @@ extension Foo {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$push")
-func __swift_bridge__Foo_push (_ this: UnsafeMutableRawPointer, _ arg: UInt8) {
+public func __swift_bridge__Foo_push (_ this: UnsafeMutableRawPointer, _ arg: UInt8) {
     Unmanaged<Foo>.fromOpaque(this).takeUnretainedValue().push(arg: arg)
 }
 
 @_cdecl("__swift_bridge__$Foo$pop")
-func __swift_bridge__Foo_pop (_ this: UnsafeMutableRawPointer) {
+public func __swift_bridge__Foo_pop (_ this: UnsafeMutableRawPointer) {
     Unmanaged<Foo>.fromOpaque(this).takeUnretainedValue().pop()
 }
 "#;
@@ -833,7 +833,7 @@ extension FooRef {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$Foo$bar")
-func __swift_bridge__Foo_bar (_ arg: UInt8) {
+public func __swift_bridge__Foo_bar (_ arg: UInt8) {
     Foo::bar(arg: arg)
 }
 "#;
@@ -925,7 +925,7 @@ func void_pointer() -> UnsafeRawPointer {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$void_pointer")
-func __swift_bridge__void_pointer (_ arg: UnsafeRawPointer) {
+public func __swift_bridge__void_pointer (_ arg: UnsafeRawPointer) {
     void_pointer(arg: arg)
 }
 "#;
@@ -1004,7 +1004,7 @@ func some_function() -> Foo {
 
         let expected = r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function () {
+public func __swift_bridge__some_function () {
     someFunctionSwiftName()
 }
 "#;

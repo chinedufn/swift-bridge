@@ -370,7 +370,7 @@ mod extern_swift_fn_arg_swift_repr_struct {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg: __swift_bridge__$SomeStruct) {
+public func __swift_bridge__some_function (_ arg: __swift_bridge__$SomeStruct) {
     some_function(arg: arg.intoSwiftRepr())
 }
 "#,
@@ -487,7 +487,7 @@ mod extern_swift_return_swift_repr_struct {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function () -> __swift_bridge__$SomeStruct {
+public func __swift_bridge__some_function () -> __swift_bridge__$SomeStruct {
     some_function().intoFfiRepr()
 }
 "#,

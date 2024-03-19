@@ -52,6 +52,7 @@ mod string_codegen_tests;
 mod transparent_enum_codegen_tests;
 mod transparent_struct_codegen_tests;
 mod vec_codegen_tests;
+mod visibility_codegen_tests;
 
 struct CodegenTest {
     bridge_module: BridgeModule,

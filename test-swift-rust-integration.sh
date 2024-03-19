@@ -25,3 +25,12 @@ xcodebuild \
   -project SwiftRustIntegrationTestRunner.xcodeproj \
   -scheme SwiftRustIntegrationTestRunner \
   clean test
+
+if ! sh ./test-release-fails/build.sh; then
+    echo "Build failed as expected"
+else
+    echo "Error: Build succeeded but was expected to fail"
+    exit 1
+fi
+
+sh ./test-release-succeeds/build.sh

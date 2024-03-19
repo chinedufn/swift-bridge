@@ -580,7 +580,7 @@ mod extern_swift_fn_return_vec_of_primitive_rust_type {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function () -> UnsafeMutableRawPointer {
+public func __swift_bridge__some_function () -> UnsafeMutableRawPointer {
     { let val = some_function(); val.isOwned = false; return val.ptr }()
 }
 "#,
@@ -639,7 +639,7 @@ mod extern_swift_fn_arg_vec_of_primitive_rust_type {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer) {
+public func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer) {
     some_function(arg: RustVec(ptr: arg))
 }
 "#,

@@ -54,7 +54,7 @@ public func rust_function(_ arg1: (), _ arg2: ()) -> () {
 "#,
             r#"
 @_cdecl("__swift_bridge__$swift_function")
-func __swift_bridge__swift_function () {
+public func __swift_bridge__swift_function () {
     swift_function(arg1: (), arg2: ())
 }
 "#,
@@ -140,7 +140,7 @@ public func rust_function(_ arg1: UnitStruct1, _ arg2: UnitStruct2, _ arg3: Unit
 "#,
             r#"
 @_cdecl("__swift_bridge__$swift_function")
-func __swift_bridge__swift_function () {
+public func __swift_bridge__swift_function () {
     { let _ = swift_function(arg1: UnitStruct1(), arg2: UnitStruct2(), arg3: UnitStruct3()); }()
 }
 "#,
