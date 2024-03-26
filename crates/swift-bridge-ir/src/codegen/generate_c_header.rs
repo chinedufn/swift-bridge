@@ -532,7 +532,6 @@ mod tests {
         assert_trimmed_generated_contains_trimmed_expected,
         assert_trimmed_generated_equals_trimmed_expected,
     };
-    use crate::SwiftBridgeModule;
 
     use super::*;
 

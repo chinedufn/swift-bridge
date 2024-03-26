@@ -26,6 +26,7 @@ fn test_args_into(_some_arg: TypeA, _another_arg: TypeB) {}
 struct TypeA;
 
 enum TypeB {
+    #[allow(unused)]
     Foo(u8),
 }
 

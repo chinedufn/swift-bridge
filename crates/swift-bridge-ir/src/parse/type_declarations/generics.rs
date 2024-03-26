@@ -4,7 +4,7 @@ use crate::TypeDeclarations;
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::ops::Deref;
-use syn::TypeParam;
+use syn::{Path, TypeParam};
 
 pub(crate) const GENERIC_PLACEHOLDERS: [&'static str; 8] = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
@@ -20,7 +20,11 @@ impl OpaqueRustTypeGenerics {
 
     /// For Rust type `SomeType<u32, u64>`:
     /// A == UInt32, B == UInt64
-    pub(crate) fn rust_opaque_type_swift_generic_bounds(&self, types: &TypeDeclarations) -> String {
+    pub(crate) fn rust_opaque_type_swift_generic_bounds(
+        &self,
+        types: &TypeDeclarations,
+        swift_bridge_path: &Path,
+    ) -> String {
         if self.generics.len() == 0 {
             return "".to_string();
         }
@@ -37,7 +41,11 @@ impl OpaqueRustTypeGenerics {
                         .unwrap()
                         // TODO: FnReturn isn't the real position.. Add a
                         //  new variant that makes more sense for our use case (generic bounds).
-                        .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types)
+                        .to_swift_type(
+                            TypePosition::FnReturn(HostLang::Rust),
+                            types,
+                            swift_bridge_path
+                        )
                 )
             })
             .collect();
@@ -67,6 +75,7 @@ impl OpaqueRustTypeGenerics {
     pub(crate) fn angle_bracketed_generic_concrete_swift_types_string(
         &self,
         types: &TypeDeclarations,
+        swift_bridge_path: &Path,
     ) -> String {
         if self.generics.len() == 0 {
             return "".to_string();
@@ -82,7 +91,11 @@ impl OpaqueRustTypeGenerics {
                         .unwrap()
                         // TODO: FnReturn isn't the real position.. Add a
                         //  new variant that makes more sense for our use case (generic bounds).
-                        .to_swift_type(TypePosition::FnReturn(HostLang::Rust), types)
+                        .to_swift_type(
+                            TypePosition::FnReturn(HostLang::Rust),
+                            types,
+                            swift_bridge_path
+                        )
                 )
             })
             .collect();

@@ -168,7 +168,15 @@ impl BridgedOption {
                 }
                 StdLibType::Str => {
                     quote! {
-                        if #expression.start.is_null() { None } else { Some(#expression.to_str()) }
+                        {
+                            let val = #expression;
+
+                            if val.start.is_null() {
+                                None
+                            } else {
+                                Some( val.to_str() )
+                            }
+                        }
                     }
                 }
                 StdLibType::Vec(_) => {
@@ -295,9 +303,28 @@ impl BridgedOption {
                 StdLibType::RefSlice(_) => {
                     todo!("Option<&[T]> is not yet supported")
                 }
-                StdLibType::Str => {
-                    format!("{expression}AsRustStr", expression = expression)
-                }
+                StdLibType::Str => match type_pos {
+                    TypePosition::FnArg(host_lang, _) => {
+                        if host_lang.is_rust() {
+                            format!("{expression}AsRustStr", expression = expression)
+                        } else {
+                            todo!()
+                        }
+                    }
+                    TypePosition::FnReturn(host_lang) => {
+                        if host_lang.is_rust() {
+                            format!("{expression}AsRustStr", expression = expression)
+                        } else {
+                            todo!()
+                        }
+                    }
+                    TypePosition::SharedStructField => {
+                        todo!()
+                    }
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        todo!()
+                    }
+                },
                 StdLibType::Vec(_) => {
                     format!(
                         "{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()"
@@ -334,24 +361,38 @@ impl BridgedOption {
         }
     }
 
-    pub fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+    pub fn to_swift_type(
+        &self,
+        swift_bridge_path: &Path,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+    ) -> String {
         match type_pos {
             TypePosition::FnArg(func_host_lang, _) => {
                 if func_host_lang.is_swift() {
-                    self.to_ffi_compatible_swift_type(&types)
+                    self.to_ffi_compatible_swift_type(type_pos, swift_bridge_path, &types)
                 } else {
-                    format!("Optional<{}>", self.ty.to_swift_type(type_pos, types))
+                    format!(
+                        "Optional<{}>",
+                        self.ty.to_swift_type(type_pos, types, swift_bridge_path)
+                    )
                 }
             }
             TypePosition::FnReturn(func_host_lang) => {
                 if func_host_lang.is_swift() {
-                    self.to_ffi_compatible_swift_type(&types)
+                    self.to_ffi_compatible_swift_type(type_pos, swift_bridge_path, &types)
                 } else {
-                    format!("Optional<{}>", self.ty.to_swift_type(type_pos, types))
+                    format!(
+                        "Optional<{}>",
+                        self.ty.to_swift_type(type_pos, types, swift_bridge_path)
+                    )
                 }
             }
             TypePosition::SharedStructField => {
-                format!("Optional<{}>", self.ty.to_swift_type(type_pos, types))
+                format!(
+                    "Optional<{}>",
+                    self.ty.to_swift_type(type_pos, types, swift_bridge_path)
+                )
             }
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                 unimplemented!()
@@ -359,7 +400,12 @@ impl BridgedOption {
         }
     }
 
-    fn to_ffi_compatible_swift_type(&self, _types: &TypeDeclarations) -> String {
+    fn to_ffi_compatible_swift_type(
+        &self,
+        type_pos: TypePosition,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> String {
         match self.ty.deref() {
             BridgedType::StdLib(stdlib_type) => match stdlib_type {
                 StdLibType::Null => {
@@ -387,9 +433,7 @@ impl BridgedOption {
                 StdLibType::RefSlice(_) => {
                     todo!()
                 }
-                StdLibType::Str => {
-                    todo!()
-                }
+                StdLibType::Str => "RustStr".to_string(),
                 StdLibType::Vec(_) => {
                     todo!()
                 }
@@ -409,8 +453,8 @@ impl BridgedOption {
             BridgedType::Foreign(_) => {
                 todo!()
             }
-            BridgedType::Bridgeable(_) => {
-                todo!()
+            BridgedType::Bridgeable(bridgeable) => {
+                bridgeable.to_ffi_compatible_option_swift_type(type_pos, swift_bridge_path, types)
             }
         }
     }
@@ -469,7 +513,6 @@ impl BridgedOption {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::TypeDeclarations;
 
     /// Verify that we can parse an `Option<&'static str>' bridged type
     /// This ensures that our logic that removes the spaces in order to normalize generic type

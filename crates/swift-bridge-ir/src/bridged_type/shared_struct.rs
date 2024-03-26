@@ -57,6 +57,7 @@ impl UnnamedStructFields {
         &self,
         type_pos: TypePosition,
         types: &TypeDeclarations,
+        swift_bridge_path: &Path,
     ) -> String {
         let names: Vec<String> = self
             .0
@@ -65,7 +66,7 @@ impl UnnamedStructFields {
             .map(|(_idx, field)| {
                 BridgedType::new_with_type(&field.ty, types)
                     .unwrap()
-                    .to_swift_type(type_pos, types)
+                    .to_swift_type(type_pos, types, swift_bridge_path)
             })
             .collect();
         let names = names.join(", ");
@@ -127,14 +128,19 @@ impl UnnamedStructFields {
         _expression: &str,
         type_pos: TypePosition,
         types: &TypeDeclarations,
+        swift_bridge_path: &Path,
     ) -> Vec<String> {
         self.0
             .iter()
             .enumerate()
             .map(|(idx, field)| {
                 let ty = BridgedType::new_with_type(&field.ty, types).unwrap();
-                let converted_field =
-                    ty.convert_ffi_value_to_swift_value(&format!("val._{idx}"), type_pos, types);
+                let converted_field = ty.convert_ffi_value_to_swift_value(
+                    &format!("val._{idx}"),
+                    type_pos,
+                    types,
+                    swift_bridge_path,
+                );
                 converted_field
             })
             .collect()
@@ -465,6 +471,7 @@ impl SharedStruct {
         &self,
         expression: &str,
         types: &TypeDeclarations,
+        swift_bridge_path: &Path,
     ) -> String {
         let name = self.swift_name_string();
         let struct_name = &name;
@@ -481,6 +488,7 @@ impl SharedStruct {
                     &format!("val.{field_name}", field_name = field_name),
                     TypePosition::SharedStructField,
                     types,
+                    swift_bridge_path,
                 );
 
                 format!(

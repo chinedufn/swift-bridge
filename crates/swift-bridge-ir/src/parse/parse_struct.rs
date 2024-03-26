@@ -187,7 +187,7 @@ impl<'a> SharedStructDeclarationParser<'a> {
 mod tests {
     use super::*;
     use crate::test_utils::{parse_errors, parse_ok};
-    use quote::{quote, ToTokens};
+    use quote::quote;
 
     /// Verify that we can parse a struct with no fields.
     /// Structs with no fields always have an implicit `swift_repr = "struct"`.

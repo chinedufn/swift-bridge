@@ -73,7 +73,12 @@ impl BridgeableType for BuiltInPointer {
         }
     }
 
-    fn to_swift_type(&self, _type_pos: TypePosition, _types: &TypeDeclarations) -> String {
+    fn to_swift_type(
+        &self,
+        _type_pos: TypePosition,
+        _types: &TypeDeclarations,
+        _swift_bridge_path: &Path,
+    ) -> String {
         todo!()
     }
 
@@ -112,6 +117,7 @@ impl BridgeableType for BuiltInPointer {
 
     fn to_ffi_compatible_option_swift_type(
         &self,
+        _type_pos: TypePosition,
         _swift_bridge_path: &Path,
         _types: &TypeDeclarations,
     ) -> String {
@@ -176,6 +182,7 @@ impl BridgeableType for BuiltInPointer {
         _expression: &str,
         _type_pos: TypePosition,
         _types: &TypeDeclarations,
+        _swift_bridge_path: &Path,
     ) -> String {
         todo!()
     }
