@@ -104,14 +104,20 @@ impl BridgeableType for BuiltInTuple {
         }
     }
 
-    fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+    fn to_swift_type(
+        &self,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+        swift_bridge_path: &Path,
+    ) -> String {
         match type_pos {
             TypePosition::FnArg(host_lang, _) => {
                 if host_lang.is_swift() {
                     let field_signatures = self.0.combine_field_types_into_ffi_name_string(types);
                     format!("__swift_bridge__$tuple${field_signatures}")
                 } else {
-                    self.0.to_swift_tuple_signature(type_pos, types)
+                    self.0
+                        .to_swift_tuple_signature(type_pos, types, swift_bridge_path)
                 }
             }
             TypePosition::FnReturn(host_lang) => {
@@ -119,7 +125,8 @@ impl BridgeableType for BuiltInTuple {
                     let field_signatures = self.0.combine_field_types_into_ffi_name_string(types);
                     format!("__swift_bridge__$tuple${field_signatures}")
                 } else {
-                    self.0.to_swift_tuple_signature(type_pos, types)
+                    self.0
+                        .to_swift_tuple_signature(type_pos, types, swift_bridge_path)
                 }
             }
             TypePosition::SharedStructField => todo!(),
@@ -161,6 +168,7 @@ impl BridgeableType for BuiltInTuple {
 
     fn to_ffi_compatible_option_swift_type(
         &self,
+        _type_pos: TypePosition,
         _swift_bridge_path: &Path,
         _types: &TypeDeclarations,
     ) -> String {
@@ -256,10 +264,14 @@ impl BridgeableType for BuiltInTuple {
         expression: &str,
         type_pos: TypePosition,
         types: &TypeDeclarations,
+        swift_bridge_path: &Path,
     ) -> String {
-        let converted_fields: Vec<String> = self
-            .0
-            .convert_ffi_expression_to_swift_type(expression, type_pos, types);
+        let converted_fields: Vec<String> = self.0.convert_ffi_expression_to_swift_type(
+            expression,
+            type_pos,
+            types,
+            swift_bridge_path,
+        );
         let converted_fields = converted_fields.join(", ");
 
         return format!(

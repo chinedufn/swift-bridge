@@ -120,6 +120,7 @@ impl EnumVariant {
         &self,
         types: &TypeDeclarations,
         enum_name: String,
+        swift_bridge_path: &Path,
     ) -> String {
         let converted_fields: Vec<String> = self
             .fields
@@ -136,6 +137,7 @@ impl EnumVariant {
                     ),
                     TypePosition::SharedStructField,
                     types,
+                    swift_bridge_path,
                 );
                 norm_field.struct_field_setter_string(field)
             })

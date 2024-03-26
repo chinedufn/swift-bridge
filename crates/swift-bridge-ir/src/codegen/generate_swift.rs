@@ -61,6 +61,7 @@ impl SwiftBridgeModule {
                                     .to_swift_type(
                                         TypePosition::FnReturn(opaque_ty.host_lang),
                                         &self.types,
+                                        &self.swift_bridge_path,
                                     ),
                                 };
                                 class_protocols
@@ -198,8 +199,8 @@ fn gen_function_exposes_swift_to_rust(
         func.sig.ident.to_string()
     };
 
-    let params = func.to_swift_param_names_and_types(true, types);
-    let ret = func.to_swift_return_type(types);
+    let params = func.to_swift_param_names_and_types(true, types, swift_bridge_path);
+    let ret = func.to_swift_return_type(types, swift_bridge_path);
 
     let args = func.to_swift_call_args(false, true, types, swift_bridge_path);
     let mut call_fn = format!("{}({})", fn_name, args);
@@ -253,15 +254,17 @@ fn gen_function_exposes_swift_to_rust(
             continue;
         }
 
-        let params_as_swift = boxed_fn.params_to_swift_types(types);
+        let params_as_swift = boxed_fn.params_to_swift_types(types, swift_bridge_path);
         let swift_ffi_call_args = boxed_fn.to_from_swift_to_rust_ffi_call_args(types);
 
         let maybe_ret = if boxed_fn.ret.is_null() {
             "".to_string()
         } else {
-            let ret = boxed_fn
-                .ret
-                .to_swift_type(TypePosition::FnArg(HostLang::Rust, idx), types);
+            let ret = boxed_fn.ret.to_swift_type(
+                TypePosition::FnArg(HostLang::Rust, idx),
+                types,
+                swift_bridge_path,
+            );
             format!(" -> {}", ret)
         };
 
@@ -272,6 +275,7 @@ fn gen_function_exposes_swift_to_rust(
             &ret_value,
             TypePosition::FnReturn(HostLang::Rust),
             types,
+            swift_bridge_path,
         );
 
         let maybe_generics = boxed_fn.maybe_swift_generics(types);

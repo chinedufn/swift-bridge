@@ -32,7 +32,7 @@ pub(super) fn generate_opaque_copy_struct(
     if class_methods.owned_self_methods.len() > 0 {};
 
     let struct_definition = if !ty.attributes.already_declared {
-        generate_struct_definition(ty, types)
+        generate_struct_definition(ty, types, swift_bridge_path)
     } else {
         "".to_string()
     };
@@ -47,6 +47,7 @@ pub(super) fn generate_opaque_copy_struct(
 fn generate_struct_definition(
     ty: &OpaqueForeignTypeDeclaration,
     types: &TypeDeclarations,
+    swift_bridge_path: &Path,
 ) -> String {
     let type_name = ty.ty.to_string();
     let generics = ty.generics.angle_bracketed_generic_placeholders_string();
@@ -85,7 +86,9 @@ fn generate_struct_definition(
         )
     } else {
         let ffi_repr_name = ty.ffi_repr_name_string();
-        let bounds = ty.generics.rust_opaque_type_swift_generic_bounds(types);
+        let bounds = ty
+            .generics
+            .rust_opaque_type_swift_generic_bounds(types, swift_bridge_path);
 
         format!(
             r#"extension {type_name}
@@ -105,7 +108,7 @@ extension {ffi_repr_name}: SwiftBridgeGenericCopyTypeFfiRepr {{}}"#,
             bounds = bounds,
             generics = ty
                 .generics
-                .angle_bracketed_generic_concrete_swift_types_string(types),
+                .angle_bracketed_generic_concrete_swift_types_string(types, swift_bridge_path),
         )
     };
 

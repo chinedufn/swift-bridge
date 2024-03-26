@@ -44,8 +44,11 @@ impl SwiftBridgeModule {
 
                 let convert_swift_to_ffi_repr =
                     shared_struct.convert_swift_to_ffi_repr("self", &self.types);
-                let convert_ffi_repr_to_swift =
-                    shared_struct.convert_ffi_expression_to_swift("self", &self.types);
+                let convert_ffi_repr_to_swift = shared_struct.convert_ffi_expression_to_swift(
+                    "self",
+                    &self.types,
+                    &self.swift_bridge_path,
+                );
 
                 // No need to generate any code. Swift will automatically generate a
                 //  struct from our C header typedef that we generate for this struct.
@@ -113,7 +116,11 @@ extension {option_ffi_name} {{
             params += &format!(
                 "{}: {},",
                 field.swift_name_string(),
-                bridged_ty.to_swift_type(TypePosition::SharedStructField, &self.types)
+                bridged_ty.to_swift_type(
+                    TypePosition::SharedStructField,
+                    &self.types,
+                    &self.swift_bridge_path
+                )
             );
         }
 
@@ -160,7 +167,11 @@ extension {option_ffi_name} {{
             fields += &format!(
                 "    public var {}: {}\n",
                 field.swift_name_string(),
-                bridged_ty.to_swift_type(TypePosition::SharedStructField, &self.types)
+                bridged_ty.to_swift_type(
+                    TypePosition::SharedStructField,
+                    &self.types,
+                    &self.swift_bridge_path
+                )
             );
         }
 

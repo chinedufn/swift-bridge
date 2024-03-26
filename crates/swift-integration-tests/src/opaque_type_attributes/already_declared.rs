@@ -47,8 +47,10 @@ mod ffi2 {
 
 pub struct AlreadyDeclaredTypeTest;
 
+#[allow(dead_code)]
 #[derive(Copy, Clone)]
 pub struct AlreadyDeclaredCopyTypeTest([u16; 2]);
+
 impl AlreadyDeclaredTypeTest {
     fn new() -> Self {
         AlreadyDeclaredTypeTest

@@ -135,6 +135,11 @@ mod ffi {
         fn swift_reflect_option_f32(arg: Option<f32>) -> Option<f32>;
         fn swift_reflect_option_f64(arg: Option<f64>) -> Option<f64>;
         fn swift_reflect_option_bool(arg: Option<bool>) -> Option<bool>;
+
+        fn swift_reflect_option_string(arg: Option<String>) -> Option<String>;
+        // TODO: Change to `swift_reflect_option_str` once we support Swift returning `-> &str`
+        fn swift_arg_option_str(arg: Option<&str>) -> bool;
+        // fn swift_reflect_option_str(arg: Option<&str>) -> Option<&str>;
     }
 }
 
@@ -172,6 +177,21 @@ fn test_rust_calls_swift_option_primitive() {
     assert_eq!(ffi::swift_reflect_option_bool(Some(true)), Some(true));
     assert_eq!(ffi::swift_reflect_option_bool(Some(false)), Some(false));
     assert_eq!(ffi::swift_reflect_option_bool(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_string(None), None);
+    assert_eq!(
+        ffi::swift_reflect_option_string(Some("hello".to_string())),
+        Some("hello".to_string())
+    );
+
+    // TODO: Change to `swift_reflect_option_str` once we support Swift returning `-> &str`
+    assert_eq!(ffi::swift_arg_option_str(None), false);
+    assert_eq!(
+        ffi::swift_arg_option_str(Some("this is an option str")),
+        true
+    );
+    // assert_eq!(ffi::swift_reflect_option_str(None), None);
+    // assert_eq!(ffi::swift_reflect_option_str(Some("a str")), Some("a str"));
 }
 
 pub struct OptTestOpaqueRustType {

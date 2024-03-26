@@ -173,14 +173,22 @@ impl BuiltInResult {
         quote! { Result<#ok, #err> }
     }
 
-    pub fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+    pub fn to_swift_type(
+        &self,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+        swift_bridge_path: &Path,
+    ) -> String {
         match type_pos {
-            TypePosition::FnReturn(_) => self.ok_ty.to_swift_type(type_pos, types),
+            TypePosition::FnReturn(_) => {
+                self.ok_ty.to_swift_type(type_pos, types, swift_bridge_path)
+            }
             TypePosition::FnArg(_, _) | TypePosition::SharedStructField => {
                 format!(
                     "RustResult<{}, {}>",
-                    self.ok_ty.to_swift_type(type_pos, types),
-                    self.err_ty.to_swift_type(type_pos, types),
+                    self.ok_ty.to_swift_type(type_pos, types, swift_bridge_path),
+                    self.err_ty
+                        .to_swift_type(type_pos, types, swift_bridge_path),
                 )
             }
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
@@ -207,6 +215,7 @@ impl BuiltInResult {
         expression: &str,
         type_pos: TypePosition,
         types: &TypeDeclarations,
+        swift_bridge_path: &Path,
     ) -> String {
         if self.is_custom_result_type() {
             if self.err_ty.can_be_encoded_with_zero_bytes() {
@@ -222,12 +231,14 @@ impl BuiltInResult {
                         "val.payload.ok",
                         type_pos,
                         types,
+                        swift_bridge_path,
                     )
             };
             let err_swift_type = self.err_ty.convert_ffi_expression_to_swift_type(
                 "val.payload.err",
                 type_pos,
                 types,
+                swift_bridge_path,
             );
 
             return match type_pos {
@@ -266,18 +277,27 @@ impl BuiltInResult {
             } else {
                 ok = " ".to_string() + &ok;
             }
-            let err = self
-                .err_ty
-                .convert_ffi_expression_to_swift_type("val!", type_pos, types);
+            let err = self.err_ty.convert_ffi_expression_to_swift_type(
+                "val!",
+                type_pos,
+                types,
+                swift_bridge_path,
+            );
             return format!("try {{ let val = {expression}; if val != nil {{ throw {err} }} else {{ return{ok} }} }}()", expression = expression, err = err, ok = ok);
         }
 
-        let ok = self
-            .ok_ty
-            .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
-        let err =
-            self.err_ty
-                .convert_ffi_expression_to_swift_type("val.ok_or_err!", type_pos, types);
+        let ok = self.ok_ty.convert_ffi_expression_to_swift_type(
+            "val.ok_or_err!",
+            type_pos,
+            types,
+            swift_bridge_path,
+        );
+        let err = self.err_ty.convert_ffi_expression_to_swift_type(
+            "val.ok_or_err!",
+            type_pos,
+            types,
+            swift_bridge_path,
+        );
 
         format!(
             "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
@@ -451,6 +471,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         expression: &str,
         type_pos: TypePosition,
         types: &TypeDeclarations,
+        swift_bridge_path: &Path,
     ) -> String {
         if self.is_custom_result_type() {
             let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
@@ -460,12 +481,14 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
                     &format!("{expression}.payload.ok"),
                     type_pos,
                     types,
+                    swift_bridge_path,
                 )
             };
             let err = self.err_ty.convert_ffi_expression_to_swift_type(
                 &format!("{expression}.payload.err"),
                 type_pos,
                 types,
+                swift_bridge_path,
             );
             return format!(
                 r#"switch {expression}.tag {{ case {c_ok_tag_name}: wrapper.cb(.success({ok})) case {c_err_tag_name}: wrapper.cb(.failure({err})) default: fatalError() }}"#,
@@ -476,8 +499,10 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
                 c_err_tag_name = self.c_err_tag_name(types)
             );
         }
-        let ok = self.ok_ty.to_swift_type(type_pos, types);
-        let err = self.err_ty.to_swift_type(type_pos, types);
+        let ok = self.ok_ty.to_swift_type(type_pos, types, swift_bridge_path);
+        let err = self
+            .err_ty
+            .to_swift_type(type_pos, types, swift_bridge_path);
 
         let (ok_val, err_val, condition) = if self.ok_ty.can_be_encoded_with_zero_bytes() {
             (

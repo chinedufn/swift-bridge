@@ -69,7 +69,12 @@ impl BridgeableType for OpaqueForeignType {
         }
     }
 
-    fn to_swift_type(&self, type_pos: TypePosition, types: &TypeDeclarations) -> String {
+    fn to_swift_type(
+        &self,
+        type_pos: TypePosition,
+        types: &TypeDeclarations,
+        swift_bridge_path: &Path,
+    ) -> String {
         if self.host_lang.is_rust() {
             match type_pos {
                 TypePosition::FnArg(func_host_lang, _) | TypePosition::FnReturn(func_host_lang) => {
@@ -90,7 +95,10 @@ impl BridgeableType for OpaqueForeignType {
                             "{}{}",
                             class_name,
                             self.generics
-                                .angle_bracketed_generic_concrete_swift_types_string(types)
+                                .angle_bracketed_generic_concrete_swift_types_string(
+                                    types,
+                                    swift_bridge_path
+                                )
                         )
                     } else {
                         format!("UnsafeMutableRawPointer")
@@ -108,7 +116,10 @@ impl BridgeableType for OpaqueForeignType {
                         "{}{}",
                         class_name,
                         self.generics
-                            .angle_bracketed_generic_concrete_swift_types_string(types)
+                            .angle_bracketed_generic_concrete_swift_types_string(
+                                types,
+                                swift_bridge_path
+                            )
                     )
                 }
                 TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
@@ -209,6 +220,7 @@ impl BridgeableType for OpaqueForeignType {
 
     fn to_ffi_compatible_option_swift_type(
         &self,
+        _type_pos: TypePosition,
         _swift_bridge_path: &Path,
         _types: &TypeDeclarations,
     ) -> String {
@@ -482,6 +494,7 @@ impl BridgeableType for OpaqueForeignType {
         expression: &str,
         type_pos: TypePosition,
         _types: &TypeDeclarations,
+        _swift_bridge_path: &Path,
     ) -> String {
         let mut ty_name = self.ty.to_string();
 

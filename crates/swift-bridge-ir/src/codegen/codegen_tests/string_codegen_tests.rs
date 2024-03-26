@@ -263,15 +263,15 @@ func __swift_bridge__some_function () -> UnsafeMutableRawPointer {
     }
 }
 
-/// Test code generation for Swift function that takes and returns an owned String argument.
-mod extern_swift_func_takes_and_returns_string {
+/// Test code generation for Swift function that takes an owned String argument.
+mod extern_swift_func_takes_string_arg {
     use super::*;
 
     fn bridge_module_tokens() -> TokenStream {
         quote! {
             mod foo {
                 extern "Swift" {
-                    fn some_function (value: String) -> String;
+                    fn some_function (value: String);
                 }
             }
         }
@@ -279,9 +279,11 @@ mod extern_swift_func_takes_and_returns_string {
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
-            pub fn some_function (value: String) -> String {
+            pub fn some_function (value: String)  {
                 unsafe {
-                    Box :: from_raw (unsafe { __swift_bridge__some_function (swift_bridge :: string :: RustString (value) . box_into_raw ()) }) . 0
+                    __swift_bridge__some_function (
+                        swift_bridge :: string :: RustString (value) . box_into_raw ()
+                    )
                 }
             }
         })
@@ -290,8 +292,8 @@ mod extern_swift_func_takes_and_returns_string {
     const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
         r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ value: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer {
-    { let rustString = some_function(value: RustString(ptr: value)).intoRustString(); rustString.isOwned = false; return rustString.ptr }()
+func __swift_bridge__some_function (_ value: UnsafeMutableRawPointer) {
+    some_function(value: RustString(ptr: value))
 }
 "#,
     );

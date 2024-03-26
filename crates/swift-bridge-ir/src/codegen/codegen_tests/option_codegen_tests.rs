@@ -204,6 +204,9 @@ void* __swift_bridge__$some_function(void* arg);
     }
 }
 
+// TODO: Split this into two test modules, one for `Option<String>` arg
+//  and another for `Option<String>` return value.
+//  Easier to reason about when each codegen module is focused on one type in one position.
 /// Test code generation for Rust function that accepts and returns Option<String>.
 mod extern_rust_fn_option_string {
     use super::*;
@@ -225,10 +228,14 @@ mod extern_rust_fn_option_string {
                 arg: *mut swift_bridge::string::RustString
             ) -> *mut swift_bridge::string::RustString {
                 if let Some(val) = super::some_function(
-                    if arg.is_null() {
-                        None
-                    } else {
-                        Some(unsafe { Box::from_raw(arg).0 })
+                    {
+                        let val = arg;
+
+                        if val.is_null() {
+                            None
+                        } else {
+                            Some(unsafe { Box::from_raw(val).0 })
+                        }
                     }
                 ) {
                     swift_bridge::string::RustString(val).box_into_raw()
@@ -362,10 +369,14 @@ mod extern_rust_fn_arg_option_str {
                arg: swift_bridge::string::RustStr
             ) {
                 super::some_function(
-                    if arg.start.is_null() {
-                        None
-                    } else {
-                        Some(arg.to_str())
+                    {
+                        let val = arg;
+
+                        if val.start.is_null() {
+                            None
+                        } else {
+                            Some(val.to_str())
+                        }
                     }
                 )
             }
@@ -391,7 +402,188 @@ void __swift_bridge__$some_function(struct RustStr arg);
     );
 
     #[test]
-    fn extern_rust_fn_return_option_str() {
+    fn extern_rust_fn_arg_option_str() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Swift function that accepts an Option<String> argument.
+mod extern_swift_func_option_string_arg {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Swift" {
+                    fn some_function (arg: Option<String>);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+              pub fn some_function(arg: Option<String>) {
+                  unsafe {
+                      __swift_bridge__some_function(
+                          if let Some(val) = arg {
+                              swift_bridge::string::RustString(val).box_into_raw()
+                          } else {
+                              std::ptr::null::<swift_bridge::string::RustString>() as *mut swift_bridge::string::RustString
+                          }
+                      )
+                  }
+              }
+            },
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(arg: *mut swift_bridge::string::RustString);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer?) {
+    some_function(arg: { let val = arg; if val != nil { return RustString(ptr: val!) } else { return nil } }())
+}
+"#,
+        )
+    }
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ExactAfterTrim(r#""#);
+
+    #[test]
+    fn extern_swift_func_option_string_arg() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Swift function that returns an owned optional String argument.
+mod extern_swift_func_returns_optional_string {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod foo {
+                extern "Swift" {
+                    fn some_function () -> Option<String>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                pub fn some_function () -> Option<String> {
+                    {
+                        let val = unsafe { __swift_bridge__some_function() };
+
+                        if val.is_null() {
+                            None
+                        } else {
+                            Some( unsafe { Box::from_raw(val).0 })
+                        }
+                    }
+                }
+            },
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function() -> *mut swift_bridge::string::RustString ;
+            },
+        ])
+    }
+
+    const EXPECTED_SWIFT_CODE: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
+        r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function () -> UnsafeMutableRawPointer? {
+    { if let rustString = optionalStringIntoRustString(some_function()) { rustString.isOwned = false; return rustString.ptr } else { return nil } }()
+}
+"#,
+    );
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ExactAfterTrim(r#""#);
+
+    #[test]
+    fn extern_swift_func_returns_optional_string() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: EXPECTED_SWIFT_CODE,
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Swift function that accepts an Option<String> argument.
+mod extern_swift_func_option_str_arg {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Swift" {
+                    fn some_function (arg: Option<&str>);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+              pub fn some_function(arg: Option<&str>) {
+                  unsafe {
+                      __swift_bridge__some_function(
+                          if let Some(val) = arg {
+                              swift_bridge::string::RustStr::from_str(val)
+                          } else {
+                              swift_bridge::string::RustStr { start: std::ptr::null::<u8>(), len: 0}
+                          }
+                      )
+                  }
+              }
+            },
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(arg: swift_bridge::string::RustStr);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ arg: RustStr) {
+    some_function(arg: { let val = arg; if val.start != nil { return val; } else { return nil; } }())
+}
+"#,
+        )
+    }
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ExactAfterTrim(r#""#);
+
+    #[test]
+    fn extern_swift_func_option_str_arg() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

@@ -28,6 +28,7 @@ pub(super) fn generate_swift_class(
         &class_methods.ref_self_methods,
         &class_methods.ref_mut_self_methods,
         types,
+        swift_bridge_path,
     )
 }
 
@@ -39,6 +40,7 @@ fn create_class_declaration(
     ref_self_methods: &[String],
     ref_mut_self_methods: &[String],
     types: &TypeDeclarations,
+    swift_bridge_path: &Path,
 ) -> String {
     let type_name = &ty.ty_name_ident().to_string();
     let generics = ty.generics.angle_bracketed_generic_placeholders_string();
@@ -194,7 +196,9 @@ where {swift_generic_bounds} {{
     }}
 }}"#,
             type_name = type_name,
-            swift_generic_bounds = ty.generics.rust_opaque_type_swift_generic_bounds(types),
+            swift_generic_bounds = ty
+                .generics
+                .rust_opaque_type_swift_generic_bounds(types, swift_bridge_path),
             free_func_name = ty.free_rust_opaque_type_ffi_name()
         );
     }
