@@ -98,6 +98,15 @@ impl SwiftBridgeModule {
         if shared_struct.derives.clone {
             derives.push(quote! {Clone});
         }
+        if shared_struct.derives.debug {
+            derives.push(quote! {Debug});
+        }
+        if shared_struct.derives.serialize {
+            derives.push(quote! {serde::Serialize});
+        }
+        if shared_struct.derives.deserialize {
+            derives.push(quote! {serde::Deserialize});
+        }
 
         let definition = quote! {
             #[derive(#(#derives),*)]
