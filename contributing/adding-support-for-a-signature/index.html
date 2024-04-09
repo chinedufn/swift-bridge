@@ -182,7 +182,8 @@ mod ffi {
 <p><code>swift-bridge</code> does not currently support the <code>Cow&lt;'static, str&gt;</code>, so the <code>print_cow</code> function signature is unsupported.</p>
 <p>This chapter shows how to add support for an unsupported signature.</p>
 <h2 id="implementing-support-for-a-signature"><a class="header" href="#implementing-support-for-a-signature">Implementing Support for a Signature</a></h2>
-<p>To support a new signature, we first write automated tests for the signature and then implement just enough code to get those
+<p>To support a new signature, we first write automated tests for the signature and then implement just enough code to get
+those
 tests passing.</p>
 <p>Add the time of writing, the <code>Swift</code> programming language does not have support for 128 bit integers.</p>
 <p>Let's pretend that <code>Swift</code> gained support for them and we were tasked with supporting <code>u128</code> argument and return types
@@ -227,12 +228,10 @@ mod ffi {
 </span></code></pre></pre>
 <p>Next we would add our <code>reflect_u128</code> function to the bridge module.</p>
 <p>We would then modify the <code>SwiftRustIntegrationTestRunner</code> to call our function.</p>
-<p>In this case we would want to modify <a href="https://github.com/chinedufn/swift-bridge/blob/master/SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/PrimitiveTests.swift"><code>SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/PrimitiveTests.swift</code></a>,
+<p>In this case we would want to
+modify <a href="https://github.com/chinedufn/swift-bridge/blob/master/SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/PrimitiveTests.swift"><code>SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/PrimitiveTests.swift</code></a>,
 which before our updates looks something like:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>import XCTest
+<pre><code class="language-swift">import XCTest
 @testable import SwiftRustIntegrationTestRunner
 
 /// Tests for generic types such as `type SomeType&lt;u32&gt;`
@@ -258,10 +257,10 @@ class PrimitiveTests: XCTestCase {
         XCTAssertEqual(rust_negate_bool(false), true);
     }
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h4 id="codegen-tests"><a class="header" href="#codegen-tests">Codegen Tests</a></h4>
-<p>After adding one or more integration tests, we would then add one or more codegen tests.</p>
+<p>After adding one or more integration tests, we would then add one or more codegen tests.
+Codegen tests live in <code>crates/swift-bridge-ir/src/codegen/codegen_tests</code>.</p>
 <p>In codegen tests we write out the exact code that we expect <code>swift-bridge</code> to generate.</p>
 <p>For example, here is the codegen test for supporting <code>Option&lt;u8&gt;</code> in Rust function arguments.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -329,7 +328,7 @@ struct __private__OptionF32 __swift_bridge__$some_function(struct __private__Opt
             expected_swift_code: expected_swift_code(),
             expected_c_header: EXPECTED_C_HEADER,
         }
-        .test();
+            .test();
     }
 }
 <span class="boring">}
