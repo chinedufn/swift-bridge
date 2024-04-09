@@ -35,10 +35,6 @@ public protocol IntoRustString {
     func intoRustString() -> RustString;
 }
 
-public protocol ToRustStr {
-    func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T;
-}
-
 extension String: IntoRustString {
     public func intoRustString() -> RustString {
         // TODO: When passing an owned Swift std String to Rust we've being wasteful here in that
@@ -70,6 +66,19 @@ func optionalStringIntoRustString<S: IntoRustString>(_ string: Optional<S>) -> R
     } else {
         return nil
     }
+}
+
+/// Used to safely get a pointer to a sequence of utf8 bytes, represented as a `RustStr`.
+///
+/// For example, the Swift `String` implementation of the `ToRustStr` protocol does the following:
+/// 1. Use Swift's `String.utf8.withUnsafeBufferPointer` to get a pointer to the strings underlying
+///    utf8 bytes.
+/// 2. Construct a `RustStr` that points to these utf8 bytes. This is safe because `withUnsafeBufferPointer`
+///    guarantees that the buffer pointer will be valid for the duration of the `withUnsafeBufferPointer`
+///    callback.
+/// 3. Pass the `RustStr` to the closure that was passed into `RustStr.toRustStr`.
+public protocol ToRustStr {
+    func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T;
 }
 
 extension String: ToRustStr {
