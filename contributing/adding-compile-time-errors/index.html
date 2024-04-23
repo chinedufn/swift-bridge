@@ -206,7 +206,7 @@ pub(crate) enum ParseError {
     /// If Bar wasn't declared using a `type Bar` declaration.
     UndeclaredType { ty: Type },
 
-    // ...
+    // ... snip ...
 }
 <span class="boring">}
 </span></code></pre></pre>
@@ -220,14 +220,6 @@ Here are a few examples:</p>
 impl Into&lt;syn::Error&gt; for ParseError {
     fn into(self) -&gt; Error {
         match self {
-            ParseError::ArgsIntoArgNotFound { func, missing_arg } =&gt; Error::new_spanned(
-                missing_arg.clone(),
-                format!(
-                    r#&quot;Argument &quot;{}&quot; was not found in &quot;fn {}(..)&quot;&quot;#,
-                    missing_arg,
-                    func.sig.ident.to_token_stream().to_string()
-                ),
-            ),
             ParseError::AbiNameMissing {
                 extern_token: extern_ident,
             } =&gt; Error::new_spanned(
@@ -241,21 +233,8 @@ extern &quot;Swift&quot; {{ ... }}
                 &quot;#
                 ),
             ),
-            ParseError::AbiNameInvalid { abi_name } =&gt; Error::new_spanned(
-                abi_name,
-                r#&quot;Invalid abi name. Must be either &quot;Rust&quot; or &quot;Swift&quot;.&quot;#,
-            ),
-            ParseError::AmbiguousSelf { self_: self_ident } =&gt; Error::new_spanned(
-                self_ident,
-                r#&quot;Could not infer a type for self. Try specifying the type:
-self: SomeType
-self: &amp;SomeType
-self: &amp;mut SomeType
-&quot;#,
-            ),
             ParseError::UndeclaredType { ty } =&gt; {
                 let ty_name = ty.to_token_stream().to_string();
-                // &quot;&amp; Bar&quot; -&gt; &quot;Bar&quot;
                 let ty_name = ty_name.split_whitespace().last().unwrap();
 
                 let message = format!(
@@ -265,8 +244,17 @@ self: &amp;mut SomeType
                 );
                 Error::new_spanned(ty, message)
             }
+            ParseError::DeclaredBuiltInType { ty } =&gt; {
+                let message = format!(
+                    r#&quot;Type {} is already supported
+&quot;#,
+                    ty.to_token_stream().to_string()
+                );
+                Error::new_spanned(ty, message)
+            }
 
-        // ...
+            // ... snip ...
+        }
     }   
 }
 <span class="boring">}
