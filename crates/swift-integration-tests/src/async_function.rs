@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[swift_bridge::bridge]
 mod ffi {
     #[swift_bridge(swift_repr = "struct")]

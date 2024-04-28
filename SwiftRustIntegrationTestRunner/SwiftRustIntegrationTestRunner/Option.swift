@@ -63,6 +63,12 @@ func swift_arg_option_str(arg: Optional<RustStr>) -> Bool {
     } else {
         return false
     }
-    
 }
 
+public class OptTestOpaqueSwiftType {
+    let val: Int
+
+    init(val: Int) {
+        self.val = val
+    }
+}

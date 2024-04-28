@@ -533,7 +533,7 @@ func __swift_bridge__some_function () -> UnsafeMutableRawPointer? {
     }
 }
 
-/// Test code generation for Swift function that accepts an Option<String> argument.
+/// Test code generation for Swift function that accepts an Option<&str> argument.
 mod extern_swift_func_option_str_arg {
     use super::*;
 
@@ -652,6 +652,73 @@ void* __swift_bridge__$some_function(void);
     }
 }
 
+/// Test code generation for Rust function that returns an Option<OpaqueSwiftType>
+mod extern_rust_fn_return_option_opaque_swift_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Swift" {
+                    type SomeSwiftType;
+                }
+
+                extern "Rust" {
+                    fn some_function() -> Option<SomeSwiftType>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                #[export_name = "__swift_bridge__$some_function"]
+                pub extern "C" fn __swift_bridge__some_function() -> *mut super::SomeSwiftType {
+                    if let Some(val) = super::some_function() {
+                        val.0.cast()
+                    } else {
+                        std::ptr::null_mut()
+                    }
+                }
+            },
+            quote! {
+                #[repr(C)]
+                pub struct SomeSwiftType(*mut std::ffi::c_void);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function() -> Optional<SomeSwiftType> {
+    { if let val = __swift_bridge__$some_function() { return Unmanaged<SomeSwiftType>.fromOpaque(val).takeRetainedValue() } else { return nil } }()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void* __swift_bridge__$some_function(void);
+            "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_return_option_opaque_swift_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Test code generation for Rust function that returns an Option<&OpaqueRustType>
 mod extern_rust_fn_return_option_ref_opaque_rust_type {
     use super::*;
@@ -710,7 +777,7 @@ void* __swift_bridge__$some_function(void);
     }
 }
 
-/// Test code generation for Rust function that returns an Option<&OpaqueRustType>
+/// Test code generation for Rust function that takes an Option<&OpaqueRustType> argument
 mod extern_rust_fn_arg_option_ref_opaque_rust_type {
     use super::*;
 
@@ -822,6 +889,78 @@ void __swift_bridge__$some_function(void* arg);
 
     #[test]
     fn extern_rust_fn_with_option_opaque_rust_type_arg() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that takes an Option<OpaqueSwiftType> argument.
+mod extern_rust_fn_with_option_opaque_swift_type_arg {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Swift" {
+                    type SomeSwiftType;
+                }
+
+                extern "Rust" {
+                    fn some_function(arg: Option<SomeSwiftType>);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                #[export_name = "__swift_bridge__$some_function"]
+                pub extern "C" fn __swift_bridge__some_function(
+                    arg: *mut super::SomeSwiftType
+                ) {
+                    super::some_function({
+                        let val = arg;
+                        if val.is_null() {
+                            None
+                        } else {
+                            Some(SomeSwiftType(val.cast()))
+                        }
+                    })
+                }
+            },
+            quote! {
+                #[repr(C)]
+                pub struct SomeSwiftType(*mut std::ffi::c_void);
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+func some_function(_ arg: Optional<SomeSwiftType>) {
+    __swift_bridge__$some_function({ if let val = arg { return Unmanaged.passRetained(val).retain().toOpaque() } else { return nil } }())
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsAfterTrim(
+            r#"
+void __swift_bridge__$some_function(void* arg);
+    "#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_fn_with_option_opaque_swift_type_arg() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

@@ -1,4 +1,5 @@
 //! See also: crates/swift-bridge-ir/src/codegen/codegen_tests/result_codegen_tests.rs
+#![allow(dead_code)]
 
 #[swift_bridge::bridge]
 mod ffi {
