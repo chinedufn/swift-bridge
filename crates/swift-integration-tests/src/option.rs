@@ -1,5 +1,7 @@
 //! See also: crates/swift-bridge-ir/src/codegen/codegen_tests/option_codegen_tests.rs
 
+use ffi::OptTestOpaqueSwiftType;
+
 #[swift_bridge::bridge]
 mod ffi {
     #[swift_bridge(swift_repr = "struct")]
@@ -299,8 +301,8 @@ fn rust_reflect_option_ref_opaque_rust_type(
     arg
 }
 pub fn rust_reflect_option_opaque_swift_type(
-    arg: Option<ffi::OptTestOpaqueSwiftType>,
-) -> Option<ffi::OptTestOpaqueSwiftType> {
+    arg: Option<OptTestOpaqueSwiftType>,
+) -> Option<OptTestOpaqueSwiftType> {
     arg
 }
 
