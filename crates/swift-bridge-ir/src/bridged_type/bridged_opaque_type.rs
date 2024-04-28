@@ -311,11 +311,24 @@ impl BridgeableType for OpaqueForeignType {
                 }
             }
         } else {
-            quote! {
-                if let Some(val) = #expression {
-                    Box::into_raw(Box::new(val))
-                } else {
-                    std::ptr::null_mut()
+            match self.host_lang {
+                HostLang::Rust => {
+                    quote! {
+                        if let Some(val) = #expression {
+                            Box::into_raw(Box::new(val))
+                        } else {
+                            std::ptr::null_mut()
+                        }
+                    }
+                }
+                HostLang::Swift => {
+                    quote! {
+                        if let Some(val) = #expression {
+                            val.0.cast()
+                        } else {
+                            std::ptr::null_mut()
+                        }
+                    }
                 }
             }
         }
@@ -414,7 +427,14 @@ impl BridgeableType for OpaqueForeignType {
                 expression = expression,
             )
         } else {
-            format!("{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()", expression = expression,)
+            match self.host_lang {
+                HostLang::Rust => {
+                    format!("{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()", expression = expression,)
+                }
+                HostLang::Swift => {
+                    format!("{{ if let val = {expression} {{ return Unmanaged.passRetained(val).retain().toOpaque() }} else {{ return nil }} }}()")
+                }
+            }
         }
     }
 
@@ -479,11 +499,28 @@ impl BridgeableType for OpaqueForeignType {
                 }
             }
         } else {
-            quote! {
-                if #expression.is_null() {
-                    None
-                } else {
-                    Some(unsafe { * Box::from_raw(#expression) } )
+            match self.host_lang {
+                HostLang::Rust => {
+                    quote! {
+                        if #expression.is_null() {
+                            None
+                        } else {
+                            Some(unsafe { *Box::from_raw(#expression) } )
+                        }
+                    }
+                }
+                HostLang::Swift => {
+                    let ty = &self.ty;
+                    quote! {
+                        {
+                            let val = #expression;
+                            if val.is_null() {
+                                None
+                            } else {
+                                Some(#ty(val.cast()))
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -545,11 +582,20 @@ impl BridgeableType for OpaqueForeignType {
             )
         } else {
             let type_name = self.swift_name();
-            format!(
-                "{{ let val = {expression}; if val != nil {{ return {type_name}(ptr: val!) }} else {{ return nil }} }}()",
-                expression = expression,
-                type_name = type_name
-            )
+            match self.host_lang {
+                HostLang::Rust => {
+                    format!(
+                        "{{ let val = {expression}; if val != nil {{ return {type_name}(ptr: val!) }} else {{ return nil }} }}()",
+                        expression = expression,
+                        type_name = type_name
+                    )
+                }
+                HostLang::Swift => {
+                    format!(
+                        "{{ if let val = {expression} {{ return Unmanaged<{type_name}>.fromOpaque(val).takeRetainedValue() }} else {{ return nil }} }}()"
+                    )
+                }
+            }
         }
     }
 

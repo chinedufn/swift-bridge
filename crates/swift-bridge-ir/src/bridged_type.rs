@@ -1499,7 +1499,7 @@ impl BridgedType {
     //
     // Say we have an extern Rust function `create_string(str: &str) -> String`.
     // It would be called using `__swift_bridge__$create_string(str)`
-    // But that would return a pointer to a swift_bridge::RustString.. So we need to convert that
+    // But that would return a pointer to a swift_bridge::RustString. So we need to convert that
     // to something Swift can make use of.
     // The final result on the Swift side would be:
     //

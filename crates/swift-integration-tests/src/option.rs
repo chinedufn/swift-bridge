@@ -1,5 +1,7 @@
 //! See also: crates/swift-bridge-ir/src/codegen/codegen_tests/option_codegen_tests.rs
 
+use ffi::OptTestOpaqueSwiftType;
+
 #[swift_bridge::bridge]
 mod ffi {
     #[swift_bridge(swift_repr = "struct")]
@@ -89,6 +91,9 @@ mod ffi {
         fn rust_reflect_option_opaque_rust_type(
             arg: Option<OptTestOpaqueRustType>,
         ) -> Option<OptTestOpaqueRustType>;
+        fn rust_reflect_option_opaque_swift_type(
+            arg: Option<OptTestOpaqueSwiftType>,
+        ) -> Option<OptTestOpaqueSwiftType>;
 
         fn rust_reflect_option_ref_opaque_rust_type(
             arg: Option<&OptTestOpaqueRustType>,
@@ -122,6 +127,8 @@ mod ffi {
     }
 
     extern "Swift" {
+        type OptTestOpaqueSwiftType;
+
         fn swift_reflect_option_u8(arg: Option<u8>) -> Option<u8>;
         fn swift_reflect_option_i8(arg: Option<i8>) -> Option<i8>;
         fn swift_reflect_option_u16(arg: Option<u16>) -> Option<u16>;
@@ -264,7 +271,7 @@ mod reflect_primitives {
     pub fn rust_reflect_option_isize(arg: Option<isize>) -> Option<isize> { arg }
     pub fn rust_reflect_option_f32(arg: Option<f32>) -> Option<f32> { arg }
     pub fn rust_reflect_option_f64(arg: Option<f64>) -> Option<f64> { arg }
-    pub fn rust_reflect_option_bool(arg: Option<bool>) -> Option<bool> { arg }   
+    pub fn rust_reflect_option_bool(arg: Option<bool>) -> Option<bool> { arg }
 }
 
 fn rust_reflect_option_string(arg: Option<String>) -> Option<String> {
@@ -291,6 +298,11 @@ fn rust_reflect_option_opaque_rust_type(
 fn rust_reflect_option_ref_opaque_rust_type(
     arg: Option<&OptTestOpaqueRustType>,
 ) -> Option<&OptTestOpaqueRustType> {
+    arg
+}
+pub fn rust_reflect_option_opaque_swift_type(
+    arg: Option<OptTestOpaqueSwiftType>,
+) -> Option<OptTestOpaqueSwiftType> {
     arg
 }
 

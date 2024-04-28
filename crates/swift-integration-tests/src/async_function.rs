@@ -1,3 +1,8 @@
+// This is a temporary workaround until https://github.com/chinedufn/swift-bridge/issues/270
+// is closed. When tests are compiled they have `-D warnings` (deny warnings) enabled, so
+// tests won't even compile unless this warning is ignored.
+#![allow(dead_code)]
+
 #[swift_bridge::bridge]
 mod ffi {
     #[swift_bridge(swift_repr = "struct")]
