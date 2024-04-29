@@ -324,8 +324,18 @@ impl BridgeableType for OpaqueForeignType {
                 HostLang::Swift => {
                     let ty = &self.ty;
 
+                    // Here we are converting a Swift type from its Rust representation to its FFI
+                    // representation.
+                    // When we drop the Rust representation we do not want to free the backing Swift
+                    // type since we are passing ownership to Swift.
+                    // So, we are transitioning this Swift type from its
+                    // `RustRepr -> FfiRepr -> SwiftRepr`.
+                    // This means that the Swift side will be responsible for freeing the Swift type
+                    // whenever it is done with it.
+                    // Here we use `ManuallyDrop` to avoid freeing the Swift type.
                     quote! {
                         if let Some(val) = #expression {
+                            let val = std::mem::ManuallyDrop::new(val);
                             val.0 as *mut super::#ty
                         } else {
                             std::ptr::null_mut()
@@ -434,7 +444,7 @@ impl BridgeableType for OpaqueForeignType {
                     format!("{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()", expression = expression,)
                 }
                 HostLang::Swift => {
-                    format!("{{ if let val = {expression} {{ return Unmanaged.passRetained(val).retain().toOpaque() }} else {{ return nil }} }}()")
+                    format!("{{ if let val = {expression} {{ return Unmanaged.passRetained(val).toOpaque() }} else {{ return nil }} }}()")
                 }
             }
         }

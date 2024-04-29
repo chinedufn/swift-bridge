@@ -676,6 +676,7 @@ mod extern_rust_fn_return_option_opaque_swift_type {
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function() -> *mut super::SomeSwiftType {
                     if let Some(val) = super::some_function() {
+                        let val = std::mem::ManuallyDrop::new(val);
                         val.0 as *mut super::SomeSwiftType
                     } else {
                         std::ptr::null_mut()
@@ -945,7 +946,7 @@ mod extern_rust_fn_with_option_opaque_swift_type_arg {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 func some_function(_ arg: Optional<SomeSwiftType>) {
-    __swift_bridge__$some_function({ if let val = arg { return Unmanaged.passRetained(val).retain().toOpaque() } else { return nil } }())
+    __swift_bridge__$some_function({ if let val = arg { return Unmanaged.passRetained(val).toOpaque() } else { return nil } }())
 }
 "#,
         )
