@@ -322,9 +322,11 @@ impl BridgeableType for OpaqueForeignType {
                     }
                 }
                 HostLang::Swift => {
+                    let ty = &self.ty;
+
                     quote! {
                         if let Some(val) = #expression {
-                            val.0.cast()
+                            val.0 as *mut super::#ty
                         } else {
                             std::ptr::null_mut()
                         }
@@ -517,7 +519,7 @@ impl BridgeableType for OpaqueForeignType {
                             if val.is_null() {
                                 None
                             } else {
-                                Some(#ty(val.cast()))
+                                Some(#ty(val as *mut std::ffi::c_void))
                             }
                         }
                     }

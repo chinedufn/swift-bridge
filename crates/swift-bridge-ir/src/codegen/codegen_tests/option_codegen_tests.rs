@@ -676,7 +676,7 @@ mod extern_rust_fn_return_option_opaque_swift_type {
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function() -> *mut super::SomeSwiftType {
                     if let Some(val) = super::some_function() {
-                        val.0.cast()
+                        val.0 as *mut super::SomeSwiftType
                     } else {
                         std::ptr::null_mut()
                     }
@@ -929,7 +929,7 @@ mod extern_rust_fn_with_option_opaque_swift_type_arg {
                         if val.is_null() {
                             None
                         } else {
-                            Some(SomeSwiftType(val.cast()))
+                            Some(SomeSwiftType(val as *mut std::ffi::c_void))
                         }
                     })
                 }
