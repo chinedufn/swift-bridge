@@ -1,4 +1,4 @@
-use clap::{Arg, Command};
+use clap::{Arg, ArgAction, Command};
 
 /// The CLI application
 pub fn cli() -> Command<'static> {
@@ -7,6 +7,7 @@ pub fn cli() -> Command<'static> {
         .version(env!("CARGO_PKG_VERSION"))
         .subcommand_required(true)
         .subcommand(create_package_command())
+        .subcommand(create_bridges_command())
 }
 
 /// The command for creating a Swift Package
@@ -99,5 +100,37 @@ fn create_package_command() -> Command<'static> {
                 .value_name("PATH")
                 .required(true)
                 .help("The name for the Swift Package"),
+        )
+}
+
+fn create_bridges_command() -> Command<'static> {
+    Command::new("parse-bridges")
+        .about("Parse bridge library files and output generated headers")
+        .arg(
+            Arg::new("crate-name")
+                .action(ArgAction::Set)
+                .help(
+                    "Crate name for which the bridging headers are generated; \
+                          used as a part of header names",
+                )
+                .long("--crate-name")
+                .required(true),
+        )
+        .arg(
+            Arg::new("source-file")
+                .action(ArgAction::Append)
+                .help("source file(s) containing #[swift_bridge::bridge] macro")
+                .long("file")
+                .short('f')
+                .required(true),
+        )
+        .arg(
+            Arg::new("output")
+                .action(ArgAction::Set)
+                .help("Output destination folder")
+                .long("output")
+                .short('o')
+                .value_name("PATH")
+                .required(true),
         )
 }
