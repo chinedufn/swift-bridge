@@ -59,6 +59,10 @@ pub(crate) struct ParsedExternFn {
     pub host_lang: HostLang,
     /// Whether or not this function is a Swift initializer.
     pub is_swift_initializer: bool,
+    /// Whether or not this function is a Swift failable initializer.
+    /// For more details, see:
+    /// [Swift Documentation - Failable Initializers](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/initialization/#Failable-Initializers)
+    pub is_swift_failable_initializer: bool,
     /// Whether or not this function should be used for the associated type's Swift
     /// `Identifiable` protocol implementation.
     pub is_swift_identifiable: bool,
