@@ -84,6 +84,8 @@ pub(crate) trait BridgeableType: Debug {
 
     fn as_result(&self) -> Option<&BuiltInResult>;
 
+    fn as_option(&self) -> Option<&BridgedOption>;
+
     /// True if the type's FFI representation is a pointer
     fn is_passed_via_pointer(&self) -> bool;
 
@@ -490,6 +492,13 @@ impl BridgeableType for BridgedType {
         match self {
             BridgedType::StdLib(StdLibType::Result(result)) => Some(result),
             BridgedType::Bridgeable(ty) => ty.as_result(),
+            _ => None,
+        }
+    }
+
+    fn as_option(&self) -> Option<&BridgedOption> {
+        match self {
+            BridgedType::StdLib(StdLibType::Option(ty)) => Some(ty),
             _ => None,
         }
     }

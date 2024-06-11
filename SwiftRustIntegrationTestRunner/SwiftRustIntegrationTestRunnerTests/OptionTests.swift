@@ -220,4 +220,9 @@ class OptionTests: XCTestCase {
         XCTAssertEqual(reflectedSome!.field, 123)
         XCTAssertNil(reflectedNone)
     }
+    
+    func testFailableInitializer() {
+        XCTAssertEqual(FailableInitType(false), nil)
+        XCTAssertNotEqual(FailableInitType(true), nil)
+    }
 }

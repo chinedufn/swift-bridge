@@ -606,6 +606,46 @@ func __swift_bridge__Foo_new (_ a: UInt8) -> UnsafeMutableRawPointer {
         assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);
     }
 
+    /// Verify that we generated a Swift class with a failable init method.
+    #[test]
+    fn class_with_failable_init() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(init)]
+                    fn new() -> Option<Foo>;
+                }
+            }
+        };
+        let module: SwiftBridgeModule = parse_quote!(#tokens);
+        let generated = module.generate_swift(&CodegenConfig::no_features_enabled());
+
+        let expected = r#"
+public class Foo: FooRefMut {
+    var isOwned: Bool = true
+
+    public override init(ptr: UnsafeMutableRawPointer) {
+        super.init(ptr: ptr)
+    }
+
+    deinit {
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
+    }
+}
+extension Foo {
+    public convenience init?() {
+        guard let val = __swift_bridge__$Foo$new() else { return nil }; self.init(ptr: val)
+    }
+}
+"#;
+
+        assert_trimmed_generated_contains_trimmed_expected(&generated, expected);
+    }
+
     /// Verify that we generated a Swift class with an init method.
     #[test]
     fn class_with_init() {

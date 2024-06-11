@@ -111,14 +111,19 @@ impl<'a> ForeignModParser<'a> {
                     }
 
                     let return_type = &func.sig.output;
+                    let mut is_swift_failable_initializer = false;
                     if let ReturnType::Type(_, return_ty) = return_type {
-                        if BridgedType::new_with_type(return_ty.deref(), &self.type_declarations)
-                            .is_none()
-                        {
+                        let bridged_return_type =
+                            BridgedType::new_with_type(return_ty.deref(), &self.type_declarations);
+                        if let Some(ty) = &bridged_return_type {
+                            if ty.as_option().is_some() && attributes.is_swift_initializer {
+                                is_swift_failable_initializer = true;
+                            }
+                        }
+                        if bridged_return_type.is_none() {
                             self.unresolved_types.push(return_ty.deref().clone());
                         }
                     }
-
                     let first_input = func.sig.inputs.iter().next();
 
                     let associated_type = self.get_associated_type(
@@ -126,6 +131,7 @@ impl<'a> ForeignModParser<'a> {
                         func.clone(),
                         &attributes,
                         &mut local_type_declarations,
+                        is_swift_failable_initializer,
                     )?;
 
                     if attributes.is_swift_identifiable {
@@ -225,10 +231,12 @@ impl<'a> ForeignModParser<'a> {
                             }
                         }
                     }
+
                     let func = ParsedExternFn {
                         func,
                         associated_type,
                         is_swift_initializer: attributes.is_swift_initializer,
+                        is_swift_failable_initializer: is_swift_failable_initializer,
                         is_swift_identifiable: attributes.is_swift_identifiable,
                         host_lang,
                         rust_name_override: attributes.rust_name,
@@ -294,6 +302,7 @@ impl<'a> ForeignModParser<'a> {
         func: ForeignItemFn,
         attributes: &FunctionAttributes,
         local_type_declarations: &mut HashMap<String, OpaqueForeignTypeDeclaration>,
+        is_swift_failable_initializer: bool,
     ) -> syn::Result<Option<TypeDeclaration>> {
         let associated_type = match first {
             Some(FnArg::Receiver(recv)) => {
@@ -337,6 +346,7 @@ impl<'a> ForeignModParser<'a> {
                             func.clone(),
                             attributes,
                             local_type_declarations,
+                            is_swift_failable_initializer,
                         )?;
                         associated_type
                     }
@@ -373,10 +383,19 @@ Otherwise we use a more general error that says that your argument is invalid.
                             ty_string
                         }
                     };
+                    if is_swift_failable_initializer {
+                        // Safety: since we've already checked ty_string is formatted as "Option<~>" before calling this function.
+                        let last_bracket = ty_string.rfind(">").unwrap();
 
-                    let ty = self.type_declarations.get(&ty_string);
+                        let inner = &ty_string[0..last_bracket];
+                        let inner = inner.trim_start_matches("Option < ").trim_end_matches(" ");
+                        let ty = self.type_declarations.get(inner);
+                        ty.map(|ty| ty.clone())
+                    } else {
+                        let ty = self.type_declarations.get(&ty_string);
 
-                    ty.map(|ty| ty.clone())
+                        ty.map(|ty| ty.clone())
+                    }
                 } else {
                     None
                 };

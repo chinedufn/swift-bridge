@@ -15,11 +15,13 @@ mod ffi {
     }
 }
 
+#[allow(unused)]
 fn some_function(arg: u8) {}
 
 struct SomeType;
 
 impl SomeType {
+    #[allow(unused)]
     fn some_method(&self, foo: u8) {}
 }
 
