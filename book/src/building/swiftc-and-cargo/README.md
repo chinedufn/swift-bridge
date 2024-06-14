@@ -140,7 +140,7 @@ when you have `Cargo` linking in the Swift code.
 ```rust
 // build.rs
 fn main() {
-    println!("cargo:rustc-link-lib=static=swiftc_link_rust");
+    println!("cargo:rustc-link-lib=static=my_swift");
     println!("cargo:rustc-link-search=./");
 }
 ```
