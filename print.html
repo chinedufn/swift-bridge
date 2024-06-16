@@ -570,7 +570,7 @@ func run() {
     print_hello_rust()
 }
 </code></pre>
-<pre><code class="language-sh"># briding-header.h
+<pre><code class="language-sh"># bridging-header.h
 
 #ifndef BridgingHeader_h
 #define BridgingHeader_h
@@ -620,23 +620,11 @@ swiftc -L target/x86_64-apple-darwin/debug/ -lswift_and_rust -import-objc-header
 # The output should be &quot;Hello from Rust&quot;
 </code></pre>
 <h2 id="rust-links-to-a-swift-native-library"><a class="header" href="#rust-links-to-a-swift-native-library">Rust links to a Swift native library</a></h2>
-<p>Unlike the when we had <code>swiftc</code> in the Rust code, you do not need to set the <code>crate-type</code>
+<p>Unlike when we had <code>swiftc</code> linking in the Rust code, you do not need to set the <code>crate-type</code>
 when you have <code>Cargo</code> linking in the Swift code.</p>
 <pre><pre class="playground"><code class="language-rust">// build.rs
-use std::path::PathBuf;
-
 fn main() {
-    let out_dir = PathBuf::from(&quot;./generated&quot;);
-
-    let bridges = vec![&quot;src/lib.rs&quot;];
-    for path in &amp;bridges {
-        println!(&quot;cargo:rerun-if-changed={}&quot;, path);
-    }
-
-    swift_bridge_build::parse_bridges(bridges)
-        .write_all_concatenated(out_dir, env!(&quot;CARGO_PKG_NAME&quot;));
-
-    println!(&quot;cargo:rustc-link-lib=static=swiftc_link_rust&quot;);
+    println!(&quot;cargo:rustc-link-lib=static=my_swift&quot;);
     println!(&quot;cargo:rustc-link-search=./&quot;);
 }
 </code></pre></pre>
@@ -645,9 +633,10 @@ fn main() {
 #!/bin/bash
 set -e
 
-# The swift-bridge CLI does not exist yet. Open an issue if you need to use
-# this approach and I'll happily whip up the CLI.
-swift-bridge -f src/lib.rs &gt; generated
+# Generate the bridging headers.
+# Multiple files can be supplied with &quot;-f&quot; flag, e.g. &quot;-f file1 -f file2&quot;.
+# Substitute &lt;package name&gt; for the crate name in your Cargo.toml file.
+swift-bridge-cli parse-bridges --crate-name &lt;package name&gt; -f src/lib.rs -o generated
 
 swiftc -emit-library -static -module-name my_swift -import-objc-header bridging-header.h \
   lib.swift ./generated/swift-and-rust/swift-and-rust.swift
