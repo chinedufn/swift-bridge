@@ -70,7 +70,7 @@ func run() {
 ```
 
 ```sh
-# briding-header.h
+# bridging-header.h
 
 #ifndef BridgingHeader_h
 #define BridgingHeader_h
@@ -134,25 +134,13 @@ chmod +x build-swiftc-links-rust.sh
 
 ## Rust links to a Swift native library
 
-Unlike the when we had `swiftc` in the Rust code, you do not need to set the `crate-type`
+Unlike when we had `swiftc` linking in the Rust code, you do not need to set the `crate-type`
 when you have `Cargo` linking in the Swift code.
 
 ```rust
 // build.rs
-use std::path::PathBuf;
-
 fn main() {
-    let out_dir = PathBuf::from("./generated");
-
-    let bridges = vec!["src/lib.rs"];
-    for path in &bridges {
-        println!("cargo:rerun-if-changed={}", path);
-    }
-
-    swift_bridge_build::parse_bridges(bridges)
-        .write_all_concatenated(out_dir, env!("CARGO_PKG_NAME"));
-
-    println!("cargo:rustc-link-lib=static=swiftc_link_rust");
+    println!("cargo:rustc-link-lib=static=my_swift");
     println!("cargo:rustc-link-search=./");
 }
 ```
@@ -163,9 +151,10 @@ fn main() {
 #!/bin/bash
 set -e
 
-# The swift-bridge CLI does not exist yet. Open an issue if you need to use
-# this approach and I'll happily whip up the CLI.
-swift-bridge -f src/lib.rs > generated
+# Generate the bridging headers.
+# Multiple files can be supplied with "-f" flag, e.g. "-f file1 -f file2".
+# Substitute <package name> for the crate name in your Cargo.toml file.
+swift-bridge-cli parse-bridges --crate-name <package name> -f src/lib.rs -o generated
 
 swiftc -emit-library -static -module-name my_swift -import-objc-header bridging-header.h \
   lib.swift ./generated/swift-and-rust/swift-and-rust.swift
