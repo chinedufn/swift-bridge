@@ -407,11 +407,15 @@ mod extern_rust_fn_return_result_opaque_rust_type_and_transparent_enum_type {
         }
     }
 
+    // In Rust 1.79.0 dead_code warnings are issued for wrapped data in enums in spite of the enum
+    // having `#[repr(C)]`.
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[repr(C)]
             pub enum ResultSomeOkTypeAndSomeErrEnum{
+                #[allow(unused)]
                 Ok(*mut super::SomeOkType),
+                #[allow(unused)]
                 Err(__swift_bridge__SomeErrEnum),
             }
 
@@ -484,11 +488,14 @@ mod extern_rust_fn_return_result_transparent_enum_type_and_opaque_rust_type {
         }
     }
 
+    // Allows unused to avoid dead_code warnings in Rust 1.79.0 or later.
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[repr(C)]
             pub enum ResultSomeOkEnumAndSomeErrType{
+                #[allow(unused)]
                 Ok(__swift_bridge__SomeOkEnum),
+                #[allow(unused)]
                 Err(*mut super::SomeErrType),
             }
 
@@ -558,11 +565,14 @@ mod extern_rust_fn_return_result_unit_type_and_transparent_enum_type {
         }
     }
 
+    // Allows unused to avoid dead_code warnings in Rust 1.79.0 or later.
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[repr(C)]
             pub enum ResultVoidAndSomeErrEnum{
+                #[allow(unused)]
                 Ok,
+                #[allow(unused)]
                 Err(__swift_bridge__SomeErrEnum),
             }
 
@@ -628,12 +638,15 @@ mod extern_rust_fn_return_result_tuple_type_and_transparent_enum_type {
         }
     }
 
+    // Allows unused to avoid dead_code warnings in Rust 1.79.0 or later.
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::ContainsMany(vec![
             quote! {
                 #[repr(C)]
                 pub enum ResultTupleI32U32AndSomeErrEnum{
+                    #[allow(unused)]
                     Ok(__swift_bridge__tuple_I32U32),
+                    #[allow(unused)]
                     Err(__swift_bridge__SomeErrEnum),
                 }
             },
