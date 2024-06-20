@@ -707,3 +707,77 @@ typedef struct __swift_bridge__$ResultTupleI32U32AndSomeErrEnum{__swift_bridge__
         .test();
     }
 }
+
+/// Test code generation for Rust function that returns a Result<T, E> where T is () and
+/// E is a transparent struct type.
+mod extern_rust_fn_return_result_unit_type_and_transparent_struct_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                struct SomeErrStruct {
+                    inner: String,
+                }
+                extern "Rust" {
+                    fn some_function() -> Result<(), SomeErrStruct>;
+                }
+            }
+        }
+    }
+
+    // In Rust 1.79.0 dead_code warnings are issued for wrapped data in enums in spite of the enum
+    // having `#[repr(C)]`. `#[allow(unused)]` can be removed following resolution and release of this
+    // issue: https://github.com/rust-lang/rust/issues/126706
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[repr(C)]
+            pub enum ResultVoidAndSomeErrStruct{
+                #[allow(unused)]
+                Ok,
+                #[allow(unused)]
+                Err(__swift_bridge__SomeErrStruct),
+            }
+
+            #[export_name = "__swift_bridge__$some_function"]
+            pub extern "C" fn __swift_bridge__some_function() -> ResultVoidAndSomeErrStruct{
+                match super::some_function() {
+                    Ok(ok) => ResultVoidAndSomeErrStruct::Ok,
+                    Err(err) => ResultVoidAndSomeErrStruct::Err(err.into_ffi_repr()),
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+public func some_function() throws -> () {
+    try { let val = __swift_bridge__$some_function(); switch val.tag { case __swift_bridge__$ResultVoidAndSomeErrStruct$ResultOk: return case __swift_bridge__$ResultVoidAndSomeErrStruct$ResultErr: throw val.payload.err.intoSwiftRepr() default: fatalError() } }()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+typedef enum __swift_bridge__$ResultVoidAndSomeErrStruct$Tag {__swift_bridge__$ResultVoidAndSomeErrStruct$ResultOk, __swift_bridge__$ResultVoidAndSomeErrStruct$ResultErr} __swift_bridge__$ResultVoidAndSomeErrStruct$Tag;
+union __swift_bridge__$ResultVoidAndSomeErrStruct$Fields {struct __swift_bridge__$SomeErrStruct err;};
+typedef struct __swift_bridge__$ResultVoidAndSomeErrStruct{__swift_bridge__$ResultVoidAndSomeErrStruct$Tag tag; union __swift_bridge__$ResultVoidAndSomeErrStruct$Fields payload;} __swift_bridge__$ResultVoidAndSomeErrStruct;
+"#,
+            r#"struct __swift_bridge__$ResultVoidAndSomeErrStruct __swift_bridge__$some_function(void)"#,
+        ])
+    }
+
+    #[test]
+    fn extern_rust_result_transparent_struct_type_and_opaque_rust_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
