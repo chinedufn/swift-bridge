@@ -408,7 +408,8 @@ mod extern_rust_fn_return_result_opaque_rust_type_and_transparent_enum_type {
     }
 
     // In Rust 1.79.0 dead_code warnings are issued for wrapped data in enums in spite of the enum
-    // having `#[repr(C)]`.
+    // having `#[repr(C)]`. `#[allow(unused)]` can be removed following resolution and release of this
+    // issue: https://github.com/rust-lang/rust/issues/126706
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[repr(C)]
@@ -488,7 +489,9 @@ mod extern_rust_fn_return_result_transparent_enum_type_and_opaque_rust_type {
         }
     }
 
-    // Allows unused to avoid dead_code warnings in Rust 1.79.0 or later.
+    // In Rust 1.79.0 dead_code warnings are issued for wrapped data in enums in spite of the enum
+    // having `#[repr(C)]`. `#[allow(unused)]` can be removed following resolution and release of this
+    // issue: https://github.com/rust-lang/rust/issues/126706
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[repr(C)]
@@ -565,7 +568,9 @@ mod extern_rust_fn_return_result_unit_type_and_transparent_enum_type {
         }
     }
 
-    // Allows unused to avoid dead_code warnings in Rust 1.79.0 or later.
+    // In Rust 1.79.0 dead_code warnings are issued for wrapped data in enums in spite of the enum
+    // having `#[repr(C)]`. `#[allow(unused)]` can be removed following resolution and release of this
+    // issue: https://github.com/rust-lang/rust/issues/126706
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
             #[repr(C)]
@@ -638,7 +643,9 @@ mod extern_rust_fn_return_result_tuple_type_and_transparent_enum_type {
         }
     }
 
-    // Allows unused to avoid dead_code warnings in Rust 1.79.0 or later.
+    // In Rust 1.79.0 dead_code warnings are issued for wrapped data in enums in spite of the enum
+    // having `#[repr(C)]`. `#[allow(unused)]` can be removed following resolution and release of this
+    // issue: https://github.com/rust-lang/rust/issues/126706
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::ContainsMany(vec![
             quote! {

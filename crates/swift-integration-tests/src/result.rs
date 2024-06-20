@@ -38,12 +38,14 @@ mod ffi {
     }
 
     #[swift_bridge(swift_repr = "struct")]
-    struct ResultTestTransparentStruct(pub String);
+    struct ResultTransparentStruct {
+        pub inner: String,
+    }
 
     extern "Rust" {
-        fn rust_func_returns_result_null_transparent_struct(
+        fn rust_func_return_result_null_transparent_struct(
             succeed: bool,
-        ) -> Result<(), ResultTestTransparentStruct>;
+        ) -> Result<(), ResultTransparentStruct>;
     }
 
     enum ResultTransparentEnum {
@@ -146,27 +148,29 @@ fn rust_func_return_result_unit_struct_opaque_rust(
     }
 }
 
-fn rust_func_returns_result_null_transparent_struct(
+fn rust_func_return_result_null_transparent_struct(
     succeed: bool,
-) -> Result<(), ffi::ResultTestTransparentStruct> {
+) -> Result<(), ffi::ResultTransparentStruct> {
     if succeed {
         Ok(())
     } else {
-        Err(ffi::ResultTestTransparentStruct("failed".to_string()))
+        Err(ffi::ResultTransparentStruct {
+            inner: "failed".to_string(),
+        })
     }
 }
 
-impl std::error::Error for ffi::ResultTestTransparentStruct {}
+impl std::error::Error for ffi::ResultTransparentStruct {}
 
-impl std::fmt::Debug for ffi::ResultTestTransparentStruct {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
+impl std::fmt::Debug for ffi::ResultTransparentStruct {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        unreachable!("Debug impl was added to pass `Error: Debug + Display` type checking")
     }
 }
 
-impl std::fmt::Display for ffi::ResultTestTransparentStruct {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+impl std::fmt::Display for ffi::ResultTransparentStruct {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        unreachable!("Display impl was added to pass `Error: Debug + Display` type checking")
     }
 }
 
