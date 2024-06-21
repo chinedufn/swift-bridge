@@ -375,10 +375,14 @@ impl BuiltInResult {
             .err_ty
             .to_ffi_compatible_rust_type(swift_bridge_path, types);
         let mut custom_rust_ffi_types = vec![];
+        // TODO: remove `#[allow(unused)]` when rustc no longer issues dead code warnings for `#[repr(C)]`
+        //  structs or enums: https://github.com/rust-lang/rust/issues/126706
         custom_rust_ffi_types.push(quote! {
             #[repr(C)]
             pub enum #ty {
+                #[allow(unused)]
                 Ok #ok,
+                #[allow(unused)]
                 Err(#err),
             }
         });

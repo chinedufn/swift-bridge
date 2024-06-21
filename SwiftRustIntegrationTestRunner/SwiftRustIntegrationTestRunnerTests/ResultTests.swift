@@ -193,6 +193,46 @@ class ResultTests: XCTestCase {
         }
     }
 
+    /// Verify that we can receive a Result<(), TransparentStruct> from Rust
+    func testResultNullTransparentStruct() throws {
+        try! rust_func_return_result_null_transparent_struct(true)
+
+        do {
+            try rust_func_return_result_null_transparent_struct(false)
+            XCTFail("The function should have returned an error.")
+        } catch let error as ResultTransparentStruct {
+            XCTAssertEqual(error.inner.toString(), "failed")
+        }
+
+        XCTContext.runActivity(named: "Should return a Unit type") {
+            _ in
+            do {
+                let _ :() = try rust_func_return_result_unit_type_enum_opaque_rust(true)
+            } catch {
+                XCTFail()
+            }
+        }
+
+        XCTContext.runActivity(named: "Should throw an error") {
+            _ in
+            do {
+                let _ :() = try rust_func_return_result_unit_type_enum_opaque_rust(false)
+                XCTFail("The function should have returned an error.")
+            } catch let error as ResultTransparentEnum {
+                switch error {
+                case .NamedField(let data):
+                    XCTAssertEqual(data, 123)
+                case .UnnamedFields(_, _):
+                    XCTFail()
+                case .NoFields:
+                    XCTFail()
+                }
+            } catch {
+                XCTFail()
+            }
+        }
+    }
+
     /// Verify that we can receive a Result<Vec<>, OpaqueRust> from Rust
     func testSwiftCallRustResultVecUInt32Rust() throws {
         let vec = try! rust_func_return_result_of_vec_u32()

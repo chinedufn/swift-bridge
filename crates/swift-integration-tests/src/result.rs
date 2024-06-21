@@ -1,8 +1,4 @@
 //! See also: crates/swift-bridge-ir/src/codegen/codegen_tests/result_codegen_tests.rs
-// This is a temporary workaround until https://github.com/chinedufn/swift-bridge/issues/270
-// is closed. When tests are compiled they have `-D warnings` (deny warnings) enabled, so
-// tests won't even compile unless this warning is ignored.
-#![allow(dead_code)]
 
 #[swift_bridge::bridge]
 mod ffi {
@@ -39,6 +35,17 @@ mod ffi {
         type ResultTestOpaqueSwiftType;
 
         fn val(&self) -> u32;
+    }
+
+    #[swift_bridge(swift_repr = "struct")]
+    struct ResultTransparentStruct {
+        pub inner: String,
+    }
+
+    extern "Rust" {
+        fn rust_func_return_result_null_transparent_struct(
+            succeed: bool,
+        ) -> Result<(), ResultTransparentStruct>;
     }
 
     enum ResultTransparentEnum {
@@ -138,6 +145,32 @@ fn rust_func_return_result_unit_struct_opaque_rust(
         Ok(ffi::UnitStruct)
     } else {
         Err(ResultTestOpaqueRustType { val: 222 })
+    }
+}
+
+fn rust_func_return_result_null_transparent_struct(
+    succeed: bool,
+) -> Result<(), ffi::ResultTransparentStruct> {
+    if succeed {
+        Ok(())
+    } else {
+        Err(ffi::ResultTransparentStruct {
+            inner: "failed".to_string(),
+        })
+    }
+}
+
+impl std::error::Error for ffi::ResultTransparentStruct {}
+
+impl std::fmt::Debug for ffi::ResultTransparentStruct {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        unreachable!("Debug impl was added to pass `Error: Debug + Display` type checking")
+    }
+}
+
+impl std::fmt::Display for ffi::ResultTransparentStruct {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        unreachable!("Display impl was added to pass `Error: Debug + Display` type checking")
     }
 }
 
