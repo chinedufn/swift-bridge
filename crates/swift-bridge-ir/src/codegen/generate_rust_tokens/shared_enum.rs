@@ -140,22 +140,27 @@ impl SwiftBridgeModule {
         // User derives
         let mut derive_impl_ffi_bridges = vec![];
 
-        // We currently only allow derive(Debug) on non data carrying enums in order
-        // to prevent a potential memory safety issue.
-        // https://github.com/chinedufn/swift-bridge/pull/194#discussion_r1134386788
-        if shared_enum.derive.debug && !shared_enum.has_one_or_more_variants_with_data() {
+        if shared_enum.derive.debug {
+            // We don't want to confuse the developer if one of our variants has data and Debug isn't derived,
+            // so we still want to derive(Debug) on the Rust side.
+            // TODO: push a warning if one of our variants has data?
             derives.push(quote! {::std::fmt::Debug});
 
-            // __swift_bridge__$SomeEnum$Debug
-            let export_name = format!("{}$Debug", shared_enum.ffi_name_string());
-            // __swift_bridge__SomeEnum_Debug
-            let fn_name = format_ident!("{}_Debug", enum_ffi_name);
-            derive_impl_ffi_bridges.push(quote! {
-                #[export_name = #export_name]
-                pub extern "C" fn #fn_name(this: #enum_ffi_name) -> *mut swift_bridge::string::RustString {
-                    swift_bridge::string::RustString(format!("{:?}", this.into_rust_repr())).box_into_raw()
-                }
-            });
+            // We currently only allow derive(Debug) on non data carrying enums in order
+            // to prevent a potential memory safety issue.
+            // https://github.com/chinedufn/swift-bridge/pull/194#discussion_r1134386788
+            if !shared_enum.has_one_or_more_variants_with_data() {
+                // __swift_bridge__$SomeEnum$Debug
+                let export_name = format!("{}$Debug", shared_enum.ffi_name_string());
+                // __swift_bridge__SomeEnum_Debug
+                let fn_name = format_ident!("{}_Debug", enum_ffi_name);
+                derive_impl_ffi_bridges.push(quote! {
+                    #[export_name = #export_name]
+                    pub extern "C" fn #fn_name(this: #enum_ffi_name) -> *mut swift_bridge::string::RustString {
+                        swift_bridge::string::RustString(format!("{:?}", this.into_rust_repr())).box_into_raw()
+                    }
+                });
+            }
         }
 
         let vec_support = if shared_enum.has_one_or_more_variants_with_data() {
