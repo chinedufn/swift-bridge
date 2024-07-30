@@ -57,6 +57,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
         if let Ok(item_mod) = input.parse::<ItemMod>() {
             let module_name = item_mod.ident;
+            let vis = item_mod.vis;
 
             let mut functions = vec![];
             let mut type_declarations = TypeDeclarations::default();
@@ -125,6 +126,7 @@ impl Parse for SwiftBridgeModuleAndErrors {
 
             let module = SwiftBridgeModule {
                 name: module_name,
+                vis,
                 types: type_declarations,
                 functions,
                 swift_bridge_path: syn::parse2(quote! { swift_bridge }).unwrap(),

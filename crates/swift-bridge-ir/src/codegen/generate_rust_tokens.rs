@@ -18,6 +18,7 @@ mod vec;
 impl ToTokens for SwiftBridgeModule {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let mod_name = &self.name;
+        let vis = &self.vis;
         let swift_bridge_path = &self.swift_bridge_path;
 
         let mut extern_rust_fn_tokens = vec![];
@@ -298,7 +299,7 @@ impl ToTokens for SwiftBridgeModule {
         let t = quote! {
             #[allow(non_snake_case)]
             #(#module_attributes)*
-            mod #mod_name {
+            #vis mod #mod_name {
                 #module_inner
             }
         };
@@ -1044,5 +1045,21 @@ mod tests {
             ),
             &expected_fn,
         );
+    }
+
+    /// Verify that we apply the module's visibility to the output.
+    #[test]
+    fn module_visibility() {
+        let start = quote! {
+            pub(super) mod foo {
+            }
+        };
+        let expected = quote! {
+            #[allow(non_snake_case)]
+            pub(super) mod foo {
+            }
+        };
+
+        assert_tokens_eq(&parse_ok(start).to_token_stream(), &expected);
     }
 }

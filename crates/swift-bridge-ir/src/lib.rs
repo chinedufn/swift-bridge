@@ -8,7 +8,7 @@
 #![deny(missing_docs)]
 
 use proc_macro2::Ident;
-use syn::Path;
+use syn::{Path, Visibility};
 
 use crate::bridge_module_attributes::CfgAttr;
 use crate::parse::TypeDeclarations;
@@ -58,6 +58,7 @@ const SWIFT_BRIDGE_PREFIX: &'static str = "__swift_bridge__";
 /// ```
 pub struct SwiftBridgeModule {
     name: Ident,
+    vis: Visibility,
     types: TypeDeclarations,
     functions: Vec<ParsedExternFn>,
     swift_bridge_path: Path,
