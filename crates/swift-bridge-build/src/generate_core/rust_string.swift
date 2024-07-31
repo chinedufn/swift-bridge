@@ -48,11 +48,6 @@ extension RustStringRef {
     }
 }
 extension RustStringRef: Error {}
-extension RustStringRef: LocalizedError {
-  public var errorDescription: String? {
-    return self.as_str().toString()
-  }
-}
 extension RustString: Vectorizable {
     public static func vecOfSelfNew() -> UnsafeMutableRawPointer {
         __swift_bridge__$Vec_RustString$new()
