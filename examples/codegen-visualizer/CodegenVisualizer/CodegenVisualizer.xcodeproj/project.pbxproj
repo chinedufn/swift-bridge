@@ -194,6 +194,7 @@
 			inputPaths = (
 			);
 			outputFileListPaths = (
+				"$(SRCROOT)/rust-output-files.xcfilelist",
 			);
 			outputPaths = (
 			);

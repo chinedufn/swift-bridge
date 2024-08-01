@@ -34,7 +34,7 @@ jobs:
           -p swift-integration-tests
           
   swift-package-test:
-    runs-on: macOS-11
+    runs-on: macos-14
     timeout-minutes: 30
 
     steps:
@@ -51,7 +51,7 @@ jobs:
       run: ./test-swift-packages.sh
 
   integration-test:
-    runs-on: macOS-11
+    runs-on: macos-14
     timeout-minutes: 30
 
     steps:
@@ -68,7 +68,7 @@ jobs:
       run: ./test-swift-rust-integration.sh
 
   build-examples:
-    runs-on: macOS-11
+    runs-on: macos-14
     timeout-minutes: 15
 
     steps:
