@@ -145,18 +145,19 @@ extension {enum_name}: Vectorizable {{
             )
         };
 
-        let derive_debug_impl = if shared_enum.derive.debug {
-            format!(
-                r#"
+        let derive_debug_impl =
+            if shared_enum.derive.debug && !shared_enum.has_one_or_more_variants_with_data() {
+                format!(
+                    r#"
 extension {enum_name}: CustomDebugStringConvertible {{
     public var debugDescription: String {{
         RustString(ptr: __swift_bridge__${enum_name}$Debug(self.intoFfiRepr())).toString()
     }}
 }}"#
-            )
-        } else {
-            "".to_string()
-        };
+                )
+            } else {
+                "".to_string()
+            };
 
         let swift_enum = format!(
             r#"public enum {enum_name} {{{variants}}}
