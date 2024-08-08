@@ -148,6 +148,15 @@ mod ffi {
         fn swift_arg_option_str(arg: Option<&str>) -> bool;
         // fn swift_reflect_option_str(arg: Option<&str>) -> Option<&str>;
     }
+
+    extern "Rust" {
+        #[swift_bridge(Equatable)]
+        type FailableInitType;
+
+        #[swift_bridge(init)]
+        fn new(success: bool) -> Option<FailableInitType>;
+        fn count(&self) -> i32;
+    }
 }
 
 fn test_rust_calls_swift_option_primitive() {
@@ -339,4 +348,21 @@ fn rust_reflect_option_struct_with_no_data(
     arg: Option<ffi::OptionStruct>,
 ) -> Option<ffi::OptionStruct> {
     arg
+}
+
+#[derive(PartialEq)]
+struct FailableInitType;
+
+impl FailableInitType {
+    fn new(success: bool) -> Option<FailableInitType> {
+        if success {
+            Some(FailableInitType)
+        } else {
+            None
+        }
+    }
+
+    fn count(&self) -> i32 {
+        132
+    }
 }

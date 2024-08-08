@@ -233,6 +233,7 @@ extension {ty_name}Ref: Hashable{{
             "".to_string()
         }
     };
+
     let class = format!(
         r#"
 {class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}{generic_freer}{equatable_method}{hashable_method}"#,

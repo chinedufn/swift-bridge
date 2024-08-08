@@ -220,4 +220,11 @@ class OptionTests: XCTestCase {
         XCTAssertEqual(reflectedSome!.field, 123)
         XCTAssertNil(reflectedNone)
     }
+    
+    /// Verify that we can use failable initializers defined on the Rust side.
+    func testFailableInitializer() {
+        XCTAssertEqual(FailableInitType(false), nil)
+        let failableInitType = FailableInitType(true)
+        XCTAssertEqual(failableInitType!.count(), 132)
+    }
 }

@@ -55,7 +55,11 @@ pub(super) fn gen_func_swift_calls_rust(
         if function.is_copy_method_on_opaque_type() {
             "public init".to_string()
         } else {
-            "public convenience init".to_string()
+            if function.is_swift_failable_initializer {
+                "public convenience init?".to_string()
+            } else {
+                "public convenience init".to_string()
+            }
         }
     } else {
         if let Some(swift_name) = &function.swift_name_override {
@@ -179,7 +183,14 @@ pub(super) fn gen_func_swift_calls_rust(
         if function.is_copy_method_on_opaque_type() {
             call_rust = format!("self.bytes = {}", call_rust)
         } else {
-            call_rust = format!("self.init(ptr: {})", call_rust)
+            if function.is_swift_failable_initializer {
+                call_rust = format!(
+                    "guard let val = {} else {{ return nil }}; self.init(ptr: val)",
+                    call_rust
+                )
+            } else {
+                call_rust = format!("self.init(ptr: {})", call_rust)
+            }
         }
     }
 
@@ -316,5 +327,6 @@ return{maybe_try}await {with_checked_continuation_function_name}({{ (continuatio
             call_rust = call_rust,
         )
     };
+
     func_definition
 }

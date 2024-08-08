@@ -277,6 +277,27 @@ mod tests {
         assert!(func.is_swift_initializer);
     }
 
+    /// Verify that we can parse an failable init function.
+    #[test]
+    fn failable_initializer() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(init)]
+                    fn bar () -> Option<Foo>;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let func = &module.functions[0];
+        assert!(func.is_swift_initializer);
+        assert!(func.is_swift_failable_initializer);
+    }
+
     /// Verify that we can parse an init function that takes inputs.
     #[test]
     fn initializer_with_inputs() {
