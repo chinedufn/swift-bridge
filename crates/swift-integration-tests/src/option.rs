@@ -155,6 +155,7 @@ mod ffi {
 
         #[swift_bridge(init)]
         fn new(success: bool) -> Option<FailableInitType>;
+        fn count(&self) -> i32;
     }
 }
 
@@ -359,5 +360,9 @@ impl FailableInitType {
         } else {
             None
         }
+    }
+
+    fn count(&self) -> i32 {
+        132
     }
 }
