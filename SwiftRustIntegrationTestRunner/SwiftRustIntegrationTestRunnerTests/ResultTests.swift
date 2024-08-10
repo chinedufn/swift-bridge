@@ -249,4 +249,27 @@ class ResultTests: XCTestCase {
             XCTAssertEqual(UInt32(i), value.val())
         }
     }
+    
+    /// Verify that we can use throwing initializers defined on the Rust side.
+    func testThrowingInitializers() throws {
+        XCTContext.runActivity(named: "Should fail") {
+            _ in
+            do {
+                let throwingInitializer = try ThrowingInitializer(false)
+            } catch let error as ResultTransparentEnum {
+                if case .NamedField(data: -123) = error {
+                    // This case should pass.
+                } else {
+                    XCTFail()
+                }
+            } catch {
+                XCTFail()
+            }
+        }
+        XCTContext.runActivity(named: "Should succeed") {
+            _ in
+            let throwingInitializer = try! ThrowingInitializer(true)
+            XCTAssertEqual(throwingInitializer.val(), 123)
+        }
+    }
 }

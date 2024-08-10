@@ -1,4 +1,5 @@
 use crate::bridged_type::{BridgeableType, BridgedType, CFfiStruct, TypePosition};
+use crate::parse::HostLang;
 use crate::{TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
@@ -207,6 +208,7 @@ impl BuiltInResult {
                 }
                 "__private__ResultPtrAndPtr".to_string()
             }
+            TypePosition::ThrowingInit(_) => todo!(),
         }
     }
 
@@ -253,6 +255,18 @@ impl BuiltInResult {
                 ),
                 TypePosition::SharedStructField => todo!(),
                 TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
+                TypePosition::ThrowingInit(lang) => {
+                    match lang {
+                        HostLang::Rust => format!(
+                            "let val = {expression}; switch val.tag {{ case {c_ok_name}: self.init(ptr: val.payload.ok) case {c_err_name}: throw {err_swift_type} default: fatalError() }}",
+                        expression = expression,
+                        c_ok_name = c_ok_name,
+                        c_err_name = c_err_name,
+                        err_swift_type = err_swift_type
+                    ),
+                        HostLang::Swift => todo!(),
+                    }
+                }
             };
         }
 

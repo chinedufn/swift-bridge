@@ -29,6 +29,13 @@ impl SwiftFuncGenerics {
     }
 }
 
+/// Represents different types of Swift's initializers that can fail
+#[derive(Clone)]
+pub(crate) enum FailableInitializerType {
+    Throwing,
+    Option,
+}
+
 /// A method or associated function associated with a type.
 ///
 /// fn bar (&self);
@@ -62,7 +69,7 @@ pub(crate) struct ParsedExternFn {
     /// Whether or not this function is a Swift failable initializer.
     /// For more details, see:
     /// [Swift Documentation - Failable Initializers](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/initialization/#Failable-Initializers)
-    pub is_swift_failable_initializer: bool,
+    pub swift_failable_initializer: Option<FailableInitializerType>,
     /// Whether or not this function should be used for the associated type's Swift
     /// `Identifiable` protocol implementation.
     pub is_swift_identifiable: bool,
@@ -468,7 +475,6 @@ impl ParsedExternFn {
                 }
             })
             .unwrap_or("".to_string());
-
         format!(
             "{}{}${}",
             SWIFT_BRIDGE_PREFIX,

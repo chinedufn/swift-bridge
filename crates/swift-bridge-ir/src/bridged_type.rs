@@ -411,6 +411,7 @@ pub(crate) enum TypePosition {
     FnReturn(HostLang),
     SharedStructField,
     SwiftCallsRustAsyncOnCompleteReturnTy,
+    ThrowingInit(HostLang),
 }
 
 /// &[T]
@@ -1177,6 +1178,7 @@ impl BridgedType {
                         TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                             unimplemented!()
                         }
+                        TypePosition::ThrowingInit(_) => unimplemented!(),
                     }
                 }
                 StdLibType::Null => "()".to_string(),
@@ -1193,6 +1195,7 @@ impl BridgedType {
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         unimplemented!()
                     }
+                    TypePosition::ThrowingInit(_) => unimplemented!(),
                 },
                 StdLibType::Vec(ty) => match type_pos {
                     TypePosition::FnArg(func_host_lang, _) => {
@@ -1215,6 +1218,7 @@ impl BridgedType {
                             "UnsafeMutableRawPointer".to_string()
                         }
                     }
+                    TypePosition::ThrowingInit(_) => unimplemented!(),
                     _ => {
                         format!(
                             "RustVec<{}>",
@@ -1243,6 +1247,7 @@ impl BridgedType {
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         shared_struct.ffi_name_string()
                     }
+                    TypePosition::ThrowingInit(_) => unimplemented!(),
                 }
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
@@ -1259,6 +1264,7 @@ impl BridgedType {
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         unimplemented!()
                     }
+                    TypePosition::ThrowingInit(_) => unimplemented!(),
                 }
             }
         }
@@ -1567,6 +1573,7 @@ impl BridgedType {
                             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                                 unimplemented!()
                             }
+                            TypePosition::ThrowingInit(_) => unimplemented!(),
                         },
                         PointerKind::Mut => expression.to_string(),
                     },
@@ -1660,6 +1667,7 @@ impl BridgedType {
                         TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                             unimplemented!()
                         }
+                        TypePosition::ThrowingInit(_) => unimplemented!(),
                     },
                 },
                 StdLibType::Str => match type_pos {
@@ -1677,6 +1685,7 @@ impl BridgedType {
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         unimplemented!()
                     }
+                    TypePosition::ThrowingInit(_) => unimplemented!(),
                 },
                 StdLibType::Vec(_) => {
                     format!(

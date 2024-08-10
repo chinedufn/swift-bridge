@@ -1,5 +1,6 @@
 use crate::bridged_type::{fn_arg_name, BridgeableType, BridgedType, StdLibType, TypePosition};
 use crate::parse::{HostLang, TypeDeclaration};
+use crate::parsed_extern_fn::FailableInitializerType;
 use crate::{ParsedExternFn, TypeDeclarations, SWIFT_BRIDGE_PREFIX};
 use quote::ToTokens;
 use std::ops::Deref;
@@ -55,7 +56,13 @@ pub(super) fn gen_func_swift_calls_rust(
         if function.is_copy_method_on_opaque_type() {
             "public init".to_string()
         } else {
-            if function.is_swift_failable_initializer {
+            if let Some(crate::parsed_extern_fn::FailableInitializerType::Throwing) =
+                function.swift_failable_initializer
+            {
+                "public convenience init".to_string()
+            } else if let Some(crate::parsed_extern_fn::FailableInitializerType::Option) =
+                function.swift_failable_initializer
+            {
                 "public convenience init?".to_string()
             } else {
                 "public convenience init".to_string()
@@ -69,6 +76,12 @@ pub(super) fn gen_func_swift_calls_rust(
         }
     };
 
+    let maybe_throws =
+        if let Some(FailableInitializerType::Throwing) = function.swift_failable_initializer {
+            " throws"
+        } else {
+            ""
+        };
     let indentation = if function.associated_type.is_some() {
         "    "
     } else {
@@ -84,7 +97,17 @@ pub(super) fn gen_func_swift_calls_rust(
     let mut call_rust = if function.sig.asyncness.is_some() {
         call_rust
     } else if function.is_swift_initializer {
-        call_rust
+        if let Some(FailableInitializerType::Throwing) = function.swift_failable_initializer {
+            let built_in = function.return_ty_built_in(types).unwrap();
+            built_in.convert_ffi_value_to_swift_value(
+                &call_rust,
+                TypePosition::ThrowingInit(function.host_lang),
+                types,
+                swift_bridge_path,
+            )
+        } else {
+            call_rust
+        }
     } else if let Some(built_in) = function.return_ty_built_in(types) {
         built_in.convert_ffi_value_to_swift_value(
             &call_rust,
@@ -183,12 +206,12 @@ pub(super) fn gen_func_swift_calls_rust(
         if function.is_copy_method_on_opaque_type() {
             call_rust = format!("self.bytes = {}", call_rust)
         } else {
-            if function.is_swift_failable_initializer {
+            if let Some(FailableInitializerType::Option) = function.swift_failable_initializer {
                 call_rust = format!(
                     "guard let val = {} else {{ return nil }}; self.init(ptr: val)",
                     call_rust
                 )
-            } else {
+            } else if function.swift_failable_initializer.is_none() {
                 call_rust = format!("self.init(ptr: {})", call_rust)
             }
         }
@@ -315,7 +338,7 @@ return{maybe_try}await {with_checked_continuation_function_name}({{ (continuatio
         )
     } else {
         format!(
-            r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}){maybe_ret} {{
+            r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}){maybe_throws}{maybe_ret} {{
 {indentation}    {call_rust}
 {indentation}}}"#,
             indentation = indentation,
@@ -325,6 +348,7 @@ return{maybe_try}await {with_checked_continuation_function_name}({{ (continuatio
             params = params,
             maybe_ret = maybe_return,
             call_rust = call_rust,
+            maybe_throws = maybe_throws,
         )
     };
 

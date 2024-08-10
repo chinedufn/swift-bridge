@@ -10,7 +10,7 @@ use crate::parse::type_declarations::{
     OpaqueForeignTypeDeclaration, TypeDeclaration, TypeDeclarations,
 };
 use crate::parse::{HostLang, OpaqueRustTypeGenerics};
-use crate::parsed_extern_fn::fn_arg_is_mutable_reference;
+use crate::parsed_extern_fn::{fn_arg_is_mutable_reference, FailableInitializerType};
 use crate::ParsedExternFn;
 use proc_macro2::Ident;
 use quote::{format_ident, ToTokens};
@@ -111,13 +111,17 @@ impl<'a> ForeignModParser<'a> {
                     }
 
                     let return_type = &func.sig.output;
-                    let mut is_swift_failable_initializer = false;
+                    let mut swift_failable_initializer: Option<FailableInitializerType> = None;
                     if let ReturnType::Type(_, return_ty) = return_type {
                         let bridged_return_type =
                             BridgedType::new_with_type(return_ty.deref(), &self.type_declarations);
+
                         if let Some(ty) = &bridged_return_type {
                             if ty.as_option().is_some() && attributes.is_swift_initializer {
-                                is_swift_failable_initializer = true;
+                                swift_failable_initializer = Some(FailableInitializerType::Option);
+                            } else if ty.as_result().is_some() && attributes.is_swift_initializer {
+                                swift_failable_initializer =
+                                    Some(FailableInitializerType::Throwing);
                             }
                         }
                         if bridged_return_type.is_none() {
@@ -131,7 +135,7 @@ impl<'a> ForeignModParser<'a> {
                         func.clone(),
                         &attributes,
                         &mut local_type_declarations,
-                        is_swift_failable_initializer,
+                        swift_failable_initializer.clone(),
                     )?;
 
                     if attributes.is_swift_identifiable {
@@ -236,7 +240,7 @@ impl<'a> ForeignModParser<'a> {
                         func,
                         associated_type,
                         is_swift_initializer: attributes.is_swift_initializer,
-                        is_swift_failable_initializer: is_swift_failable_initializer,
+                        swift_failable_initializer,
                         is_swift_identifiable: attributes.is_swift_identifiable,
                         host_lang,
                         rust_name_override: attributes.rust_name,
@@ -302,7 +306,7 @@ impl<'a> ForeignModParser<'a> {
         func: ForeignItemFn,
         attributes: &FunctionAttributes,
         local_type_declarations: &mut HashMap<String, OpaqueForeignTypeDeclaration>,
-        is_swift_failable_initializer: bool,
+        swift_failable_initializer: Option<FailableInitializerType>,
     ) -> syn::Result<Option<TypeDeclaration>> {
         let associated_type = match first {
             Some(FnArg::Receiver(recv)) => {
@@ -346,7 +350,7 @@ impl<'a> ForeignModParser<'a> {
                             func.clone(),
                             attributes,
                             local_type_declarations,
-                            is_swift_failable_initializer,
+                            swift_failable_initializer,
                         )?;
                         associated_type
                     }
@@ -383,14 +387,32 @@ Otherwise we use a more general error that says that your argument is invalid.
                             ty_string
                         }
                     };
-                    if is_swift_failable_initializer {
-                        // Safety: since we've already checked ty_string is formatted as "Option<~>" before calling this function.
-                        let last_bracket = ty_string.rfind(">").unwrap();
+                    if swift_failable_initializer.is_some() {
+                        if ty_string.starts_with("Option <") {
+                            // Safety: since we've already checked ty_string is formatted as "Option<~>" before calling this function.
+                            let last_bracket = ty_string.rfind(">").unwrap();
 
-                        let inner = &ty_string[0..last_bracket];
-                        let inner = inner.trim_start_matches("Option < ").trim_end_matches(" ");
-                        let ty = self.type_declarations.get(inner);
-                        ty.map(|ty| ty.clone())
+                            let inner = &ty_string[0..last_bracket];
+                            let inner = inner.trim_start_matches("Option < ").trim_end_matches(" ");
+
+                            let ty = self.type_declarations.get(inner);
+                            ty.map(|ty| ty.clone())
+                        } else if ty_string.starts_with("Result <") {
+                            // A , B >
+                            let trimmed = ty_string.trim_start_matches("Result < ");
+                            // A , B
+                            let trimmed = trimmed.trim_end_matches(" >");
+
+                            // [A, B]
+                            let ok_and_err = trimmed.rsplit_once(",").unwrap();
+                            let ok = ok_and_err.0.trim();
+
+                            let ty = self.type_declarations.get(ok);
+
+                            ty.map(|ty| ty.clone())
+                        } else {
+                            unreachable!();
+                        }
                     } else {
                         let ty = self.type_declarations.get(&ty_string);
 

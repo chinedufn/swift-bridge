@@ -527,3 +527,82 @@ void* __swift_bridge__$Foo$new(void);
         .test();
     }
 }
+
+/// Verify that we can use a Swift class with a throwing init.
+mod extern_rust_class_with_throwing_init {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod foo {
+                enum SomeErrEnum {
+                    Variant1,
+                    Variant2,
+                }
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(init)]
+                    fn new() -> Result<Foo, SomeErrEnum>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            # [export_name = "__swift_bridge__$Foo$new"]
+            pub extern "C" fn __swift_bridge__Foo_new() -> ResultFooAndSomeErrEnum{
+                match super :: Foo :: new() {
+                    Ok(ok) => ResultFooAndSomeErrEnum::Ok(Box::into_raw(Box::new({
+                        let val: super::Foo = ok;
+                        val
+                    })) as *mut super::Foo),
+                    Err(err) => ResultFooAndSomeErrEnum::Err(err.into_ffi_repr()),
+                }
+            }
+        })
+    }
+
+    const EXPECTED_SWIFT: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
+        r#"
+public class Foo: FooRefMut {
+    var isOwned: Bool = true
+
+    public override init(ptr: UnsafeMutableRawPointer) {
+        super.init(ptr: ptr)
+    }
+
+    deinit {
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
+    }
+}
+extension Foo {
+    public convenience init() throws {
+        let val = __swift_bridge__$Foo$new(); switch val.tag { case __swift_bridge__$ResultFooAndSomeErrEnum$ResultOk: self.init(ptr: val.payload.ok) case __swift_bridge__$ResultFooAndSomeErrEnum$ResultErr: throw val.payload.err.intoSwiftRepr() default: fatalError() }
+    }
+}
+"#,
+    );
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ContainsAfterTrim(
+        r#"
+typedef enum __swift_bridge__$ResultFooAndSomeErrEnum$Tag {__swift_bridge__$ResultFooAndSomeErrEnum$ResultOk, __swift_bridge__$ResultFooAndSomeErrEnum$ResultErr} __swift_bridge__$ResultFooAndSomeErrEnum$Tag;
+union __swift_bridge__$ResultFooAndSomeErrEnum$Fields {void* ok; struct __swift_bridge__$SomeErrEnum err;};
+typedef struct __swift_bridge__$ResultFooAndSomeErrEnum{__swift_bridge__$ResultFooAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultFooAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultFooAndSomeErrEnum;        
+"#,
+    );
+
+    #[test]
+    fn extern_rust_class_with_throwing_init() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: EXPECTED_SWIFT,
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}

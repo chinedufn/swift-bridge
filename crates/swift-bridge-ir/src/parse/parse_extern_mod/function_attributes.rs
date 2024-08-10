@@ -165,6 +165,7 @@ impl Parse for FunctionAttr {
 #[cfg(test)]
 mod tests {
     use crate::errors::{FunctionAttributeParseError, IdentifiableParseError, ParseError};
+    use crate::parsed_extern_fn::FailableInitializerType;
     use crate::test_utils::{parse_errors, parse_ok};
     use quote::{quote, ToTokens};
 
@@ -295,7 +296,10 @@ mod tests {
 
         let func = &module.functions[0];
         assert!(func.is_swift_initializer);
-        assert!(func.is_swift_failable_initializer);
+        matches!(
+            func.swift_failable_initializer,
+            Some(FailableInitializerType::Option)
+        );
     }
 
     /// Verify that we can parse an init function that takes inputs.

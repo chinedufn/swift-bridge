@@ -89,6 +89,13 @@ mod ffi {
             succeed: bool,
         ) -> Result<(i32, ResultTestOpaqueRustType, String), ResultTransparentEnum>;
     }
+
+    extern "Rust" {
+        type ThrowingInitializer;
+        #[swift_bridge(init)]
+        fn new(succeed: bool) -> Result<ThrowingInitializer, ResultTransparentEnum>;
+        fn val(&self) -> i32;
+    }
 }
 
 fn rust_func_takes_result_string(arg: Result<String, String>) {
@@ -245,5 +252,22 @@ fn rust_func_return_result_tuple_transparent_enum(
         Ok((123, ResultTestOpaqueRustType::new(123), "hello".to_string()))
     } else {
         Err(ffi::ResultTransparentEnum::NamedField { data: -123 })
+    }
+}
+
+struct ThrowingInitializer {
+    val: i32,
+}
+
+impl ThrowingInitializer {
+    fn new(succeed: bool) -> Result<Self, ffi::ResultTransparentEnum> {
+        if succeed {
+            Ok(ThrowingInitializer { val: 123 })
+        } else {
+            Err(ffi::ResultTransparentEnum::NamedField { data: -123 })
+        }
+    }
+    fn val(&self) -> i32 {
+        self.val
     }
 }
