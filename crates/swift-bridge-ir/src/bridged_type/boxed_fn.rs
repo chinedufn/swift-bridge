@@ -99,12 +99,20 @@ impl BridgeableBoxedFnOnce {
     }
 
     /// arg0: UInt8, arg1: SomeType, ...
-    pub fn params_to_swift_types(&self, types: &TypeDeclarations) -> String {
+    pub fn params_to_swift_types(
+        &self,
+        types: &TypeDeclarations,
+        swift_bridge_path: &Path,
+    ) -> String {
         self.params
             .iter()
             .enumerate()
             .map(|(idx, ty)| {
-                let ty = ty.to_swift_type(TypePosition::FnArg(HostLang::Rust, idx), types);
+                let ty = ty.to_swift_type(
+                    TypePosition::FnArg(HostLang::Rust, idx),
+                    types,
+                    swift_bridge_path,
+                );
 
                 format!("_ arg{idx}: {ty}")
             })

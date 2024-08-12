@@ -25,6 +25,28 @@ mod ffi {
             arg: Vec<TransparentEnumInsideVecT>,
         ) -> Vec<TransparentEnumInsideVecT>;
     }
+
+    extern "Rust" {
+        fn run_vec_tests();
+    }
+
+    extern "Swift" {
+        fn swift_return_vec_u8() -> Vec<u8>;
+        fn swift_arg_vec_u8(vec: Vec<u8>);
+    }
+}
+
+fn run_vec_tests() {
+    let vec = ffi::swift_return_vec_u8();
+    assert_eq!(vec.len(), 5);
+    assert_eq!(vec[0], 0);
+    assert_eq!(vec[1], 1);
+    assert_eq!(vec[2], 2);
+    assert_eq!(vec[3], 3);
+    assert_eq!(vec[4], 4);
+
+    let vec: Vec<u8> = vec![1, 2, 3, 4, 5];
+    ffi::swift_arg_vec_u8(vec);
 }
 
 pub struct ARustTypeInsideVecT {

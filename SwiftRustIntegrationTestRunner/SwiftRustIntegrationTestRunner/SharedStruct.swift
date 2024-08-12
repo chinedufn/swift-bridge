@@ -11,7 +11,10 @@ func rust_calls_swift_struct_with_no_fields(arg: StructWithNoFields) -> StructWi
     arg
 }
 
-func rust_calls_struct_repr_struct_one_primitive_field(arg: StructReprStructWithOnePrimitiveField) -> StructReprStructWithOnePrimitiveField {
+func rust_calls_swift_struct_repr_struct_one_primitive_field(arg: StructReprStructWithOnePrimitiveField) -> StructReprStructWithOnePrimitiveField {
     arg
 }
 
+func rust_calls_swift_struct_repr_struct_one_string_field(arg: StructReprStructWithOneStringField) -> StructReprStructWithOneStringField {
+    arg
+}

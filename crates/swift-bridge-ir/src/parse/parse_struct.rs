@@ -139,7 +139,13 @@ impl<'a> SharedStructDeclarationParser<'a> {
                     }
                     _ => todo!("Push parse error that derive attribute is in incorrect format"),
                 },
-                _ => todo!("Push unsupported attribute error."),
+                attr_name => {
+                    todo!(
+                        "Push unsupported attribute error. Found unsupported attribute \"{}\" on struct \"{}\". Consult the swift-bridge manual for supported struct attributes.",
+                        attr_name,
+                        item_struct.ident.to_string(),
+                    )
+                }
             }
         }
 
@@ -181,7 +187,7 @@ impl<'a> SharedStructDeclarationParser<'a> {
 mod tests {
     use super::*;
     use crate::test_utils::{parse_errors, parse_ok};
-    use quote::{quote, ToTokens};
+    use quote::quote;
 
     /// Verify that we can parse a struct with no fields.
     /// Structs with no fields always have an implicit `swift_repr = "struct"`.

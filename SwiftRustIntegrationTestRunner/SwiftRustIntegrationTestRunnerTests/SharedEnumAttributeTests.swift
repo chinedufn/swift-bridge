@@ -21,21 +21,26 @@ class SharedEnumAttributeTests: XCTestCase {
     }
     
     
-    /// Verify that we can call a function that uses a type that was already declared in a different bridge module.
+    /// Verify that we can call a rust function from swift that uses a type that was already declared in a different bridge module.
     func testSharedEnumAlreadyDeclared() throws {
         XCTAssertEqual(
-            reflect_already_declared_enum(
+            rust_reflect_already_declared_enum(
                 AlreadyDeclaredEnumTest.Variant
             ),
             AlreadyDeclaredEnumTest.Variant
         )
     }
     
+    /// Verify that we can call a swift function from rust that uses a type that was already declared in a different bridge module.
+    func testRustCallsSwiftFunctionSharedEnumAlreadyDeclared() throws {
+        test_rust_calls_swift_already_declared_enum()
+    }
     
     /// Verify that we can use the generated Debug impl.
     func testSharedEnumDeriveDebug() throws {
         let debugString = String(reflecting: DeriveDebugEnum.Variant)
         XCTAssertEqual(debugString, "Variant")
     }
+
 }
 

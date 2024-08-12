@@ -1,5 +1,7 @@
 //! See also: crates/swift-bridge-ir/src/codegen/codegen_tests/option_codegen_tests.rs
 
+use ffi::OptTestOpaqueSwiftType;
+
 #[swift_bridge::bridge]
 mod ffi {
     #[swift_bridge(swift_repr = "struct")]
@@ -35,10 +37,15 @@ mod ffi {
 
     extern "Rust" {
         type OptTestOpaqueRustType;
+        type OptTestOpaqueRefRustType;
 
         #[swift_bridge(init)]
         fn new(field: u8) -> OptTestOpaqueRustType;
-        fn field(&self) -> u8;
+        fn field(self: &OptTestOpaqueRustType) -> u8;
+
+        #[swift_bridge(associated_to = OptTestOpaqueRefRustType)]
+        fn new(field: u8) -> OptTestOpaqueRefRustType;
+        fn field_ref(self: &OptTestOpaqueRefRustType) -> Option<&OptTestOpaqueRustType>;
     }
 
     extern "Rust" {
@@ -84,6 +91,13 @@ mod ffi {
         fn rust_reflect_option_opaque_rust_type(
             arg: Option<OptTestOpaqueRustType>,
         ) -> Option<OptTestOpaqueRustType>;
+        fn rust_reflect_option_opaque_swift_type(
+            arg: Option<OptTestOpaqueSwiftType>,
+        ) -> Option<OptTestOpaqueSwiftType>;
+
+        fn rust_reflect_option_ref_opaque_rust_type(
+            arg: Option<&OptTestOpaqueRustType>,
+        ) -> Option<&OptTestOpaqueRustType>;
 
         fn rust_reflect_option_opaque_rust_copy_type(
             arg: Option<OptTestOpaqueRustCopyType>,
@@ -113,6 +127,8 @@ mod ffi {
     }
 
     extern "Swift" {
+        type OptTestOpaqueSwiftType;
+
         fn swift_reflect_option_u8(arg: Option<u8>) -> Option<u8>;
         fn swift_reflect_option_i8(arg: Option<i8>) -> Option<i8>;
         fn swift_reflect_option_u16(arg: Option<u16>) -> Option<u16>;
@@ -126,6 +142,20 @@ mod ffi {
         fn swift_reflect_option_f32(arg: Option<f32>) -> Option<f32>;
         fn swift_reflect_option_f64(arg: Option<f64>) -> Option<f64>;
         fn swift_reflect_option_bool(arg: Option<bool>) -> Option<bool>;
+
+        fn swift_reflect_option_string(arg: Option<String>) -> Option<String>;
+        // TODO: Change to `swift_reflect_option_str` once we support Swift returning `-> &str`
+        fn swift_arg_option_str(arg: Option<&str>) -> bool;
+        // fn swift_reflect_option_str(arg: Option<&str>) -> Option<&str>;
+    }
+
+    extern "Rust" {
+        #[swift_bridge(Equatable)]
+        type FailableInitType;
+
+        #[swift_bridge(init)]
+        fn new(success: bool) -> Option<FailableInitType>;
+        fn count(&self) -> i32;
     }
 }
 
@@ -163,6 +193,21 @@ fn test_rust_calls_swift_option_primitive() {
     assert_eq!(ffi::swift_reflect_option_bool(Some(true)), Some(true));
     assert_eq!(ffi::swift_reflect_option_bool(Some(false)), Some(false));
     assert_eq!(ffi::swift_reflect_option_bool(None), None);
+
+    assert_eq!(ffi::swift_reflect_option_string(None), None);
+    assert_eq!(
+        ffi::swift_reflect_option_string(Some("hello".to_string())),
+        Some("hello".to_string())
+    );
+
+    // TODO: Change to `swift_reflect_option_str` once we support Swift returning `-> &str`
+    assert_eq!(ffi::swift_arg_option_str(None), false);
+    assert_eq!(
+        ffi::swift_arg_option_str(Some("this is an option str")),
+        true
+    );
+    // assert_eq!(ffi::swift_reflect_option_str(None), None);
+    // assert_eq!(ffi::swift_reflect_option_str(Some("a str")), Some("a str"));
 }
 
 pub struct OptTestOpaqueRustType {
@@ -175,6 +220,22 @@ impl OptTestOpaqueRustType {
 
     fn field(&self) -> u8 {
         self.field
+    }
+}
+
+pub struct OptTestOpaqueRefRustType {
+    field: Option<OptTestOpaqueRustType>,
+}
+
+impl OptTestOpaqueRefRustType {
+    fn new(field: u8) -> Self {
+        Self {
+            field: Some(OptTestOpaqueRustType::new(field)),
+        }
+    }
+
+    fn field_ref(&self) -> Option<&OptTestOpaqueRustType> {
+        self.field.as_ref()
     }
 }
 
@@ -219,7 +280,7 @@ mod reflect_primitives {
     pub fn rust_reflect_option_isize(arg: Option<isize>) -> Option<isize> { arg }
     pub fn rust_reflect_option_f32(arg: Option<f32>) -> Option<f32> { arg }
     pub fn rust_reflect_option_f64(arg: Option<f64>) -> Option<f64> { arg }
-    pub fn rust_reflect_option_bool(arg: Option<bool>) -> Option<bool> { arg }   
+    pub fn rust_reflect_option_bool(arg: Option<bool>) -> Option<bool> { arg }
 }
 
 fn rust_reflect_option_string(arg: Option<String>) -> Option<String> {
@@ -240,6 +301,17 @@ fn rust_reflect_option_vector_rust_type(arg: Option<Vec<u16>>) -> Option<Vec<u16
 fn rust_reflect_option_opaque_rust_type(
     arg: Option<OptTestOpaqueRustType>,
 ) -> Option<OptTestOpaqueRustType> {
+    arg
+}
+
+fn rust_reflect_option_ref_opaque_rust_type(
+    arg: Option<&OptTestOpaqueRustType>,
+) -> Option<&OptTestOpaqueRustType> {
+    arg
+}
+pub fn rust_reflect_option_opaque_swift_type(
+    arg: Option<OptTestOpaqueSwiftType>,
+) -> Option<OptTestOpaqueSwiftType> {
     arg
 }
 
@@ -276,4 +348,21 @@ fn rust_reflect_option_struct_with_no_data(
     arg: Option<ffi::OptionStruct>,
 ) -> Option<ffi::OptionStruct> {
     arg
+}
+
+#[derive(PartialEq)]
+struct FailableInitType;
+
+impl FailableInitType {
+    fn new(success: bool) -> Option<FailableInitType> {
+        if success {
+            Some(FailableInitType)
+        } else {
+            None
+        }
+    }
+
+    fn count(&self) -> i32 {
+        132
+    }
 }

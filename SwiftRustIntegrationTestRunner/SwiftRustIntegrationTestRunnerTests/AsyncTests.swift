@@ -180,5 +180,16 @@ class AsyncTests: XCTestCase {
     func testSwiftCallsRustAsyncFnRetStruct() async throws {
         let _: AsyncRustFnReturnStruct = await rust_async_return_struct()
     }
+    
+    func testSwiftCallsRustAsyncFnReturnResultNullOpaqueRust() async throws {
+        try await rust_async_func_return_result_null_opaque_rust(true)
+        
+        do {
+            try await rust_async_func_return_result_null_opaque_rust(false)
+            XCTFail()
+        } catch let error as AsyncResultOpaqueRustType2 {
+            XCTAssertEqual(error.val(), 111)
+        }
+    }
 }
 

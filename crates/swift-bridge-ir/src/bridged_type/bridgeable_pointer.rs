@@ -1,5 +1,5 @@
 use crate::bridged_type::{
-    BridgeableType, BridgedType, BuiltInResult, TypePosition, UnusedOptionNoneValue,
+    BridgeableType, BridgedType, BuiltInResult, CFfiStruct, TypePosition, UnusedOptionNoneValue,
 };
 use crate::parse::TypeDeclarations;
 use crate::Path;
@@ -41,19 +41,23 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
+    fn as_option(&self) -> Option<&super::bridged_option::BridgedOption> {
+        todo!();
+    }
+
     fn is_passed_via_pointer(&self) -> bool {
         todo!()
     }
 
-    fn generate_custom_rust_ffi_type(
+    fn generate_custom_rust_ffi_types(
         &self,
         _swift_bridge_path: &Path,
         _types: &TypeDeclarations,
-    ) -> Option<TokenStream> {
+    ) -> Option<Vec<TokenStream>> {
         None
     }
 
-    fn generate_custom_c_ffi_type(&self, _types: &TypeDeclarations) -> Option<String> {
+    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<CFfiStruct> {
         None
     }
 
@@ -73,7 +77,12 @@ impl BridgeableType for BuiltInPointer {
         }
     }
 
-    fn to_swift_type(&self, _type_pos: TypePosition, _types: &TypeDeclarations) -> String {
+    fn to_swift_type(
+        &self,
+        _type_pos: TypePosition,
+        _types: &TypeDeclarations,
+        _swift_bridge_path: &Path,
+    ) -> String {
         todo!()
     }
 
@@ -112,6 +121,7 @@ impl BridgeableType for BuiltInPointer {
 
     fn to_ffi_compatible_option_swift_type(
         &self,
+        _type_pos: TypePosition,
         _swift_bridge_path: &Path,
         _types: &TypeDeclarations,
     ) -> String {
@@ -176,6 +186,7 @@ impl BridgeableType for BuiltInPointer {
         _expression: &str,
         _type_pos: TypePosition,
         _types: &TypeDeclarations,
+        _swift_bridge_path: &Path,
     ) -> String {
         todo!()
     }
@@ -251,7 +262,7 @@ impl BridgeableType for BuiltInPointer {
         todo!()
     }
 
-    fn to_alpha_numeric_underscore_name(&self) -> String {
+    fn to_alpha_numeric_underscore_name(&self, _types: &TypeDeclarations) -> String {
         todo!()
     }
 }

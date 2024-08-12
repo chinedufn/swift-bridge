@@ -40,5 +40,6 @@ note: required by a bound in `assert_copy`
   |                       ^^^^ required by this bound in `assert_copy`
 help: consider annotating `DoesNotImplementCopy` with `#[derive(Copy)]`
   |
-15| #[derive(Copy)]
+15+ #[derive(Copy)]
+16| pub struct DoesNotImplementCopy(u8);
   |

@@ -1,4 +1,6 @@
-use crate::bridged_type::{BridgeableType, OnlyEncoding, TypePosition, UnusedOptionNoneValue};
+use crate::bridged_type::{
+    BridgeableType, CFfiStruct, OnlyEncoding, TypePosition, UnusedOptionNoneValue,
+};
 use crate::TypeDeclarations;
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
@@ -24,19 +26,23 @@ impl BridgeableType for BridgedString {
         None
     }
 
+    fn as_option(&self) -> Option<&super::bridged_option::BridgedOption> {
+        todo!()
+    }
+
     fn is_passed_via_pointer(&self) -> bool {
         true
     }
 
-    fn generate_custom_rust_ffi_type(
+    fn generate_custom_rust_ffi_types(
         &self,
         _swift_bridge_path: &Path,
         _types: &TypeDeclarations,
-    ) -> Option<TokenStream> {
+    ) -> Option<Vec<TokenStream>> {
         None
     }
 
-    fn generate_custom_c_ffi_type(&self, _types: &TypeDeclarations) -> Option<String> {
+    fn generate_custom_c_ffi_types(&self, _types: &TypeDeclarations) -> Option<CFfiStruct> {
         None
     }
 
@@ -45,9 +51,20 @@ impl BridgeableType for BridgedString {
         quote! { String }
     }
 
-    fn to_swift_type(&self, type_pos: TypePosition, _types: &TypeDeclarations) -> String {
+    fn to_swift_type(
+        &self,
+        type_pos: TypePosition,
+        _types: &TypeDeclarations,
+        _swift_bridge_path: &Path,
+    ) -> String {
         match type_pos {
-            TypePosition::FnArg(_func_host_lang, _) => "GenericIntoRustString".to_string(),
+            TypePosition::FnArg(func_host_lang, _) => {
+                if func_host_lang.is_rust() {
+                    "GenericIntoRustString".to_string()
+                } else {
+                    "UnsafeMutableRawPointer".to_string()
+                }
+            }
             TypePosition::FnReturn(func_host_lang) => {
                 if func_host_lang.is_rust() {
                     "RustString".to_string()
@@ -88,10 +105,32 @@ impl BridgeableType for BridgedString {
 
     fn to_ffi_compatible_option_swift_type(
         &self,
+        type_pos: TypePosition,
         _swift_bridge_path: &Path,
         _types: &TypeDeclarations,
     ) -> String {
-        todo!()
+        match type_pos {
+            TypePosition::FnArg(host_lang, _) => {
+                if host_lang.is_rust() {
+                    todo!()
+                } else {
+                    "UnsafeMutableRawPointer?".to_string()
+                }
+            }
+            TypePosition::FnReturn(host_lang) => {
+                if host_lang.is_rust() {
+                    todo!()
+                } else {
+                    "UnsafeMutableRawPointer?".to_string()
+                }
+            }
+            TypePosition::SharedStructField => {
+                todo!()
+            }
+            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                todo!()
+            }
+        }
     }
 
     fn to_ffi_compatible_option_c_type(&self) -> String {
@@ -150,8 +189,15 @@ impl BridgeableType for BridgedString {
                     expression = expression
                 )
             }
-            TypePosition::FnReturn(_) => {
-                todo!("Need to come back and think through what should happen here...")
+            TypePosition::FnReturn(func_host_lang) => {
+                if func_host_lang.is_rust() {
+                    todo!()
+                } else {
+                    format!(
+                        "{{ if let rustString = optionalStringIntoRustString({expression}) {{ rustString.isOwned = false; return rustString.ptr }} else {{ return nil }} }}()",
+                        expression = expression
+                    )
+                }
             }
             TypePosition::SharedStructField => {
                 todo!("Option<String> fields in structs are not yet supported.")
@@ -176,10 +222,14 @@ impl BridgeableType for BridgedString {
 
     fn convert_ffi_option_expression_to_rust_type(&self, expression: &TokenStream) -> TokenStream {
         quote! {
-            if #expression.is_null() {
-                None
-            } else {
-                Some(unsafe { Box::from_raw(#expression).0 } )
+            {
+                let val = #expression;
+
+                if val.is_null() {
+                    None
+                } else {
+                    Some( unsafe { Box::from_raw(val).0 } )
+                }
             }
         }
     }
@@ -189,6 +239,7 @@ impl BridgeableType for BridgedString {
         expression: &str,
         type_pos: TypePosition,
         _types: &TypeDeclarations,
+        _swift_bridge_path: &Path,
     ) -> String {
         match type_pos {
             TypePosition::FnArg(_, _)
@@ -291,7 +342,7 @@ impl BridgeableType for BridgedString {
         false
     }
 
-    fn to_alpha_numeric_underscore_name(&self) -> String {
+    fn to_alpha_numeric_underscore_name(&self, _types: &TypeDeclarations) -> String {
         "String".to_string()
     }
 }

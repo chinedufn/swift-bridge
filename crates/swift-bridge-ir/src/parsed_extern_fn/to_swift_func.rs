@@ -10,6 +10,7 @@ impl ParsedExternFn {
         &self,
         include_receiver_if_present: bool,
         types: &TypeDeclarations,
+        swift_bridge_path: &Path,
     ) -> String {
         let mut params: Vec<String> = vec![];
 
@@ -40,7 +41,11 @@ impl ParsedExternFn {
                             }
                         }
 
-                        built_in.to_swift_type(TypePosition::FnArg(self.host_lang, arg_idx), types)
+                        built_in.to_swift_type(
+                            TypePosition::FnArg(self.host_lang, arg_idx),
+                            types,
+                            swift_bridge_path,
+                        )
                     } else {
                         todo!("Push to ParsedErrors")
                     };
@@ -71,7 +76,7 @@ impl ParsedExternFn {
         include_receiver_if_present: bool,
         include_var_name: bool,
         types: &TypeDeclarations,
-        _swift_bridge_path: &Path,
+        swift_bridge_path: &Path,
     ) -> String {
         let mut args = vec![];
         let inputs = &self.func.sig.inputs;
@@ -120,6 +125,7 @@ impl ParsedExternFn {
                                         &arg,
                                         TypePosition::FnArg(self.host_lang, arg_idx),
                                         types,
+                                        swift_bridge_path,
                                     )
                                 }
                             }
@@ -139,7 +145,11 @@ impl ParsedExternFn {
         args.join(", ")
     }
 
-    pub fn to_swift_return_type(&self, types: &TypeDeclarations) -> String {
+    pub fn to_swift_return_type(
+        &self,
+        types: &TypeDeclarations,
+        swift_bridge_path: &Path,
+    ) -> String {
         match &self.func.sig.output {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
@@ -155,7 +165,11 @@ impl ParsedExternFn {
                     format!(
                         " {}-> {}",
                         maybe_throws,
-                        built_in.to_swift_type(TypePosition::FnReturn(self.host_lang,), types)
+                        built_in.to_swift_type(
+                            TypePosition::FnReturn(self.host_lang,),
+                            types,
+                            swift_bridge_path
+                        )
                     )
                 } else {
                     todo!("Push ParsedErrors")
@@ -208,7 +222,7 @@ mod tests {
 
         for (idx, expected) in expected.into_iter().enumerate() {
             assert_eq!(
-                functions[idx].to_swift_return_type(&module.types),
+                functions[idx].to_swift_return_type(&module.types, &module.swift_bridge_path),
                 format!(" -> {}", expected)
             );
         }
@@ -237,7 +251,11 @@ mod tests {
 
         for method in methods {
             assert_eq!(
-                method.to_swift_param_names_and_types(false, &module.types),
+                method.to_swift_param_names_and_types(
+                    false,
+                    &module.types,
+                    &module.swift_bridge_path
+                ),
                 ""
             );
         }
@@ -265,7 +283,11 @@ mod tests {
 
         for (idx, expected) in expected.into_iter().enumerate() {
             assert_eq!(
-                functions[idx].to_swift_param_names_and_types(false, &module.types),
+                functions[idx].to_swift_param_names_and_types(
+                    false,
+                    &module.types,
+                    &module.swift_bridge_path
+                ),
                 format!("_ other: {}", expected)
             );
         }

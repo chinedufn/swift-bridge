@@ -4,7 +4,6 @@ use syn::{Error, FnArg, Item, Receiver};
 use syn::{ForeignItemFn, ForeignItemType, LitStr};
 use syn::{Token, Type};
 
-// <!-- ANCHOR: mdbook-parse-error-enum -->
 pub(crate) enum ParseError {
     ArgsIntoArgNotFound {
         func: ForeignItemFn,
@@ -28,7 +27,6 @@ pub(crate) enum ParseError {
     /// fn foo (bar: &Bar);
     /// If Bar wasn't declared using a `type Bar` declaration.
     UndeclaredType { ty: Type },
-    // <!-- ANCHOR_END: mdbook-parse-error-enum -->
     /// Declared a type that we already support.
     /// Example: `type u32`
     DeclaredBuiltInType { ty: ForeignItemType },
@@ -73,7 +71,6 @@ pub(crate) enum IdentifiableParseError {
     MissingReturnType { fn_ident: Ident },
 }
 
-// <!-- ANCHOR: mdbook-parse-error-message -->
 impl Into<syn::Error> for ParseError {
     fn into(self) -> Error {
         match self {
@@ -122,7 +119,6 @@ self: &mut SomeType
                 );
                 Error::new_spanned(ty, message)
             }
-            // <!-- ANCHOR_END: mdbook-parse-error-message -->
             ParseError::DeclaredBuiltInType { ty } => {
                 let message = format!(
                     r#"Type {} is already supported

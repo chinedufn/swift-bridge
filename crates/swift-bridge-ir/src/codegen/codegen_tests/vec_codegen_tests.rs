@@ -132,6 +132,10 @@ extension MyRustType: Vectorizable {
         }
     }
 
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<MyRustTypeRef> {
+        UnsafePointer<MyRustTypeRef>(OpaquePointer(__swift_bridge__$Vec_MyRustType$as_ptr(vecPtr)))
+    }
+
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {
         __swift_bridge__$Vec_MyRustType$len(vecPtr)
     }
@@ -387,6 +391,10 @@ extension SomeEnum: Vectorizable {
         return maybeEnum.intoSwiftRepr()
     }
 
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Self> {
+        UnsafePointer<Self>(OpaquePointer(__swift_bridge__$Vec_SomeEnum$as_ptr(vecPtr)))
+    }
+
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {
         __swift_bridge__$Vec_SomeEnum$len(vecPtr)
     }
@@ -527,6 +535,123 @@ void __swift_bridge__$some_function(void* arg);
 
     #[test]
     fn extern_rust_fn_arg_vec_of_transparent_enum() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that returns a Vec<T> where T is a primitive Rust type.
+mod extern_swift_fn_return_vec_of_primitive_rust_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Swift" {
+                    fn some_function() -> Vec<u8>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[allow(non_snake_case)]
+            mod ffi {
+                pub fn some_function() -> Vec<u8> {
+                    unsafe { *Box::from_raw(unsafe { __swift_bridge__some_function() }) }
+                }
+
+                #[allow(improper_ctypes)]
+                extern "C" {
+                    #[link_name = "__swift_bridge__$some_function"]
+                    fn __swift_bridge__some_function() -> *mut Vec<u8>;
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function () -> UnsafeMutableRawPointer {
+    { let val = some_function(); val.isOwned = false; return val.ptr }()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ExactAfterTrim("")
+    }
+
+    #[test]
+    fn extern_swift_fn_return_vec_of_primitive_rust_type() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for Rust function that has an argument
+/// Vec<T> where T is a primitive Rust type.
+mod extern_swift_fn_arg_vec_of_primitive_rust_type {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Swift" {
+                    fn some_function(arg: Vec<u8>);
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            #[allow(non_snake_case)]
+            mod ffi {
+                pub fn some_function(arg: Vec<u8>) {
+                    unsafe { __swift_bridge__some_function(Box::into_raw(Box::new(arg))) }
+                }
+
+                #[allow(improper_ctypes)]
+                extern "C" {
+                    #[link_name = "__swift_bridge__$some_function"]
+                    fn __swift_bridge__some_function(arg: *mut Vec<u8>);
+                }
+            }
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ arg: UnsafeMutableRawPointer) {
+    some_function(arg: RustVec(ptr: arg))
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ExactAfterTrim("")
+    }
+
+    #[test]
+    fn extern_swift_fn_arg_vec_of_primitive_rust_type() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

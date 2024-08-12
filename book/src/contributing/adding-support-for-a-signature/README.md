@@ -37,7 +37,8 @@ This chapter shows how to add support for an unsupported signature.
 
 ## Implementing Support for a Signature
 
-To support a new signature, we first write automated tests for the signature and then implement just enough code to get those
+To support a new signature, we first write automated tests for the signature and then implement just enough code to get
+those
 tests passing.
 
 Add the time of writing, the `Swift` programming language does not have support for 128 bit integers.
@@ -71,7 +72,16 @@ would be a good choice.
 Before adding our `u128` support, the file looks like this:
 
 ```rust
-{{#include ../../../../crates/swift-integration-tests/src/primitive.rs::10}}
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        fn test_rust_calls_swift_primitives();
+
+        fn rust_double_u8(arg: u8) -> u8;
+        fn rust_double_i8(arg: i8) -> i8;
+        fn rust_double_u16(arg: u16) -> u16;
+        fn rust_double_i16(arg: i16) -> i16;
+        fn rust_double_u32(arg: u32) -> u32;
 // ... snip ...
 ```
 
@@ -79,10 +89,11 @@ Next we would add our `reflect_u128` function to the bridge module.
 
 We would then modify the `SwiftRustIntegrationTestRunner` to call our function.
 
-In this case we would want to modify [`SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/PrimitiveTests.swift`](https://github.com/chinedufn/swift-bridge/blob/master/SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/PrimitiveTests.swift),
+In this case we would want to
+modify [`SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/PrimitiveTests.swift`](https://github.com/chinedufn/swift-bridge/blob/master/SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/PrimitiveTests.swift),
 which before our updates looks something like:
 
-```rust
+```swift
 import XCTest
 @testable import SwiftRustIntegrationTestRunner
 
@@ -114,6 +125,7 @@ class PrimitiveTests: XCTestCase {
 #### Codegen Tests
 
 After adding one or more integration tests, we would then add one or more codegen tests.
+Codegen tests live in `crates/swift-bridge-ir/src/codegen/codegen_tests`.
 
 In codegen tests we write out the exact code that we expect `swift-bridge` to generate.
 
@@ -182,7 +194,7 @@ struct __private__OptionF32 __swift_bridge__$some_function(struct __private__Opt
             expected_swift_code: expected_swift_code(),
             expected_c_header: EXPECTED_C_HEADER,
         }
-        .test();
+            .test();
     }
 }
 ```

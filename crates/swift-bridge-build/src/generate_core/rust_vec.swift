@@ -23,6 +23,10 @@ public class RustVec<T: Vectorizable> {
          T.vecOfSelfGet(vecPtr: ptr, index: index)
     }
 
+    public func as_ptr() -> UnsafePointer<T.SelfRef> {
+        UnsafePointer<T.SelfRef>(OpaquePointer(T.vecOfSelfAsPtr(vecPtr: ptr)))
+    }
+
     /// Rust returns a UInt, but we cast to an Int because many Swift APIs such as
     /// `ForEach(0..rustVec.len())` expect Int.
     public func len() -> Int {
@@ -100,6 +104,8 @@ public protocol Vectorizable {
     static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<SelfRef>
 
     static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<SelfRefMut>
+
+    static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<SelfRef>
 
     static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt
 }

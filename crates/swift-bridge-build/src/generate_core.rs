@@ -182,6 +182,10 @@ extension {swift_ty}: Vectorizable {{
         }}
     }}
 
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Self> {{
+        UnsafePointer<Self>(OpaquePointer(__swift_bridge__$Vec_{rust_ty}$as_ptr(vecPtr)))
+    }}
+
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {{
         __swift_bridge__$Vec_{rust_ty}$len(vecPtr)
     }}

@@ -10,3 +10,7 @@ import Foundation
 func extern_swift_enum_rename(arg: EnumRename) -> EnumRename {
     arg
 }
+
+func swift_reflect_already_declared_enum(arg: AlreadyDeclaredEnumTest) -> AlreadyDeclaredEnumTest {
+    arg
+}

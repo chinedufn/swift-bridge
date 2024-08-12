@@ -47,3 +47,28 @@ func swift_reflect_option_bool(arg: Optional<Bool>) -> Optional<Bool> {
     arg
 }
 
+
+func swift_reflect_option_string(arg: Optional<RustString>) -> Optional<RustString> {
+    arg
+}
+// TODO: Change `swift_arg_option_str` `swift_reflect_option_str` once we support Swift returning `-> &str` via RustStr
+// For now we return true if the arg is Some and false if arg is None
+//func swift_reflect_option_str(arg: Optional<RustStr>) -> Optional<RustStr> {
+//    arg
+//}
+func swift_arg_option_str(arg: Optional<RustStr>) -> Bool {
+    if let val = arg {
+        assert(val.toString() == "this is an option str")
+        return true
+    } else {
+        return false
+    }
+}
+
+public class OptTestOpaqueSwiftType {
+    let val: Int
+
+    init(val: Int) {
+        self.val = val
+    }
+}

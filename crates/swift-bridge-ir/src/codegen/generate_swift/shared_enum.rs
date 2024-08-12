@@ -23,7 +23,11 @@ impl SwiftBridgeModule {
                     for named_field in named_fields {
                         let ty = BridgedType::new_with_type(&named_field.ty, &self.types)
                             .unwrap()
-                            .to_swift_type(TypePosition::SharedStructField, &self.types);
+                            .to_swift_type(
+                                TypePosition::SharedStructField,
+                                &self.types,
+                                &self.swift_bridge_path,
+                            );
                         params.push(format!("{}: {}", named_field.name, ty))
                     }
                     let params = params.join(", ");
@@ -39,7 +43,11 @@ impl SwiftBridgeModule {
                     for unnamed_field in unnamed_fields {
                         let ty = BridgedType::new_with_type(&unnamed_field.ty, &self.types)
                             .unwrap()
-                            .to_swift_type(TypePosition::SharedStructField, &self.types);
+                            .to_swift_type(
+                                TypePosition::SharedStructField,
+                                &self.types,
+                                &self.swift_bridge_path,
+                            );
                         params.push(ty);
                     }
                     let params = params.join(", ");
@@ -78,8 +86,11 @@ impl SwiftBridgeModule {
         }
 
         for variant in shared_enum.variants.iter() {
-            let convert_ffi_variant_to_swift =
-                variant.convert_ffi_expression_to_swift(&self.types, format!("{}", enum_name));
+            let convert_ffi_variant_to_swift = variant.convert_ffi_expression_to_swift(
+                &self.types,
+                format!("{}", enum_name),
+                &self.swift_bridge_path,
+            );
             convert_ffi_repr_to_swift += &convert_ffi_variant_to_swift;
         }
         if convert_ffi_repr_to_swift.len() > 0 {
@@ -121,6 +132,10 @@ extension {enum_name}: Vectorizable {{
     public static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<Self> {{
         let maybeEnum = __swift_bridge__$Vec_{enum_name}$get_mut(vecPtr, index)
         return maybeEnum.intoSwiftRepr()
+    }}
+
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Self> {{
+        UnsafePointer<Self>(OpaquePointer(__swift_bridge__$Vec_{enum_name}$as_ptr(vecPtr)))
     }}
 
     public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {{

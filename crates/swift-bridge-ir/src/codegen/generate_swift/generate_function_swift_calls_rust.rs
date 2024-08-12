@@ -11,7 +11,7 @@ pub(super) fn gen_func_swift_calls_rust(
     swift_bridge_path: &Path,
 ) -> String {
     let fn_name = function.sig.ident.to_string();
-    let params = function.to_swift_param_names_and_types(false, types);
+    let params = function.to_swift_param_names_and_types(false, types, swift_bridge_path);
     let call_args = function.to_swift_call_args(true, false, types, swift_bridge_path);
     let call_fn = if function.sig.asyncness.is_some() {
         let maybe_args = if function.sig.inputs.is_empty() {
@@ -55,7 +55,11 @@ pub(super) fn gen_func_swift_calls_rust(
         if function.is_copy_method_on_opaque_type() {
             "public init".to_string()
         } else {
-            "public convenience init".to_string()
+            if function.is_swift_failable_initializer {
+                "public convenience init?".to_string()
+            } else {
+                "public convenience init".to_string()
+            }
         }
     } else {
         if let Some(swift_name) = &function.swift_name_override {
@@ -86,6 +90,7 @@ pub(super) fn gen_func_swift_calls_rust(
             &call_rust,
             TypePosition::FnReturn(function.host_lang),
             types,
+            swift_bridge_path,
         )
     } else {
         if function.host_lang.is_swift() {
@@ -178,29 +183,42 @@ pub(super) fn gen_func_swift_calls_rust(
         if function.is_copy_method_on_opaque_type() {
             call_rust = format!("self.bytes = {}", call_rust)
         } else {
-            call_rust = format!("self.init(ptr: {})", call_rust)
+            if function.is_swift_failable_initializer {
+                call_rust = format!(
+                    "guard let val = {} else {{ return nil }}; self.init(ptr: val)",
+                    call_rust
+                )
+            } else {
+                call_rust = format!("self.init(ptr: {})", call_rust)
+            }
         }
     }
 
     let maybe_return = if function.is_swift_initializer {
         "".to_string()
     } else {
-        function.to_swift_return_type(types)
+        function.to_swift_return_type(types, swift_bridge_path)
     };
 
     let maybe_generics = function.maybe_swift_generics(types);
 
     let func_definition = if function.sig.asyncness.is_some() {
         let func_ret_ty = function.return_ty_built_in(types).unwrap();
-        let rust_fn_ret_ty =
-            func_ret_ty.to_swift_type(TypePosition::FnReturn(HostLang::Rust), types);
+        let rust_fn_ret_ty = func_ret_ty.to_swift_type(
+            TypePosition::FnReturn(HostLang::Rust),
+            types,
+            swift_bridge_path,
+        );
         let maybe_on_complete_sig_ret_val = if func_ret_ty.is_null() {
             "".to_string()
         } else {
             format!(
                 ", rustFnRetVal: {}",
-                func_ret_ty
-                    .to_swift_type(TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy, types)
+                func_ret_ty.to_swift_type(
+                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
+                    types,
+                    swift_bridge_path
+                )
             )
         };
         let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
@@ -210,6 +228,7 @@ pub(super) fn gen_func_swift_calls_rust(
                     "rustFnRetVal",
                     TypePosition::FnReturn(HostLang::Rust),
                     types,
+                    swift_bridge_path,
                 );
                 (
                     run_wrapper_cb,
@@ -225,6 +244,7 @@ pub(super) fn gen_func_swift_calls_rust(
                         "rustFnRetVal",
                         TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
                         types,
+                        swift_bridge_path,
                     )
                 };
                 (
@@ -307,5 +327,6 @@ return{maybe_try}await {with_checked_continuation_function_name}({{ (continuatio
             call_rust = call_rust,
         )
     };
+
     func_definition
 }

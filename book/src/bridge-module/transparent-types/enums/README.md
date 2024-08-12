@@ -59,7 +59,7 @@ mod ffi_2 {
     // The `already_declared` indicates that instead of creating a new enum
     // we should use super::SomeTransparentEnum;
     #[swift_bridge(already_declared)]
-    enum SomeTransparentEnum;
+    enum SomeTransparentEnum {}
 
     extern "Rust" {
         fn some_function() -> SomeTransparentEnum;

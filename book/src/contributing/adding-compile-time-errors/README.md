@@ -6,13 +6,25 @@ guide them towards the right fix.
 For example, if a user wrote the following bridge module:
 
 ```rust
-{{#include ../../../../crates/swift-bridge-macro/tests/ui/unrecognized-opaque-type-attribute.rs:mdbook-ui-test-example}}
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        #[swift_bridge(InvalidAttribute)]
+        type SomeType;
+    }
+}
+
+pub struct SomeType;
 ```
 
 We would want to emit a compile time error along the lines of:
 
 ```sh
-{{#include ../../../../crates/swift-bridge-macro/tests/ui/unrecognized-opaque-type-attribute.stderr}}
+error: Unrecognized attribute "InvalidAttribute".
+ --> tests/ui/unrecognized-opaque-type-attribute.rs:8:24
+  |
+8 |         #[swift_bridge(InvalidAttribute)]
+  |                        ^^^^^^^^^^^^^^^^
 ```
 
 This chapter shows how to add support for compile time errors.
@@ -30,9 +42,31 @@ Here are a few example parse errors:
 ```rust
 // via: crates/swift-bridge-ir/src/errors/parse_error.rs
 
-{{#include ../../../../crates/swift-bridge-ir/src/errors/parse_error.rs:mdbook-parse-error-enum}}
+pub(crate) enum ParseError {
+    ArgsIntoArgNotFound {
+        func: ForeignItemFn,
+        missing_arg: Ident,
+    },
+    /// `extern {}`
+    AbiNameMissing {
+        /// `extern {}`
+        ///  ------
+        extern_token: Token![extern],
+    },
+    /// `extern "Foo" {}`
+    AbiNameInvalid {
+        /// `extern "Foo" {}`
+        ///         -----
+        abi_name: LitStr,
+    },
+    /// `fn foo (&self)`
+    ///           ----
+    AmbiguousSelf { self_: Receiver },
+    /// fn foo (bar: &Bar);
+    /// If Bar wasn't declared using a `type Bar` declaration.
+    UndeclaredType { ty: Type },
 
-    // ...
+    // ... snip ...
 }
 ```
 
@@ -42,9 +76,44 @@ Here are a few examples:
 ````rust
 // via: crates/swift-bridge-ir/src/errors/parse_error.rs
 
-{{#include ../../../../crates/swift-bridge-ir/src/errors/parse_error.rs:mdbook-parse-error-message}}
+impl Into<syn::Error> for ParseError {
+    fn into(self) -> Error {
+        match self {
+            ParseError::AbiNameMissing {
+                extern_token: extern_ident,
+            } => Error::new_spanned(
+                extern_ident,
+                format!(
+                    r#"extern modules must have their abi set to "Rust" or "Swift".
+```
+extern "Rust" {{ ... }}
+extern "Swift" {{ ... }}
+``` 
+                "#
+                ),
+            ),
+            ParseError::UndeclaredType { ty } => {
+                let ty_name = ty.to_token_stream().to_string();
+                let ty_name = ty_name.split_whitespace().last().unwrap();
 
-        // ...
+                let message = format!(
+                    r#"Type must be declared with `type {}`.
+"#,
+                    ty_name
+                );
+                Error::new_spanned(ty, message)
+            }
+            ParseError::DeclaredBuiltInType { ty } => {
+                let message = format!(
+                    r#"Type {} is already supported
+"#,
+                    ty.to_token_stream().to_string()
+                );
+                Error::new_spanned(ty, message)
+            }
+
+            // ... snip ...
+        }
     }   
 }
 ````

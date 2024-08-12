@@ -422,6 +422,7 @@ mod extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg {
                 })) as *mut super::MyType ) }
             }
 
+            #[allow(improper_ctypes)]
             extern "C" {
                 #[link_name = "__swift_bridge__$some_function"]
                 fn __swift_bridge__some_function (arg: *mut super::MyType);
@@ -446,6 +447,77 @@ typedef struct MyType MyType;
 
     #[test]
     fn extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: EXPECTED_SWIFT,
+            expected_c_header: EXPECTED_C_HEADER,
+        }
+        .test();
+    }
+}
+
+/// Verify that we generated a Swift class with a failable init method.
+mod extern_rust_class_with_failable_init {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(init)]
+                    fn new() -> Option<Foo>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            # [export_name = "__swift_bridge__$Foo$new"]
+            pub extern "C" fn __swift_bridge__Foo_new () -> * mut super :: Foo {
+                if let Some (val) = super :: Foo :: new () {
+                    Box :: into_raw (Box :: new (val))
+                } else {
+                    std :: ptr :: null_mut ()
+                }
+            }
+        })
+    }
+
+    const EXPECTED_SWIFT: ExpectedSwiftCode = ExpectedSwiftCode::ContainsAfterTrim(
+        r#"
+public class Foo: FooRefMut {
+    var isOwned: Bool = true
+
+    public override init(ptr: UnsafeMutableRawPointer) {
+        super.init(ptr: ptr)
+    }
+
+    deinit {
+        if isOwned {
+            __swift_bridge__$Foo$_free(ptr)
+        }
+    }
+}
+extension Foo {
+    public convenience init?() {
+        guard let val = __swift_bridge__$Foo$new() else { return nil }; self.init(ptr: val)
+    }
+}
+"#,
+    );
+
+    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ContainsAfterTrim(
+        r#"
+void* __swift_bridge__$Foo$new(void);
+"#,
+    );
+
+    #[test]
+    fn extern_rust_class_with_failable_init() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),

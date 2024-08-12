@@ -52,6 +52,7 @@
 		22D092A327B7E865009A4C2B /* AsyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22D092A227B7E865009A4C2B /* AsyncTests.swift */; };
 		22EE4E0928B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22EE4E0828B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift */; };
 		22EE4E0B28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22EE4E0A28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift */; };
+		22F7CF2A2A42EA7800517966 /* Vec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F7CF292A42EA7800517966 /* Vec.swift */; };
 		22FD1C542753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */; };
 		22FD1C562753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */; };
 		C926E4DE294F07AA0027E7E2 /* FunctionAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */; };
@@ -120,6 +121,7 @@
 		22D092A227B7E865009A4C2B /* AsyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncTests.swift; sourceTree = "<group>"; };
 		22EE4E0828B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueSwiftType.swift; sourceTree = "<group>"; };
 		22EE4E0A28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueSwiftTypeTests.swift; sourceTree = "<group>"; };
+		22F7CF292A42EA7800517966 /* Vec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vec.swift; sourceTree = "<group>"; };
 		22FD1C532753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustType.swift; sourceTree = "<group>"; };
 		22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustTypeTests.swift; sourceTree = "<group>"; };
 		C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FunctionAttributes.swift; sourceTree = "<group>"; };
@@ -190,6 +192,7 @@
 				22BC4BBB294BA0EC0032B8A8 /* SharedEnumAttributes.swift */,
 				C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */,
 				1784BE2729CE86D600AE5A4A /* Tuple.swift */,
+				22F7CF292A42EA7800517966 /* Vec.swift */,
 			);
 			path = SwiftRustIntegrationTestRunner;
 			sourceTree = "<group>";
@@ -393,6 +396,7 @@
 				22043297274B0AB000BAE645 /* Option.swift in Sources */,
 				220432EA2753092C00BAE645 /* RustFnUsesOpaqueSwiftType.swift in Sources */,
 				22BC4BBC294BA0EC0032B8A8 /* SharedEnumAttributes.swift in Sources */,
+				22F7CF2A2A42EA7800517966 /* Vec.swift in Sources */,
 				22FD1C542753CB2A00F64281 /* SwiftFnUsesOpaqueRustType.swift in Sources */,
 				220432A9274D31DC00BAE645 /* Pointer.swift in Sources */,
 				225908FE28DA0F9F0080C737 /* Result.swift in Sources */,

@@ -59,6 +59,10 @@ pub(crate) struct ParsedExternFn {
     pub host_lang: HostLang,
     /// Whether or not this function is a Swift initializer.
     pub is_swift_initializer: bool,
+    /// Whether or not this function is a Swift failable initializer.
+    /// For more details, see:
+    /// [Swift Documentation - Failable Initializers](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/initialization/#Failable-Initializers)
+    pub is_swift_failable_initializer: bool,
     /// Whether or not this function should be used for the associated type's Swift
     /// `Identifiable` protocol implementation.
     pub is_swift_identifiable: bool,
@@ -167,8 +171,10 @@ impl ParsedExternFn {
             if ret.can_be_encoded_with_zero_bytes() {
                 return quote! {};
             }
-            if let Some(tokens) = ret.generate_custom_rust_ffi_type(swift_bridge_path, types) {
-                custom_type_definitions.insert(tokens.to_string(), tokens);
+            if let Some(tokens) = ret.generate_custom_rust_ffi_types(swift_bridge_path, types) {
+                for token in tokens.into_iter() {
+                    custom_type_definitions.insert(token.to_string(), token);
+                }
             }
             let ty = ret.to_ffi_compatible_rust_type(swift_bridge_path, types);
             quote! { -> #ty }

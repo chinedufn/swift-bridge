@@ -36,6 +36,12 @@ class VecTests: XCTestCase {
         vec.push(value: 222)
         XCTAssertEqual(vec.get(index: 1), 222)
     }
+    func testRustVecU8AsPtr() throws {
+        let vec = RustVec<UInt8>()
+        vec.push(value: 10)
+        let ptr = vec.as_ptr()
+        XCTAssertEqual(ptr.pointee, 10)
+    }
     func testRustVecU8Iterator() throws {
         let vec = RustVec<UInt8>()
         vec.push(value: 111)
@@ -116,6 +122,11 @@ class VecTests: XCTestCase {
 
         XCTAssertEqual(RustVec<Float>().len(), 0);
         XCTAssertEqual(RustVec<Double>().len(), 0);
+    }
+
+    /// Verify that Rust can pass `RustVec`s to and receive `RustVec`s from Swift.
+    func testRustCallsSwiftRustVecFunctions() {
+        run_vec_tests()
     }
 }
 
