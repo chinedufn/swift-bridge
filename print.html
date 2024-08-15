@@ -978,6 +978,57 @@ do {
 }
 </code></pre>
 <h2 id="function-attributes"><a class="header" href="#function-attributes">Function Attributes</a></h2>
+<h4 id="swift_bridgeinit"><a class="header" href="#swift_bridgeinit">#[swift_bridge(init)]</a></h4>
+<p>Used to generate a Swift initializer for Opaque Types.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        type RegularInitializer;
+
+        #[swift_bridge(init)]
+        fn new() -&gt; RegularInitializer;
+    }
+
+    extern &quot;Rust&quot; {
+        type FailableInitializer;
+
+        #[swift_bridge(init)]
+        fn new() -&gt; Option&lt;FailableInitializer&gt;;
+    }
+
+    enum SomeError {
+        case1,
+        case2
+    }
+
+    extern &quot;Rust&quot; {
+        type ThrowingInitializer;
+
+        #[swift_bridge(init)]
+        fn new() -&gt; Result&lt;FailableInitializer, SomeError&gt;;
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// Swift
+
+let regularInitializer = RegularInitializer()
+
+if let failableInitializer = FailableInitializer() {
+    // ...
+}
+
+do {
+    let throwingInitializer = try ThrowingInitializer()
+} catch let error {
+    // ...
+}
+</code></pre>
 <h4 id="swift_bridgeidentifiable"><a class="header" href="#swift_bridgeidentifiable">#[swift_bridge(Identifiable)]</a></h4>
 <p>Used to generate a Swift <code>Identifiable</code> protocol implementation.</p>
 <pre><pre class="playground"><code class="language-rust">
