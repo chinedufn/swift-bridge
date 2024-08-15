@@ -302,6 +302,30 @@ mod tests {
         );
     }
 
+    /// Verify that we can parse an throwing init function.
+    #[test]
+    fn throwing_initializer() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    type Foo;
+
+                    #[swift_bridge(init)]
+                    fn bar () -> Result<Foo, i32>;
+                }
+            }
+        };
+
+        let module = parse_ok(tokens);
+
+        let func = &module.functions[0];
+        assert!(func.is_swift_initializer);
+        matches!(
+            func.swift_failable_initializer,
+            Some(FailableInitializerType::Throwing)
+        );
+    }
+
     /// Verify that we can parse an init function that takes inputs.
     #[test]
     fn initializer_with_inputs() {
