@@ -65,6 +65,58 @@ do {
 
 ## Function Attributes
 
+#### #[swift_bridge(init)]
+Used to generate a Swift initializer for Opaque Types.
+
+```rust
+// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        type RegularInitializer;
+
+        #[swift_bridge(init)]
+        fn new() -> RegularInitializer;
+    }
+
+    extern "Rust" {
+        type FailableInitializer;
+
+        #[swift_bridge(init)]
+        fn new() -> Option<FailableInitializer>;
+    }
+
+    enum SomeError {
+        case1,
+        case2
+    }
+
+    extern "Rust" {
+        type ThrowingInitializer;
+
+        #[swift_bridge(init)]
+        fn new() -> Result<FailableInitializer, SomeError>;
+    }
+}
+```
+
+```swift
+// Swift
+
+let regularInitializer = RegularInitializer()
+
+if let failableInitializer = FailableInitializer() {
+    // ...
+}
+
+do {
+    let throwingInitializer = try ThrowingInitializer()
+} catch let error {
+    // ...
+}
+```
+
 #### #[swift_bridge(Identifiable)]
 
 Used to generate a Swift `Identifiable` protocol implementation.

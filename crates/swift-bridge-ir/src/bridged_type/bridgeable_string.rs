@@ -76,6 +76,7 @@ impl BridgeableType for BridgedString {
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                 "UnsafeMutableRawPointer?".to_string()
             }
+            TypePosition::ThrowingInit(_) => todo!(),
         }
     }
 
@@ -130,6 +131,7 @@ impl BridgeableType for BridgedString {
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                 todo!()
             }
+            TypePosition::ThrowingInit(_) => todo!(),
         }
     }
 
@@ -205,6 +207,7 @@ impl BridgeableType for BridgedString {
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                 unimplemented!()
             }
+            TypePosition::ThrowingInit(_) => todo!(),
         }
     }
 
@@ -250,6 +253,7 @@ impl BridgeableType for BridgedString {
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                 format!("RustString(ptr: {}!)", expression)
             }
+            TypePosition::ThrowingInit(_) => todo!(),
         }
     }
 

@@ -129,6 +129,7 @@ impl BridgeableType for OpaqueForeignType {
                 TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                     unimplemented!()
                 }
+                TypePosition::ThrowingInit(_) => unimplemented!(),
             }
         } else {
             match type_pos {
@@ -146,6 +147,7 @@ impl BridgeableType for OpaqueForeignType {
                 TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                     unimplemented!()
                 }
+                TypePosition::ThrowingInit(_) => unimplemented!(),
             }
         }
     }
@@ -396,6 +398,7 @@ impl BridgeableType for OpaqueForeignType {
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         unimplemented!()
                     }
+                    TypePosition::ThrowingInit(_) => unimplemented!(),
                 }
             }
         } else {
@@ -420,6 +423,7 @@ impl BridgeableType for OpaqueForeignType {
                 TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                     unimplemented!()
                 }
+                TypePosition::ThrowingInit(_) => unimplemented!(),
             }
         }
     }

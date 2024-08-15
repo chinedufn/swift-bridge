@@ -324,6 +324,7 @@ impl BridgedOption {
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                         todo!()
                     }
+                    TypePosition::ThrowingInit(_) => todo!(),
                 },
                 StdLibType::Vec(_) => {
                     format!(
@@ -397,6 +398,7 @@ impl BridgedOption {
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
                 unimplemented!()
             }
+            TypePosition::ThrowingInit(_) => unimplemented!(),
         }
     }
 
