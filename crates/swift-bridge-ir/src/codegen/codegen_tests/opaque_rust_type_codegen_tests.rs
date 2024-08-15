@@ -528,7 +528,7 @@ void* __swift_bridge__$Foo$new(void);
     }
 }
 
-/// Verify that we can use a Swift class with a throwing init.
+/// Verify that we can create a Swift class with a throwing init.
 mod extern_rust_class_with_throwing_init {
     use super::*;
 
