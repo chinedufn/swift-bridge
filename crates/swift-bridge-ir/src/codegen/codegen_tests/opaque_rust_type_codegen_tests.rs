@@ -581,7 +581,7 @@ public class Foo: FooRefMut {
 }
 extension Foo {
     public convenience init() throws {
-        let val = __swift_bridge__$Foo$new(); switch val.tag { case __swift_bridge__$ResultFooAndSomeErrEnum$ResultOk: self.init(ptr: val.payload.ok) case __swift_bridge__$ResultFooAndSomeErrEnum$ResultErr: throw val.payload.err.intoSwiftRepr() default: fatalError() }
+        let val = __swift_bridge__$Foo$new(); if val.tag == __swift_bridge__$ResultFooAndSomeErrEnum$ResultOk { self.init(ptr: val.payload.ok) } else { throw val.payload.err.intoSwiftRepr() }
     }
 }
 "#,

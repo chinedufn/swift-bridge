@@ -258,10 +258,9 @@ impl BuiltInResult {
                 TypePosition::ThrowingInit(lang) => {
                     match lang {
                         HostLang::Rust => format!(
-                            "let val = {expression}; switch val.tag {{ case {c_ok_name}: self.init(ptr: val.payload.ok) case {c_err_name}: throw {err_swift_type} default: fatalError() }}",
+                            "let val = {expression}; if val.tag == {c_ok_name} {{ self.init(ptr: val.payload.ok) }} else {{ throw {err_swift_type} }}",
                         expression = expression,
                         c_ok_name = c_ok_name,
-                        c_err_name = c_err_name,
                         err_swift_type = err_swift_type
                     ),
                         HostLang::Swift => todo!(),
