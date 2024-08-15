@@ -66,7 +66,7 @@ do {
 ## Function Attributes
 
 #### #[swift_bridge(init)]
-Used to generate a Swift initializer.
+Used to generate a Swift initializer for Opaque Types.
 
 ```rust
 // Rust
