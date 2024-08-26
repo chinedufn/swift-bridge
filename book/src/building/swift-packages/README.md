@@ -18,6 +18,9 @@ mkdir my-rust-lib && cd my-rust-lib
 ```toml
 # Cargo.toml
 
+[package]
+name = "my-rust-lib"
+
 [lib]
 crate-type = ["staticlib"]
 
