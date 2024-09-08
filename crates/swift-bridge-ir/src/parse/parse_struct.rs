@@ -38,6 +38,9 @@ impl Default for StructDerives {
         StructDerives {
             copy: false,
             clone: false,
+            debug: false,
+            serialize: false,
+            deserialize: false,
         }
     }
 }
@@ -133,6 +136,9 @@ impl<'a> SharedStructDeclarationParser<'a> {
                             match derive.to_token_stream().to_string().as_str() {
                                 "Copy" => attribs.derives.copy = true,
                                 "Clone" => attribs.derives.clone = true,
+                                "Debug" => attribs.derives.debug = true,
+                                "serde :: Serialize" => attribs.derives.serialize = true,
+                                "serde :: Deserialize" => attribs.derives.deserialize = true,
                                 _ => {}
                             }
                         }
@@ -353,20 +359,62 @@ mod tests {
 
                 #[derive(Clone)]
                 struct Bar;
+
+                #[derive(serde::Serialize)]
+                struct FooSerialize;
+
+                #[derive(serde::Deserialize)]
+                struct FooDeserialize;
+
+                #[derive(Debug)]
+                struct FooDebug;
+
+                #[derive(Copy, Clone, Debug, serde::Serialize, serde::Deserialize)]
+                struct FooAll;
             }
         };
 
         let module = parse_ok(tokens);
 
-        let ty = module.types.types()[0].unwrap_shared_struct();
+        let expected = [
+            StructDerives {
+                copy: true,
+                clone: true,
+                ..Default::default()
+            },
+            StructDerives {
+                clone: true,
+                ..Default::default()
+            },
+            StructDerives {
+                serialize: true,
+                ..Default::default()
+            },
+            StructDerives {
+                deserialize: true,
+                ..Default::default()
+            },
+            StructDerives {
+                debug: true,
+                ..Default::default()
+            },
+            StructDerives {
+                copy: true,
+                clone: true,
+                debug: true,
+                serialize: true,
+                deserialize: true,
+            },
+        ];
 
-        assert_eq!(ty.derives.copy, true);
-        assert_eq!(ty.derives.clone, true);
+        let actual = module
+            .types
+            .types()
+            .iter()
+            .map(|val| val.unwrap_shared_struct().derives.clone())
+            .collect::<Vec<_>>();
 
-        let ty2 = module.types.types()[1].unwrap_shared_struct();
-
-        assert_eq!(ty2.derives.copy, false);
-        assert_eq!(ty2.derives.clone, true);
+        assert_eq!(&actual, expected.as_slice());
     }
 
     /// Verify that we properly parse multiple comma separated struct attributes.
@@ -396,7 +444,7 @@ mod tests {
             #[swift_bridge::bridge]
             mod ffi {
                 #[swift_bridge(swift_name = "FfiFoo", swift_repr = "class")]
-                #[derive(Copy, Clone)]
+                #[derive(Copy, Clone, Debug, serde::Serialize, serde::Deserialize)]
                 struct Foo {
                     fied: u8
                 }
@@ -410,6 +458,9 @@ mod tests {
         assert_eq!(ty.swift_repr, StructSwiftRepr::Class);
         assert_eq!(ty.derives.copy, true);
         assert_eq!(ty.derives.clone, true);
+        assert_eq!(ty.derives.debug, true);
+        assert_eq!(ty.derives.serialize, true);
+        assert_eq!(ty.derives.deserialize, true);
     }
 
     /// Verify that we can parse an `already_defined = "struct"` attribute.
