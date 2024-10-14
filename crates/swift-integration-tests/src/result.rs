@@ -10,6 +10,8 @@ mod ffi {
         ) -> Result<ResultTestOpaqueRustType, ResultTestOpaqueRustType>;
 
         fn rust_func_takes_result_string(arg: Result<String, String>);
+        fn rust_func_returns_result_string(ok: bool) -> Result<String, String>;
+
         fn rust_func_takes_result_opaque_swift(
             arg: Result<ResultTestOpaqueSwiftType, ResultTestOpaqueSwiftType>,
         );
@@ -107,6 +109,13 @@ fn rust_func_takes_result_string(arg: Result<String, String>) {
             assert_eq!(err, "Error Message")
         }
     }
+}
+
+fn rust_func_returns_result_string(ok: bool) -> Result<String, String> {
+    if !ok {
+        return Err("Error Message".to_string());
+    }
+    Ok("Success Message".to_string())
 }
 
 fn rust_func_reflect_result_opaque_rust(

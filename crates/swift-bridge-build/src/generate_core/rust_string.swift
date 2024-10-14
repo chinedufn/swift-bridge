@@ -47,6 +47,8 @@ extension RustStringRef {
         __swift_bridge__$RustString$trim(ptr)
     }
 }
+/// exercised in SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/ResultTests.swift:
+///   - see `func testSwiftCallRustReturnsResultString`
 extension RustStringRef: Error {}
 extension RustString: Vectorizable {
     public static func vecOfSelfNew() -> UnsafeMutableRawPointer {
