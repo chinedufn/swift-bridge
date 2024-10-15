@@ -259,10 +259,13 @@ pub(crate) struct SharedStruct {
     pub derives: StructDerives,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct StructDerives {
     pub copy: bool,
     pub clone: bool,
+    pub debug: bool,
+    pub serialize: bool,
+    pub deserialize: bool,
 }
 
 impl SharedStruct {
