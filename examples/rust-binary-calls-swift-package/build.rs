@@ -51,6 +51,17 @@ fn main() {
         // Without this there will be a lot of missing symbols when linking to the Swift library.
         let swift_lib_path = get_swift_lib_path().unwrap();
         println!("cargo:rustc-link-search={}", swift_lib_path);
+
+        // These linker flags are needed if `cargo test` is executed, `cargo run` works without them.
+        // Still, the order is important and they need to be placed before swiftCore.
+        println!("cargo:rustc-link-lib=FoundationEssentials");
+        println!("cargo:rustc-link-lib=_FoundationCShims");
+        println!("cargo:rustc-link-lib=swift_StringProcessing");
+        println!("cargo:rustc-link-lib=swift_RegexParser");
+        println!("cargo:rustc-link-lib=swiftGlibc");
+        println!("cargo:rustc-link-lib=_FoundationCollections");
+
+        // These swift libraries are needed in any case.
         println!("cargo:rustc-link-lib=swiftCore");
         println!("cargo:rustc-link-lib=stdc++");
         println!("cargo:rustc-link-lib=swiftSwiftOnoneSupport");
