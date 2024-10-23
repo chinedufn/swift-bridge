@@ -17,7 +17,7 @@ fn main() {
         swift_library_static_lib_dir().to_str().unwrap()
     );
 
-    // This fix is only for macOS
+    // This fix is for macOS only
     #[cfg(target_os = "macos")]
     {
         // Without this we will get warnings about not being able to find dynamic libraries, and then
@@ -48,6 +48,7 @@ fn main() {
     // This fix is for Linux only
     #[cfg(target_os = "linux")]
     {
+        // Without this there will be a lot of missing symbols when linking to the Swift library.
         let swift_lib_path = get_swift_lib_path().unwrap();
         println!("cargo:rustc-link-search={}", swift_lib_path);
         println!("cargo:rustc-link-lib=swiftCore");
