@@ -38,6 +38,7 @@ members = [
 
   "examples/async-functions",
   "examples/codegen-visualizer",
+  "examples/multiple-bridge-modules",
   "examples/rust-binary-calls-swift-package",
   "examples/without-a-bridge-module",
 ]

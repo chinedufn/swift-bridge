@@ -16,3 +16,9 @@ pub struct User {
     name: String
 }
 ```
+
+## To Run
+
+```sh
+./run.sh
+```
