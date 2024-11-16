@@ -1,0 +1,7 @@
+[package]
+name = "without-a-bridge-module"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+swift-bridge-ir = { path = "../../crates/swift-bridge-ir" }
