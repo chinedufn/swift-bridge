@@ -17,6 +17,7 @@
     - [Transparent Enums](./bridge-module/transparent-types/enums/README.md)
   - [Generics](./bridge-module/generics/README.md)
   - [Conditional Compilation](./bridge-module/conditional-compilation/README.md)
+  - [Why a Bridge Module](./bridge-module/why-a-bridge-module/README.md)
 
 - [Built In Types](./built-in/README.md)
   - [String <---> String](./built-in/string/README.md)
