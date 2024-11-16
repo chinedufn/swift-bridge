@@ -32,6 +32,12 @@ pub(crate) struct OpaqueTypeSwiftBridgeAttributes {
     /// `#[swift_bridge(Hashable)]`
     /// Used to determine if Hashable need to be implemented.
     pub hashable: bool,
+    /// `#[swift_bridge(__experimental_swift_ownership)]`
+    /// Enables experimental support for Swift ownership.
+    /// This attribute will eventually be removed once we've stabilized our support for Swift
+    /// ownership.
+    /// issue: https://github.com/chinedufn/swift-bridge/issues/155
+    pub experimental_swift_ownership: bool,
 }
 
 impl OpaqueTypeAllAttributes {
