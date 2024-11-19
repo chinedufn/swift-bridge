@@ -17,29 +17,85 @@ fn main() {
         swift_library_static_lib_dir().to_str().unwrap()
     );
 
-    // Without this we will get warnings about not being able to find dynamic libraries, and then
-    // we won't be able to compile since the Swift static libraries depend on them:
-    // For example:
-    // ld: warning: Could not find or use auto-linked library 'swiftCompatibility51'
-    // ld: warning: Could not find or use auto-linked library 'swiftCompatibility50'
-    // ld: warning: Could not find or use auto-linked library 'swiftCompatibilityDynamicReplacements'
-    // ld: warning: Could not find or use auto-linked library 'swiftCompatibilityConcurrency'
-    let xcode_path = if let Ok(output) = std::process::Command::new("xcode-select")
-        .arg("--print-path")
-        .output()
+    // This fix is for macOS only
+    #[cfg(target_os = "macos")]
     {
-        String::from_utf8(output.stdout.as_slice().into())
-            .unwrap()
-            .trim()
-            .to_string()
-    } else {
-        "/Applications/Xcode.app/Contents/Developer".to_string()
-    };
-    println!(
-        "cargo:rustc-link-search={}/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx/",
-        &xcode_path
-    );
-    println!("cargo:rustc-link-search={}", "/usr/lib/swift");
+        // Without this we will get warnings about not being able to find dynamic libraries, and then
+        // we won't be able to compile since the Swift static libraries depend on them:
+        // For example:
+        // ld: warning: Could not find or use auto-linked library 'swiftCompatibility51'
+        // ld: warning: Could not find or use auto-linked library 'swiftCompatibility50'
+        // ld: warning: Could not find or use auto-linked library 'swiftCompatibilityDynamicReplacements'
+        // ld: warning: Could not find or use auto-linked library 'swiftCompatibilityConcurrency'
+        let xcode_path = if let Ok(output) = std::process::Command::new("xcode-select")
+            .arg("--print-path")
+            .output()
+        {
+            String::from_utf8(output.stdout.as_slice().into())
+                .unwrap()
+                .trim()
+                .to_string()
+        } else {
+            "/Applications/Xcode.app/Contents/Developer".to_string()
+        };
+        println!(
+            "cargo:rustc-link-search={}/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx/",
+            &xcode_path
+        );
+        println!("cargo:rustc-link-search={}", "/usr/lib/swift");
+    }
+
+    // This fix is for Linux only
+    #[cfg(target_os = "linux")]
+    {
+        // Without this there will be a lot of missing symbols when linking to the Swift library.
+        let swift_lib_path = get_swift_lib_path().unwrap();
+        println!("cargo:rustc-link-search={}", swift_lib_path);
+
+        // These linker flags are needed if `cargo test` is executed, `cargo run` works without them.
+        // Still, the order is important and they need to be placed before swiftCore.
+        println!("cargo:rustc-link-lib=FoundationEssentials");
+        println!("cargo:rustc-link-lib=_FoundationCShims");
+        println!("cargo:rustc-link-lib=swift_StringProcessing");
+        println!("cargo:rustc-link-lib=swift_RegexParser");
+        println!("cargo:rustc-link-lib=swiftGlibc");
+        println!("cargo:rustc-link-lib=_FoundationCollections");
+
+        // These swift libraries are needed in any case.
+        println!("cargo:rustc-link-lib=swiftCore");
+        println!("cargo:rustc-link-lib=stdc++");
+        println!("cargo:rustc-link-lib=swiftSwiftOnoneSupport");
+    }
+}
+
+fn get_swift_lib_path() -> Result<String, String> {
+    let output = Command::new("which")
+        .arg("swift")
+        .output()
+        .map_err(|e| format!("Failed to execute `which swift`: {}", e))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "`which swift` failed with stderr: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    let swift_path = String::from_utf8(output.stdout)
+        .map_err(|e| format!("Failed to parse `which swift` output: {}", e))?
+        .trim()
+        .to_string();
+
+    let swift_lib_path = PathBuf::from(swift_path)
+        .parent()
+        .and_then(|p| p.parent())
+        .map(|p| p.join("lib/swift_static/linux"))
+        .ok_or("Failed to determine Swift library path")?;
+
+    swift_lib_path
+        .to_str()
+        .map(|s| s.to_string())
+        .ok_or("Failed to convert Swift library path to string".to_string())
 }
 
 fn compile_swift() {
@@ -47,18 +103,15 @@ fn compile_swift() {
 
     let mut cmd = Command::new("swift");
 
-    cmd.current_dir(swift_package_dir)
-        .arg("build")
-        .args(&["-Xswiftc", "-static"])
-        .args(&[
-            "-Xswiftc",
-            "-import-objc-header",
-            "-Xswiftc",
-            swift_source_dir()
-                .join("bridging-header.h")
-                .to_str()
-                .unwrap(),
-        ]);
+    cmd.current_dir(swift_package_dir).arg("build").args(&[
+        "-Xswiftc",
+        "-import-objc-header",
+        "-Xswiftc",
+        swift_source_dir()
+            .join("bridging-header.h")
+            .to_str()
+            .unwrap(),
+    ]);
 
     if is_release_build() {
         cmd.args(&["-c", "release"]);
