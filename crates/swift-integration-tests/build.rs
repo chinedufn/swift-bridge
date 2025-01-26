@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 fn main() {
-    let out_dir = "../../SwiftRustIntegrationTestRunner/Generated";
-    let out_dir = PathBuf::from(out_dir);
+    // TODO: we can use --artifact-dir with OUT_DIR when that stabilizes.
+    let out_dir = PathBuf::from("../../integration-tests/Sources/Generated");
 
     let mut bridges = vec![];
     read_files_recursive(PathBuf::from("src"), &mut bridges);
