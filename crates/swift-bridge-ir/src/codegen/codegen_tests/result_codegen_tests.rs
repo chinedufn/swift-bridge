@@ -4,7 +4,7 @@ use super::{CodegenTest, ExpectedCHeader, ExpectedRustTokens, ExpectedSwiftCode}
 use proc_macro2::TokenStream;
 use quote::quote;
 
-/// Test code generation for Rust function that accepts a Result<T, E>
+/// Test code generation for Rust function that accepts and returns a Result<T, E>
 /// where T and E are Strings.
 mod extern_rust_fn_result_string {
     use super::*;
@@ -54,72 +54,6 @@ void __swift_bridge__$some_function(struct __private__ResultPtrAndPtr arg);
 
     #[test]
     fn extern_rust_fn_result_string() {
-        CodegenTest {
-            bridge_module: bridge_module_tokens().into(),
-            expected_rust_tokens: expected_rust_tokens(),
-            expected_swift_code: expected_swift_code(),
-            expected_c_header: EXPECTED_C_HEADER,
-        }
-        .test();
-    }
-}
-
-/// Test code generation for Rust function that returns a Result<T, E>
-/// where T and E are Strings.
-mod extern_rust_fn_return_result_string {
-    use super::*;
-
-    fn bridge_module_tokens() -> TokenStream {
-        quote! {
-            mod ffi {
-                extern "Rust" {
-                    fn some_function() -> Result<String, String>;
-                }
-            }
-        }
-    }
-
-    fn expected_rust_tokens() -> ExpectedRustTokens {
-        ExpectedRustTokens::Contains(quote! {
-            #[export_name = "__swift_bridge__$some_function"]
-            pub extern "C" fn __swift_bridge__some_function(
-            ) -> swift_bridge::result::ResultPtrAndPtr {
-                match super::some_function() {
-                    Ok(ok) => {
-                        swift_bridge::result::ResultPtrAndPtr {
-                            is_ok: true,
-                            ok_or_err: swift_bridge::string::RustString(ok).box_into_raw() as *mut std::ffi::c_void
-                        }
-                    }
-                    Err(err) => {
-                        swift_bridge::result::ResultPtrAndPtr {
-                            is_ok: false,
-                            ok_or_err: swift_bridge::string::RustString(err).box_into_raw() as *mut std::ffi::c_void
-                        }
-                    }
-                }
-            }
-        })
-    }
-
-    fn expected_swift_code() -> ExpectedSwiftCode {
-        ExpectedSwiftCode::ContainsAfterTrim(
-            r#"
-public func some_function() throws -> RustString {
-    try { let val = __swift_bridge__$some_function(); if val.is_ok { return RustString(ptr: val.ok_or_err!) } else { throw RustString(ptr: val.ok_or_err!) } }()
-}
-"#,
-        )
-    }
-
-    const EXPECTED_C_HEADER: ExpectedCHeader = ExpectedCHeader::ExactAfterTrim(
-        r#"
-struct __private__ResultPtrAndPtr __swift_bridge__$some_function(void);
-    "#,
-    );
-
-    #[test]
-    fn extern_rust_fn_return_result_string() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
@@ -515,7 +449,7 @@ public func some_function() throws -> SomeOkType {
             r#"
 typedef enum __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag {__swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$ResultOk, __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$ResultErr} __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag;
 union __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Fields {void* ok; struct __swift_bridge__$SomeErrEnum err;};
-typedef struct __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum{__swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum;
+typedef struct __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum{__swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum;        
 "#,
             r#"struct __swift_bridge__$ResultSomeOkTypeAndSomeErrEnum __swift_bridge__$some_function(void)"#,
         ])
@@ -597,7 +531,7 @@ public func some_function() throws -> SomeOkEnum {
             r#"
 typedef enum __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag {__swift_bridge__$ResultSomeOkEnumAndSomeErrType$ResultOk, __swift_bridge__$ResultSomeOkEnumAndSomeErrType$ResultErr} __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag;
 union __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Fields {struct __swift_bridge__$SomeOkEnum ok; void* err;};
-typedef struct __swift_bridge__$ResultSomeOkEnumAndSomeErrType{__swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag tag; union __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Fields payload;} __swift_bridge__$ResultSomeOkEnumAndSomeErrType;
+typedef struct __swift_bridge__$ResultSomeOkEnumAndSomeErrType{__swift_bridge__$ResultSomeOkEnumAndSomeErrType$Tag tag; union __swift_bridge__$ResultSomeOkEnumAndSomeErrType$Fields payload;} __swift_bridge__$ResultSomeOkEnumAndSomeErrType;        
 "#,
             r#"struct __swift_bridge__$ResultSomeOkEnumAndSomeErrType __swift_bridge__$some_function(void)"#,
         ])
@@ -672,7 +606,7 @@ public func some_function() throws -> () {
             r#"
 typedef enum __swift_bridge__$ResultVoidAndSomeErrEnum$Tag {__swift_bridge__$ResultVoidAndSomeErrEnum$ResultOk, __swift_bridge__$ResultVoidAndSomeErrEnum$ResultErr} __swift_bridge__$ResultVoidAndSomeErrEnum$Tag;
 union __swift_bridge__$ResultVoidAndSomeErrEnum$Fields {struct __swift_bridge__$SomeErrEnum err;};
-typedef struct __swift_bridge__$ResultVoidAndSomeErrEnum{__swift_bridge__$ResultVoidAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultVoidAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultVoidAndSomeErrEnum;
+typedef struct __swift_bridge__$ResultVoidAndSomeErrEnum{__swift_bridge__$ResultVoidAndSomeErrEnum$Tag tag; union __swift_bridge__$ResultVoidAndSomeErrEnum$Fields payload;} __swift_bridge__$ResultVoidAndSomeErrEnum;        
 "#,
             r#"struct __swift_bridge__$ResultVoidAndSomeErrEnum __swift_bridge__$some_function(void)"#,
         ])
@@ -755,7 +689,7 @@ public func some_function() throws -> (Int32, UInt32) {
             r#"
 typedef enum __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Tag {__swift_bridge__$ResultTupleI32U32AndSomeErrEnum$ResultOk, __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$ResultErr} __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Tag;
 union __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Fields {struct __swift_bridge__$tuple$I32U32 ok; struct __swift_bridge__$SomeErrEnum err;};
-typedef struct __swift_bridge__$ResultTupleI32U32AndSomeErrEnum{__swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Tag tag; union __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Fields payload;} __swift_bridge__$ResultTupleI32U32AndSomeErrEnum;
+typedef struct __swift_bridge__$ResultTupleI32U32AndSomeErrEnum{__swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Tag tag; union __swift_bridge__$ResultTupleI32U32AndSomeErrEnum$Fields payload;} __swift_bridge__$ResultTupleI32U32AndSomeErrEnum;        
 "#,
             r#"struct __swift_bridge__$ResultTupleI32U32AndSomeErrEnum __swift_bridge__$some_function(void)"#,
             r#"typedef struct __swift_bridge__$tuple$I32U32 { int32_t _0; uint32_t _1; } __swift_bridge__$tuple$I32U32;"#,
