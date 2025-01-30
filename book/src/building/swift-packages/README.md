@@ -1,13 +1,8 @@
-# Creating Swift Packages
+# Creating Swift Packages on macOS
 
 In this chapter we'll walk through bundling your Rust library into a Swift Package.
 
-> Swift Packages that contain binary dependencies are only available on Apple platforms.
->
-> You cannot bundle your Rust code into a Swift Package if you plan to target Linux,
-> Windows or any other non-Apple target.
->
-> Instead, use a building approach from one of the other [building chapters](../README.md).
+If you want to target linux, please see below.
 
 ## Project setup
 
@@ -237,4 +232,39 @@ And now you can run your Swift project that depends on your Rust based Swift Pac
 cd SwiftProject
 swift run
 # You should see "Hello from Rust!" in your terminal.
+```
+
+# Usage on Linux
+Usage on Linux is a little bit different than on macOS. This guide will help you set up SwiftPM and Cargo. The general workflow is:
+* Set up Package.swift so that "cargo build" is called (You can use something like this here: "https://stackoverflow.com/questions/26971240/how-do-i-run-a-terminal-command-in-a-swift-script-e-g-xcodebuild" to invoke cargo during a swift build)
+* Set up swift-bridge according to the guide (see chapter "swiftc and cargo")
+* Link against swift-bridge and your library, like the one below:
+```
+targets: [
+        .executableTarget(
+            name: "proj",
+            dependencies: [],
+            swiftSettings: [
+                .interoperabilityMode(.Cxx),
+                .unsafeFlags([
+                    "generated/SwiftBridgeCore.swift", "generated/proj-rs/proj-rs.swift",
+                    "-import-objc-header", "bridging-header.h",
+                ]),
+            ],
+            linkerSettings: [
+                .unsafeFlags([
+                    "generated/SwiftBridgeCore.swift", "generated/proj-rs/proj-rs.swift",
+                    "-import-objc-header", "bridging-header.h", "-Ltarget/debug", "-lcorpus",
+                ])
+            ])
+    ],
+```
+* this ensures that the flags that are normally passed via swiftc are forwarded during swift-build
+* Since the path of the resulting rust library "target/debug" depends on the build type, you can set a global variable like this:
+```
+#if DEBUG
+    let buildType = "debug"
+#else
+    let buildType = "release"
+#endif
 ```
