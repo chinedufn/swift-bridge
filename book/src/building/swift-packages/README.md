@@ -239,7 +239,7 @@ Usage on Linux is a little bit different than on macOS. This guide will help you
 * Set up Package.swift so that "cargo build" is called (You can use something like this here: "https://stackoverflow.com/questions/26971240/how-do-i-run-a-terminal-command-in-a-swift-script-e-g-xcodebuild" to invoke cargo during a swift build)
 * Set up swift-bridge according to the guide (see chapter "swiftc and cargo")
 * Link against swift-bridge and your library, like the one below:
-```
+```swift
 targets: [
         .executableTarget(
             name: "proj",
@@ -261,7 +261,7 @@ targets: [
 ```
 * this ensures that the flags that are normally passed via swiftc are forwarded during swift-build
 * Since the path of the resulting rust library "target/debug" depends on the build type, you can set a global variable like this:
-```
+```swift
 #if DEBUG
     let buildType = "debug"
 #else
