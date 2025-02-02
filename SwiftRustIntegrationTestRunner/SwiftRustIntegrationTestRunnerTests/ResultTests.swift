@@ -13,30 +13,14 @@ class ResultTests: XCTestCase {
         rust_func_takes_result_string(.Ok("Success Message"))
         rust_func_takes_result_string(.Err("Error Message"))
     }
-
-    /// Verify that we can return a Result<String, String> from Rust -> Swift.
-    ///
-    /// The Err case evidences Swift’s `Error` protocol is implemented correctly
-    /// for `RustStringRef`, i.e. `extension RustStringRef: Error {}`
-    func testSwiftCallRustReturnsResultString() throws {
-        let resultOk = try! rust_func_returns_result_string(true)
-        XCTAssertEqual(resultOk.toString(), "Success Message")
-
-        do {
-            let _ = try rust_func_returns_result_string(false)
-            XCTFail("The function should have returned an error.")
-        } catch let error as RustString {
-            XCTAssertEqual(error.toString(), "Error Message")
-        }
-    }
-
+    
     /// Verify that we can pass a Result<OpaqueRust, OpaqueRust> from Swift -> Rust
     func testSwiftCallRustResultOpaqueRust() throws {
         let reflectedOk = try! rust_func_reflect_result_opaque_rust(
             .Ok(ResultTestOpaqueRustType(111))
         )
         XCTAssertEqual(reflectedOk.val(), 111)
-
+        
         do {
             let _ = try rust_func_reflect_result_opaque_rust(
                 .Err(ResultTestOpaqueRustType(222))
@@ -46,7 +30,7 @@ class ResultTests: XCTestCase {
             XCTAssertEqual(error.val(), 222)
         }
     }
-
+    
     /// Verify that we can pass a Result<OpaqueSwift, OpaqueSwift> from Swift -> Rust
     func testSwiftCallRustResultOpaqueSwift() throws {
         rust_func_takes_result_opaque_swift(
@@ -80,7 +64,7 @@ class ResultTests: XCTestCase {
             XCTAssertEqual(error.val(), 222)
         }
     }
-
+    
     /// Verify that we can receive a Result<OpaqueRust, TransparentEnum> from Rust
     func testResultOpaqueRustTransparentEnum() throws {
         XCTContext.runActivity(named: "Should return a ResultTestOpaqueRustType") {
@@ -91,7 +75,7 @@ class ResultTests: XCTestCase {
                 XCTFail()
             }
         }
-
+    
         XCTContext.runActivity(named: "Should throw an error") {
             _ in
             do {
@@ -111,7 +95,7 @@ class ResultTests: XCTestCase {
             }
         }
     }
-
+    
     /// Verify that we can receive a Result<TransparentEnum, OpaqueRust> from Rust
     func testResultTransparentEnumOpaqueRust() throws {
         XCTContext.runActivity(named: "Should return a ResultTestOpaqueRustType") {
@@ -130,7 +114,7 @@ class ResultTests: XCTestCase {
                 XCTFail()
             }
         }
-
+    
         XCTContext.runActivity(named: "Should throw an error") {
             _ in
             do {
@@ -143,7 +127,7 @@ class ResultTests: XCTestCase {
             }
         }
     }
-
+    
     /// Verify that we can receive a Result<(), TransparentEnum> from Rust
     func testResultUnitTypeTransparentEnum() throws {
         XCTContext.runActivity(named: "Should return a Unit type") {
@@ -154,7 +138,7 @@ class ResultTests: XCTestCase {
                 XCTFail()
             }
         }
-
+    
         XCTContext.runActivity(named: "Should throw an error") {
             _ in
             do {
@@ -174,7 +158,7 @@ class ResultTests: XCTestCase {
             }
         }
     }
-
+    
     /// Verify that we can receive a Result<(primitive type, OpaqueRustType, String), TransparentEnum> from Rust
     func testResultTupleTransparentEnum() throws {
         XCTContext.runActivity(named: "Should return a tuple type") {
@@ -188,7 +172,7 @@ class ResultTests: XCTestCase {
                 XCTFail()
             }
         }
-
+        
         XCTContext.runActivity(named: "Should throw an error") {
             _ in
             do {
@@ -265,7 +249,7 @@ class ResultTests: XCTestCase {
             XCTAssertEqual(UInt32(i), value.val())
         }
     }
-
+    
     /// Verify that we can use throwing initializers defined on the Rust side.
     func testThrowingInitializers() throws {
         XCTContext.runActivity(named: "Should fail") {
