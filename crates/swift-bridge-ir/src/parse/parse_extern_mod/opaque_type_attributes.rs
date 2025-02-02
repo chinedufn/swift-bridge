@@ -32,6 +32,12 @@ pub(crate) struct OpaqueTypeSwiftBridgeAttributes {
     /// `#[swift_bridge(Hashable)]`
     /// Used to determine if Hashable need to be implemented.
     pub hashable: bool,
+    /// `#[swift_bridge(__experimental_swift_ownership)]`
+    /// Enables experimental support for Swift ownership.
+    /// This attribute will eventually be removed once we've stabilized our support for Swift
+    /// ownership.
+    /// issue: https://github.com/chinedufn/swift-bridge/issues/155
+    pub experimental_swift_ownership: bool,
 }
 
 impl OpaqueTypeAllAttributes {
@@ -77,6 +83,7 @@ impl OpaqueTypeSwiftBridgeAttributes {
             OpaqueTypeAttr::DeclareGeneric => self.declare_generic = true,
             OpaqueTypeAttr::Equatable => self.equatable = true,
             OpaqueTypeAttr::Hashable => self.hashable = true,
+            OpaqueTypeAttr::ExperimentalSwiftOwnership => self.experimental_swift_ownership = true,
         }
     }
 }
@@ -87,6 +94,7 @@ pub(crate) enum OpaqueTypeAttr {
     DeclareGeneric,
     Equatable,
     Hashable,
+    ExperimentalSwiftOwnership,
 }
 
 impl Parse for OpaqueTypeSwiftBridgeAttributes {
@@ -124,6 +132,7 @@ impl Parse for OpaqueTypeAttr {
             "declare_generic" => OpaqueTypeAttr::DeclareGeneric,
             "Equatable" => OpaqueTypeAttr::Equatable,
             "Hashable" => OpaqueTypeAttr::Hashable,
+            "__experimental_swift_ownership" => OpaqueTypeAttr::ExperimentalSwiftOwnership,
             _ => {
                 let attrib = key.to_string();
                 Err(syn::Error::new_spanned(
@@ -142,5 +151,141 @@ impl Deref for OpaqueTypeAllAttributes {
 
     fn deref(&self) -> &Self::Target {
         &self.swift_bridge
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::parse_ok;
+    use proc_macro2::TokenStream;
+    use quote::quote;
+
+    /// Verify that we can parse the `already_declared` attribute.
+    #[test]
+    fn parse_already_declared_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(already_declared)]
+                    type AnotherType;
+                }
+            }
+        };
+
+        let attribs = unwrap_opaque_type_attributes(tokens, "AnotherType");
+        assert!(attribs.already_declared);
+    }
+
+    /// Verify that we can parse the `hashable` attribute.
+    #[test]
+    fn parse_hashable_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(Hashable)]
+                    type SomeType;
+                }
+            }
+        };
+
+        let attribs = unwrap_opaque_type_attributes(tokens, "SomeType");
+        assert_eq!(attribs.hashable, true);
+    }
+
+    /// Verify that we can parse the `equatable` attribute.
+    #[test]
+    fn parse_equatable_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(Equatable)]
+                    type SomeType;
+                }
+            }
+        };
+
+        let attribs = unwrap_opaque_type_attributes(tokens, "SomeType");
+        assert_eq!(attribs.equatable, true);
+    }
+
+    /// Verify that we can parse the `copy` attribute.
+    #[test]
+    fn parse_copy_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(Copy(4))]
+                    type SomeType;
+                }
+            }
+        };
+
+        let attribs = unwrap_opaque_type_attributes(tokens, "SomeType");
+        assert_eq!(attribs.copy.unwrap().size_bytes, 4);
+    }
+
+    /// Verify that we can parse multiple atributes from an opaque type.
+    #[test]
+    fn parse_multiple_attributes() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(already_declared, Copy(4))]
+                    type SomeType;
+                }
+            }
+        };
+
+        let attribs = unwrap_opaque_type_attributes(tokens, "SomeType");
+
+        assert!(attribs.copy.is_some());
+        assert!(attribs.already_declared)
+    }
+
+    /// Verify that we can parse a doc comment from an extern "Rust" opaque type.
+    #[test]
+    fn parse_opaque_rust_type_doc_comment() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    /// Some comment
+                    type AnotherType;
+                }
+            }
+        };
+
+        let attribs = unwrap_opaque_type_attributes(tokens, "AnotherType");
+        assert_eq!(attribs.doc_comment.as_ref().unwrap(), " Some comment");
+    }
+
+    /// Verify that we parse a Rust opaque type's experimental Swift ownership attribute.
+    #[test]
+    fn parse_experimental_swift_ownership_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(__experimental_swift_ownership)]
+                    type SomeType;
+                }
+            }
+        };
+        let attribs = unwrap_opaque_type_attributes(tokens, "SomeType");
+
+        assert_eq!(attribs.experimental_swift_ownership, true);
+    }
+
+    fn unwrap_opaque_type_attributes(
+        tokens: TokenStream,
+        type_name: &'static str,
+    ) -> OpaqueTypeAllAttributes {
+        let module = parse_ok(tokens);
+        module
+            .types
+            .get(type_name)
+            .unwrap()
+            .unwrap_opaque()
+            .clone()
+            .attributes
     }
 }
