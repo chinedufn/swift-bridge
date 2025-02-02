@@ -147,7 +147,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="opaque-types"><a class="header" href="#opaque-types">Opaque Types</a></h1>
-<p>... TODO OVERVIEW ...</p>
+<p>This chapter explains how to expose opaque handles to Swift classes and Rust structs.</p>
 <h2 id="exposing-opaque-rust-types"><a class="header" href="#exposing-opaque-rust-types">Exposing Opaque Rust Types</a></h2>
 <p><code>extern &quot;Rust</code> sections are used to expose Rust types and their associated methods and functions
 so that they can be used from Swift code.</p>
@@ -394,6 +394,34 @@ table[val] = &quot;world&quot;
 //Should print &quot;world&quot;
 print(table[val])
 </code></pre>
+<h4 id="swift_bridge__experimental_ownership"><a class="header" href="#swift_bridge__experimental_ownership">#[swift_bridge(__experimental_ownership)]</a></h4>
+<p>The <code>__experimental_ownership</code> attribute instructs <code>swift-bridge</code> to emit code that takes advantage of Swift 6's
+ownership features.</p>
+<p>Once <code>swift-bridge</code>'s support for Swift's ownership features stabilizes, this attribute will be removed and the behavior
+that it enabled will become the default.</p>
+<p>When <code>swift-bridge</code>'s Swift ownership support is complete, the following will be supported:</p>
+<ul>
+<li>use Swift's <code>~Copyable</code> extension to:
+<ul>
+<li>guarantee at compile time that Swift code cannot use a Rust type that it no longer owns</li>
+<li>prevent Swift from automatically copying mutable references to Rust types</li>
+</ul>
+</li>
+</ul>
+<p>Note that support for this attribute is a work in progress.
+Work is tracked in <code>Enforce ownership in generated Swift code</code> https://github.com/chinedufn/swift-bridge/issues/155 .</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod foo {
+    extern &quot;Rust&quot; {
+        #[swift_bridge(__experimental_swift_ownership)]
+        type SomeType;
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
 
                     </main>
 
