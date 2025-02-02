@@ -164,6 +164,25 @@ to see if any peak your interest.
 
 These issues come with step-by-step instructions that should help guide you towards implementing your first patch.
 
+## Minimum Supported Swift Version (MSSV)
+
+`swift-bridge` currently guarantees that the Swift code that it generates will work on Swift `6.0` and later.
+This is known the project's "Minimum Supported Swift Version" (MSSV).
+
+`swift-bridge`'s current policy is that the minimum required Swift version can be increased at any time to
+any Swift version that is at least one month old.
+
+For instance, if Swift `9.10.11` is released on April 5, 2035, then on May 5, 2035 the `swift-bridge` project is allowed
+to begin emitting Swift code that relies on Swift `9.10.11`.
+
+We will increase our support windows when one or both of the following happen:
+
+- We are no longer waiting for Swift features that increase the safety, performance and ergonomics of the Swift code that `swift-bridge` emits.
+  - For instance, Swift recently introduced the `~Copyable` protocol, which we plan to use enforce ownership when Swift code uses opaque Rust types.
+
+- The short support window is disrupting projects that use `swift-bridge` today.
+  - Please open an issue if our MSSV policy impacts your project
+
 ## Acknowledgements
 
 - [cxx](https://github.com/dtolnay/cxx) inspired the idea of using a bridge module to describe the FFI boundary.

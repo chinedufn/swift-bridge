@@ -27,30 +27,30 @@ use crate::test_utils::{
     assert_trimmed_generated_equals_trimmed_expected, parse_ok,
 };
 
-mod already_declared_attribute_codegen_tests;
-mod argument_label_codegen_tests;
-mod async_function_codegen_tests;
-mod boxed_fnonce_codegen_tests;
-mod built_in_tuple_codegen_tests;
-mod c_header_declaration_order_codegen_tests;
-mod conditional_compilation_codegen_tests;
-mod derive_attribute_codegen_tests;
-mod derive_struct_attribute_codegen_tests;
-mod extern_rust_function_opaque_rust_type_argument_codegen_tests;
-mod extern_rust_function_opaque_rust_type_return_codegen_tests;
-mod extern_rust_method_swift_class_placement_codegen_tests;
-mod function_attribute_codegen_tests;
-mod generic_opaque_rust_type_codegen_tests;
-mod opaque_rust_type_codegen_tests;
-mod opaque_swift_type_codegen_tests;
-mod option_codegen_tests;
-mod result_codegen_tests;
-mod return_into_attribute_codegen_tests;
-mod single_representation_type_elision_codegen_tests;
-mod string_codegen_tests;
-mod transparent_enum_codegen_tests;
-mod transparent_struct_codegen_tests;
-mod vec_codegen_tests;
+mod already_declared_attribute;
+mod argument_label;
+mod async_function;
+mod boxed_fnonce;
+mod built_in_tuple;
+mod c_header_declaration_order;
+mod conditional_compilation;
+mod derive_attribute;
+mod derive_struct_attribute;
+mod extern_rust_function_opaque_rust_type_argument;
+mod extern_rust_function_opaque_rust_type_return;
+mod extern_rust_method_swift_class_placement;
+mod function_attribute;
+mod generic_opaque_rust_type;
+mod opaque_rust_type;
+mod opaque_swift_type;
+mod option;
+mod result;
+mod return_into_attribute;
+mod single_representation_type_elision;
+mod string;
+mod transparent_enum;
+mod transparent_struct;
+mod vec;
 
 struct CodegenTest {
     bridge_module: BridgeModule,
