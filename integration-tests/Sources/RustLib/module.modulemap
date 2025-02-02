@@ -1,0 +1,5 @@
+module RustLib [system] {
+    header "bridge.h"
+    link "swift_integration_tests"
+    export *
+}
