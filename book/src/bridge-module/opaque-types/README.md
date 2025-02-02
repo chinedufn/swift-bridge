@@ -1,6 +1,6 @@
 # Opaque Types
 
-... TODO OVERVIEW ...
+This chapter explains how to expose opaque handles to Swift classes and Rust structs.
 
 ## Exposing Opaque Rust Types
 
@@ -264,4 +264,31 @@ table[val] = "world"
 
 //Should print "world"
 print(table[val])
+```
+
+#### #[swift_bridge(__experimental_ownership)]
+
+The `__experimental_ownership` attribute instructs `swift-bridge` to emit code that takes advantage of Swift 6's
+ownership features.
+
+Once `swift-bridge`'s support for Swift's ownership features stabilizes, this attribute will be removed and the behavior
+that it enabled will become the default.
+
+When `swift-bridge`'s Swift ownership support is complete, the following will be supported:
+
+- use Swift's `~Copyable` extension to:
+  - guarantee at compile time that Swift code cannot use a Rust type that it no longer owns
+  - prevent Swift from automatically copying mutable references to Rust types
+
+Note that support for this attribute is a work in progress.
+Work is tracked in `Enforce ownership in generated Swift code` https://github.com/chinedufn/swift-bridge/issues/155 .
+
+```rust
+#[swift_bridge::bridge]
+mod foo {
+    extern "Rust" {
+        #[swift_bridge(__experimental_swift_ownership)]
+        type SomeType;
+    }
+}
 ```
