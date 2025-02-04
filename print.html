@@ -1596,6 +1596,29 @@ table[val] = &quot;world&quot;
 //Should print &quot;world&quot;
 print(table[val])
 </code></pre>
+<h4 id="swift_bridgesendable"><a class="header" href="#swift_bridgesendable">#[swift_bridge(Sendable)]</a></h4>
+<p>The <code>Sendable</code> attribute can be added to both opaque Rust and opaque Swift types.</p>
+<p>When applied to an opaque Rust type, the generated Swift type will implement Swift's <code>Sendable</code> protocol.
+<code>swift-bridge</code> will emit code that, at compile time, confirms that the Rust type implements <code>Send + Sync</code>.</p>
+<p>When applied to an opaque Swift type, the generated Rust type will implement Rust's <code>Send + Sync</code> traits.
+<code>swift-bridge</code> will emit code that, at compile time, confirms that the Swift type implements <code>Sendable</code>.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    extern &quot;Rust&quot; {
+        #[swift_bridge(Sendable)]
+        type MyRustType;
+    }
+
+    extern &quot;Swift&quot; {
+        #[swift_bridge(Sendable)]
+        type MySwiftType;
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
 <h4 id="swift_bridge__experimental_ownership"><a class="header" href="#swift_bridge__experimental_ownership">#[swift_bridge(__experimental_ownership)]</a></h4>
 <p>The <code>__experimental_ownership</code> attribute instructs <code>swift-bridge</code> to emit code that takes advantage of Swift 6's
 ownership features.</p>
