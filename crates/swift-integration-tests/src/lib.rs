@@ -22,6 +22,7 @@ mod vec;
 mod enum_attributes;
 mod function_attributes;
 mod opaque_type_attributes;
+mod sendable_attribute;
 mod struct_attributes;
 
 mod futures_experiment;

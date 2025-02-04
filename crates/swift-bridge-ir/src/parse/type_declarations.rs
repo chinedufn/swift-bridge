@@ -205,6 +205,10 @@ impl OpaqueForeignTypeDeclaration {
     pub fn ty_name_ident(&self) -> &Ident {
         &self.ty
     }
+
+    pub fn ty_name_string(&self) -> String {
+        self.ty.to_string()
+    }
 }
 
 impl TypeDeclarations {
