@@ -21,7 +21,7 @@
 		220432EC27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220432EB27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift */; };
 		22046383282B4E3F00A09119 /* FunctionAttributeGetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22046382282B4E3F00A09119 /* FunctionAttributeGetTests.swift */; };
 		221E16B42786233600F94AC0 /* ConditionalCompilationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 221E16B32786233600F94AC0 /* ConditionalCompilationTests.swift */; };
-		221E16B62786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 221E16B52786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift */; };
+		221E16B62786F9FF00F94AC0 /* AlreadyDeclaredAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 221E16B52786F9FF00F94AC0 /* AlreadyDeclaredAttributeTests.swift */; };
 		222A81E928EB5BB100D4A412 /* Primitive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 222A81E828EB5BB100D4A412 /* Primitive.swift */; };
 		222A81EB28EB5DF800D4A412 /* PrimitiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 222A81EA28EB5DF800D4A412 /* PrimitiveTests.swift */; };
 		22553324281DB5FC008A3121 /* GenericTests.rs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22553323281DB5FC008A3121 /* GenericTests.rs.swift */; };
@@ -57,6 +57,8 @@
 		22FD1C562753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */; };
 		C926E4DE294F07AA0027E7E2 /* FunctionAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */; };
 		C926E4E0294F18C50027E7E2 /* FunctionAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */; };
+		DE9444DC2D5241AD007A83A4 /* SendableAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9444DB2D5241A8007A83A4 /* SendableAttributeTests.swift */; };
+		DE9444DE2D527C3B007A83A4 /* SendableAttribute.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9444DD2D527C31007A83A4 /* SendableAttribute.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,7 +86,7 @@
 		220432EB27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RustFnUsesOpaqueSwiftTypeTests.swift; sourceTree = "<group>"; };
 		22046382282B4E3F00A09119 /* FunctionAttributeGetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FunctionAttributeGetTests.swift; sourceTree = "<group>"; };
 		221E16B32786233600F94AC0 /* ConditionalCompilationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalCompilationTests.swift; sourceTree = "<group>"; };
-		221E16B52786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpaqueTypeAttributeTests.swift; sourceTree = "<group>"; };
+		221E16B52786F9FF00F94AC0 /* AlreadyDeclaredAttributeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlreadyDeclaredAttributeTests.swift; sourceTree = "<group>"; };
 		222A81E828EB5BB100D4A412 /* Primitive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Primitive.swift; sourceTree = "<group>"; };
 		222A81EA28EB5DF800D4A412 /* PrimitiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimitiveTests.swift; sourceTree = "<group>"; };
 		22553323281DB5FC008A3121 /* GenericTests.rs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenericTests.rs.swift; sourceTree = "<group>"; };
@@ -126,6 +128,8 @@
 		22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftFnUsesOpaqueRustTypeTests.swift; sourceTree = "<group>"; };
 		C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FunctionAttributes.swift; sourceTree = "<group>"; };
 		C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FunctionAttributeTests.swift; sourceTree = "<group>"; };
+		DE9444DB2D5241A8007A83A4 /* SendableAttributeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendableAttributeTests.swift; sourceTree = "<group>"; };
+		DE9444DD2D527C31007A83A4 /* SendableAttribute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendableAttribute.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -189,6 +193,7 @@
 				22EE4E0828B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift */,
 				22C0625228CE699D007A6F67 /* Callbacks.swift */,
 				225908FD28DA0F9F0080C737 /* Result.swift */,
+				DE9444DD2D527C31007A83A4 /* SendableAttribute.swift */,
 				22BC4BBB294BA0EC0032B8A8 /* SharedEnumAttributes.swift */,
 				C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */,
 				1784BE2729CE86D600AE5A4A /* Tuple.swift */,
@@ -208,32 +213,33 @@
 		228FE5E52740DB6D00805D9E /* SwiftRustIntegrationTestRunnerTests */ = {
 			isa = PBXGroup;
 			children = (
+				221E16B52786F9FF00F94AC0 /* AlreadyDeclaredAttributeTests.swift */,
+				178F1CD2298E97FB00335AA0 /* ArgumentAttributesTest.swift */,
 				22D092A227B7E865009A4C2B /* AsyncTests.swift */,
+				22C0625428CE6C9A007A6F67 /* CallbackTests.swift */,
 				221E16B32786233600F94AC0 /* ConditionalCompilationTests.swift */,
+				C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */,
 				22046382282B4E3F00A09119 /* FunctionAttributeGetTests.swift */,
 				22BCAAB827A2607700686A21 /* FunctionAttributeIdentifiableTests.swift */,
+				22553323281DB5FC008A3121 /* GenericTests.rs.swift */,
 				228FE60F27416C0300805D9E /* OpaqueRustStructTests.swift */,
 				228FE61127428A8D00805D9E /* OpaqueSwiftStructTests.swift */,
-				221E16B52786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift */,
+				220432A6274C953E00BAE645 /* PointerTests.swift */,
 				22043294274ADA7A00BAE645 /* OptionTests.swift */,
 				225908FB28DA0E320080C737 /* ResultTests.swift */,
-				220432A6274C953E00BAE645 /* PointerTests.swift */,
 				222A81EA28EB5DF800D4A412 /* PrimitiveTests.swift */,
 				220432EB27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift */,
+				DE9444DB2D5241A8007A83A4 /* SendableAttributeTests.swift */,
 				2202BC0727B2DD1700D43CC4 /* SharedEnumTests.swift */,
 				22BC4BB9294B8CCD0032B8A8 /* SharedEnumAttributeTests.swift */,
 				22C0AD50278ECA9E00A96469 /* SharedStructAttributeTests.swift */,
 				220432AE274E7BF800BAE645 /* SharedStructTests.swift */,
+				2289E82B29A879A7009D89D7 /* SingleRepresentationTypeElisionTests.swift */,
 				228FE5E62740DB6D00805D9E /* StringTests.swift */,
 				22FD1C552753CB3F00F64281 /* SwiftFnUsesOpaqueRustTypeTests.swift */,
-				22043292274A8FDF00BAE645 /* VecTests.swift */,
-				22553323281DB5FC008A3121 /* GenericTests.rs.swift */,
-				2289E82B29A879A7009D89D7 /* SingleRepresentationTypeElisionTests.swift */,
 				22EE4E0A28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift */,
-				22C0625428CE6C9A007A6F67 /* CallbackTests.swift */,
-				C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */,
-				178F1CD2298E97FB00335AA0 /* ArgumentAttributesTest.swift */,
 				1745111429BE189B00B96A1A /* TupleTests.swift */,
+				22043292274A8FDF00BAE645 /* VecTests.swift */,
 			);
 			path = SwiftRustIntegrationTestRunnerTests;
 			sourceTree = "<group>";
@@ -407,6 +413,7 @@
 				C926E4DE294F07AA0027E7E2 /* FunctionAttributes.swift in Sources */,
 				228FE64A274919C600805D9E /* swift-integration-tests.swift in Sources */,
 				22C0625328CE699D007A6F67 /* Callbacks.swift in Sources */,
+				DE9444DE2D527C3B007A83A4 /* SendableAttribute.swift in Sources */,
 				22BC10F82799A3A000A0D046 /* SharedStructAttributes.swift in Sources */,
 				22EE4E0928B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift in Sources */,
 				228FE60C2740F42000805D9E /* ASwiftStack.swift in Sources */,
@@ -418,12 +425,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				22043293274A8FDF00BAE645 /* VecTests.swift in Sources */,
-				221E16B62786F9FF00F94AC0 /* OpaqueTypeAttributeTests.swift in Sources */,
+				221E16B62786F9FF00F94AC0 /* AlreadyDeclaredAttributeTests.swift in Sources */,
 				220432A7274C953E00BAE645 /* PointerTests.swift in Sources */,
 				C926E4E0294F18C50027E7E2 /* FunctionAttributeTests.swift in Sources */,
 				220432AF274E7BF800BAE645 /* SharedStructTests.swift in Sources */,
 				178F1CD3298E97FB00335AA0 /* ArgumentAttributesTest.swift in Sources */,
 				2289E82C29A879A7009D89D7 /* SingleRepresentationTypeElisionTests.swift in Sources */,
+				DE9444DC2D5241AD007A83A4 /* SendableAttributeTests.swift in Sources */,
 				220432EC27530AFC00BAE645 /* RustFnUsesOpaqueSwiftTypeTests.swift in Sources */,
 				222A81EB28EB5DF800D4A412 /* PrimitiveTests.swift in Sources */,
 				22553324281DB5FC008A3121 /* GenericTests.rs.swift in Sources */,

@@ -1,5 +1,5 @@
 //
-//  OpaqueTypeAttributeTests.swift
+//  AlreadyDeclaredAttributeTests.swift
 //  SwiftRustIntegrationTestRunnerTests
 //
 //  Created by Frankie Nwafili on 1/6/22.

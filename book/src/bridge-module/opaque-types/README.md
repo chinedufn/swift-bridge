@@ -266,6 +266,31 @@ table[val] = "world"
 print(table[val])
 ```
 
+#### #[swift_bridge(Sendable)]
+
+The `Sendable` attribute can be added to both opaque Rust and opaque Swift types.
+
+When applied to an opaque Rust type, the generated Swift type will implement Swift's `Sendable` protocol.
+`swift-bridge` will emit code that, at compile time, confirms that the Rust type implements `Send + Sync`.
+
+When applied to an opaque Swift type, the generated Rust type will implement Rust's `Send + Sync` traits.
+`swift-bridge` will emit code that, at compile time, confirms that the Swift type implements `Sendable`.
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {
+    extern "Rust" {
+        #[swift_bridge(Sendable)]
+        type MyRustType;
+    }
+
+    extern "Swift" {
+        #[swift_bridge(Sendable)]
+        type MySwiftType;
+    }
+}
+```
+
 #### #[swift_bridge(__experimental_ownership)]
 
 The `__experimental_ownership` attribute instructs `swift-bridge` to emit code that takes advantage of Swift 6's

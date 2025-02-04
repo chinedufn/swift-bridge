@@ -8,7 +8,9 @@ use quote::{quote, quote_spanned};
 
 use self::vec::vec_of_opaque_rust_type::generate_vec_of_opaque_rust_type_functions;
 use crate::bridge_module_attributes::CfgAttr;
-use crate::parse::{HostLang, SharedTypeDeclaration, TypeDeclaration};
+use crate::parse::{
+    HostLang, OpaqueForeignTypeDeclaration, SharedTypeDeclaration, TypeDeclaration,
+};
 use crate::SwiftBridgeModule;
 
 mod shared_enum;
@@ -32,6 +34,8 @@ impl ToTokens for SwiftBridgeModule {
         let mut callbacks_support = vec![];
         let mut freestanding_rust_call_swift_fn_tokens = vec![];
         let mut extern_swift_fn_tokens = vec![];
+
+        let mut has_encountered_at_least_one_rust_sendable_type = false;
 
         for func in &self.functions {
             match func.host_lang {
@@ -215,6 +219,19 @@ impl ToTokens for SwiftBridgeModule {
                                             generate_vec_of_opaque_rust_type_functions(ty_name);
                                         extern_rust_fn_tokens.push(vec_functions);
                                     }
+
+                                    if ty.attributes.sendable {
+                                        if !has_encountered_at_least_one_rust_sendable_type {
+                                            extern_rust_fn_tokens.push(
+                                                generate_extern_rust_type_send_sync_checker()
+                                            );
+
+                                            has_encountered_at_least_one_rust_sendable_type = true;
+                                        }
+
+                                        extern_rust_fn_tokens
+                                            .push(generate_extern_rust_type_send_sync_check(ty));
+                                    }
                                 }
                             }
                         }
@@ -234,6 +251,15 @@ impl ToTokens for SwiftBridgeModule {
                                 }
                             };
 
+                            let maybe_impl_send_sync = if ty.attributes.sendable {
+                                quote! {
+                                    unsafe impl Send for #ty_name {}
+                                    unsafe impl Sync for #ty_name {}
+                                }
+                            } else {
+                                quote! {}
+                            };
+
                             let struct_tokens = quote! {
                                 #[repr(C)]
                                 pub struct #ty_name(*mut std::ffi::c_void);
@@ -245,6 +271,8 @@ impl ToTokens for SwiftBridgeModule {
                                         unsafe { #free_mem_func_name(self.0) }
                                     }
                                 }
+
+                                #maybe_impl_send_sync
                             };
                             structs_for_swift_classes.push(struct_tokens);
 
@@ -384,9 +412,34 @@ fn generate_extern_c_block(extern_swift_fn_tokens: Vec<TokenStream>) -> TokenStr
     }
 }
 
+/// Generate a function that can be used to check at compile time that a type implements
+/// `Send + Sync`.
+fn generate_extern_rust_type_send_sync_checker() -> TokenStream {
+    quote! {
+        const fn __swift_bridge__assert_send_sync<T: Send + Sync>() {}
+    }
+}
+
+/// Generate code that checks at compile time that a particular type implements `Send + Sync`.
+fn generate_extern_rust_type_send_sync_check(ty: &OpaqueForeignTypeDeclaration) -> TokenStream {
+    let ty_name = ty.ty_name_ident();
+
+    quote! {
+        const _: () = {
+            __swift_bridge__assert_send_sync::<super::#ty_name>()
+        };
+    }
+}
+
 #[cfg(test)]
 mod tests {
     //! More tests can be found in src/codegen/codegen_tests.rs and its submodules.
+    //!
+    //! TODO: Gradually delete these tests and replace them with tests in the existing
+    //!  `mod codegen_tests`.
+    //!  This way we have one place to analyze the related Rust+Swift+C generated code
+    //!  vs. currently needing to look at `generate_swift.rs` `generate_c.rs` and `generate_rust.rs`
+    //!  to get a full picture of the codegen.
 
     use quote::quote;
 

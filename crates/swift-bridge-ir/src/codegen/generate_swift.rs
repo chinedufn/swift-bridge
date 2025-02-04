@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use syn::Path;
 
 use crate::bridged_type::{BridgeableType, BridgedType, TypePosition};
@@ -35,6 +34,8 @@ impl SwiftBridgeModule {
         let mut associated_funcs_and_methods: HashMap<String, Vec<&ParsedExternFn>> =
             HashMap::new();
         let mut class_protocols: HashMap<String, ClassProtocols> = HashMap::new();
+
+        let mut has_encountered_at_least_one_sendable_swift_type = false;
 
         for function in &self.functions {
             if function.host_lang.is_rust() {
@@ -102,46 +103,65 @@ impl SwiftBridgeModule {
                         swift += "\n";
                     }
                 }
-                TypeDeclaration::Opaque(ty) => match ty.host_lang {
-                    HostLang::Rust => {
-                        if let Some(_copy) = ty.attributes.copy {
-                            swift += &generate_opaque_copy_struct(
-                                ty,
-                                &associated_funcs_and_methods,
-                                &self.types,
-                                &self.swift_bridge_path,
-                            );
-                        } else {
-                            let class_protocols = class_protocols.get(&ty.ty.to_string());
-                            let default_cp = ClassProtocols::default();
-                            let class_protocols = class_protocols.unwrap_or(&default_cp);
+                TypeDeclaration::Opaque(ty) => {
+                    match ty.host_lang {
+                        HostLang::Rust => {
+                            if let Some(_copy) = ty.attributes.copy {
+                                swift += &generate_opaque_copy_struct(
+                                    ty,
+                                    &associated_funcs_and_methods,
+                                    &self.types,
+                                    &self.swift_bridge_path,
+                                );
+                            } else {
+                                let class_protocols = class_protocols.get(&ty.ty.to_string());
+                                let default_cp = ClassProtocols::default();
+                                let class_protocols = class_protocols.unwrap_or(&default_cp);
 
-                            swift += &generate_swift_class(
-                                ty,
-                                &associated_funcs_and_methods,
-                                class_protocols,
-                                &self.types,
-                                &self.swift_bridge_path,
-                            );
-                        }
+                                swift += &generate_swift_class(
+                                    ty,
+                                    &associated_funcs_and_methods,
+                                    class_protocols,
+                                    &self.types,
+                                    &self.swift_bridge_path,
+                                );
+                            }
 
-                        swift += "\n";
+                            swift += "\n";
 
-                        if !ty.attributes.already_declared {
-                            // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
-                            //  make them pass.
-                            // TODO: Support Vec<GenericOpaqueRustType
-                            if ty.attributes.copy.is_none() && ty.generics.len() == 0 {
-                                swift += &generate_vectorizable_extension(&ty);
-                                swift += "\n";
+                            if !ty.attributes.already_declared {
+                                // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
+                                //  make them pass.
+                                // TODO: Support Vec<GenericOpaqueRustType
+                                if ty.attributes.copy.is_none() && ty.generics.len() == 0 {
+                                    swift += &generate_vectorizable_extension(&ty);
+                                    swift += "\n";
+                                }
+                            }
+
+                            if ty.attributes.sendable {
+                                let ty_name = ty.ty_name_string();
+                                swift += &format!("extension {ty_name}: @unchecked Sendable {{}}")
                             }
                         }
+                        HostLang::Swift => {
+                            swift += &generate_drop_swift_instance_reference_count(ty);
+
+                            if ty.attributes.sendable {
+                                if !has_encountered_at_least_one_sendable_swift_type {
+                                    swift += create_swift_sendable_protocol_check();
+                                    swift += "\n";
+
+                                    has_encountered_at_least_one_sendable_swift_type = true;
+                                }
+
+                                swift += &implement_swift_sendable_protocol(ty);
+                            }
+
+                            swift += "\n";
+                        }
                     }
-                    HostLang::Swift => {
-                        swift += &generate_drop_swift_instance_reference_count(ty);
-                        swift += "\n";
-                    }
-                },
+                }
             };
         }
 
@@ -385,9 +405,27 @@ fn generate_swift_class_methods(
     }
 }
 
+/// A Swift protocol that inherits from Swift's `Sendable` protocol.
+/// We use this to validate at compile time that a Swift type is `Sendable`.
+fn create_swift_sendable_protocol_check() -> &'static str {
+    "protocol __swift_bridge__IsSendable: Sendable {}"
+}
+
+/// A Swift protocol that inherits from Swift's `Sendable` protocol.
+/// We use this to validate at compile time that a Swift type is `Sendable`.
+fn implement_swift_sendable_protocol(ty: &OpaqueForeignTypeDeclaration) -> String {
+    let ty_name = ty.ty_name_string();
+    format!("extension {ty_name}: __swift_bridge__IsSendable {{}}")
+}
+
 #[cfg(test)]
 mod tests {
     //! More tests can be found in src/codegen/codegen_tests.rs and its submodules.
+    //! TODO: Gradually delete these tests and replace them with tests in the existing
+    //!  `mod codegen_tests`.
+    //!  This way we have one place to analyze the related Rust+Swift+C generated code
+    //!  vs. currently needing to look at `generate_swift.rs` `generate_c.rs` and `generate_rust.rs`
+    //!  to get a full picture of the codegen.
 
     use crate::codegen::generate_swift::CodegenConfig;
     use quote::quote;

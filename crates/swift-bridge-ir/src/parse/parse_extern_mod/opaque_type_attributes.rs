@@ -32,6 +32,16 @@ pub(crate) struct OpaqueTypeSwiftBridgeAttributes {
     /// `#[swift_bridge(Hashable)]`
     /// Used to determine if Hashable need to be implemented.
     pub hashable: bool,
+    /// `#[swift_bridge(Sendable)]`
+    /// Used to determine if the generated type should implement the Swift's `Sendable` protocol or
+    /// Rust's `Send+Sync` trait.
+    ///
+    /// When applied to a Rust type the generated Swift code will implement `Sendable`.
+    /// Compile time checks get emitted to ensure that the Rust type is `Send + Sync`.
+    ///
+    /// When applied to a Swift type the generated Swift code will implement `Send + Sync`.
+    /// Compile time checks get emitted to ensure that the Swift type is `Sendable`.
+    pub sendable: bool,
     /// `#[swift_bridge(__experimental_swift_ownership)]`
     /// Enables experimental support for Swift ownership.
     /// This attribute will eventually be removed once we've stabilized our support for Swift
@@ -83,6 +93,7 @@ impl OpaqueTypeSwiftBridgeAttributes {
             OpaqueTypeAttr::DeclareGeneric => self.declare_generic = true,
             OpaqueTypeAttr::Equatable => self.equatable = true,
             OpaqueTypeAttr::Hashable => self.hashable = true,
+            OpaqueTypeAttr::Sendable => self.sendable = true,
             OpaqueTypeAttr::ExperimentalSwiftOwnership => self.experimental_swift_ownership = true,
         }
     }
@@ -94,6 +105,7 @@ pub(crate) enum OpaqueTypeAttr {
     DeclareGeneric,
     Equatable,
     Hashable,
+    Sendable,
     ExperimentalSwiftOwnership,
 }
 
@@ -132,6 +144,7 @@ impl Parse for OpaqueTypeAttr {
             "declare_generic" => OpaqueTypeAttr::DeclareGeneric,
             "Equatable" => OpaqueTypeAttr::Equatable,
             "Hashable" => OpaqueTypeAttr::Hashable,
+            "Sendable" => OpaqueTypeAttr::Sendable,
             "__experimental_swift_ownership" => OpaqueTypeAttr::ExperimentalSwiftOwnership,
             _ => {
                 let attrib = key.to_string();
@@ -273,6 +286,29 @@ mod tests {
         let attribs = unwrap_opaque_type_attributes(tokens, "SomeType");
 
         assert_eq!(attribs.experimental_swift_ownership, true);
+    }
+
+    /// Verify that we parse a Rust or Swift opaque type's `Sendable` attribute.
+    #[test]
+    fn parse_sendable_attribute() {
+        let tokens = quote! {
+            mod foo {
+                extern "Rust" {
+                    #[swift_bridge(Sendable)]
+                    type SomeRustType;
+                }
+
+                extern "Swift" {
+                    #[swift_bridge(Sendable)]
+                    type SomeSwiftType;
+                }
+            }
+        };
+
+        for ty_name in ["SomeRustType", "SomeSwiftType"] {
+            let attribs = unwrap_opaque_type_attributes(tokens.clone(), ty_name);
+            assert_eq!(attribs.sendable, true);
+        }
     }
 
     fn unwrap_opaque_type_attributes(

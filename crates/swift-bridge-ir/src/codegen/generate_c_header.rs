@@ -523,6 +523,12 @@ fn declare_func(
 #[cfg(test)]
 mod tests {
     //! More tests can be found in src/codegen/codegen_tests.rs and its submodules.
+    //!
+    //! TODO: Gradually delete these tests and replace them with tests in the existing
+    //!  `mod codegen_tests`.
+    //!  This way we have one place to analyze the related Rust+Swift+C generated code
+    //!  vs. currently needing to look at `generate_swift.rs` `generate_c.rs` and `generate_rust.rs`
+    //!  to get a full picture of the codegen.
 
     use proc_macro2::TokenStream;
     use quote::quote;
