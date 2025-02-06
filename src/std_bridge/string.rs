@@ -2,6 +2,55 @@
 //! crates/swift-bridge-build/src/generate_core/rust_string.{c.h,swift}
 pub use self::ffi::*;
 
+/// Ideally, we would bridge Rust's [`String`] to Swift's `String` type directly.
+/// We do not do this because there is no zero-copy way to create a Swift `String`, and, since
+/// `swift-bridge` aims to be useful in performance sensitive applications, we avoid unnecessary
+/// allocations.
+///
+/// Instead, users that wish to go from a `Rust std::string::String` to a Swift String must call
+/// `RustString.toString()` on the Swift side.
+/// We can consider introducing annotations that allow a user to opt in to an automatic conversion.
+/// For instance, something along the lines of:
+/// ```rust,no_run
+/// #[swift_bridge::bridge]
+/// mod ffi {
+///     extern "Rust" {
+///         #[swift_bridge(return_clone)]
+///         fn return_a_string() -> String;
+///
+///         #[swift_bridge(return_map_ok_clone)]
+///         fn return_a_string_ok() -> Result<String, ()>;
+///
+///         #[swift_bridge(return_map_err_clone)]
+///         fn return_a_string_err() -> Result<(), String>;
+///     }
+/// }
+/// ```
+/// When such an attribute was present `swift-bridge` would allocate a Swift String on the Swift
+/// side, instead of initializing an instance of the `RustString` class.
+///
+/// Such an automatic conversion could be made more efficient than using the `RustString.toString()`
+/// method to create a Swift String.
+/// For instance, to go from `Rust std::string::String -> Swift String` via a `RustString` we:
+/// - allocate a `class RustString` instance
+/// - call `RustString.toString()`, which constructs a Swift String using the `RustString`'s
+///    underlying buffer
+///
+/// An automatic conversion would look like:
+/// - construct a Swift String using the Rust `std::string::String`'s underlying buffer
+///
+/// Regardless of whether one is using `swift-bridge`, creating instances of Swift reference types
+/// requires a small heap allocation.
+/// By not creating an instance of the `RustString` class we would be eliminating one small
+/// allocation.
+///
+/// ## References
+/// - claim: Impossible to create a Swift `String` without copying:
+///   - `init(bytesNoCopy was deprecated in macOS 13` - https://forums.swift.org/t/init-bytesnocopy-was-deprecated-in-macos-13/61231
+///   - "String does not support no-copy initialization" - https://developer.apple.com/documentation/swift/string/init(bytesnocopy:length:encoding:freewhendone:)
+///   - `Does String(bytesNoCopy:) copy bytes?` - https://forums.swift.org/t/does-string-bytesnocopy-copy-bytes/51643
+/// - claim: Class instances allocate
+///   - "For example, a class instance (which allocates)" https://www.swift.org/documentation/server/guides/allocations.html#other-perf-tricks
 #[swift_bridge_macro::bridge(swift_bridge_path = crate)]
 mod ffi {
     extern "Rust" {
