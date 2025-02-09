@@ -48,54 +48,36 @@ fn main() {
     // This fix is for Linux only
     #[cfg(target_os = "linux")]
     {
-        // Without this there will be a lot of missing symbols when linking to the Swift library.
-        let swift_lib_path = get_swift_lib_path().unwrap();
+        // We need to tell cargo which additional libraries to link to!
+        //
+        // This is required because swift build -Xswiftc -static-stdlib works for executables,
+        // but not for libraries (yet). Thus, when trying to link against the produced .a file,
+        // not all symbols can be resolved. The undefined symbols can easily be found by running
+        // `nm -u .build/debug/libswift-library.a`, usually things such as `swift_retain`
+        // and `swift_release` will be missing.
+        // Cargo will give you an error message like this if symbols are missing:
+        // note: /usr/bin/ld: .build/debug/libswift-library.a(swift_library.swift.o): in function `$ss27_finalizeUninitializedArrayySayxGABnlF':
+        //       <compiler-generated>:(.text+0x17): undefined reference to `$sSaMa'
+        // or:                                      undefined reference to `swift_release'
+        //
+        // Thus, we need to explicitly link against the Swift libraries which are required.
+        // Unfortunately, the required linker flags depend on the Swift version and the used modules,
+        // so they might be different for your project.
+        let swift_lib_path = std::env::var("SWIFT_LIBRARY_PATH")
+            .unwrap_or_else(|_| "/usr/lib/swift/linux".to_string());
+
+        if !std::path::Path::new(&swift_lib_path).exists() {
+            panic!("Swift library path not found at /usr/lib/swift/linux and SWIFT_LIBRARY_PATH environment variable not set");
+        }
+
         println!("cargo:rustc-link-search={}", swift_lib_path);
 
-        // These linker flags are needed if `cargo test` is executed, `cargo run` works without them.
-        // Still, the order is important and they need to be placed before swiftCore.
-        println!("cargo:rustc-link-lib=FoundationEssentials");
-        println!("cargo:rustc-link-lib=_FoundationCShims");
-        println!("cargo:rustc-link-lib=swift_StringProcessing");
-        println!("cargo:rustc-link-lib=swift_RegexParser");
-        println!("cargo:rustc-link-lib=swiftGlibc");
-        println!("cargo:rustc-link-lib=_FoundationCollections");
-
-        // These swift libraries are needed in any case.
+        // These swift libraries are needed to get all the missing symbols to properly
+        // link the Swift library. This is required for `cargo run` as well as `cargo test`.
         println!("cargo:rustc-link-lib=swiftCore");
         println!("cargo:rustc-link-lib=stdc++");
         println!("cargo:rustc-link-lib=swiftSwiftOnoneSupport");
     }
-}
-
-fn get_swift_lib_path() -> Result<String, String> {
-    let output = Command::new("which")
-        .arg("swift")
-        .output()
-        .map_err(|e| format!("Failed to execute `which swift`: {}", e))?;
-
-    if !output.status.success() {
-        return Err(format!(
-            "`which swift` failed with stderr: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
-
-    let swift_path = String::from_utf8(output.stdout)
-        .map_err(|e| format!("Failed to parse `which swift` output: {}", e))?
-        .trim()
-        .to_string();
-
-    let swift_lib_path = PathBuf::from(swift_path)
-        .parent()
-        .and_then(|p| p.parent())
-        .map(|p| p.join("lib/swift_static/linux"))
-        .ok_or("Failed to determine Swift library path")?;
-
-    swift_lib_path
-        .to_str()
-        .map(|s| s.to_string())
-        .ok_or("Failed to convert Swift library path to string".to_string())
 }
 
 fn compile_swift() {

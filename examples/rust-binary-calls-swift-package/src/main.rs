@@ -25,3 +25,18 @@ fn rust_double_number(num: i64) -> i64 {
 
     num * 2
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rust_double_number() {
+        assert_eq!(rust_double_number(2), 4);
+    }
+
+    #[test]
+    fn test_swift_multiply_by_4() {
+        assert_eq!(ffi::swift_multiply_by_4(2), 8);
+    }
+}

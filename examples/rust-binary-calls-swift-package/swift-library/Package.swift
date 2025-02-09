@@ -6,10 +6,9 @@ import PackageDescription
 let package = Package(
     name: "swift-library",
     products: [
-        .library(name: "swift-library", type: .static, targets: ["swift-library"]),
+        .library(name: "swift-library", type: .static, targets: ["swift-library"])
     ],
-    dependencies: [
-    ],
+    dependencies: [],
     targets: [
         .target(
             name: "swift-library",
