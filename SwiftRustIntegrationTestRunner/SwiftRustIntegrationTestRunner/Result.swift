@@ -6,22 +6,28 @@
 //
 
 func swift_func_takes_callback_with_result_arg(
-    arg: (RustResult<CallbackTestOpaqueRustType, String>) -> ()
+        arg: (RustResult<CallbackTestOpaqueRustType, String>) -> Void
 ) {
-    arg(.Ok(CallbackTestOpaqueRustType(555)))
+        arg(.Ok(CallbackTestOpaqueRustType(555)))
 }
 
 public class ResultTestOpaqueSwiftType {
-    var num: UInt32
-    
-    init(val: UInt32) {
-        self.num = val
-    }
-    
-    func val() -> UInt32 {
-        self.num
-    }
+        var num: UInt32
+
+        init(val: UInt32) {
+                self.num = val
+        }
+
+        func val() -> UInt32 {
+                self.num
+        }
 }
+
+// TODO: we can delete these type assertions once we correctly generate Sendable
+// types. See the following issue:
+// https://github.com/chinedufn/swift-bridge/issues/150
+
+extension AsyncRustFnReturnStruct: @unchecked Sendable {}
 
 extension ResultTestOpaqueRustType: @unchecked Sendable {}
 extension ResultTestOpaqueRustType: Error {}
@@ -40,6 +46,8 @@ extension ResultTransparentStruct: Error {}
 
 extension SameEnum: @unchecked Sendable {}
 extension SameEnum: Error {}
+
+extension AsyncResultOkEnum: @unchecked Sendable {}
 
 extension AsyncResultErrEnum: @unchecked Sendable {}
 extension AsyncResultErrEnum: Error {}
