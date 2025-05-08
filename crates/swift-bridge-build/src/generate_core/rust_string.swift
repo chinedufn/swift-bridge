@@ -11,15 +11,16 @@ public class RustString: RustStringRefMut {
         }
     }
 }
-extension RustString {
+extension RustString: @unchecked Sendable {
     public convenience init() {
         self.init(ptr: __swift_bridge__$RustString$new())
     }
 
     public convenience init<GenericToRustStr: ToRustStr>(_ str: GenericToRustStr) {
-        self.init(ptr: str.toRustStr({ strAsRustStr in
-            __swift_bridge__$RustString$new_with_str(strAsRustStr)
-        }))
+        self.init(
+            ptr: str.toRustStr({ strAsRustStr in
+                __swift_bridge__$RustString$new_with_str(strAsRustStr)
+            }))
     }
 }
 public class RustStringRefMut: RustStringRef {
@@ -27,7 +28,7 @@ public class RustStringRefMut: RustStringRef {
         super.init(ptr: ptr)
     }
 }
-public class RustStringRef {
+public class RustStringRef: @unchecked Sendable {
     var ptr: UnsafeMutableRawPointer
 
     public init(ptr: UnsafeMutableRawPointer) {
@@ -60,10 +61,15 @@ extension RustString: Vectorizable {
     }
 
     public static func vecOfSelfPush(vecPtr: UnsafeMutableRawPointer, value: RustString) {
-        __swift_bridge__$Vec_RustString$push(vecPtr, {value.isOwned = false; return value.ptr;}())
+        __swift_bridge__$Vec_RustString$push(
+            vecPtr,
+            {
+                value.isOwned = false
+                return value.ptr
+            }())
     }
 
-    public static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Optional<Self> {
+    public static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Self? {
         let pointer = __swift_bridge__$Vec_RustString$pop(vecPtr)
         if pointer == nil {
             return nil
@@ -72,7 +78,8 @@ extension RustString: Vectorizable {
         }
     }
 
-    public static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<RustStringRef> {
+    public static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> RustStringRef?
+    {
         let pointer = __swift_bridge__$Vec_RustString$get(vecPtr, index)
         if pointer == nil {
             return nil
@@ -81,7 +88,9 @@ extension RustString: Vectorizable {
         }
     }
 
-    public static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Optional<RustStringRefMut> {
+    public static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt)
+        -> RustStringRefMut?
+    {
         let pointer = __swift_bridge__$Vec_RustString$get_mut(vecPtr, index)
         if pointer == nil {
             return nil
@@ -90,7 +99,9 @@ extension RustString: Vectorizable {
         }
     }
 
-    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<RustStringRef> {
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<
+        RustStringRef
+    > {
         UnsafePointer<RustStringRef>(OpaquePointer(__swift_bridge__$Vec_RustString$as_ptr(vecPtr)))
     }
 
