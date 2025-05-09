@@ -302,7 +302,7 @@ fn gen_function_exposes_swift_to_rust(
 
         rust_fn_once_callback_classes += &format!(
             r#"
-class __private__RustFnOnceCallback{maybe_associated_ty}${fn_name}$param{idx} {{
+class __private__RustFnOnceCallback{maybe_associated_ty}${fn_name}$param{idx}: @unchecked Sendable {{
     var ptr: UnsafeMutableRawPointer
     var called = false
 
@@ -450,7 +450,7 @@ mod tests {
         let expected = r#"
 public func foo() {
     __swift_bridge__$foo()
-} 
+}
 "#;
 
         assert_eq!(generated.trim(), expected.trim());
@@ -473,7 +473,7 @@ public func foo() {
 @_cdecl("__swift_bridge__$foo")
 func __swift_bridge__foo () {
     foo()
-} 
+}
 "#;
 
         assert_trimmed_generated_contains_trimmed_expected(generated.trim(), expected.trim());
@@ -496,7 +496,7 @@ func __swift_bridge__foo () {
 @_cdecl("__swift_bridge__$foo")
 func __swift_bridge__foo () -> __private__FfiSlice {
     foo().toFfiSlice()
-} 
+}
 "#;
 
         assert_trimmed_generated_contains_trimmed_expected(generated.trim(), expected.trim());
@@ -542,7 +542,7 @@ func __swift_bridge__MyType_foo (_ this: UnsafeMutableRawPointer) -> __private__
         let expected = r#"
 public func foo(_ bar: UInt8) {
     __swift_bridge__$foo(bar)
-} 
+}
 "#;
 
         assert_eq!(generated.trim(), expected.trim());
@@ -565,7 +565,7 @@ public func foo(_ bar: UInt8) {
         let expected = r#"
 public func foo() -> UInt32 {
     __swift_bridge__$foo()
-} 
+}
 "#;
 
         assert_eq!(generated.trim(), expected.trim());
@@ -587,7 +587,7 @@ public func foo() -> UInt32 {
         let expected = r#"
 func foo() -> UnsafeBufferPointer<UInt8> {
     let slice = __swift_bridge__$foo(); return UnsafeBufferPointer(start: slice.start.assumingMemoryBound(to: UInt8.self), count: Int(slice.len));
-} 
+}
 "#;
 
         assert_trimmed_generated_contains_trimmed_expected(&generated, &expected);

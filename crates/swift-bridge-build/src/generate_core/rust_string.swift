@@ -23,7 +23,7 @@ extension RustString: @unchecked Sendable {
             }))
     }
 }
-public class RustStringRefMut: RustStringRef {
+public class RustStringRefMut: RustStringRef, @unchecked Sendable {
     public override init(ptr: UnsafeMutableRawPointer) {
         super.init(ptr: ptr)
     }
