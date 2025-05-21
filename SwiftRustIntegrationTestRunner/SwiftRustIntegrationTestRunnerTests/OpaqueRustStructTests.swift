@@ -66,7 +66,10 @@ class OpaqueRustStructTests: XCTestCase {
         // a method that takes an owned `self` .
         val.consume()
         
+        // Equate via manually exposed `PartialEq::eq` method
         XCTAssert(val.eq(val2))
+        // Equate via `Equatable` extension
+        XCTAssert(val == val2)
     }
 
     func testOpaqueRustTypeImplEquatable() throws {

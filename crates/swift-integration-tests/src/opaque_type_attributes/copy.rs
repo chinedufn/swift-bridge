@@ -1,7 +1,7 @@
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
-        #[swift_bridge(Copy(6))]
+        #[swift_bridge(Copy(6), Equatable)]
         type RustCopyType;
 
         #[swift_bridge(init)]

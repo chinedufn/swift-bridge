@@ -112,11 +112,36 @@ extension {ffi_repr_name}: SwiftBridgeGenericCopyTypeFfiRepr {{}}"#,
         )
     };
 
+    let ext_equatable = if ty.attributes.equatable {
+        format!(r#"
+extension {type_name}: Equatable {{
+    public static func == (lhs: Self, rhs: Self) -> Bool {{
+        var lhs = lhs
+        var rhs = rhs
+        return withUnsafePointer(to: &lhs, {{(lhs_p: UnsafePointer<Self>) in
+            return withUnsafePointer(to: &rhs, {{(rhs_p: UnsafePointer<Self>) in
+                return __swift_bridge__${type_name}$_partial_eq(
+                    UnsafeMutableRawPointer(mutating: lhs_p),
+                    UnsafeMutableRawPointer(mutating: rhs_p)
+                )
+            }})
+        }})
+    }}
+}}
+"#,
+            type_name = type_name,
+        )
+    } else {
+        String::new()
+    };
+
     format!(
         r#"{declare_struct}
-{ffi_repr_conversion}"#,
+{ffi_repr_conversion}
+{ext_equatable}"#,
         declare_struct = declare_struct,
-        ffi_repr_conversion = ffi_repr_conversion
+        ffi_repr_conversion = ffi_repr_conversion,
+        ext_equatable = ext_equatable,
     )
 }
 
