@@ -66,10 +66,7 @@ class OpaqueRustStructTests: XCTestCase {
         // a method that takes an owned `self` .
         val.consume()
         
-        // Equate via manually exposed `PartialEq::eq` method
         XCTAssert(val.eq(val2))
-        // Equate via `Equatable` extension
-        XCTAssert(val == val2)
     }
 
     func testOpaqueRustTypeImplEquatable() throws {
@@ -90,6 +87,26 @@ class OpaqueRustStructTests: XCTestCase {
             val2.set_value(22)
 
             XCTAssertNotEqual(val1, val2)
+        }
+    }
+
+    func testOpaqueRustCopyTypeImplEquatable() throws {
+        XCTContext.runActivity(named: "Should be equal"){
+            _ in
+            let val1 = RustCopyEquatableType()
+            let val2 = RustCopyEquatableType()
+
+            XCTAssert(val1.eq(val2))   // Direct call to exposed method
+            XCTAssertEqual(val1, val2) // via Equatable
+        }
+
+        XCTContext.runActivity(named: "Should not be equal"){
+            _ in
+            let val1 = RustCopyEquatableType()
+            let val2 = RustCopyEquatableType(withFirstValue: 87)
+
+            XCTAssertFalse(val1.eq(val2)) // Direct call to exposed method
+            XCTAssertNotEqual(val1, val2) // via Equatable
         }
     }
 

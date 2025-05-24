@@ -1,12 +1,13 @@
 #[swift_bridge::bridge]
 mod ffi {
     extern "Rust" {
-        #[swift_bridge(Copy(6), Equatable)]
+        #[swift_bridge(Copy(6))]
         type RustCopyType;
 
         #[swift_bridge(init)]
         fn new() -> RustCopyType;
 
+        // PartialEq trait method, explicitly exposed for testing on the Swift side.
         fn eq(&self, rhs: &RustCopyType) -> bool;
 
         // Used to verify that even after we pass by value the type still works on the
