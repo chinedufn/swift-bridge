@@ -121,8 +121,8 @@ extension {type_name}: Equatable {{
         return withUnsafePointer(to: &lhs.bytes, {{(lhs_p: UnsafePointer<{ffi_repr_name}>) in
             return withUnsafePointer(to: &rhs.bytes, {{(rhs_p: UnsafePointer<{ffi_repr_name}>) in
                 return __swift_bridge__${type_name}$_partial_eq(
-                    UnsafeMutableRawPointer(mutating: lhs_p),
-                    UnsafeMutableRawPointer(mutating: rhs_p)
+                    UnsafeMutablePointer(mutating: lhs_p),
+                    UnsafeMutablePointer(mutating: rhs_p)
                 )
             }})
         }})

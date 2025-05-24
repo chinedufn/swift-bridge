@@ -478,8 +478,8 @@ extension SomeType: Equatable {
         return withUnsafePointer(to: &lhs.bytes, {(lhs_p: UnsafePointer<__swift_bridge__$SomeType>) in
             return withUnsafePointer(to: &rhs.bytes, {(rhs_p: UnsafePointer<__swift_bridge__$SomeType>) in
                 return __swift_bridge__$SomeType$_partial_eq(
-                    UnsafeMutableRawPointer(mutating: lhs_p),
-                    UnsafeMutableRawPointer(mutating: rhs_p)
+                    UnsafeMutablePointer(mutating: lhs_p),
+                    UnsafeMutablePointer(mutating: rhs_p)
                 )
             })
         })
@@ -500,7 +500,7 @@ typedef struct __swift_bridge__$Option$SomeType { bool is_some; __swift_bridge__
 #include <stdbool.h>
 "#,
             r#"
-bool __swift_bridge__$SomeType$_partial_eq(void* lhs, void* rhs);
+bool __swift_bridge__$SomeType$_partial_eq(__swift_bridge__$SomeType* lhs, __swift_bridge__$SomeType* rhs);
 "#,
         ])
     }
