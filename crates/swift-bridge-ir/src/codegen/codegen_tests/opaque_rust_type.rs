@@ -475,8 +475,8 @@ extension SomeType: Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         var lhs = lhs
         var rhs = rhs
-        return withUnsafePointer(to: &lhs, {(lhs_p: UnsafePointer<Self>) in
-            return withUnsafePointer(to: &rhs, {(rhs_p: UnsafePointer<Self>) in
+        return withUnsafePointer(to: &lhs.bytes, {(lhs_p: UnsafePointer<__swift_bridge__$SomeType>) in
+            return withUnsafePointer(to: &rhs.bytes, {(rhs_p: UnsafePointer<__swift_bridge__$SomeType>) in
                 return __swift_bridge__$SomeType$_partial_eq(
                     UnsafeMutableRawPointer(mutating: lhs_p),
                     UnsafeMutableRawPointer(mutating: rhs_p)

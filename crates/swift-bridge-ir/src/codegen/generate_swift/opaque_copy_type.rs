@@ -118,8 +118,8 @@ extension {type_name}: Equatable {{
     public static func == (lhs: Self, rhs: Self) -> Bool {{
         var lhs = lhs
         var rhs = rhs
-        return withUnsafePointer(to: &lhs, {{(lhs_p: UnsafePointer<Self>) in
-            return withUnsafePointer(to: &rhs, {{(rhs_p: UnsafePointer<Self>) in
+        return withUnsafePointer(to: &lhs.bytes, {{(lhs_p: UnsafePointer<{ffi_repr_name}>) in
+            return withUnsafePointer(to: &rhs.bytes, {{(rhs_p: UnsafePointer<{ffi_repr_name}>) in
                 return __swift_bridge__${type_name}$_partial_eq(
                     UnsafeMutableRawPointer(mutating: lhs_p),
                     UnsafeMutableRawPointer(mutating: rhs_p)
@@ -130,6 +130,7 @@ extension {type_name}: Equatable {{
 }}
 "#,
             type_name = type_name,
+            ffi_repr_name = ty.ffi_repr_name_string()
         )
     } else {
         String::new()
