@@ -395,6 +395,128 @@ void __swift_bridge__$SomeType$some_method_ref(struct __swift_bridge__$SomeType 
     }
 }
 
+/// Verify that we properly generate an Equatable extension for a Copy opaque Rust type.
+mod extern_rust_copy_type_equatable {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(Copy(16), Equatable)]
+                    type SomeType;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsManyAndDoesNotContainMany {
+            contains: vec![
+                quote! {
+                    const _: () = {
+                        let _: [u8; std::mem::size_of::<super::SomeType>()] = [0; 16usize];
+                        fn _assert_copy() {
+                            swift_bridge::copy_support::assert_copy::<super::SomeType>();
+                        }
+                    };
+                },
+                quote! {
+                    #[repr(C)]
+                    #[doc(hidden)]
+                    pub struct __swift_bridge__SomeType([u8; 16usize]);
+                    impl __swift_bridge__SomeType {
+                        #[inline(always)]
+                        fn into_rust_repr(self) -> super::SomeType {
+                            unsafe { std::mem::transmute(self) }
+                        }
+
+                        #[inline(always)]
+                        fn from_rust_repr(repr: super::SomeType) -> Self {
+                            unsafe { std::mem::transmute(repr) }
+                        }
+                    }
+
+                    #[repr(C)]
+                    #[doc(hidden)]
+                    pub struct __swift_bridge__Option_SomeType {
+                        is_some: bool,
+                        val: std::mem::MaybeUninit<__swift_bridge__SomeType>
+                    }
+                },
+            ],
+            // Copy types don't need a function for freeing memory.
+            does_not_contain: vec![quote! {
+                __swift_bridge__SomeType__free
+            }],
+        }
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
+            r#"
+public struct SomeType {
+    fileprivate var bytes: __swift_bridge__$SomeType
+
+    func intoFfiRepr() -> __swift_bridge__$SomeType {
+        bytes
+    }
+}
+"#,
+            r#"
+extension __swift_bridge__$SomeType {
+    func intoSwiftRepr() -> SomeType {
+        SomeType(bytes: self)
+    }
+}
+"#,
+            r#"
+extension SomeType: Equatable {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        var lhs = lhs
+        var rhs = rhs
+        return withUnsafePointer(to: &lhs, {(lhs_p: UnsafePointer<Self>) in
+            return withUnsafePointer(to: &rhs, {(rhs_p: UnsafePointer<Self>) in
+                return __swift_bridge__$SomeType$_partial_eq(
+                    UnsafeMutableRawPointer(mutating: lhs_p),
+                    UnsafeMutableRawPointer(mutating: rhs_p)
+                )
+            })
+        })
+    }
+}
+"#,
+        ])
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+typedef struct __swift_bridge__$SomeType { uint8_t bytes[16]; } __swift_bridge__$SomeType;
+typedef struct __swift_bridge__$Option$SomeType { bool is_some; __swift_bridge__$SomeType val; } __swift_bridge__$Option$SomeType;
+"#,
+            r#"
+#include <stdint.h>
+#include <stdbool.h>
+"#,
+            r#"
+bool __swift_bridge__$SomeType$_partial_eq(void* lhs, void* rhs);
+"#,
+        ])
+    }
+
+    #[test]
+    fn extern_rust_copy_type_equatable() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Test code generation for freestanding Swift function that takes an opaque Rust type argument.
 mod extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg {
     use super::*;
