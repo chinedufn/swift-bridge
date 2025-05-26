@@ -396,6 +396,9 @@ void __swift_bridge__$SomeType$some_method_ref(struct __swift_bridge__$SomeType 
 }
 
 /// Verify that we properly generate an Equatable extension for a Copy opaque Rust type.
+///
+/// In May 2025 it was discovered that the Swift `Equatable` protocol was not being implemented for
+/// Rust `Copy` types. This test case confirms tht we emit an `Equatable` protocol implementation.
 mod extern_rust_copy_type_equatable {
     use super::*;
 
@@ -411,65 +414,11 @@ mod extern_rust_copy_type_equatable {
     }
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
-        ExpectedRustTokens::ContainsManyAndDoesNotContainMany {
-            contains: vec![
-                quote! {
-                    const _: () = {
-                        let _: [u8; std::mem::size_of::<super::SomeType>()] = [0; 16usize];
-                        fn _assert_copy() {
-                            swift_bridge::copy_support::assert_copy::<super::SomeType>();
-                        }
-                    };
-                },
-                quote! {
-                    #[repr(C)]
-                    #[doc(hidden)]
-                    pub struct __swift_bridge__SomeType([u8; 16usize]);
-                    impl __swift_bridge__SomeType {
-                        #[inline(always)]
-                        fn into_rust_repr(self) -> super::SomeType {
-                            unsafe { std::mem::transmute(self) }
-                        }
-
-                        #[inline(always)]
-                        fn from_rust_repr(repr: super::SomeType) -> Self {
-                            unsafe { std::mem::transmute(repr) }
-                        }
-                    }
-
-                    #[repr(C)]
-                    #[doc(hidden)]
-                    pub struct __swift_bridge__Option_SomeType {
-                        is_some: bool,
-                        val: std::mem::MaybeUninit<__swift_bridge__SomeType>
-                    }
-                },
-            ],
-            // Copy types don't need a function for freeing memory.
-            does_not_contain: vec![quote! {
-                __swift_bridge__SomeType__free
-            }],
-        }
+        ExpectedRustTokens::SkipTest
     }
 
     fn expected_swift_code() -> ExpectedSwiftCode {
-        ExpectedSwiftCode::ContainsManyAfterTrim(vec![
-            r#"
-public struct SomeType {
-    fileprivate var bytes: __swift_bridge__$SomeType
-
-    func intoFfiRepr() -> __swift_bridge__$SomeType {
-        bytes
-    }
-}
-"#,
-            r#"
-extension __swift_bridge__$SomeType {
-    func intoSwiftRepr() -> SomeType {
-        SomeType(bytes: self)
-    }
-}
-"#,
+        ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 extension SomeType: Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -486,15 +435,11 @@ extension SomeType: Equatable {
     }
 }
 "#,
-        ])
+        )
     }
 
     fn expected_c_header() -> ExpectedCHeader {
         ExpectedCHeader::ContainsManyAfterTrim(vec![
-            r#"
-typedef struct __swift_bridge__$SomeType { uint8_t bytes[16]; } __swift_bridge__$SomeType;
-typedef struct __swift_bridge__$Option$SomeType { bool is_some; __swift_bridge__$SomeType val; } __swift_bridge__$Option$SomeType;
-"#,
             r#"
 #include <stdint.h>
 #include <stdbool.h>
