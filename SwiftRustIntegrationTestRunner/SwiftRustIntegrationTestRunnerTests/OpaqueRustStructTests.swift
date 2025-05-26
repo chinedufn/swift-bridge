@@ -90,6 +90,26 @@ class OpaqueRustStructTests: XCTestCase {
         }
     }
 
+    func testOpaqueRustCopyTypeImplEquatable() throws {
+        XCTContext.runActivity(named: "Should be equal"){
+            _ in
+            let val1 = RustCopyEquatableType()
+            let val2 = RustCopyEquatableType()
+
+            XCTAssert(val1.eq(val2))   // Direct call to exposed method
+            XCTAssertEqual(val1, val2) // via Equatable
+        }
+
+        XCTContext.runActivity(named: "Should not be equal"){
+            _ in
+            let val1 = RustCopyEquatableType()
+            let val2 = RustCopyEquatableType(withFirstValue: 87)
+
+            XCTAssertFalse(val1.eq(val2)) // Direct call to exposed method
+            XCTAssertNotEqual(val1, val2) // via Equatable
+        }
+    }
+
     func testOpaqueRustTypeImplHashable() throws {
         XCTContext.runActivity(named: "Same hash value"){
             _ in
