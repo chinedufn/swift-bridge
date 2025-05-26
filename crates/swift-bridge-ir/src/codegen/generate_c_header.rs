@@ -323,7 +323,10 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                                 c_ffi_type = ty.ffi_repr_name_string(),
                             )
                         } else {
-                            format!("bool __swift_bridge__${}$_partial_eq(void* lhs, void* rhs);", ty_name)
+                            format!(
+                                "bool __swift_bridge__${}$_partial_eq(void* lhs, void* rhs);",
+                                ty_name
+                            )
                         };
                         bookkeeping.includes.insert("stdint.h");
                         bookkeeping.includes.insert("stdbool.h");

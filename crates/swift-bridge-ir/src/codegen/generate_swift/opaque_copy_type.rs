@@ -113,7 +113,8 @@ extension {ffi_repr_name}: SwiftBridgeGenericCopyTypeFfiRepr {{}}"#,
     };
 
     let ext_equatable = if ty.attributes.equatable {
-        format!(r#"
+        format!(
+            r#"
 extension {type_name}: Equatable {{
     public static func == (lhs: Self, rhs: Self) -> Bool {{
         var lhs = lhs
