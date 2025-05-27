@@ -13,7 +13,7 @@ mod ffi {
     extern "Rust" {
         async fn rust_async_return_null();
         async fn rust_async_reflect_u8(arg: u8) -> u8;
-        async fn rust_async_reflect_string(string: String) -> String;
+
         async fn rust_async_return_struct() -> AsyncRustFnReturnStruct;
         async fn rust_async_func_reflect_result_opaque_rust(
             arg: Result<AsyncResultOpaqueRustType1, AsyncResultOpaqueRustType2>,
@@ -21,6 +21,11 @@ mod ffi {
         async fn rust_async_func_return_result_null_opaque_rust(
             succeed: bool,
         ) -> Result<(), AsyncResultOpaqueRustType2>;
+
+        // TODO: this is broken because RustString is not Sendable.
+        // Work around making String and other opaque types Sendable is tracked
+        // here: https://github.com/chinedufn/swift-bridge/issues/150
+        // async fn rust_async_reflect_string(string: String) -> String;
     }
 
     extern "Rust" {
@@ -49,7 +54,7 @@ mod ffi {
 
     enum AsyncResultOkEnum {
         NoFields,
-        UnnamedFields(i32, String),
+        UnnamedFields(i32, u32),
         NamedFields { value: u8 },
     }
 
