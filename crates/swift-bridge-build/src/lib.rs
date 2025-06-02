@@ -30,10 +30,9 @@ pub fn parse_bridges(
                 // TODO: Return an error...
                 panic!(
                     r#"
-Error while parsing {:?}
-{}
-"#,
-                    rust_file, e
+Error while parsing {rust_file:?}
+{e}
+"#
                 )
             }
         };
@@ -69,20 +68,17 @@ impl GeneratedCode {
             concatenated_c += &gen.c_header;
         }
 
-        let out = swift_bridge_out_dir.join(&crate_name);
-        match std::fs::create_dir_all(&out) {
-            Ok(_) => {}
-            Err(_) => {}
-        };
+        let out = swift_bridge_out_dir.join(crate_name);
+        if std::fs::create_dir_all(&out).is_ok() {};
 
-        std::fs::write(out.join(format!("{}.h", crate_name)), concatenated_c).unwrap();
+        std::fs::write(out.join(format!("{crate_name}.h")), concatenated_c).unwrap();
         std::fs::write(
-            out.join(format!("{}.swift", crate_name)),
+            out.join(format!("{crate_name}.swift")),
             concatenated_swift,
         )
         .unwrap();
 
-        write_core_swift_and_c(swift_bridge_out_dir.as_ref());
+        write_core_swift_and_c(swift_bridge_out_dir);
     }
 
     /// Concatenate all of the generated Swift code into one file.
@@ -117,36 +113,33 @@ fn parse_file_contents(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule
     };
 
     for item in file.items {
-        match item {
-            Item::Mod(module) => {
-                // TODO: Move this check into the `impl Parse for SwiftBridgeModule`.. Modify our
-                //  tests in swift-bridge-ir to annotate modules with `#[swift_bridge::bridge]`
-                if module.attrs.iter().any(|a| {
-                    let attrib = a.path.to_token_stream().to_string();
-                    attrib == "swift_bridge :: bridge" || attrib == "swift_bridge_macro :: bridge"
-                }) {
-                    let module: SwiftBridgeModule = syn::parse2(module.to_token_stream())?;
+        if let Item::Mod(module) = item {
+            // TODO: Move this check into the `impl Parse for SwiftBridgeModule`.. Modify our
+            //  tests in swift-bridge-ir to annotate modules with `#[swift_bridge::bridge]`
+            if module.attrs.iter().any(|a| {
+                let attrib = a.path.to_token_stream().to_string();
+                attrib == "swift_bridge :: bridge" || attrib == "swift_bridge_macro :: bridge"
+            }) {
+                let module: SwiftBridgeModule = syn::parse2(module.to_token_stream())?;
 
-                    let config = CodegenConfig {
-                        crate_feature_lookup: Box::new(|feature_name| {
-                            let normalized_feature_name = feature_name.replace("-", "_");
-                            let normalized_feature_name = normalized_feature_name.to_uppercase();
+                let config = CodegenConfig {
+                    crate_feature_lookup: Box::new(|feature_name| {
+                        let normalized_feature_name = feature_name.replace("-", "_");
+                        let normalized_feature_name = normalized_feature_name.to_uppercase();
 
-                            let env_var_name = format!("CARGO_FEATURE_{}", normalized_feature_name);
-                            std::env::var(env_var_name).is_ok()
-                        }),
-                    };
-                    let swift_and_c = module.generate_swift_code_and_c_header(config);
+                        let env_var_name = format!("CARGO_FEATURE_{normalized_feature_name}");
+                        std::env::var(env_var_name).is_ok()
+                    }),
+                };
+                let swift_and_c = module.generate_swift_code_and_c_header(config);
 
-                    generated.c_header += &swift_and_c.c_header;
-                    generated.c_header += "\n\n";
+                generated.c_header += &swift_and_c.c_header;
+                generated.c_header += "\n\n";
 
-                    let swift = &swift_and_c.swift;
-                    generated.swift += &swift;
-                    generated.swift += "\n\n";
-                }
+                let swift = &swift_and_c.swift;
+                generated.swift += swift;
+                generated.swift += "\n\n";
             }
-            _ => {}
         }
     }
 

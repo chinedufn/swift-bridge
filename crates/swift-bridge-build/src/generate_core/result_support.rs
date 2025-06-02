@@ -1,4 +1,4 @@
-pub const SWIFT_RUST_RESULT: &'static str = r#"
+pub const SWIFT_RUST_RESULT: &str = r#"
 public enum RustResult<T, E> {
     case Ok(T)
     case Err(E)
@@ -35,6 +35,6 @@ extension RustResult {
 }
 "#;
 
-pub const C_RESULT_SUPPORT: &'static str = r#"
+pub const C_RESULT_SUPPORT: &str = r#"
 struct __private__ResultPtrAndPtr { bool is_ok; void* ok_or_err; };
 "#;

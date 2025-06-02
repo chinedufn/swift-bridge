@@ -18,12 +18,12 @@ pub(super) fn gen_func_swift_calls_rust(
         let maybe_args = if function.sig.inputs.is_empty() {
             "".to_string()
         } else {
-            format!(", {}", call_args)
+            format!(", {call_args}")
         };
 
-        format!("{}(wrapperPtr, onComplete{})", fn_name, maybe_args)
+        format!("{fn_name}(wrapperPtr, onComplete{maybe_args})")
     } else {
-        format!("{}({})", fn_name, call_args)
+        format!("{fn_name}({call_args})")
     };
 
     let maybe_type_name_segment = if let Some(ty) = function.associated_type.as_ref() {
@@ -33,7 +33,7 @@ pub(super) fn gen_func_swift_calls_rust(
                 todo!()
             }
             TypeDeclaration::Opaque(ty) => {
-                format!("${}", ty.to_string())
+                format!("${}", **ty)
             }
         }
     } else {
@@ -55,25 +55,21 @@ pub(super) fn gen_func_swift_calls_rust(
     let public_func_fn_name = if function.is_swift_initializer {
         if function.is_copy_method_on_opaque_type() {
             "public init".to_string()
+        } else if let Some(crate::parsed_extern_fn::FailableInitializerType::Throwing) =
+            function.swift_failable_initializer
+        {
+            "public convenience init".to_string()
+        } else if let Some(crate::parsed_extern_fn::FailableInitializerType::Option) =
+            function.swift_failable_initializer
+        {
+            "public convenience init?".to_string()
         } else {
-            if let Some(crate::parsed_extern_fn::FailableInitializerType::Throwing) =
-                function.swift_failable_initializer
-            {
-                "public convenience init".to_string()
-            } else if let Some(crate::parsed_extern_fn::FailableInitializerType::Option) =
-                function.swift_failable_initializer
-            {
-                "public convenience init?".to_string()
-            } else {
-                "public convenience init".to_string()
-            }
+            "public convenience init".to_string()
         }
+    } else if let Some(swift_name) = &function.swift_name_override {
+        format!("public func {}", swift_name.value())
     } else {
-        if let Some(swift_name) = &function.swift_name_override {
-            format!("public func {}", swift_name.value())
-        } else {
-            format!("public func {}", fn_name.as_str())
-        }
+        format!("public func {}", fn_name.as_str())
     };
 
     let maybe_throws =
@@ -89,10 +85,7 @@ pub(super) fn gen_func_swift_calls_rust(
     };
 
     let call_rust = format!(
-        "{prefix}{type_name_segment}${call_fn}",
-        prefix = SWIFT_BRIDGE_PREFIX,
-        type_name_segment = maybe_type_name_segment,
-        call_fn = call_fn
+        "{SWIFT_BRIDGE_PREFIX}{maybe_type_name_segment}${call_fn}"
     );
     let mut call_rust = if function.sig.asyncness.is_some() {
         call_rust
@@ -115,40 +108,37 @@ pub(super) fn gen_func_swift_calls_rust(
             types,
             swift_bridge_path,
         )
+    } else if function.host_lang.is_swift() {
+        call_rust
     } else {
-        if function.host_lang.is_swift() {
-            call_rust
-        } else {
-            match &function.sig.output {
-                ReturnType::Default => {
-                    // () is a built in type so this would have been handled in the previous block.
-                    unreachable!()
-                }
-                ReturnType::Type(_, ty) => {
-                    let ty_name = match ty.deref() {
-                        Type::Reference(reference) => reference.elem.to_token_stream().to_string(),
-                        Type::Path(path) => path.path.segments.to_token_stream().to_string(),
-                        _ => todo!(),
-                    };
+        match &function.sig.output {
+            ReturnType::Default => {
+                // () is a built in type so this would have been handled in the previous block.
+                unreachable!()
+            }
+            ReturnType::Type(_, ty) => {
+                let ty_name = match ty.deref() {
+                    Type::Reference(reference) => reference.elem.to_token_stream().to_string(),
+                    Type::Path(path) => path.path.segments.to_token_stream().to_string(),
+                    _ => todo!(),
+                };
 
-                    match types.get(&ty_name).unwrap() {
-                        TypeDeclaration::Shared(_) => call_rust,
-                        TypeDeclaration::Opaque(opaque) => {
-                            if opaque.host_lang.is_rust() {
-                                let (is_owned, ty) = match ty.deref() {
-                                    Type::Reference(reference) => ("false", &reference.elem),
-                                    _ => ("true", ty),
-                                };
+                match types.get(&ty_name).unwrap() {
+                    TypeDeclaration::Shared(_) => call_rust,
+                    TypeDeclaration::Opaque(opaque) => {
+                        if opaque.host_lang.is_rust() {
+                            let (is_owned, ty) = match ty.deref() {
+                                Type::Reference(reference) => ("false", &reference.elem),
+                                _ => ("true", ty),
+                            };
 
-                                let ty = ty.to_token_stream().to_string();
-                                format!("{}(ptr: {}, isOwned: {})", ty, call_rust, is_owned)
-                            } else {
-                                let ty = ty.to_token_stream().to_string();
-                                format!(
-                                    "Unmanaged<{}>.fromOpaque({}).takeRetainedValue()",
-                                    ty, call_rust
-                                )
-                            }
+                            let ty = ty.to_token_stream().to_string();
+                            format!("{ty}(ptr: {call_rust}, isOwned: {is_owned})")
+                        } else {
+                            let ty = ty.to_token_stream().to_string();
+                            format!(
+                                "Unmanaged<{ty}>.fromOpaque({call_rust}).takeRetainedValue()"
+                            )
                         }
                     }
                 }
@@ -178,24 +168,16 @@ pub(super) fn gen_func_swift_calls_rust(
         match bridged_arg {
             BridgedType::StdLib(StdLibType::Str) => {
                 call_rust = format!(
-                    r#"{maybe_return}{arg}.toRustStr({{ {arg}AsRustStr in
+                    r#"{maybe_return}{arg_name}.toRustStr({{ {arg_name}AsRustStr in
 {indentation}        {call_rust}
-{indentation}    }})"#,
-                    maybe_return = maybe_return,
-                    indentation = indentation,
-                    arg = arg_name,
-                    call_rust = call_rust
+{indentation}    }})"#
                 );
             }
             BridgedType::StdLib(StdLibType::Option(briged_opt)) if briged_opt.ty.is_str() => {
                 call_rust = format!(
-                    r#"{maybe_return}optionalRustStrToRustStr({arg}, {{ {arg}AsRustStr in
+                    r#"{maybe_return}optionalRustStrToRustStr({arg_name}, {{ {arg_name}AsRustStr in
 {indentation}        {call_rust}
-{indentation}    }})"#,
-                    maybe_return = maybe_return,
-                    indentation = indentation,
-                    arg = arg_name,
-                    call_rust = call_rust
+{indentation}    }})"#
                 );
             }
             _ => {}
@@ -204,16 +186,13 @@ pub(super) fn gen_func_swift_calls_rust(
 
     if function.is_swift_initializer {
         if function.is_copy_method_on_opaque_type() {
-            call_rust = format!("self.bytes = {}", call_rust)
-        } else {
-            if let Some(FailableInitializerType::Option) = function.swift_failable_initializer {
-                call_rust = format!(
-                    "guard let val = {} else {{ return nil }}; self.init(ptr: val)",
-                    call_rust
-                )
-            } else if function.swift_failable_initializer.is_none() {
-                call_rust = format!("self.init(ptr: {})", call_rust)
-            }
+            call_rust = format!("self.bytes = {call_rust}")
+        } else if let Some(FailableInitializerType::Option) = function.swift_failable_initializer {
+            call_rust = format!(
+                "guard let val = {call_rust} else {{ return nil }}; self.init(ptr: val)"
+            )
+        } else if function.swift_failable_initializer.is_none() {
+            call_rust = format!("self.init(ptr: {call_rust})")
         }
     }
 
@@ -244,7 +223,7 @@ pub(super) fn gen_func_swift_calls_rust(
                 )
             )
         };
-        let callback_wrapper_ty = format!("CbWrapper{}${}", maybe_type_name_segment, fn_name);
+        let callback_wrapper_ty = format!("CbWrapper{maybe_type_name_segment}${fn_name}");
         let (run_wrapper_cb, error, maybe_try, with_checked_continuation_function_name) =
             if let Some(result) = func_ret_ty.as_result() {
                 let run_wrapper_cb = result.generate_swift_calls_async_rust_callback(
@@ -278,20 +257,18 @@ pub(super) fn gen_func_swift_calls_rust(
                 )
             };
         let callback_wrapper = format!(
-            r#"{indentation}class {cb_wrapper_ty} {{
+            r#"{indentation}class {callback_wrapper_ty} {{
 {indentation}    var cb: (Result<{rust_fn_ret_ty}, {error}>) -> ()
 {indentation}
 {indentation}    public init(cb: @escaping (Result<{rust_fn_ret_ty}, {error}>) -> ()) {{
 {indentation}        self.cb = cb
 {indentation}    }}
-{indentation}}}"#,
-            indentation = indentation,
-            cb_wrapper_ty = callback_wrapper_ty
+{indentation}}}"#
         );
 
         let fn_body = format!(
             r#"func onComplete(cbWrapperPtr: UnsafeMutableRawPointer?{maybe_on_complete_sig_ret_val}) {{
-    let wrapper = Unmanaged<{cb_wrapper_ty}>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
+    let wrapper = Unmanaged<{callback_wrapper_ty}>.fromOpaque(cbWrapperPtr!).takeRetainedValue()
     {run_wrapper_cb}
 }}
 
@@ -300,22 +277,17 @@ return{maybe_try}await {with_checked_continuation_function_name}({{ (continuatio
         continuation.resume(with: rustFnRetVal)
     }}
 
-    let wrapper = {cb_wrapper_ty}(cb: callback)
+    let wrapper = {callback_wrapper_ty}(cb: callback)
     let wrapperPtr = Unmanaged.passRetained(wrapper).toOpaque()
 
     {call_rust}
 }})"#,
-            rust_fn_ret_ty = rust_fn_ret_ty,
-            error = error,
-            maybe_on_complete_sig_ret_val = maybe_on_complete_sig_ret_val,
-            cb_wrapper_ty = callback_wrapper_ty,
-            call_rust = call_rust,
         );
 
         let mut fn_body_indented = "".to_string();
         for line in fn_body.lines() {
-            if line.len() > 0 {
-                fn_body_indented += &format!("{}    {}\n", indentation, line);
+            if !line.is_empty() {
+                fn_body_indented += &format!("{indentation}    {line}\n");
             } else {
                 fn_body_indented += "\n"
             }
@@ -323,32 +295,16 @@ return{maybe_try}await {with_checked_continuation_function_name}({{ (continuatio
         let fn_body_indented = fn_body_indented.trim_end();
 
         format!(
-            r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}) async{maybe_ret} {{
+            r#"{indentation}{maybe_static_class_func}{public_func_fn_name}{maybe_generics}({params}) async{maybe_return} {{
 {fn_body_indented}
 {indentation}}}
-{callback_wrapper}"#,
-            indentation = indentation,
-            maybe_static_class_func = maybe_static_class_func,
-            swift_class_func_name = public_func_fn_name,
-            maybe_generics = maybe_generics,
-            params = params,
-            maybe_ret = maybe_return,
-            fn_body_indented = fn_body_indented,
-            callback_wrapper = callback_wrapper
+{callback_wrapper}"#
         )
     } else {
         format!(
-            r#"{indentation}{maybe_static_class_func}{swift_class_func_name}{maybe_generics}({params}){maybe_throws}{maybe_ret} {{
+            r#"{indentation}{maybe_static_class_func}{public_func_fn_name}{maybe_generics}({params}){maybe_throws}{maybe_return} {{
 {indentation}    {call_rust}
 {indentation}}}"#,
-            indentation = indentation,
-            maybe_static_class_func = maybe_static_class_func,
-            swift_class_func_name = public_func_fn_name,
-            maybe_generics = maybe_generics,
-            params = params,
-            maybe_ret = maybe_return,
-            call_rust = call_rust,
-            maybe_throws = maybe_throws,
         )
     };
 

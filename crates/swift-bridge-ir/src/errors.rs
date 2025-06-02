@@ -21,7 +21,7 @@ impl ParseErrors {
     }
 
     pub fn combine_all(mut self) -> Result<(), syn::Error> {
-        if self.errors.len() == 0 {
+        if self.errors.is_empty() {
             return Ok(());
         }
 
@@ -29,7 +29,7 @@ impl ParseErrors {
 
         let mut combined_errors: syn::Error = errors.next().unwrap().into();
 
-        while let Some(next) = errors.next() {
+        for next in errors {
             combined_errors.combine(next.into());
         }
 

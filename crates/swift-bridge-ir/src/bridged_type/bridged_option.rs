@@ -238,15 +238,12 @@ impl BridgedOption {
                 }
                 StdLibType::Str => {
                     format!(
-                            "{{ let val = {val}; if val.start != nil {{ return val; }} else {{ return nil; }} }}()",
-                            val = expression,
+                            "{{ let val = {expression}; if val.start != nil {{ return val; }} else {{ return nil; }} }}()",
                         )
                 }
                 StdLibType::Vec(_) => {
                     format!(
                         "{{ let val = {expression}; if val != nil {{ return RustVec(ptr: val!) }} else {{ return nil }} }}()"
-                    ,
-                    expression = expression
                     )
                 }
                 StdLibType::Option(_) => {
@@ -261,10 +258,10 @@ impl BridgedOption {
                 StdLibType::Tuple(_) => todo!(),
             },
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(_shared_struct))) => {
-                format!("{expression}.intoSwiftRepr()", expression = expression)
+                format!("{expression}.intoSwiftRepr()")
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(_shared_enum))) => {
-                format!("{expression}.intoSwiftRepr()", expression = expression)
+                format!("{expression}.intoSwiftRepr()")
             }
         }
     }
@@ -306,14 +303,14 @@ impl BridgedOption {
                 StdLibType::Str => match type_pos {
                     TypePosition::FnArg(host_lang, _) => {
                         if host_lang.is_rust() {
-                            format!("{expression}AsRustStr", expression = expression)
+                            format!("{expression}AsRustStr")
                         } else {
                             todo!()
                         }
                     }
                     TypePosition::FnReturn(host_lang) => {
                         if host_lang.is_rust() {
-                            format!("{expression}AsRustStr", expression = expression)
+                            format!("{expression}AsRustStr")
                         } else {
                             todo!()
                         }
@@ -329,7 +326,6 @@ impl BridgedOption {
                 StdLibType::Vec(_) => {
                     format!(
                         "{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()"
-                    , expression = expression
                     )
                 }
                 StdLibType::Option(_) => {
@@ -346,17 +342,13 @@ impl BridgedOption {
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
                 let ffi_name = shared_struct.ffi_option_name_string();
                 format!(
-                    "{ffi_name}.fromSwiftRepr({expression})",
-                    ffi_name = ffi_name,
-                    expression = expression
+                    "{ffi_name}.fromSwiftRepr({expression})"
                 )
             }
             BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
                 let ffi_name = shared_enum.ffi_option_name_string();
                 format!(
-                    "{ffi_name}.fromSwiftRepr({expression})",
-                    ffi_name = ffi_name,
-                    expression = expression
+                    "{ffi_name}.fromSwiftRepr({expression})"
                 )
             }
         }
@@ -371,7 +363,7 @@ impl BridgedOption {
         match type_pos {
             TypePosition::FnArg(func_host_lang, _) => {
                 if func_host_lang.is_swift() {
-                    self.to_ffi_compatible_swift_type(type_pos, swift_bridge_path, &types)
+                    self.to_ffi_compatible_swift_type(type_pos, swift_bridge_path, types)
                 } else {
                     format!(
                         "Optional<{}>",
@@ -381,7 +373,7 @@ impl BridgedOption {
             }
             TypePosition::FnReturn(func_host_lang) => {
                 if func_host_lang.is_swift() {
-                    self.to_ffi_compatible_swift_type(type_pos, swift_bridge_path, &types)
+                    self.to_ffi_compatible_swift_type(type_pos, swift_bridge_path, types)
                 } else {
                     format!(
                         "Optional<{}>",

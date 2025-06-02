@@ -42,7 +42,7 @@ impl Parse for ArgumentAttr {
                 let attrib = key.to_string();
                 Err(syn::Error::new_spanned(
                     key,
-                    format!(r#"Unrecognized attribute "{}"."#, attrib,),
+                    format!(r#"Unrecognized attribute "{attrib}"."#,),
                 ))?
             }
         };

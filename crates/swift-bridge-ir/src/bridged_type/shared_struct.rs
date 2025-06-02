@@ -22,7 +22,7 @@ impl UnnamedStructFields {
         let unnamed_fields = types
             .into_iter()
             .enumerate()
-            .map(|(idx, ty)| UnnamedStructField { ty: ty, idx: idx })
+            .map(|(idx, ty)| UnnamedStructField { ty, idx })
             .collect();
         Self(unnamed_fields)
     }
@@ -62,8 +62,7 @@ impl UnnamedStructFields {
         let names: Vec<String> = self
             .0
             .iter()
-            .enumerate()
-            .map(|(_idx, field)| {
+            .map(|field| {
                 BridgedType::new_with_type(&field.ty, types)
                     .unwrap()
                     .to_swift_type(type_pos, types, swift_bridge_path)
@@ -71,8 +70,8 @@ impl UnnamedStructFields {
             .collect();
         let names = names.join(", ");
         let names = "(".to_string() + &names;
-        let names = names + ")";
-        return names;
+        
+        names + ")"
     }
 
     /// Example
@@ -119,7 +118,7 @@ impl UnnamedStructFields {
                 let field = BridgedType::new_with_type(&field.ty, types)
                     .unwrap()
                     .to_c(types);
-                return format!("{} _{}", field, idx);
+                format!("{field} _{idx}")
             })
             .collect()
     }
@@ -200,7 +199,7 @@ impl UnnamedStructFields {
         self.0
             .iter()
             .map(|field| {
-                return BridgedType::new_with_type(&field.ty, types).unwrap();
+                BridgedType::new_with_type(&field.ty, types).unwrap()
             })
             .any(|ty| ty.contains_owned_string_recursive(types))
     }
@@ -223,7 +222,7 @@ impl UnnamedStructFields {
                 }
             }
         }
-        if includes.len() > 0 {
+        if !includes.is_empty() {
             Some(includes)
         } else {
             None
@@ -238,14 +237,13 @@ impl UnnamedStructFields {
         let names: String = self
             .0
             .iter()
-            .enumerate()
-            .map(|(_idx, field)| {
+            .map(|field| {
                 BridgedType::new_with_type(&field.ty, types)
                     .unwrap()
                     .to_alpha_numeric_underscore_name(types)
             })
             .fold("".to_string(), |sum, s| sum + &s);
-        return names;
+        names
     }
 }
 
@@ -276,7 +274,7 @@ impl SharedStruct {
     pub(crate) fn ffi_name_string(&self) -> String {
         let name = self.swift_name_string();
 
-        format!("{}${}", SWIFT_BRIDGE_PREFIX, name)
+        format!("{SWIFT_BRIDGE_PREFIX}${name}")
     }
 
     pub(crate) fn ffi_name_tokens(&self) -> TokenStream {
@@ -302,7 +300,7 @@ impl SharedStruct {
     /// __swift_bridge__$Option$SomeStruct
     pub fn ffi_option_name_string(&self) -> String {
         let name = self.swift_name_string();
-        format!("{}$Option${}", SWIFT_BRIDGE_PREFIX, name,)
+        format!("{SWIFT_BRIDGE_PREFIX}$Option${name}",)
     }
 
     /// Some if the struct has a single variant.
@@ -318,7 +316,7 @@ impl SharedStruct {
         let empty_fields = self.fields.empty_field_wrapper();
         let name = self.swift_name_string();
         Some(OnlyEncoding {
-            swift: format!("{}()", name),
+            swift: format!("{name}()"),
             rust: quote! {#struct_name #empty_fields},
         })
     }
@@ -441,15 +439,13 @@ impl SharedStruct {
                 let field_name = norm_field.ffi_field_name();
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
                 let access_field = ty.convert_swift_expression_to_ffi_type(
-                    &format!("val.{field_name}", field_name = field_name),
+                    &format!("val.{field_name}"),
                     types,
                     TypePosition::SharedStructField,
                 );
 
                 format!(
-                    "{field_name}: {access_field}",
-                    field_name = field_name,
-                    access_field = access_field
+                    "{field_name}: {access_field}"
                 )
             })
             .collect();
@@ -485,16 +481,14 @@ impl SharedStruct {
 
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
                 let access_field = ty.convert_ffi_value_to_swift_value(
-                    &format!("val.{field_name}", field_name = field_name),
+                    &format!("val.{field_name}"),
                     TypePosition::SharedStructField,
                     types,
                     swift_bridge_path,
                 );
 
                 format!(
-                    "{field_name}: {access_field}",
-                    field_name = field_name,
-                    access_field = access_field
+                    "{field_name}: {access_field}"
                 )
             })
             .collect();
@@ -535,17 +529,17 @@ impl SharedStruct {
         let ty_name = &self.name;
 
         let prefixed_ty_name = Ident::new(
-            &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
+            &format!("{SWIFT_BRIDGE_PREFIX}{ty_name}"),
             ty_name.span(),
         );
 
-        let prefixed_ty_name = if self.already_declared {
+        
+
+        if self.already_declared {
             quote! { <super:: #ty_name as #swift_bridge_path::SharedStruct>::FfiRepr }
         } else {
             quote! { #prefixed_ty_name }
-        };
-
-        prefixed_ty_name
+        }
     }
 
     pub fn convert_ffi_expression_to_rust_type(
@@ -571,19 +565,19 @@ impl SharedStruct {
         if let Some(only) = self.only_encoding() {
             return format!("{{ let _ = {}; return {} }}()", expression, only.swift);
         }
-        format!("{}.intoSwiftRepr()", expression)
+        format!("{expression}.intoSwiftRepr()")
     }
     pub fn convert_swift_expression_to_ffi_type(&self, expression: &str) -> String {
         if let Some(_only) = self.only_encoding() {
-            return format!("{{ let _ = {}; }}()", expression);
+            return format!("{{ let _ = {expression}; }}()");
         }
-        format!("{}.intoFfiRepr()", expression)
+        format!("{expression}.intoFfiRepr()")
     }
 }
 
 impl PartialEq for SharedStruct {
     fn eq(&self, other: &Self) -> bool {
-        self.name.to_string() == other.name.to_string()
+        other.name == self.name
             && self.swift_repr == other.swift_repr
             && self.fields == other.fields
             && self.swift_name.as_ref().map(|l| l.value())

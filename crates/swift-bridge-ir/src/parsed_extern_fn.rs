@@ -244,7 +244,7 @@ impl ParsedExternFn {
 
                 args_into
                     .iter()
-                    .any(|arg_name| &arg_name.to_string() == &arg_string)
+                    .any(|arg_name| *arg_name == arg_string)
             }
         }
     }
@@ -358,13 +358,13 @@ impl ParsedExternFn {
                         let ty = built_in.to_c(types);
 
                         let arg_name = pat.to_token_stream().to_string();
-                        params.push(format!("{} {}", ty, arg_name));
+                        params.push(format!("{ty} {arg_name}"));
                     }
                 }
             };
         }
 
-        if params.len() == 0 {
+        if params.is_empty() {
             "void".to_string()
         } else {
             params.join(", ")
@@ -375,7 +375,7 @@ impl ParsedExternFn {
         match &self.func.sig.output {
             ReturnType::Default => "void".to_string(),
             ReturnType::Type(_, ty) => {
-                if let Some(ty) = BridgedType::new_with_type(&ty, types) {
+                if let Some(ty) = BridgedType::new_with_type(ty, types) {
                     if ty.can_be_encoded_with_zero_bytes() {
                         return "void".to_string();
                     }
@@ -413,7 +413,7 @@ impl ParsedExternFn {
         let mut includes = vec![];
 
         if let ReturnType::Type(_, ty) = &self.func.sig.output {
-            if let Some(ty) = BridgedType::new_with_type(&ty, types) {
+            if let Some(ty) = BridgedType::new_with_type(ty, types) {
                 if let Some(include) = ty.to_c_include(types) {
                     includes.push(include);
                 }
@@ -430,7 +430,7 @@ impl ParsedExternFn {
             }
         }
 
-        if includes.len() > 0 {
+        if !includes.is_empty() {
             Some(includes.into_iter().flatten().collect())
         } else {
             None
@@ -470,7 +470,7 @@ impl ParsedExternFn {
                         todo!()
                     }
                     TypeDeclaration::Opaque(h) => {
-                        format!("${}", h.to_string())
+                        format!("${}", **h)
                     }
                 }
             })
@@ -479,7 +479,7 @@ impl ParsedExternFn {
             "{}{}${}",
             SWIFT_BRIDGE_PREFIX,
             host_type,
-            self.func.sig.ident.to_string()
+            self.func.sig.ident
         )
     }
 
@@ -532,7 +532,7 @@ void {free_boxed_fn_link_name}(void* {boxed_fn_arg_name});"#
                         todo!()
                     }
                     TypeDeclaration::Opaque(h) => {
-                        format!("{}_", h.to_token_stream().to_string())
+                        format!("{}_", h.to_token_stream())
                     }
                 }
             })
@@ -540,10 +540,7 @@ void {free_boxed_fn_link_name}(void* {boxed_fn_arg_name});"#
         let fn_name = &self.func.sig.ident;
         let prefixed_fn_name = Ident::new(
             &format!(
-                "{}{}{}",
-                SWIFT_BRIDGE_PREFIX,
-                host_type_prefix,
-                fn_name.to_string()
+                "{SWIFT_BRIDGE_PREFIX}{host_type_prefix}{fn_name}"
             ),
             fn_name.span(),
         );

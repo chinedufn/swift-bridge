@@ -65,12 +65,9 @@ impl Parse for SwiftBridgeModuleAndErrors {
             let mut cfg_attrs = vec![];
 
             for attr in item_mod.attrs {
-                match attr.path.to_token_stream().to_string().as_str() {
-                    "cfg" => {
-                        let cfg: CfgAttr = syn::parse2(attr.tokens)?;
-                        cfg_attrs.push(cfg);
-                    }
-                    _ => {}
+                if attr.path.to_token_stream().to_string().as_str() == "cfg" {
+                    let cfg: CfgAttr = syn::parse2(attr.tokens)?;
+                    cfg_attrs.push(cfg);
                 };
             }
 
@@ -134,10 +131,10 @@ impl Parse for SwiftBridgeModuleAndErrors {
             };
             Ok(SwiftBridgeModuleAndErrors { module, errors })
         } else {
-            return Err(syn::Error::new_spanned(
+            Err(syn::Error::new_spanned(
                 input.to_string(),
                 "Only modules are supported.",
-            ));
+            ))
         }
     }
 }
@@ -181,10 +178,8 @@ mod tests {
 
         assert_eq!(module.cfg_attrs.len(), 1);
 
-        match &module.cfg_attrs[0] {
-            CfgAttr::Feature(feature) => {
-                assert_eq!(feature.value(), "some-feature")
-            }
+        if let CfgAttr::Feature(feature) = &module.cfg_attrs[0] {
+            assert_eq!(feature.value(), "some-feature")
         };
     }
 

@@ -1,4 +1,4 @@
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenStream};
 use syn::parse::{Parse, ParseStream};
 use syn::LitStr;
 use syn::Token;
@@ -15,22 +15,25 @@ use syn::Token;
 pub enum CfgAttr {
     /// #\[cfg(feature = "...")\]
     Feature(LitStr),
+    /// Any cfg attribute, storing the full token stream inside the parentheses.
+    #[allow(dead_code)]
+    Generic(TokenStream),
 }
 
 impl Parse for CfgAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
         syn::parenthesized!(content in input);
-        let ident: Ident = content.parse()?;
-
-        if &ident == "feature" {
-            content.parse::<Token![=]>()?;
-
-            let feature_name = content.parse::<LitStr>()?;
-
-            Ok(CfgAttr::Feature(feature_name))
-        } else {
-            todo!("Return an unsupported cfg kind error")
+        let fork = content.fork();
+        if let Ok(ident) = fork.parse::<Ident>() {
+            if ident == "feature" {
+                content.parse::<Ident>()?; // consume 'feature'
+                content.parse::<Token![=]>()?;
+                let value = content.parse::<LitStr>()?;
+                return Ok(CfgAttr::Feature(value));
+            }
         }
+        // Fallback: store the full content as a token stream
+        Ok(CfgAttr::Generic(content.parse()?))
     }
 }

@@ -149,7 +149,7 @@ impl<'a> SharedStructDeclarationParser<'a> {
             }
         }
 
-        let swift_repr = if item_struct.fields.len() == 0 {
+        let swift_repr = if item_struct.fields.is_empty() {
             if let Some((swift_repr, lit_str)) = attribs.swift_repr {
                 if swift_repr == StructSwiftRepr::Class {
                     self.errors.push(ParseError::EmptyStructHasSwiftReprClass {
@@ -360,13 +360,13 @@ mod tests {
 
         let ty = module.types.types()[0].unwrap_shared_struct();
 
-        assert_eq!(ty.derives.copy, true);
-        assert_eq!(ty.derives.clone, true);
+        assert!(ty.derives.copy);
+        assert!(ty.derives.clone);
 
         let ty2 = module.types.types()[1].unwrap_shared_struct();
 
-        assert_eq!(ty2.derives.copy, false);
-        assert_eq!(ty2.derives.clone, true);
+        assert!(!ty2.derives.copy);
+        assert!(ty2.derives.clone);
     }
 
     /// Verify that we properly parse multiple comma separated struct attributes.
@@ -408,8 +408,8 @@ mod tests {
         let ty = module.types.types()[0].unwrap_shared_struct();
         assert_eq!(ty.swift_name.as_ref().unwrap().value(), "FfiFoo");
         assert_eq!(ty.swift_repr, StructSwiftRepr::Class);
-        assert_eq!(ty.derives.copy, true);
-        assert_eq!(ty.derives.clone, true);
+        assert!(ty.derives.copy);
+        assert!(ty.derives.clone);
     }
 
     /// Verify that we can parse an `already_defined = "struct"` attribute.

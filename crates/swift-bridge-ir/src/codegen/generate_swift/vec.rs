@@ -119,7 +119,7 @@ extension ARustType: Vectorizable {
 
         assert_trimmed_generated_equals_trimmed_expected(
             &generate_vectorizable_extension(&Ident::new("ARustType", Span::call_site())),
-            &expected,
+            expected,
         );
     }
 }

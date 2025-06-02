@@ -45,10 +45,10 @@ impl NormalizedStructField {
     pub fn struct_field_setter_string(&self, value: String) -> String {
         match &self.accessor {
             NormalizedStructFieldAccessor::Named(name) => {
-                format!("{}: {}", name.to_string(), value)
+                format!("{name}: {value}")
             }
             NormalizedStructFieldAccessor::Unnamed(_) => {
-                format!("{}", value)
+                value.to_string()
             }
         }
     }
@@ -60,10 +60,10 @@ impl NormalizedStructField {
     pub fn struct_ffi_field_setter_string(&self, value: String) -> String {
         match &self.accessor {
             NormalizedStructFieldAccessor::Named(name) => {
-                format!("{}: {}", name.to_string(), value)
+                format!("{name}: {value}")
             }
             NormalizedStructFieldAccessor::Unnamed(idx) => {
-                format!("_{}: {}", idx, value)
+                format!("_{idx}: {value}")
             }
         }
     }
@@ -90,7 +90,7 @@ impl NormalizedStructField {
         match &self.accessor {
             NormalizedStructFieldAccessor::Named(name) => name.to_string(),
             NormalizedStructFieldAccessor::Unnamed(idx) => {
-                format!("_{}", idx)
+                format!("_{idx}")
             }
         }
     }

@@ -246,22 +246,14 @@ impl BuiltInResult {
             return match type_pos {
                 TypePosition::FnArg(_, _) => todo!(),
                 TypePosition::FnReturn(_) => format!(
-                        "try {{ let val = {expression}; switch val.tag {{ case {c_ok_name}: return{ok_swift_type} case {c_err_name}: throw {err_swift_type} default: fatalError() }} }}()",
-                    expression = expression,
-                    c_ok_name = c_ok_name,
-                    c_err_name = c_err_name,
-                    ok_swift_type = ok_swift_type,
-                    err_swift_type = err_swift_type
+                        "try {{ let val = {expression}; switch val.tag {{ case {c_ok_name}: return{ok_swift_type} case {c_err_name}: throw {err_swift_type} default: fatalError() }} }}()"
                 ),
                 TypePosition::SharedStructField => todo!(),
                 TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
                 TypePosition::ThrowingInit(lang) => {
                     match lang {
                         HostLang::Rust => format!(
-                            "let val = {expression}; if val.tag == {c_ok_name} {{ self.init(ptr: val.payload.ok) }} else {{ throw {err_swift_type} }}",
-                        expression = expression,
-                        c_ok_name = c_ok_name,
-                        err_swift_type = err_swift_type
+                            "let val = {expression}; if val.tag == {c_ok_name} {{ self.init(ptr: val.payload.ok) }} else {{ throw {err_swift_type} }}"
                     ),
                         HostLang::Swift => todo!(),
                     }
@@ -296,7 +288,7 @@ impl BuiltInResult {
                 types,
                 swift_bridge_path,
             );
-            return format!("try {{ let val = {expression}; if val != nil {{ throw {err} }} else {{ return{ok} }} }}()", expression = expression, err = err, ok = ok);
+            return format!("try {{ let val = {expression}; if val != nil {{ throw {err} }} else {{ return{ok} }} }}()");
         }
 
         let ok = self.ok_ty.convert_ffi_expression_to_swift_type(
@@ -313,9 +305,7 @@ impl BuiltInResult {
         );
 
         format!(
-            "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()",
-            expression = expression,
-            err = err
+            "try {{ let val = {expression}; if val.is_ok {{ return {ok} }} else {{ throw {err} }} }}()"
         )
     }
 
@@ -334,13 +324,11 @@ impl BuiltInResult {
 
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
             format!(
-                "{{ switch {val} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()",
-                val = expression
+                "{{ switch {expression} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()"
             )
         } else {
             format!(
-                "{{ switch {val} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()",
-                val = expression
+                "{{ switch {expression} {{ case .Ok(let ok): return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {convert_ok}) case .Err(let err): return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {convert_err}) }} }}()"
             )
         }
     }
@@ -357,9 +345,9 @@ impl BuiltInResult {
         //  types are primitives.
         //  See `swift-bridge/src/std_bridge/result`
         if self.ok_ty.can_be_encoded_with_zero_bytes() {
-            format!("{}", self.err_ty.to_c_type(types))
+            self.err_ty.to_c_type(types).to_string()
         } else {
-            format!("struct __private__ResultPtrAndPtr")
+            "struct __private__ResultPtrAndPtr".to_string()
         }
     }
 
@@ -415,7 +403,7 @@ impl BuiltInResult {
                 custom_rust_ffi_types.push(custom_rust_ffi_type);
             }
         }
-        return Some(custom_rust_ffi_types);
+        Some(custom_rust_ffi_types)
     }
 
     pub fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<CFfiStruct> {
@@ -432,7 +420,7 @@ impl BuiltInResult {
         );
         let c_enum_name = c_type.clone();
         let c_tag_name = format!("{}$Tag", c_type.clone());
-        let c_fields_name = format!("{}$Fields", c_type);
+        let c_fields_name = format!("{c_type}$Fields");
 
         let ok_c_field_name = if self.ok_ty.can_be_encoded_with_zero_bytes() {
             "".to_string()
@@ -446,13 +434,6 @@ impl BuiltInResult {
             "typedef enum {c_tag_name} {{{ok_c_tag_name}, {err_c_tag_name}}} {c_tag_name};
 union {c_fields_name} {{{ok_c_field_name}{err_c_field_name} err;}};
 typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}} {c_enum_name};",
-            c_enum_name = c_enum_name,
-            c_tag_name = c_tag_name,
-            c_fields_name = c_fields_name,
-            ok_c_field_name = ok_c_field_name,
-            err_c_field_name = err_c_field_name,
-            ok_c_tag_name = ok_c_tag_name,
-            err_c_tag_name = err_c_tag_name,
         );
         let mut custom_c_ffi_type = CFfiStruct {
             c_ffi_type,
@@ -464,7 +445,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         if let Some(err_custom_c_ffi_type) = self.err_ty.generate_custom_c_ffi_types(types) {
             custom_c_ffi_type.fields.push(err_custom_c_ffi_type);
         }
-        return Some(custom_c_ffi_type);
+        Some(custom_c_ffi_type)
     }
 
     fn is_custom_result_type(&self) -> bool {
@@ -480,7 +461,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
             return false;
         }
 
-        return true;
+        true
     }
 
     pub fn generate_swift_calls_async_rust_callback(

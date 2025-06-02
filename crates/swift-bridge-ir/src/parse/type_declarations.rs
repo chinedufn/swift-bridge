@@ -104,7 +104,7 @@ impl OpaqueForeignTypeDeclaration {
         format!(
             "{}${}{}$_free",
             SWIFT_BRIDGE_PREFIX,
-            self.to_string(),
+            **self,
             self.generics.dollar_prefixed_generics_string(),
         )
     }
@@ -118,7 +118,7 @@ impl OpaqueForeignTypeDeclaration {
             &format!(
                 "{}{}{}__free",
                 SWIFT_BRIDGE_PREFIX,
-                self.ty.to_string(),
+                self.ty,
                 self.generics.underscore_prefixed_generics_string(),
             ),
             self.ty.span(),
@@ -194,12 +194,12 @@ impl Deref for OpaqueForeignTypeDeclaration {
 impl OpaqueForeignTypeDeclaration {
     // "__swift_bridge__$TypeName$_free"
     pub fn free_swift_class_link_name(&self) -> String {
-        format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, self.ty.to_string())
+        format!("{}${}$_free", SWIFT_BRIDGE_PREFIX, self.ty)
     }
 
     // "__swift_bridge__TypeName__free"
     pub fn free_swift_class_func_name(&self) -> String {
-        format!("{}{}__free", SWIFT_BRIDGE_PREFIX, self.ty.to_string())
+        format!("{}{}__free", SWIFT_BRIDGE_PREFIX, self.ty)
     }
 
     pub fn ty_name_ident(&self) -> &Ident {

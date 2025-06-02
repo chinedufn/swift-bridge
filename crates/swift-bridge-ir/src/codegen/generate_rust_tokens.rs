@@ -106,9 +106,9 @@ impl ToTokens for SwiftBridgeModule {
                     match ty.host_lang {
                         HostLang::Rust => {
                             if ty.attributes.hashable {
-                                let export_name = format!("__swift_bridge__${}$_hash", ty_name);
+                                let export_name = format!("__swift_bridge__${ty_name}$_hash");
                                 let function_name = syn::Ident::new(
-                                    &format!("__swift_bridge__{}__hash", ty_name),
+                                    &format!("__swift_bridge__{ty_name}__hash"),
                                     ty.ty.span(),
                                 );
                                 let tokens = quote! {
@@ -127,9 +127,9 @@ impl ToTokens for SwiftBridgeModule {
                             }
                             if ty.attributes.equatable {
                                 let export_name =
-                                    format!("__swift_bridge__${}$_partial_eq", ty_name);
+                                    format!("__swift_bridge__${ty_name}$_partial_eq");
                                 let function_name = syn::Ident::new(
-                                    &format!("__swift_bridge__{}__partial_eq", ty_name),
+                                    &format!("__swift_bridge__{ty_name}__partial_eq"),
                                     ty.ty.span(),
                                 );
                                 let tokens = quote! {
@@ -195,8 +195,8 @@ impl ToTokens for SwiftBridgeModule {
                                 extern_rust_fn_tokens.push(copy_ty);
                             }
 
-                            if !ty.attributes.already_declared {
-                                if ty.attributes.copy.is_none() {
+                            if !ty.attributes.already_declared
+                                && ty.attributes.copy.is_none() {
                                     let generics = ty
                                         .generics
                                         .angle_bracketed_concrete_generics_tokens(&self.types);
@@ -214,7 +214,7 @@ impl ToTokens for SwiftBridgeModule {
                                     // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
                                     //  make them pass.
                                     // TODO: Support Vec<GenericOpaqueRustType
-                                    if ty.generics.len() == 0 {
+                                    if ty.generics.is_empty() {
                                         let vec_functions =
                                             generate_vec_of_opaque_rust_type_functions(ty_name);
                                         extern_rust_fn_tokens.push(vec_functions);
@@ -233,13 +233,12 @@ impl ToTokens for SwiftBridgeModule {
                                             .push(generate_extern_rust_type_send_sync_check(ty));
                                     }
                                 }
-                            }
                         }
                         HostLang::Swift => {
                             let ty_name = &ty.ty;
 
                             let impls = match impl_fn_tokens.get(&ty_name.to_string()) {
-                                Some(impls) if impls.len() > 0 => {
+                                Some(impls) if !impls.is_empty() => {
                                     quote! {
                                         impl #ty_name {
                                             #(#impls)*
@@ -287,7 +286,7 @@ impl ToTokens for SwiftBridgeModule {
             }
         }
 
-        let extern_swift_fn_tokens = if extern_swift_fn_tokens.len() > 0 {
+        let extern_swift_fn_tokens = if !extern_swift_fn_tokens.is_empty() {
             generate_extern_c_block(extern_swift_fn_tokens)
         } else {
             quote! {}
@@ -296,14 +295,11 @@ impl ToTokens for SwiftBridgeModule {
         let mut module_attributes = vec![];
 
         for cfg in &self.cfg_attrs {
-            match cfg {
-                CfgAttr::Feature(feature_name) => {
-                    //
-                    module_attributes.push(quote! {
-                        #[cfg(feature = #feature_name)]
-                    });
-                }
-            };
+            if let CfgAttr::Feature(feature_name) = cfg {
+                module_attributes.push(quote! {
+                    #[cfg(feature = #feature_name)]
+                });
+            }
         }
         let custom_type_definitions = custom_type_definitions.into_values();
         let module_inner = quote! {
@@ -1096,7 +1092,7 @@ mod tests {
                 &module.types,
                 &mut HashMap::new(),
             ),
-            &expected_fn,
+            expected_fn,
         );
     }
 

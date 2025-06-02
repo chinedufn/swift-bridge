@@ -2,7 +2,7 @@
 ///
 /// Support types for callbacks that have arguments or return a value are generated dynamically
 /// when generating code for bridged functions.
-pub const SWIFT_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN: &'static str = r#"
+pub const SWIFT_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN: &str = r#"
 public class __private__RustFnOnceCallbackNoArgsNoRet {
     var ptr: UnsafeMutableRawPointer
     var called = false
@@ -27,7 +27,7 @@ public class __private__RustFnOnceCallbackNoArgsNoRet {
 }
 "#;
 
-pub const C_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN: &'static str = r#"
+pub const C_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN: &str = r#"
 void __swift_bridge__$call_boxed_fn_once_no_args_no_return(void* boxed_fnonce);
 void __swift_bridge__$free_boxed_fn_once_no_args_no_return(void* boxed_fnonce);
 "#;

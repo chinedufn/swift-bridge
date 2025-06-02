@@ -5,7 +5,7 @@ fn main() {
 
     let bridges = vec!["src/bridge/bank.rs", "src/bridge/user.rs"];
     for path in &bridges {
-        println!("cargo:rerun-if-changed={}", path);
+        println!("cargo:rerun-if-changed={path}");
     }
 
     swift_bridge_build::parse_bridges(bridges)

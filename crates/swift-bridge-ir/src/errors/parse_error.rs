@@ -71,29 +71,27 @@ pub(crate) enum IdentifiableParseError {
     MissingReturnType { fn_ident: Ident },
 }
 
-impl Into<syn::Error> for ParseError {
-    fn into(self) -> Error {
-        match self {
+impl From<ParseError> for syn::Error {
+    fn from(val: ParseError) -> Self {
+        match val {
             ParseError::ArgsIntoArgNotFound { func, missing_arg } => Error::new_spanned(
                 missing_arg.clone(),
                 format!(
                     r#"Argument "{}" was not found in "fn {}(..)""#,
                     missing_arg,
-                    func.sig.ident.to_token_stream().to_string()
+                    func.sig.ident.to_token_stream()
                 ),
             ),
             ParseError::AbiNameMissing {
                 extern_token: extern_ident,
             } => Error::new_spanned(
                 extern_ident,
-                format!(
-                    r#"extern modules must have their abi set to "Rust" or "Swift".
+                r#"extern modules must have their abi set to "Rust" or "Swift".
 ```
-extern "Rust" {{ ... }}
-extern "Swift" {{ ... }}
+extern "Rust" { ... }
+extern "Swift" { ... }
 ``` 
-                "#
-                ),
+                "#.to_string(),
             ),
             ParseError::AbiNameInvalid { abi_name } => Error::new_spanned(
                 abi_name,
@@ -113,9 +111,8 @@ self: &mut SomeType
                 let ty_name = ty_name.split_whitespace().last().unwrap();
 
                 let message = format!(
-                    r#"Type must be declared with `type {}`.
-"#,
-                    ty_name
+                    r#"Type must be declared with `type {ty_name}`.
+"#
                 );
                 Error::new_spanned(ty, message)
             }
@@ -123,7 +120,7 @@ self: &mut SomeType
                 let message = format!(
                     r#"Type {} is already supported
 "#,
-                    ty.to_token_stream().to_string()
+                    ty.to_token_stream()
                 );
                 Error::new_spanned(ty, message)
             }
@@ -135,14 +132,13 @@ representation.
 ```
 // Valid values are "struct" and "class"
 #[swift_bridge(swift_repr = "struct")]
-struct {struct_name} {{
+struct {struct_ident} {{
     // ... fields ...
 }}
 ```
 
 TODO: Link to documntation on how to decide on the swift representation.
-"#,
-                    struct_name = struct_ident
+"#
                 );
                 Error::new_spanned(struct_ident, message)
             }
@@ -162,34 +158,31 @@ would be additional overhead with no advantages.
  
 ```
 #[swift_bridge(swift_repr = "struct")]
-struct {struct_name}; 
+struct {struct_ident}; 
 ```
-"#,
-                    struct_name = struct_ident.to_string()
+"#
                 );
                 Error::new_spanned(swift_repr_attr_value, message)
             }
             ParseError::StructUnrecognizedAttribute { attribute } => {
-                let message = format!(r#"Did not recognize struct attribute "{}"."#, attribute);
+                let message = format!(r#"Did not recognize struct attribute "{attribute}"."#);
                 Error::new_spanned(attribute, message)
             }
             ParseError::EnumUnrecognizedAttribute { attribute } => {
-                let message = format!(r#"Did not recognize enum attribute "{}"."#, attribute);
+                let message = format!(r#"Did not recognize enum attribute "{attribute}"."#);
                 Error::new_spanned(attribute, message)
             }
             ParseError::FunctionAttribute(fn_attrib) => match fn_attrib {
                 FunctionAttributeParseError::Identifiable(identifiable) => match identifiable {
                     IdentifiableParseError::MustBeRefSelf { fn_ident } => {
                         let message = format!(
-                            r#"Identifiable function {} must take `&self` as its only argument."#,
-                            fn_ident
+                            r#"Identifiable function {fn_ident} must take `&self` as its only argument."#
                         );
                         Error::new_spanned(fn_ident, message)
                     }
                     IdentifiableParseError::MissingReturnType { fn_ident } => {
                         let message = format!(
-                            r#"Identifiable function {} must have a return type."#,
-                            fn_ident
+                            r#"Identifiable function {fn_ident} must have a return type."#
                         );
                         Error::new_spanned(fn_ident, message)
                     }
@@ -197,16 +190,16 @@ struct {struct_name};
             },
             ParseError::ArgCopyAndRefMut { arg } => {
                 let message =
-                    format!(r#"Mutable references to opaque Copy types are not yet supported."#);
+                    r#"Mutable references to opaque Copy types are not yet supported."#.to_string();
                 Error::new_spanned(arg, message)
             }
             ParseError::InvalidModuleItem { item } => {
-                let message = format!(r#"Only `extern` blocks, structs and enums are supported."#);
+                let message = r#"Only `extern` blocks, structs and enums are supported."#.to_string();
                 Error::new_spanned(item, message)
             }
             ParseError::InvalidAssociatedTo { self_ } => {
                 let message =
-                    format!(r#"The associated_to attribute can only be used on static methods."#);
+                    r#"The associated_to attribute can only be used on static methods."#.to_string();
                 Error::new_spanned(self_, message)
             }
         }

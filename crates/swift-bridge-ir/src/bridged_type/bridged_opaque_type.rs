@@ -105,16 +105,15 @@ impl BridgeableType for OpaqueForeignType {
                                 )
                         )
                     } else {
-                        format!("UnsafeMutableRawPointer")
+                        "UnsafeMutableRawPointer".to_string()
                     }
                 }
                 TypePosition::SharedStructField => {
                     let class_name = self.ty.to_string();
-                    if !self.has_swift_bridge_copy_annotation {
-                        if self.mutable || self.reference {
+                    if !self.has_swift_bridge_copy_annotation
+                        && (self.mutable || self.reference) {
                             todo!();
                         }
-                    }
 
                     format!(
                         "{}{}",
@@ -178,26 +177,24 @@ impl BridgeableType for OpaqueForeignType {
         if self.has_swift_bridge_copy_annotation {
             let ty = self.copy_rust_repr_type();
             quote! { #ty }
-        } else {
-            if self.host_lang.is_rust() {
-                let generics = self
-                    .generics
-                    .angle_bracketed_concrete_generics_tokens(types);
+        } else if self.host_lang.is_rust() {
+            let generics = self
+                .generics
+                .angle_bracketed_concrete_generics_tokens(types);
 
-                if self.reference {
-                    let ptr = if self.mutable {
-                        quote! { *mut }
-                    } else {
-                        quote! { *const }
-                    };
-
-                    quote_spanned! {ty_name.span()=> #ptr super::#ty_name }
+            if self.reference {
+                let ptr = if self.mutable {
+                    quote! { *mut }
                 } else {
-                    quote! { *mut super::#ty_name #generics }
-                }
+                    quote! { *const }
+                };
+
+                quote_spanned! {ty_name.span()=> #ptr super::#ty_name }
             } else {
-                quote! { #ty_name }
+                quote! { *mut super::#ty_name #generics }
             }
+        } else {
+            quote! { #ty_name }
         }
     }
 
@@ -362,37 +359,32 @@ impl BridgeableType for OpaqueForeignType {
 
         if self.host_lang.is_rust() {
             if self.has_swift_bridge_copy_annotation {
-                format!("{}.intoFfiRepr()", expression)
+                format!("{expression}.intoFfiRepr()")
             } else if self.reference {
-                format!("{}.ptr", expression)
+                format!("{expression}.ptr")
             } else {
                 match type_pos {
                     TypePosition::FnArg(func_host_lang, _)
                     | TypePosition::FnReturn(func_host_lang) => {
                         if func_host_lang.is_rust() {
                             if self.reference {
-                                format!("{{return {}.ptr;}}()", expression)
+                                format!("{{return {expression}.ptr;}}()")
                             } else {
                                 format!(
-                                    "{{{}.isOwned = false; return {}.ptr;}}()",
-                                    expression, expression
+                                    "{{{expression}.isOwned = false; return {expression}.ptr;}}()"
                                 )
                             }
+                        } else if self.reference {
+                            format!("{{return {expression}.ptr;}}()")
                         } else {
-                            if self.reference {
-                                format!("{{return {}.ptr;}}()", expression)
-                            } else {
-                                format!(
-                                    "{{{}.isOwned = false; return {}.ptr;}}()",
-                                    expression, expression
-                                )
-                            }
+                            format!(
+                                "{{{expression}.isOwned = false; return {expression}.ptr;}}()"
+                            )
                         }
                     }
                     TypePosition::SharedStructField => {
                         format!(
-                            "{{{}.isOwned = false; return {}.ptr;}}()",
-                            expression, expression
+                            "{{{expression}.isOwned = false; return {expression}.ptr;}}()"
                         )
                     }
                     TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
@@ -405,17 +397,15 @@ impl BridgeableType for OpaqueForeignType {
             match type_pos {
                 TypePosition::FnArg(func_host_lang, _) => {
                     if func_host_lang.is_rust() {
-                        format!("Unmanaged.passRetained({}).toOpaque()", expression)
+                        format!("Unmanaged.passRetained({expression}).toOpaque()")
                     } else {
                         format!(
-                            "Unmanaged<{type_name}>.fromOpaque({value}).takeRetainedValue()",
-                            type_name = ty_name,
-                            value = expression
+                            "Unmanaged<{ty_name}>.fromOpaque({expression}).takeRetainedValue()"
                         )
                     }
                 }
                 TypePosition::FnReturn(_func_host_lang) => {
-                    format!("Unmanaged.passRetained({}).toOpaque()", expression)
+                    format!("Unmanaged.passRetained({expression}).toOpaque()")
                 }
                 TypePosition::SharedStructField => {
                     todo!("Opaque types in shared struct fields are not yet supported")
@@ -437,19 +427,16 @@ impl BridgeableType for OpaqueForeignType {
             let ffi_repr = self.copy_ffi_repr_type_string();
             let option_ffi_repr = self.option_copy_ffi_repr_type_string();
 
-            format!("{option_ffi_repr}(is_some: {expression} != nil, val: {{ if let val = {expression} {{ return val.intoFfiRepr() }} else {{ return {ffi_repr}() }} }}() )", expression = expression,
-                        option_ffi_repr = option_ffi_repr,
-                        ffi_repr = ffi_repr
+            format!("{option_ffi_repr}(is_some: {expression} != nil, val: {{ if let val = {expression} {{ return val.intoFfiRepr() }} else {{ return {ffi_repr}() }} }}() )"
                     )
         } else if self.reference {
             format!(
                 "{{ if let val = {expression} {{ return val.ptr }} else {{ return nil }} }}()",
-                expression = expression,
             )
         } else {
             match self.host_lang {
                 HostLang::Rust => {
-                    format!("{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()", expression = expression,)
+                    format!("{{ if let val = {expression} {{ val.isOwned = false; return val.ptr }} else {{ return nil }} }}()",)
                 }
                 HostLang::Swift => {
                     format!("{{ if let val = {expression} {{ return Unmanaged.passRetained(val).toOpaque() }} else {{ return nil }} }}()")
@@ -490,13 +477,11 @@ impl BridgeableType for OpaqueForeignType {
                     unsafe { * Box::from_raw(  #expression ) }
                 }
             }
+        } else if self.reference {
+            todo!("Handle referenced self Swift types")
         } else {
-            if self.reference {
-                todo!("Handle referenced self Swift types")
-            } else {
-                quote! {
-                    #expression
-                }
+            quote! {
+                #expression
             }
         }
     }
@@ -565,9 +550,7 @@ impl BridgeableType for OpaqueForeignType {
         if self.host_lang.is_rust() {
             if self.has_swift_bridge_copy_annotation {
                 format!(
-                    "{ty_name}(bytes: {value})",
-                    ty_name = ty_name,
-                    value = expression,
+                    "{ty_name}(bytes: {expression})",
                 )
             } else {
                 match type_pos {
@@ -576,18 +559,14 @@ impl BridgeableType for OpaqueForeignType {
                     }
                     _ => {
                         format!(
-                            "{ty_name}(ptr: {value})",
-                            ty_name = ty_name,
-                            value = expression,
+                            "{ty_name}(ptr: {expression})",
                         )
                     }
                 }
             }
         } else {
             format!(
-                "Unmanaged<{ty_name}>.fromOpaque({value}).takeRetainedValue()",
-                ty_name = ty_name,
-                value = expression
+                "Unmanaged<{ty_name}>.fromOpaque({expression}).takeRetainedValue()"
             )
         }
     }
@@ -596,18 +575,14 @@ impl BridgeableType for OpaqueForeignType {
         if self.has_swift_bridge_copy_annotation {
             let type_name = self.swift_name();
             format!(
-                "{{ let val = {expression}; if val.is_some {{ return {type_name}(bytes: val.val) }} else {{ return nil }} }}()",
-                expression = expression,
-                type_name = type_name
+                "{{ let val = {expression}; if val.is_some {{ return {type_name}(bytes: val.val) }} else {{ return nil }} }}()"
             )
         } else {
             let type_name = self.swift_name();
             match self.host_lang {
                 HostLang::Rust => {
                     format!(
-                        "{{ let val = {expression}; if val != nil {{ return {type_name}(ptr: val!) }} else {{ return nil }} }}()",
-                        expression = expression,
-                        type_name = type_name
+                        "{{ let val = {expression}; if val != nil {{ return {type_name}(ptr: val!) }} else {{ return nil }} }}()"
                     )
                 }
                 HostLang::Swift => {
@@ -744,7 +719,7 @@ impl BridgeableType for OpaqueForeignType {
     }
 
     fn to_alpha_numeric_underscore_name(&self, _types: &TypeDeclarations) -> String {
-        if self.generics.len() >= 1 {
+        if !self.generics.is_empty() {
             todo!()
         }
         self.ty.to_string()

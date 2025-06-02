@@ -107,15 +107,15 @@ impl ParsedExternFn {
                 .associated_type
                 .as_ref()
                 .and_then(|t| t.as_opaque())
-                .map(|o| format!("{}_", o.ty.to_string()))
+                .map(|o| format!("{}_", o.ty))
                 .unwrap_or("".to_string());
 
-            let boxed_fn_name = format!("{}{}_param{idx}", maybe_associated_ty, fn_name);
+            let boxed_fn_name = format!("{maybe_associated_ty}{fn_name}_param{idx}");
             let boxed_fn_name = Ident::new(&boxed_fn_name, fn_name.span());
 
             let boxed_fn_ffi_repr = boxed_fn.to_ffi_compatible_rust_type(types);
 
-            let free_boxed_fn_name = format!("free_{}{}_param{idx}", maybe_associated_ty, fn_name);
+            let free_boxed_fn_name = format!("free_{maybe_associated_ty}{fn_name}_param{idx}");
             let free_boxed_fn_name = Ident::new(&free_boxed_fn_name, fn_name.span());
 
             let params = boxed_fn.params_to_ffi_compatible_rust_types(swift_bridge_path, types);
@@ -124,7 +124,7 @@ impl ParsedExternFn {
             let call_boxed_fn_link_name = self.call_boxed_fn_link_name(idx);
             let free_boxed_fn_link_name = self.free_boxed_fn_link_name(idx);
 
-            let maybe_params = if boxed_fn.params.len() > 0 {
+            let maybe_params = if !boxed_fn.params.is_empty() {
                 quote! {
                     , #(#params),*
                 }
@@ -142,7 +142,7 @@ impl ParsedExternFn {
             };
 
             let arg_name = self.arg_name_tokens_at_idx(idx).unwrap();
-            let arg_name = Ident::new(&format!("{}_{}", fn_name, arg_name), arg_name.span());
+            let arg_name = Ident::new(&format!("{fn_name}_{arg_name}"), arg_name.span());
 
             let call_boxed_fn = quote! {
                 unsafe { Box::from_raw(#arg_name)(#(#call_args),*) }
@@ -215,7 +215,7 @@ impl ParsedExternFn {
                                     &format!(
                                         "{}{}",
                                         maybe_unused,
-                                        pat.to_token_stream().to_string()
+                                        pat.to_token_stream()
                                     ),
                                     pat.span(),
                                 );
@@ -381,6 +381,6 @@ mod tests {
         let module = parse_ok(module);
         let tokens = module.functions[0]
             .to_rust_fn_that_calls_a_swift_extern(&module.swift_bridge_path, &module.types);
-        assert_tokens_eq(&tokens, &expected_impl_fn_tokens);
+        assert_tokens_eq(&tokens, expected_impl_fn_tokens);
     }
 }

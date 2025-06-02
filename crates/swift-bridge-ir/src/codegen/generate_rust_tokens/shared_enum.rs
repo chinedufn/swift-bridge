@@ -23,7 +23,7 @@ impl SwiftBridgeModule {
         let enum_name = &shared_enum.name;
         let swift_bridge_path = &self.swift_bridge_path;
 
-        let enum_ffi_name = format!("{}{}", SWIFT_BRIDGE_PREFIX, enum_name);
+        let enum_ffi_name = format!("{SWIFT_BRIDGE_PREFIX}{enum_name}");
         let enum_ffi_name = Ident::new(&enum_ffi_name, enum_name.span());
 
         let option_enum = shared_enum.ffi_option_name_tokens();
@@ -162,7 +162,7 @@ impl SwiftBridgeModule {
             // Enums with variants that contain data are not yet supported.
             quote! {}
         } else {
-            generate_vec_of_transparent_enum_functions(&shared_enum)
+            generate_vec_of_transparent_enum_functions(shared_enum)
         };
 
         let definition = quote! {

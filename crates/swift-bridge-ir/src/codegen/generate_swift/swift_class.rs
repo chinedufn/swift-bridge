@@ -46,8 +46,8 @@ fn create_class_declaration(
     let generics = ty.generics.angle_bracketed_generic_placeholders_string();
 
     let mut class_decl = {
-        let free_func_call = if ty.generics.len() == 0 {
-            format!("{}${}$_free(ptr)", SWIFT_BRIDGE_PREFIX, type_name)
+        let free_func_call = if ty.generics.is_empty() {
+            format!("{SWIFT_BRIDGE_PREFIX}${type_name}$_free(ptr)")
         } else {
             "(self as! SwiftBridgeGenericFreer).rust_free()".to_string()
         };
@@ -65,10 +65,7 @@ fn create_class_declaration(
             {free_func_call}
         }}
     }}
-}}"#,
-            type_name = type_name,
-            generics = generics,
-            free_func_call = free_func_call
+}}"#
         )
     };
 
@@ -79,9 +76,7 @@ public class {type_name}RefMut{generics}: {type_name}Ref{generics} {{
     public override init(ptr: UnsafeMutableRawPointer) {{
         super.init(ptr: ptr)
     }}
-}}"#,
-            type_name = type_name,
-            generics = generics
+}}"#
         )
     };
     let mut class_ref_decl = {
@@ -93,9 +88,7 @@ public class {type_name}Ref{generics} {{
     public init(ptr: UnsafeMutableRawPointer) {{
         self.ptr = ptr
     }}
-}}"#,
-            type_name = type_name,
-            generics = generics
+}}"#
         )
     };
     if let Some(identifiable) = class_protocols.identifiable.as_ref() {
@@ -116,12 +109,10 @@ public class {type_name}Ref{generics} {{
         class_ref_decl += &format!(
             r#"
 extension {type_name}Ref: Identifiable {{{identifiable_var}}}"#,
-            type_name = type_name,
-            identifiable_var = identifiable_var,
         );
     }
 
-    let initializers = if initializers.len() == 0 {
+    let initializers = if initializers.is_empty() {
         "".to_string()
     } else {
         let initializers: String = initializers.join("\n\n");
@@ -129,13 +120,11 @@ extension {type_name}Ref: Identifiable {{{identifiable_var}}}"#,
             r#"
 extension {type_name} {{
 {initializers}
-}}"#,
-            type_name = type_name,
-            initializers = initializers
+}}"#
         )
     };
 
-    let owned_instance_methods = if owned_self_methods.len() == 0 {
+    let owned_instance_methods = if owned_self_methods.is_empty() {
         "".to_string()
     } else {
         let owned_instance_methods: String = owned_self_methods.join("\n\n");
@@ -143,13 +132,11 @@ extension {type_name} {{
             r#"
 extension {type_name} {{
 {owned_instance_methods}
-}}"#,
-            type_name = type_name,
-            owned_instance_methods = owned_instance_methods
+}}"#
         )
     };
 
-    let ref_instance_methods = if ref_self_methods.len() == 0 {
+    let ref_instance_methods = if ref_self_methods.is_empty() {
         "".to_string()
     } else {
         let ref_instance_methods: String = ref_self_methods.join("\n\n");
@@ -157,13 +144,11 @@ extension {type_name} {{
             r#"
 extension {type_name}Ref {{
 {ref_instance_methods}
-}}"#,
-            type_name = type_name,
-            ref_instance_methods = ref_instance_methods
+}}"#
         )
     };
 
-    let ref_mut_instance_methods = if ref_mut_self_methods.len() == 0 {
+    let ref_mut_instance_methods = if ref_mut_self_methods.is_empty() {
         "".to_string()
     } else {
         let ref_mut_instance_methods: String = ref_mut_self_methods.join("\n\n");
@@ -171,13 +156,11 @@ extension {type_name}Ref {{
             r#"
 extension {type_name}RefMut {{
 {ref_mut_instance_methods}
-}}"#,
-            type_name = type_name,
-            ref_mut_instance_methods = ref_mut_instance_methods
+}}"#
         )
     };
 
-    let is_concrete_generic = ty.generics.len() > 0 && !ty.attributes.declare_generic;
+    let is_concrete_generic = !ty.generics.is_empty() && !ty.attributes.declare_generic;
 
     if ty.attributes.already_declared || is_concrete_generic {
         class_decl = "".to_string();
@@ -236,17 +219,8 @@ extension {ty_name}Ref: Hashable{{
 
     let class = format!(
         r#"
-{class_decl}{initializers}{owned_instance_methods}{class_ref_decl}{ref_mut_instance_methods}{class_ref_mut_decl}{ref_instance_methods}{generic_freer}{equatable_method}{hashable_method}"#,
-        class_decl = class_decl,
-        class_ref_decl = class_ref_mut_decl,
-        class_ref_mut_decl = class_ref_decl,
-        initializers = initializers,
-        owned_instance_methods = owned_instance_methods,
-        ref_mut_instance_methods = ref_mut_instance_methods,
-        ref_instance_methods = ref_instance_methods,
-        equatable_method = equatable_method,
-        hashable_method = hashable_method,
+{class_decl}{initializers}{owned_instance_methods}{class_ref_mut_decl}{ref_mut_instance_methods}{class_ref_decl}{ref_instance_methods}{generic_freer}{equatable_method}{hashable_method}"#,
     );
 
-    return class;
+    class
 }

@@ -174,8 +174,7 @@ impl BridgeableType for BridgedString {
         _type_pos: TypePosition,
     ) -> String {
         format!(
-            "{{ let rustString = {value}.intoRustString(); rustString.isOwned = false; return rustString.ptr }}()",
-            value = expression
+            "{{ let rustString = {expression}.intoRustString(); rustString.isOwned = false; return rustString.ptr }}()"
         )
     }
 
@@ -187,8 +186,7 @@ impl BridgeableType for BridgedString {
         match type_pos {
             TypePosition::FnArg(_func_host_lang, _) => {
                 format!(
-                    "{{ if let rustString = optionalStringIntoRustString({expression}) {{ rustString.isOwned = false; return rustString.ptr }} else {{ return nil }} }}()",
-                    expression = expression
+                    "{{ if let rustString = optionalStringIntoRustString({expression}) {{ rustString.isOwned = false; return rustString.ptr }} else {{ return nil }} }}()"
                 )
             }
             TypePosition::FnReturn(func_host_lang) => {
@@ -196,8 +194,7 @@ impl BridgeableType for BridgedString {
                     todo!()
                 } else {
                     format!(
-                        "{{ if let rustString = optionalStringIntoRustString({expression}) {{ rustString.isOwned = false; return rustString.ptr }} else {{ return nil }} }}()",
-                        expression = expression
+                        "{{ if let rustString = optionalStringIntoRustString({expression}) {{ rustString.isOwned = false; return rustString.ptr }} else {{ return nil }} }}()"
                     )
                 }
             }
@@ -248,17 +245,17 @@ impl BridgeableType for BridgedString {
             TypePosition::FnArg(_, _)
             | TypePosition::FnReturn(_)
             | TypePosition::SharedStructField => {
-                format!("RustString(ptr: {})", expression)
+                format!("RustString(ptr: {expression})")
             }
             TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
-                format!("RustString(ptr: {}!)", expression)
+                format!("RustString(ptr: {expression}!)")
             }
             TypePosition::ThrowingInit(_) => todo!(),
         }
     }
 
     fn convert_ffi_option_expression_to_swift_type(&self, expression: &str) -> String {
-        format!("{{ let val = {expression}; if val != nil {{ return RustString(ptr: val!) }} else {{ return nil }} }}()", expression = expression,)
+        format!("{{ let val = {expression}; if val != nil {{ return RustString(ptr: val!) }} else {{ return nil }} }}()",)
     }
 
     fn convert_ffi_result_ok_value_to_rust_value(

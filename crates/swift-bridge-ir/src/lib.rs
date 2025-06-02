@@ -30,7 +30,7 @@ mod codegen;
 #[cfg(test)]
 mod test_utils;
 
-const SWIFT_BRIDGE_PREFIX: &'static str = "__swift_bridge__";
+const SWIFT_BRIDGE_PREFIX: &str = "__swift_bridge__";
 
 /// Represents a type definition within an `extern "Rust"` module, as well as all of its methods.
 ///

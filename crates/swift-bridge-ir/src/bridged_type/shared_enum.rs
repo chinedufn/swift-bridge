@@ -115,7 +115,7 @@ impl SharedEnum {
 
 impl PartialEq for SharedEnum {
     fn eq(&self, other: &Self) -> bool {
-        self.name.to_string() == other.name.to_string() && self.variants == other.variants
+        other.name == self.name && self.variants == other.variants
     }
 }
 

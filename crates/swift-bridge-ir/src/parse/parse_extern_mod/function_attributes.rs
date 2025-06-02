@@ -153,7 +153,7 @@ impl Parse for FunctionAttr {
                 let attrib = key.to_string();
                 Err(syn::Error::new_spanned(
                     key,
-                    format!(r#"Unrecognized attribute "{}"."#, attrib,),
+                    format!(r#"Unrecognized attribute "{attrib}"."#,),
                 ))?
             }
         };
@@ -392,8 +392,7 @@ mod tests {
         let assert_arg_into = |arg_name: &str| {
             assert!(args_into
                 .iter()
-                .find(|arg| { &arg.to_string() == arg_name })
-                .is_some());
+                .any(|arg| { arg == arg_name }));
         };
 
         assert_arg_into("some_arg");
@@ -581,6 +580,6 @@ mod tests {
 
         let func = &module.functions[0];
         assert_eq!(func.args_into.as_ref().unwrap().len(), 1);
-        assert_eq!(func.return_into, true);
+        assert!(func.return_into);
     }
 }

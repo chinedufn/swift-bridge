@@ -1,12 +1,12 @@
 fn main() {
     let start_num = 100;
 
-    println!("The Rust starting number is {}.", start_num);
+    println!("The Rust starting number is {start_num}.");
 
     let num = ffi::swift_multiply_by_4(start_num);
 
     println!("Printing the number from Rust...");
-    println!("The number is now {}.", num)
+    println!("The number is now {num}.")
 }
 
 #[swift_bridge::bridge]

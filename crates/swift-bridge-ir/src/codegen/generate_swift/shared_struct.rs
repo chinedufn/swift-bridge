@@ -149,7 +149,7 @@ extension {option_ffi_name} {{
         }
 
         if !body.is_empty() {
-            body = format!("\n{}    ", body);
+            body = format!("\n{body}    ");
         }
 
         body
@@ -176,7 +176,7 @@ extension {option_ffi_name} {{
         }
 
         if !fields.is_empty() {
-            fields = format!("\n{}", fields)
+            fields = format!("\n{fields}")
         }
 
         fields

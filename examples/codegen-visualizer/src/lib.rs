@@ -82,7 +82,7 @@ impl RustApp {
                 let generated_rust = generated_rust.expect("Generated Rust");
 
                 let mut command = Command::new("bash")
-                    .args(&["-c", "$HOME/.cargo/bin/rustfmt"])
+                    .args(["-c", "$HOME/.cargo/bin/rustfmt"])
                     .arg("--edition=2018")
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
@@ -101,7 +101,7 @@ impl RustApp {
                 let err = String::from_utf8(output.stderr.to_vec()).expect("Rustfmt stderr");
                 let generated = String::from_utf8(output.stdout.to_vec()).expect("Rustfmt stdout");
 
-                if err.len() > 0 {
+                if !err.is_empty() {
                     dbg!(&err);
                 }
 
@@ -114,7 +114,7 @@ impl RustApp {
         let mut previous = self.most_recent_rust_source.lock().unwrap();
 
         let previous_tokens = TokenStream::from_str(&previous).ok().map(|t| t.to_string());
-        let new_tokens = TokenStream::from_str(&bridge_module_source)
+        let new_tokens = TokenStream::from_str(bridge_module_source)
             .ok()
             .map(|t| t.to_string());
 
@@ -124,7 +124,7 @@ impl RustApp {
 
         let holder = &self.generated_code_holder;
 
-        let generated = generate_code(&bridge_module_source);
+        let generated = generate_code(bridge_module_source);
         if let Ok(generated) = generated {
             holder.set_generated_swift(&generated.swift);
             holder.set_generated_c_header(&generated.c_header);

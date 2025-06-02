@@ -20,7 +20,7 @@ impl SwiftBridgeModule {
         let struct_name = &shared_struct.name;
         let swift_bridge_path = &self.swift_bridge_path;
 
-        let struct_ffi_name = format!("{}{}", SWIFT_BRIDGE_PREFIX, struct_name);
+        let struct_ffi_name = format!("{SWIFT_BRIDGE_PREFIX}{struct_name}");
         let struct_ffi_name = Ident::new(&struct_ffi_name, struct_name.span());
 
         let option_struct = shared_struct.ffi_option_name_tokens();

@@ -68,37 +68,35 @@ impl SwiftBridgeModule {
             };
             variants += &v;
         }
-        if variants.len() > 0 {
+        if !variants.is_empty() {
             variants += "\n";
         }
 
         for variant in shared_enum.variants.iter() {
             let convert_swift_variant_to_ffi_repr = variant.convert_swift_to_ffi_repr(
                 &self.types,
-                format!("{}", enum_name),
-                format!("{}", enum_ffi_name),
+                enum_name.to_string(),
+                enum_ffi_name.to_string(),
                 all_variants_empty,
             );
             convert_swift_to_ffi_repr += &convert_swift_variant_to_ffi_repr;
         }
-        if convert_swift_to_ffi_repr.len() > 0 {
+        if !convert_swift_to_ffi_repr.is_empty() {
             convert_swift_to_ffi_repr += "        ";
         }
 
         for variant in shared_enum.variants.iter() {
             let convert_ffi_variant_to_swift = variant.convert_ffi_expression_to_swift(
                 &self.types,
-                format!("{}", enum_name),
+                enum_name.to_string(),
                 &self.swift_bridge_path,
             );
             convert_ffi_repr_to_swift += &convert_ffi_variant_to_swift;
         }
-        if convert_ffi_repr_to_swift.len() > 0 {
-            convert_ffi_repr_to_swift += &format!(
-                r#"            default:
+        if !convert_ffi_repr_to_swift.is_empty() {
+            convert_ffi_repr_to_swift += r#"            default:
                 fatalError("Unreachable")
-        "#
-            );
+        "#;
         }
 
         let vectorizable_impl = if shared_enum.has_one_or_more_variants_with_data() {

@@ -152,7 +152,7 @@ impl StructField for UnnamedStructField {
 
 impl PartialEq for NamedStructField {
     fn eq(&self, other: &Self) -> bool {
-        self.name.to_string() == other.name.to_string()
+        other.name == self.name
             && self.ty.to_token_stream().to_string() == other.ty.to_token_stream().to_string()
     }
 }

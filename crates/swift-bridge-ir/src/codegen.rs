@@ -47,11 +47,9 @@ impl SwiftBridgeModule {
     /// If not, when we won't generate any C or Swift code for it.
     fn module_will_be_compiled(&self, config: &CodegenConfig) -> bool {
         for cfg_attr in &self.cfg_attrs {
-            match cfg_attr {
-                CfgAttr::Feature(feature_name) => {
-                    if !(config.crate_feature_lookup)(&feature_name.value()) {
-                        return false;
-                    }
+            if let CfgAttr::Feature(feature_name) = cfg_attr {
+                if !(config.crate_feature_lookup)(&feature_name.value()) {
+                    return false;
                 }
             }
         }

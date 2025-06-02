@@ -13,7 +13,7 @@ pub(super) fn generate_opaque_copy_struct(
     let type_name = &ty.ty.to_string();
 
     let class_methods = generate_swift_class_methods(
-        &type_name,
+        type_name,
         associated_funcs_and_methods,
         types,
         swift_bridge_path,
@@ -29,7 +29,7 @@ pub(super) fn generate_opaque_copy_struct(
     );
     append_methods_extension(&mut extensions, type_name, &class_methods.ref_self_methods);
 
-    if class_methods.owned_self_methods.len() > 0 {};
+    if !class_methods.owned_self_methods.is_empty() {};
 
     let struct_definition = if !ty.attributes.already_declared {
         generate_struct_definition(ty, types, swift_bridge_path)
@@ -38,9 +38,7 @@ pub(super) fn generate_opaque_copy_struct(
     };
 
     format!(
-        r#"{struct_definition}{extensions}"#,
-        struct_definition = struct_definition,
-        extensions = extensions
+        r#"{struct_definition}{extensions}"#
     )
 }
 
@@ -55,34 +53,28 @@ fn generate_struct_definition(
     let declare_struct = if ty.generics.is_empty() {
         format!(
             r#"public struct {type_name} {{
-    fileprivate var bytes: {prefix}${type_name}
+    fileprivate var bytes: {SWIFT_BRIDGE_PREFIX}${type_name}
 
-    func intoFfiRepr() -> {prefix}${type_name} {{
+    func intoFfiRepr() -> {SWIFT_BRIDGE_PREFIX}${type_name} {{
         bytes
     }}
 }}"#,
-            prefix = SWIFT_BRIDGE_PREFIX,
-            type_name = type_name,
         )
     } else {
         format!(
             r#"public struct {type_name}{generics} {{
     fileprivate var bytes: SwiftBridgeGenericCopyTypeFfiRepr
-}}"#,
-            type_name = type_name,
-            generics = generics
+}}"#
         )
     };
 
     let ffi_repr_conversion = if ty.generics.is_empty() {
         format!(
-            r#"extension {prefix}${type_name} {{
+            r#"extension {SWIFT_BRIDGE_PREFIX}${type_name} {{
     func intoSwiftRepr() -> {type_name} {{
         {type_name}(bytes: self)
     }}
 }}"#,
-            prefix = SWIFT_BRIDGE_PREFIX,
-            type_name = type_name,
         )
     } else {
         let ffi_repr_name = ty.ffi_repr_name_string();
@@ -141,22 +133,18 @@ extension {type_name}: Equatable {{
         r#"{declare_struct}
 {ffi_repr_conversion}
 {ext_equatable}"#,
-        declare_struct = declare_struct,
-        ffi_repr_conversion = ffi_repr_conversion,
-        ext_equatable = ext_equatable,
     )
 }
 
 fn append_methods_extension(extensions: &mut String, type_name: &str, methods: &[String]) {
-    if methods.len() == 0 {
+    if methods.is_empty() {
         return;
     }
 
     *extensions += &format!(
         r#"
 extension {type_name} {{
-"#,
-        type_name = type_name
+"#
     );
 
     for (idx, method) in methods.iter().enumerate() {

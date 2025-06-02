@@ -5,17 +5,15 @@ use proc_macro2::TokenStream;
 
 pub fn assert_tokens_eq(left: &TokenStream, right: &TokenStream) {
     assert_eq!(
-        token_stream_to_vec(&left),
-        token_stream_to_vec(&right),
+        token_stream_to_vec(left),
+        token_stream_to_vec(right),
         r#"
 Left Tokens:
-{}
+{left}
 
 Right Tokens:
-{}
-"#,
-        left.to_string(),
-        right.to_string()
+{right}
+"#
     )
 }
 
@@ -36,13 +34,11 @@ pub fn assert_tokens_contain(outer: &TokenStream, inner: &TokenStream) {
 Outer tokens do not contain the inner tokens. 
 
 Outer Tokens:
-{}
+{outer}
 
 Inner Tokens:
-{}
-"#,
-        outer.to_string(),
-        inner.to_string()
+{inner}
+"#
     )
 }
 
@@ -63,13 +59,11 @@ pub fn assert_tokens_do_not_contain(outer: &TokenStream, inner: &TokenStream) {
 Outer tokens do not contain the inner tokens. 
 
 Outer Tokens:
-{}
+{outer}
 
 Inner Tokens:
-{}
-"#,
-        outer.to_string(),
-        inner.to_string()
+{inner}
+"#
     )
 }
 
@@ -91,7 +85,7 @@ Expected:
 /// Trims both generated and expected.
 pub fn assert_trimmed_generated_contains_trimmed_expected(generated: &str, expected: &str) {
     assert!(
-        generated.trim().contains(&expected.trim()),
+        generated.trim().contains(expected.trim()),
         r#"Expected was not contained by generated.
 Generated:
 {}
@@ -105,7 +99,7 @@ Expected:
 /// Trims both generated and expected.
 pub fn assert_trimmed_generated_does_not_contain_trimmed_expected(generated: &str, expected: &str) {
     assert!(
-        !generated.trim().contains(&expected.trim()),
+        !generated.trim().contains(expected.trim()),
         r#"Expected was contained by generated.
 Generated:
 {}

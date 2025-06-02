@@ -186,7 +186,7 @@ impl EnumVariant {
                 let ffi_field_name = norm_field.ffi_field_name();
                 let ty = BridgedType::new_with_type(&norm_field.ty, types).unwrap();
                 let variant_field = ty.convert_swift_expression_to_ffi_type(
-                    &format!("{}", ffi_field_name),
+                    &ffi_field_name.to_string(),
                     types,
                     TypePosition::SharedStructField,
                 );
@@ -201,7 +201,7 @@ impl EnumVariant {
             .iter()
             .map(|norm_field| {
                 let field_name = norm_field.ffi_field_name();
-                format!("let {field_name}", field_name = field_name)
+                format!("let {field_name}")
             })
             .collect();
         let associated_values = associated_values.join(", ");
@@ -234,13 +234,13 @@ impl EnumVariant {
     }
 
     pub(crate) fn union_name_string(&self, parent_enum_ffi_name: &String) -> String {
-        format!("{}$FieldOf{}", parent_enum_ffi_name, self.name.to_string())
+        format!("{}$FieldOf{}", parent_enum_ffi_name, self.name)
     }
 }
 
 impl PartialEq for EnumVariant {
     fn eq(&self, other: &Self) -> bool {
-        self.name.to_string() == other.name.to_string()
+        other.name == self.name
     }
 }
 

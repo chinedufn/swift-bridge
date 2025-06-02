@@ -176,18 +176,16 @@ impl ParsedExternFn {
             quote! {
                 this.into_rust_repr()
             }
-        } else {
-            if let Some(reference) = self.self_reference() {
-                let maybe_ref = reference.0;
-                let maybe_mut = self.self_mutability();
+        } else if let Some(reference) = self.self_reference() {
+            let maybe_ref = reference.0;
+            let maybe_mut = self.self_mutability();
 
-                quote! {
-                    (unsafe { #maybe_ref #maybe_mut *this } )
-                }
-            } else {
-                quote! {
-                    ( * unsafe { Box::from_raw(this) } )
-                }
+            quote! {
+                (unsafe { #maybe_ref #maybe_mut *this } )
+            }
+        } else {
+            quote! {
+                ( * unsafe { Box::from_raw(this) } )
             }
         };
 
@@ -337,7 +335,7 @@ mod tests {
                 &module.types,
                 &mut HashMap::new(),
             ),
-            &expected_fn,
+            expected_fn,
         );
     }
 }

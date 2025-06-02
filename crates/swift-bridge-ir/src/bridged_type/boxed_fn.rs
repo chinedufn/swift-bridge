@@ -88,7 +88,7 @@ impl BridgeableBoxedFnOnce {
             .iter()
             .enumerate()
             .map(|(idx, ty)| {
-                let param_name = Ident::new(&format!("arg{}", idx), Span::call_site());
+                let param_name = Ident::new(&format!("arg{idx}"), Span::call_site());
                 let param_ty = ty.to_ffi_compatible_rust_type(swift_bridge_path, types);
 
                 quote! {
@@ -148,7 +148,7 @@ impl BridgeableBoxedFnOnce {
             .iter()
             .enumerate()
             .map(|(idx, ty)| {
-                let arg_name = Ident::new(&format!("arg{}", idx), Span::call_site());
+                let arg_name = Ident::new(&format!("arg{idx}"), Span::call_site());
                 ty.convert_ffi_expression_to_rust_type(
                     &arg_name.to_token_stream(),
                     arg_name.span(),
@@ -167,7 +167,7 @@ impl BridgeableBoxedFnOnce {
         self.params
             .iter()
             .enumerate()
-            .map(|(idx, _ty)| format!("arg{}", idx))
+            .map(|(idx, _ty)| format!("arg{idx}"))
             .collect::<Vec<String>>()
             .join(", ")
     }
@@ -182,7 +182,7 @@ impl BridgeableBoxedFnOnce {
         }
 
         for (idx, ty) in self.params.iter().enumerate() {
-            let arg_name = format!("arg{}", idx);
+            let arg_name = format!("arg{idx}");
             args += &format!(
                 ", {}",
                 ty.convert_swift_expression_to_ffi_type(
@@ -205,7 +205,7 @@ impl BridgeableBoxedFnOnce {
             TypePosition::FnArg(_, param_idx) => {
                 if self.does_not_have_params_or_return() {
                     format!("{{ cb{param_idx}.call() }}")
-                } else if self.params.len() > 0 {
+                } else if !self.params.is_empty() {
                     let args = self.to_swift_call_args();
                     format!("{{ {args} in cb{param_idx}.call({args}) }}")
                 } else {
@@ -284,10 +284,10 @@ impl BridgeableBoxedFnOnce {
             args_bridged_tys.push(BridgedType::new_with_type(&arg, types)?);
         }
 
-        return Some(BridgeableBoxedFnOnce {
+        Some(BridgeableBoxedFnOnce {
             params: args_bridged_tys,
             ret: Box::new(ret),
-        });
+        })
     }
 }
 

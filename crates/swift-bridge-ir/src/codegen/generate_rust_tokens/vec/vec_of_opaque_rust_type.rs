@@ -9,7 +9,7 @@ pub(in super::super) fn generate_vec_of_opaque_rust_type_functions(ty: &Ident) -
     // examples:
     // "__swift_bridge__$Vec_MyRustType$new"
     // "__swift_bridge__$Vec_MyRustType$drop"
-    let make_export_name = |fn_name| format!("__swift_bridge__$Vec_{}${}", ty, fn_name);
+    let make_export_name = |fn_name| format!("__swift_bridge__$Vec_{ty}${fn_name}");
     let export_name_new = make_export_name("new");
     let export_name_drop = make_export_name("drop");
     let export_name_len = make_export_name("len");

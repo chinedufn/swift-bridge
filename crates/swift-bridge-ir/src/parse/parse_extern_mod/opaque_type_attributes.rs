@@ -150,7 +150,7 @@ impl Parse for OpaqueTypeAttr {
                 let attrib = key.to_string();
                 Err(syn::Error::new_spanned(
                     key,
-                    format!(r#"Unrecognized attribute "{}"."#, attrib),
+                    format!(r#"Unrecognized attribute "{attrib}"."#),
                 ))?
             }
         };
@@ -203,7 +203,7 @@ mod tests {
         };
 
         let attribs = unwrap_opaque_type_attributes(tokens, "SomeType");
-        assert_eq!(attribs.hashable, true);
+        assert!(attribs.hashable);
     }
 
     /// Verify that we can parse the `equatable` attribute.
@@ -219,7 +219,7 @@ mod tests {
         };
 
         let attribs = unwrap_opaque_type_attributes(tokens, "SomeType");
-        assert_eq!(attribs.equatable, true);
+        assert!(attribs.equatable);
     }
 
     /// Verify that we can parse the `copy` attribute.
@@ -285,7 +285,7 @@ mod tests {
         };
         let attribs = unwrap_opaque_type_attributes(tokens, "SomeType");
 
-        assert_eq!(attribs.experimental_swift_ownership, true);
+        assert!(attribs.experimental_swift_ownership);
     }
 
     /// Verify that we parse a Rust or Swift opaque type's `Sendable` attribute.
@@ -307,7 +307,7 @@ mod tests {
 
         for ty_name in ["SomeRustType", "SomeSwiftType"] {
             let attribs = unwrap_opaque_type_attributes(tokens.clone(), ty_name);
-            assert_eq!(attribs.sendable, true);
+            assert!(attribs.sendable);
         }
     }
 

@@ -18,7 +18,7 @@ impl BuiltInTuple {
         let combined_types = self.0.combine_field_types_into_ffi_name_string(types);
         let ty_name = format_ident!("{}_{}", "tuple", combined_types);
         Ident::new(
-            &format!("{}{}", SWIFT_BRIDGE_PREFIX, ty_name),
+            &format!("{SWIFT_BRIDGE_PREFIX}{ty_name}"),
             ty_name.span(),
         )
     }
@@ -146,7 +146,7 @@ impl BridgeableType for BuiltInTuple {
             "tuple",
             self.0.combine_field_types_into_ffi_name_string(types)
         );
-        format!("struct {}", ty_name)
+        format!("struct {ty_name}")
     }
 
     fn to_c_include(&self, types: &TypeDeclarations) -> Option<Vec<&'static str>> {
@@ -195,9 +195,9 @@ impl BridgeableType for BuiltInTuple {
         let converted_fields: Vec<TokenStream> =
             self.0
                 .convert_rust_expression_to_ffi_type(expression, swift_bridge_path, types, span);
-        return quote! {
+        quote! {
             { let val = #expression; #prefixed_ty_name( #(#converted_fields),* ) }
-        };
+        }
     }
 
     fn convert_option_rust_expression_to_ffi_type(
@@ -253,12 +253,12 @@ impl BridgeableType for BuiltInTuple {
             swift_bridge_path,
             types,
         );
-        return quote_spanned! {
+        quote_spanned! {
             span => {
                 let val = #expression;
                 ( #(#fields),* )
             }
-        };
+        }
     }
 
     fn convert_ffi_option_expression_to_rust_type(&self, _expression: &TokenStream) -> TokenStream {
@@ -280,10 +280,9 @@ impl BridgeableType for BuiltInTuple {
         );
         let converted_fields = converted_fields.join(", ");
 
-        return format!(
-            "{{ let val = {}; return ({converted_fields}); }}()",
-            expression
-        );
+        format!(
+            "{{ let val = {expression}; return ({converted_fields}); }}()"
+        )
     }
 
     fn convert_ffi_option_expression_to_swift_type(&self, _expression: &str) -> String {

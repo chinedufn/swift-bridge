@@ -73,7 +73,7 @@ impl<'a> ForeignModParser<'a> {
 
                     if let Some(ty) = BridgedType::new_with_str(
                         &foreign_ty.ident.to_string(),
-                        &self.type_declarations,
+                        self.type_declarations,
                     ) {
                         if ty.is_built_in_type() {
                             self.errors.push(ParseError::DeclaredBuiltInType {
@@ -104,7 +104,7 @@ impl<'a> ForeignModParser<'a> {
                     for arg in func.sig.inputs.iter() {
                         if let FnArg::Typed(pat_ty) = arg {
                             let ty = &pat_ty.ty;
-                            if BridgedType::new_with_type(&ty, &self.type_declarations).is_none() {
+                            if BridgedType::new_with_type(ty, self.type_declarations).is_none() {
                                 self.unresolved_types.push(ty.deref().clone());
                             }
                         }
@@ -114,7 +114,7 @@ impl<'a> ForeignModParser<'a> {
                     let mut swift_failable_initializer: Option<FailableInitializerType> = None;
                     if let ReturnType::Type(_, return_ty) = return_type {
                         let bridged_return_type =
-                            BridgedType::new_with_type(return_ty.deref(), &self.type_declarations);
+                            BridgedType::new_with_type(return_ty.deref(), self.type_declarations);
 
                         if let Some(ty) = &bridged_return_type {
                             if ty.as_option().is_some() && attributes.is_swift_initializer {
@@ -183,7 +183,7 @@ impl<'a> ForeignModParser<'a> {
                             if let Some(TypeDeclaration::Opaque(o)) = associated_type.as_ref() {
                                 o.attributes.copy.is_some()
                             } else if let Some(ty) =
-                                bridgeable_type_from_fn_arg(arg, &self.type_declarations)
+                                bridgeable_type_from_fn_arg(arg, self.type_declarations)
                             {
                                 ty.has_swift_bridge_copy_annotation()
                             } else {
@@ -194,22 +194,19 @@ impl<'a> ForeignModParser<'a> {
                             self.errors
                                 .push(ParseError::ArgCopyAndRefMut { arg: arg.clone() });
                         }
-                        match arg {
-                            syn::FnArg::Typed(ty) => {
-                                for attr in ty.attrs.iter() {
-                                    let attribute: ArgumentAttributes = attr.parse_args()?;
-                                    if let Some(label) = attribute.label {
-                                        argument_labels.insert(
-                                            format_ident!(
-                                                "{}",
-                                                ty.pat.to_token_stream().to_string()
-                                            ),
-                                            label,
-                                        );
-                                    }
+                        if let syn::FnArg::Typed(ty) = arg {
+                            for attr in ty.attrs.iter() {
+                                let attribute: ArgumentAttributes = attr.parse_args()?;
+                                if let Some(label) = attribute.label {
+                                    argument_labels.insert(
+                                        format_ident!(
+                                            "{}",
+                                            ty.pat.to_token_stream().to_string()
+                                        ),
+                                        label,
+                                    );
                                 }
                             }
-                            _ => {}
                         }
                     }
                     if let Some(ref args) = attributes.args_into {
@@ -249,7 +246,7 @@ impl<'a> ForeignModParser<'a> {
                         return_with: attributes.return_with,
                         args_into: attributes.args_into,
                         get_field: attributes.get_field,
-                        argument_labels: argument_labels,
+                        argument_labels,
                     };
                     self.functions.push(func);
                 }
@@ -287,7 +284,7 @@ impl<'a> ForeignModParser<'a> {
                             .map(|g| g.ident.to_string())
                             .collect();
                         let generics: String = generics.join(",");
-                        let ty_name = format!("{}<{}>", ty_name, generics);
+                        let ty_name = format!("{ty_name}<{generics}>");
                         self.type_declarations
                             .insert(ty_name.clone(), TypeDeclaration::Opaque(foreign_ty.clone()));
                         local_type_declarations.insert(ty_name, foreign_ty);
@@ -310,15 +307,15 @@ impl<'a> ForeignModParser<'a> {
     ) -> syn::Result<Option<TypeDeclaration>> {
         let associated_type = match first {
             Some(FnArg::Receiver(recv)) => {
-                if let Some(_) = attributes.associated_to {
+                if attributes.associated_to.is_some() {
                     self.errors.push(ParseError::InvalidAssociatedTo {
                         self_: first.unwrap().clone(),
                     })
                 }
                 if local_type_declarations.len() == 1 {
                     let ty = local_type_declarations.iter_mut().next().unwrap().1;
-                    let associated_type = Some(TypeDeclaration::Opaque(ty.clone()));
-                    associated_type
+                    
+                    Some(TypeDeclaration::Opaque(ty.clone()))
                 } else {
                     self.errors.push(ParseError::AmbiguousSelf {
                         self_: recv.clone(),
@@ -328,7 +325,7 @@ impl<'a> ForeignModParser<'a> {
             }
             Some(FnArg::Typed(arg)) => match arg.pat.deref() {
                 Pat::Ident(pat_ident) => {
-                    if pat_ident.ident.to_string() == "self" {
+                    if pat_ident.ident == "self" {
                         let self_ty = match arg.ty.deref() {
                             Type::Path(ty_path) => ty_path.path.segments.to_token_stream(),
                             Type::Reference(type_ref) => type_ref.elem.deref().to_token_stream(),
@@ -342,17 +339,17 @@ impl<'a> ForeignModParser<'a> {
                         let self_ty_string = self_ty_string.replace(" ", "");
 
                         let ty = self.type_declarations.get(&self_ty_string).unwrap();
-                        let associated_type = Some(ty.clone());
-                        associated_type
+                        
+                        Some(ty.clone())
                     } else {
-                        let associated_type = self.get_associated_type(
+                        
+                        self.get_associated_type(
                             None,
                             func.clone(),
                             attributes,
                             local_type_declarations,
                             swift_failable_initializer,
-                        )?;
-                        associated_type
+                        )?
                     }
                 }
                 _ => {
@@ -396,7 +393,7 @@ Otherwise we use a more general error that says that your argument is invalid.
                             let inner = inner.trim_start_matches("Option < ").trim_end_matches(" ");
 
                             let ty = self.type_declarations.get(inner);
-                            ty.map(|ty| ty.clone())
+                            ty.cloned()
                         } else if ty_string.starts_with("Result <") {
                             // A , B >
                             let trimmed = ty_string.trim_start_matches("Result < ");
@@ -409,14 +406,14 @@ Otherwise we use a more general error that says that your argument is invalid.
 
                             let ty = self.type_declarations.get(ok);
 
-                            ty.map(|ty| ty.clone())
+                            ty.cloned()
                         } else {
                             unreachable!();
                         }
                     } else {
                         let ty = self.type_declarations.get(&ty_string);
 
-                        ty.map(|ty| ty.clone())
+                        ty.cloned()
                     }
                 } else {
                     None
@@ -549,7 +546,7 @@ mod tests {
                 module.functions.len(),
                 1,
                 "Failed not parse {} into an associated method.",
-                quote! {#fn_definition}.to_string()
+                quote! {#fn_definition}
             );
         }
     }
@@ -737,7 +734,7 @@ mod tests {
 
         let functions = &module.functions;
 
-        for (ty_name, expected_count) in vec![("SomeType", 2), ("AnotherType", 1)] {
+        for (ty_name, expected_count) in [("SomeType", 2), ("AnotherType", 1)] {
             assert_eq!(
                 functions
                     .iter()
@@ -771,7 +768,7 @@ mod tests {
 
         let functions = &module.functions;
 
-        for (ty_name, expected_count) in vec![("SomeType", 1), ("AnotherType", 1)] {
+        for (ty_name, expected_count) in [("SomeType", 1), ("AnotherType", 1)] {
             assert_eq!(
                 functions
                     .iter()

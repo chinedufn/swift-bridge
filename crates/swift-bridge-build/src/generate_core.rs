@@ -7,11 +7,11 @@ use crate::generate_core::option_support::{
 use crate::generate_core::result_support::{C_RESULT_SUPPORT, SWIFT_RUST_RESULT};
 use std::path::Path;
 
-const RUST_STRING_SWIFT: &'static str = include_str!("./generate_core/rust_string.swift");
-const RUST_STRING_C: &'static str = include_str!("./generate_core/rust_string.c.h");
+const RUST_STRING_SWIFT: &str = include_str!("./generate_core/rust_string.swift");
+const RUST_STRING_C: &str = include_str!("./generate_core/rust_string.c.h");
 
-const STRING_SWIFT: &'static str = include_str!("./generate_core/string.swift");
-const RUST_VEC_SWIFT: &'static str = include_str!("./generate_core/rust_vec.swift");
+const STRING_SWIFT: &str = include_str!("./generate_core/string.swift");
+const RUST_VEC_SWIFT: &str = include_str!("./generate_core/rust_vec.swift");
 
 mod boxed_fn_support;
 mod option_support;
@@ -21,11 +21,11 @@ pub(super) fn write_core_swift_and_c(out_dir: &Path) {
     let core_swift_out = out_dir.join("SwiftBridgeCore.swift");
     let mut swift = core_swift();
     swift += "\n";
-    swift += &RUST_STRING_SWIFT;
+    swift += RUST_STRING_SWIFT;
     swift += "\n";
-    swift += &SWIFT_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN;
+    swift += SWIFT_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN;
     swift += "\n";
-    swift += &SWIFT_RUST_RESULT;
+    swift += SWIFT_RUST_RESULT;
     swift += "\n";
     swift += &swift_option_primitive_support();
 
@@ -34,11 +34,11 @@ pub(super) fn write_core_swift_and_c(out_dir: &Path) {
     let core_c_header_out = out_dir.join("SwiftBridgeCore.h");
     let mut c_header = core_c_header().to_string();
     c_header += "\n";
-    c_header += &RUST_STRING_C;
+    c_header += RUST_STRING_C;
     c_header += "\n";
-    c_header += &C_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN;
+    c_header += C_CALLBACK_SUPPORT_NO_ARGS_NO_RETURN;
     c_header += "\n";
-    c_header += &C_RESULT_SUPPORT;
+    c_header += C_RESULT_SUPPORT;
 
     std::fs::write(core_c_header_out, c_header).unwrap();
 }
@@ -70,8 +70,8 @@ fn core_swift() -> String {
         core_swift += &conform_to_vectorizable(swift_ty, rust_ty);
     }
 
-    core_swift += &generic_freer();
-    core_swift += &generic_copy_type_ffi_repr();
+    core_swift += generic_freer();
+    core_swift += generic_copy_type_ffi_repr();
 
     core_swift
 }
@@ -85,7 +85,7 @@ void* __swift_bridge__null_pointer(void);
 
 "#
     .to_string();
-    header += &C_OPTION_PRIMITIVE_SUPPORT;
+    header += C_OPTION_PRIMITIVE_SUPPORT;
 
     for (rust_ty, c_ty) in vec![
         ("u8", "uint8_t"),
@@ -132,10 +132,7 @@ void __swift_bridge__$Vec_{rust_ty}$push(void* const vec, {c_ty} val);
 {option_ty} __swift_bridge__$Vec_{rust_ty}$get(void* const vec, uintptr_t index);
 {option_ty} __swift_bridge__$Vec_{rust_ty}$get_mut(void* const vec, uintptr_t index);
 {c_ty} const * __swift_bridge__$Vec_{rust_ty}$as_ptr(void* const vec);
-"#,
-        rust_ty = rust_ty,
-        c_ty = c_ty,
-        option_ty = option_ty
+"#
     )
 }
 
@@ -190,9 +187,7 @@ extension {swift_ty}: Vectorizable {{
         __swift_bridge__$Vec_{rust_ty}$len(vecPtr)
     }}
 }}
-    "#,
-        rust_ty = rust_ty,
-        swift_ty = swift_ty
+    "#
     )
 }
 

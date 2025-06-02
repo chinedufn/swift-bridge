@@ -50,7 +50,7 @@ extension Optional where Wrapped == {inner_ty} {{
     all
 }
 
-pub(super) const C_OPTION_PRIMITIVE_SUPPORT: &'static str = r#"
+pub(super) const C_OPTION_PRIMITIVE_SUPPORT: &str = r#"
 typedef struct __private__OptionU8 { uint8_t val; bool is_some; } __private__OptionU8;
 typedef struct __private__OptionI8 { int8_t val; bool is_some; } __private__OptionI8;
 typedef struct __private__OptionU16 { uint16_t val; bool is_some; } __private__OptionU16;

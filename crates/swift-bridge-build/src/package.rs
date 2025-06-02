@@ -101,14 +101,14 @@ pub fn create_package(config: CreatePackageConfig) {
     // Create output directory //
     let output_dir: &Path = config.out_dir.as_ref();
     if !&output_dir.exists() {
-        fs::create_dir_all(&output_dir).expect("Couldn't create output directory");
+        fs::create_dir_all(output_dir).expect("Couldn't create output directory");
     }
 
     // Generate RustXcframework //
-    gen_xcframework(&output_dir, &config);
+    gen_xcframework(output_dir, &config);
 
     // Generate Swift Package //
-    gen_package(&output_dir, &config);
+    gen_package(output_dir, &config);
 }
 
 /// Generates the RustXcframework
@@ -116,7 +116,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     // Create directories
     let temp_dir = tempdir().expect("Couldn't create temporary directory");
     let tmp_framework_path = &temp_dir.path().join("swiftbridge._tmp_framework");
-    fs::create_dir(&tmp_framework_path).expect("Couldn't create framework directory");
+    fs::create_dir(tmp_framework_path).expect("Couldn't create framework directory");
 
     let include_dir = tmp_framework_path.join("include");
     if !include_dir.exists() {
@@ -131,7 +131,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     )
     .expect("Couldn't write modulemap file");
     let mut modulemap_file = OpenOptions::new()
-        .write(true)
+        
         .append(true)
         .open(&modulemap_path)
         .expect("Couldn't open modulemap file for writing");
@@ -140,10 +140,10 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     let bridge_dir: &Path = config.bridge_dir.as_ref();
     fs::copy(
         bridge_dir.join("SwiftBridgeCore.h"),
-        &include_dir.join("SwiftBridgeCore.h"),
+        include_dir.join("SwiftBridgeCore.h"),
     )
     .expect("Couldn't copy SwiftBridgeCore header file");
-    let bridge_project_dir = fs::read_dir(&bridge_dir)
+    let bridge_project_dir = fs::read_dir(bridge_dir)
         .expect("Couldn't read generated directory")
         .find_map(|file| {
             let file = file.unwrap().path();
@@ -167,7 +167,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
         .expect("Couldn't find project's header file");
     fs::copy(
         &bridge_project_header_dir,
-        &include_dir.join(&bridge_project_header_dir.file_name().unwrap()),
+        include_dir.join(bridge_project_header_dir.file_name().unwrap()),
     )
     .expect("Couldn't copy project's header file");
     writeln!(
@@ -186,17 +186,13 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     for platform in &config.paths {
         let platform_path = &tmp_framework_path.join(platform.0.dir_name());
         if !platform_path.exists() {
-            fs::create_dir(&platform_path).expect(&format!(
-                "Couldn't create directory for target {:?}",
-                platform.0
-            ));
+            fs::create_dir(platform_path).unwrap_or_else(|_| panic!("Couldn't create directory for target {:?}",
+                platform.0));
         }
 
         let lib_path: &Path = platform.1.as_ref();
-        fs::copy(lib_path, platform_path.join(lib_path.file_name().unwrap())).expect(&format!(
-            "Couldn't copy library for platform {:?}",
-            platform.0
-        ));
+        fs::copy(lib_path, platform_path.join(lib_path.file_name().unwrap())).unwrap_or_else(|_| panic!("Couldn't copy library for platform {:?}",
+            platform.0));
     }
 
     // build xcframework
@@ -228,7 +224,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     );
 
     let output = Command::new("xcodebuild")
-        .current_dir(&tmp_framework_path)
+        .current_dir(tmp_framework_path)
         .args(args)
         .stdout(Stdio::piped())
         .spawn()
@@ -244,8 +240,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
     let temp_dir_string = temp_dir.path().to_str().unwrap().to_string();
     if let Err(err) = temp_dir.close() {
         eprintln!(
-            "Couldn't close temporary directory {} - {}",
-            temp_dir_string, err
+            "Couldn't close temporary directory {temp_dir_string} - {err}"
         );
     }
 }
@@ -271,13 +266,13 @@ fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
         sources_dir.join("SwiftBridgeCore.swift"),
         format!(
             "import RustXcframework\n{}",
-            fs::read_to_string(&bridge_dir.join("SwiftBridgeCore.swift"))
+            fs::read_to_string(bridge_dir.join("SwiftBridgeCore.swift"))
                 .expect("Couldn't read core bridging swift file")
         ),
     )
     .expect("Couldn't write core bridging swift file");
 
-    let bridge_project_dir = fs::read_dir(&bridge_dir)
+    let bridge_project_dir = fs::read_dir(bridge_dir)
         .expect("Couldn't read generated directory")
         .find_map(|file| {
             let file = file.unwrap().path();
@@ -300,7 +295,7 @@ fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
         })
         .expect("Couldn't find project's bridging swift file");
     fs::write(
-        sources_dir.join(&bridge_project_swift_dir.file_name().unwrap()),
+        sources_dir.join(bridge_project_swift_dir.file_name().unwrap()),
         format!(
             "import RustXcframework\n{}",
             fs::read_to_string(&bridge_project_swift_dir)

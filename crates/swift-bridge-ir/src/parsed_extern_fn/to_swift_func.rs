@@ -18,7 +18,7 @@ impl ParsedExternFn {
             let param = match arg {
                 FnArg::Receiver(_receiver) => {
                     if include_receiver_if_present {
-                        params.push(format!("_ this: UnsafeMutableRawPointer"));
+                        params.push("_ this: UnsafeMutableRawPointer".to_string());
                     }
 
                     continue;
@@ -26,7 +26,7 @@ impl ParsedExternFn {
                 FnArg::Typed(pat_ty) => {
                     if pat_type_pat_is_self(pat_ty) {
                         if include_receiver_if_present {
-                            params.push(format!("_ this: UnsafeMutableRawPointer"));
+                            params.push("_ this: UnsafeMutableRawPointer".to_string());
                         }
 
                         continue;
@@ -35,11 +35,10 @@ impl ParsedExternFn {
                     let arg_name = pat_ty.pat.to_token_stream().to_string();
 
                     let ty = if let Some(built_in) = BridgedType::new_with_type(&pat_ty.ty, types) {
-                        if self.host_lang.is_swift() {
-                            if built_in.can_be_encoded_with_zero_bytes() {
+                        if self.host_lang.is_swift()
+                            && built_in.can_be_encoded_with_zero_bytes() {
                                 continue;
                             }
-                        }
 
                         built_in.to_swift_type(
                             TypePosition::FnArg(self.host_lang, arg_idx),
@@ -55,7 +54,7 @@ impl ParsedExternFn {
                     {
                         format!("{} {}: {}", argument_label.value().as_str(), arg_name, ty)
                     } else {
-                        format!("_ {}: {}", arg_name, ty)
+                        format!("_ {arg_name}: {ty}")
                     }
                 }
             };
@@ -117,23 +116,21 @@ impl ParsedExternFn {
                                     types,
                                     TypePosition::FnArg(self.host_lang, arg_idx),
                                 )
+                            } else if let Some(only) = bridged_ty.only_encoding() {
+                                only.swift
                             } else {
-                                if let Some(only) = bridged_ty.only_encoding() {
-                                    only.swift
-                                } else {
-                                    bridged_ty.convert_ffi_value_to_swift_value(
-                                        &arg,
-                                        TypePosition::FnArg(self.host_lang, arg_idx),
-                                        types,
-                                        swift_bridge_path,
-                                    )
-                                }
+                                bridged_ty.convert_ffi_value_to_swift_value(
+                                    &arg,
+                                    TypePosition::FnArg(self.host_lang, arg_idx),
+                                    types,
+                                    swift_bridge_path,
+                                )
                             }
                         } else {
                             todo!("Push to ParsedErrors")
                         };
                     let arg = if include_var_name {
-                        format!("{}: {}", arg_name, arg)
+                        format!("{arg_name}: {arg}")
                     } else {
                         arg
                     };
@@ -153,12 +150,11 @@ impl ParsedExternFn {
         match &self.func.sig.output {
             ReturnType::Default => "".to_string(),
             ReturnType::Type(_, ty) => {
-                if let Some(built_in) = BridgedType::new_with_type(&ty, types) {
-                    if self.host_lang.is_swift() {
-                        if built_in.can_be_encoded_with_zero_bytes() {
+                if let Some(built_in) = BridgedType::new_with_type(ty, types) {
+                    if self.host_lang.is_swift()
+                        && built_in.can_be_encoded_with_zero_bytes() {
                             return "".to_string();
                         }
-                    }
 
                     let maybe_throws = if built_in.is_result() { "throws " } else { "" };
 
@@ -181,12 +177,10 @@ impl ParsedExternFn {
     fn push_receiver_as_arg(&self, args: &mut Vec<String>, is_reference: bool) {
         let arg = if self.is_copy_method_on_opaque_type() {
             "self.bytes"
+        } else if is_reference {
+            "ptr"
         } else {
-            if is_reference {
-                "ptr"
-            } else {
-                "{isOwned = false; return ptr;}()"
-            }
+            "{isOwned = false; return ptr;}()"
         };
         args.push(arg.to_string());
     }
@@ -223,7 +217,7 @@ mod tests {
         for (idx, expected) in expected.into_iter().enumerate() {
             assert_eq!(
                 functions[idx].to_swift_return_type(&module.types, &module.swift_bridge_path),
-                format!(" -> {}", expected)
+                format!(" -> {expected}")
             );
         }
     }
@@ -288,7 +282,7 @@ mod tests {
                     &module.types,
                     &module.swift_bridge_path
                 ),
-                format!("_ other: {}", expected)
+                format!("_ other: {expected}")
             );
         }
     }
