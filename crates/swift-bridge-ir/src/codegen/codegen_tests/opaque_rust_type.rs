@@ -395,6 +395,73 @@ void __swift_bridge__$SomeType$some_method_ref(struct __swift_bridge__$SomeType 
     }
 }
 
+/// Verify that we properly generate an Equatable extension for a Copy opaque Rust type.
+///
+/// In May 2025 it was discovered that the Swift `Equatable` protocol was not being implemented for
+/// Rust `Copy` types. This test case confirms tht we emit an `Equatable` protocol implementation.
+mod extern_rust_copy_type_equatable {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(Copy(16), Equatable)]
+                    type SomeType;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::SkipTest
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+extension SomeType: Equatable {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        var lhs = lhs
+        var rhs = rhs
+        return withUnsafePointer(to: &lhs.bytes, {(lhs_p: UnsafePointer<__swift_bridge__$SomeType>) in
+            return withUnsafePointer(to: &rhs.bytes, {(rhs_p: UnsafePointer<__swift_bridge__$SomeType>) in
+                return __swift_bridge__$SomeType$_partial_eq(
+                    UnsafeMutablePointer(mutating: lhs_p),
+                    UnsafeMutablePointer(mutating: rhs_p)
+                )
+            })
+        })
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ContainsManyAfterTrim(vec![
+            r#"
+#include <stdint.h>
+#include <stdbool.h>
+"#,
+            r#"
+bool __swift_bridge__$SomeType$_partial_eq(__swift_bridge__$SomeType* lhs, __swift_bridge__$SomeType* rhs);
+"#,
+        ])
+    }
+
+    #[test]
+    fn extern_rust_copy_type_equatable() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Test code generation for freestanding Swift function that takes an opaque Rust type argument.
 mod extern_swift_freestanding_fn_with_owned_opaque_rust_type_arg {
     use super::*;

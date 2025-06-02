@@ -8,7 +8,8 @@ error[E0308]: mismatched types
    |  ______________-
 10 | |
 11 | |         #[swift_bridge(rust_name = "some_function")]
-   | |_________- expected due to this
+12 | |         fn fn1() -> SomeType;
+   | |_____________________________- expected due to this
    |
    = note: this error originates in the attribute macro `swift_bridge::bridge` (in Nightly builds, run with -Z macro-backtrace for more info)
 
@@ -24,7 +25,8 @@ error[E0308]: mismatched types
 11 | |         #[swift_bridge(rust_name = "some_function")]
 12 | |         fn fn1() -> SomeType;
 13 | |         #[swift_bridge(rust_name = "another_function")]
-   | |_________- expected due to this
+14 | |         fn fn2() -> SomeType;
+   | |_____________________________- expected due to this
    |
    = note: expected struct `SomeType`
                 found enum `Option<SomeType>`
