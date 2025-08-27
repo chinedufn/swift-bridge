@@ -2236,7 +2236,8 @@ applications.</p>
 <tr><td></td><td>Have a Swift standard library type in mind?<br /> Open an issue!</td><td></td></tr>
 </tbody></table>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="rust-stdstringstring-----swift-string"><a class="header" href="#rust-stdstringstring-----swift-string">Rust <code>std::string::String</code> &lt;---&gt; Swift <code>String</code></a></h1>
-<p>Rust's <code>std::string::String</code> can be passed to Swift as an owned <code>String</code>, a referenced <code>&amp;String</code> or a mutably referenced <code>&amp;mut String</code>.</p>
+<p>Rust's <code>std::string::String</code> can be passed to Swift as an owned <code>String</code>, a referenced <code>&amp;String</code> or a mutably referenced
+<code>&amp;mut String</code>.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2244,29 +2245,29 @@ applications.</p>
 
 #[swift_bridge::bridge]
 mod ffi {
-	extern &quot;Rust&quot; {
-	    type SomeRustType;
+    extern &quot;Rust&quot; {
+        type SomeRustType;
 
-	    // Becomes a `RustString` when passed to Swift.
-	    fn make_string() -&gt; String;
+        // Becomes a `RustString` when passed to Swift.
+        fn make_string() -&gt; String;
 
-	    // Becomes a `RustStringRef` when passed to Swift.
-	    fn make_ref_string(&amp;self) -&gt; &amp;String;
+        // Becomes a `RustStringRef` when passed to Swift.
+        fn make_ref_string(&amp;self) -&gt; &amp;String;
 
-	    // Becomes a `RustStringRefMut` when passed to Swift.
-	    fn make_ref_mut_string(&amp;mut self) -&gt; &amp;mut String;
+        // Becomes a `RustStringRefMut` when passed to Swift.
+        fn make_ref_mut_string(&amp;mut self) -&gt; &amp;mut String;
 
         // Swift calls this with a `RustString` and
         // Rust receives a `std::string::String`.
-	    fn take_string(string: String);
-	}
+        fn take_string(string: String);
+    }
 
-	extern &quot;Swift&quot; {
-	    type SomeSwiftType;
+    extern &quot;Swift&quot; {
+        type SomeSwiftType;
 
-	    fn make_rust_string() -&gt; String;
-	    fn make_swift_string() -&gt; String;
-	}
+        fn make_rust_string() -&gt; String;
+        fn make_swift_string() -&gt; String;
+    }
 }
 <span class="boring">}
 </span></code></pre></pre>
@@ -2283,11 +2284,14 @@ func make_swift_string() -&gt; String {
 }
 </code></pre>
 <h2 id="ruststring"><a class="header" href="#ruststring">RustString</a></h2>
-<p>It is technically possible for us to automatically convert owned Rust <code>std::string::String</code>s into Swift <code>String</code>s,
-but we do not do this because it would require copying the Rust <code>std::string::String</code> bytes to a new <code>Swift</code> allocation.</p>
-<p>This is because there is no way to construct a Swift <code>String</code> without copying.</p>
-<p><code>swift-bridge</code> seeks to avoid unnecessary allocations, so instead of performing an implicit allocation we pass a <code>RustString</code> type from Rust to Swift.</p>
-<p>The <code>RustString</code>'s <code>.toString()</code> method can then be called on the Swift side to get a Swift <code>String</code>.</p>
+<p>There is no zero-copy way to construct a Swift <code>String</code> from a byte buffer.</p>
+<p><code>swift-bridge</code> seeks to avoid unnecessary allocations, so when passing a Rust <code>std::string::String</code> to Swift we create
+a <code>RustString</code> on the Swift side instead of automatically allocating a new Swift <code>String</code>.
+Users can then create a Swift <code>String</code> themselves by calling the <code>RustString.toString()</code> method.</p>
+<p>Since a Rust <code>std::string::String</code> is <code>Send+Sync</code>, a Swift <code>RustString</code> is <code>Sendable</code> so long as the swift code does not
+violate Rust's ownership and aliasing rules.</p>
+<p><code>RustString</code>, <code>RustStringRef</code> and <code>RustStringRefMut</code> implement Swift's <code>Sendable</code> protocol.
+This is thread safe so long as users uphold the rules in the <a href="built-in/string/../../safety/README.html">Safety</a> chapter.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="str-----ruststr"><a class="header" href="#str-----ruststr">&amp;str &lt;---&gt; RustStr</a></h1>
 <p>Rust's <code>std::str</code> can be passed to Swift as a <code>RustStr</code>.</p>
 <pre><pre class="playground"><code class="language-rust">
