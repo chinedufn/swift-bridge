@@ -51,7 +51,7 @@ mod ffi {
 
     enum AsyncResultOkEnum {
         NoFields,
-        UnnamedFields(i32, u32),
+        UnnamedFields(i32, String),
         NamedFields { value: u8 },
     }
 
