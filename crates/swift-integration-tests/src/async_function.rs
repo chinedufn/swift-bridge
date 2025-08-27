@@ -22,10 +22,7 @@ mod ffi {
             succeed: bool,
         ) -> Result<(), AsyncResultOpaqueRustType2>;
 
-        // TODO: this is broken because RustString is not Sendable.
-        // Work around making String and other opaque types Sendable is tracked
-        // here: https://github.com/chinedufn/swift-bridge/issues/150
-        // async fn rust_async_reflect_string(string: String) -> String;
+        async fn rust_async_reflect_string(string: String) -> String;
     }
 
     extern "Rust" {
