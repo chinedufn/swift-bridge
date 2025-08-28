@@ -11,7 +11,26 @@ public class RustString: RustStringRefMut {
         }
     }
 }
-extension RustString: @unchecked Sendable {
+
+/// Tested in:
+///   SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/ResultTests.swift:
+///  `func testSwiftCallRustReturnsResultString()`
+extension RustString: Error {}
+
+// THREAD SAFETY: `RustString`, `RustStringRef` and `RustStringRefMut` are safe to send across threads as long as the
+// ownership and aliasing rules are followed.
+// This is because the underlying Rust `std::string::String`, `&str` and `&mut str` are all `Send+Sync`.
+// See the `Safety` chapter in the book for more information about memory and thread safety rules.
+//
+// For now we have implemented `Sendable` for `RustString`. If users need `RustStringRef` or `RustStringRefMut` to
+// implement `Sendable` then we can implement those as well.
+//
+// Tested in:
+//  `SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/SendableTests.swift`
+//  `func testSendableRustString()`
+extension RustString: @unchecked Sendable {}
+
+extension RustString {
     public convenience init() {
         self.init(ptr: __swift_bridge__$RustString$new())
     }
@@ -48,9 +67,6 @@ extension RustStringRef {
         __swift_bridge__$RustString$trim(ptr)
     }
 }
-/// exercised in SwiftRustIntegrationTestRunner/SwiftRustIntegrationTestRunnerTests/ResultTests.swift:
-///   - see `func testSwiftCallRustReturnsResultString`
-extension RustStringRef: Error {}
 extension RustString: Vectorizable {
     public static func vecOfSelfNew() -> UnsafeMutableRawPointer {
         __swift_bridge__$Vec_RustString$new()
