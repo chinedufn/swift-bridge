@@ -141,7 +141,7 @@ impl SwiftBridgeModule {
 
                             if ty.attributes.sendable {
                                 let ty_name = ty.ty_name_string();
-                                swift += &format!("extension {ty_name}: @unchecked Sendable {{}}")
+                                swift += &format!("extension {ty_name}: @unchecked Sendable {{}}\n")
                             }
                         }
                         HostLang::Swift => {
