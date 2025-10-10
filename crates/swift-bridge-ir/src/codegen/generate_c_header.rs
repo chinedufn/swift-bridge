@@ -270,12 +270,6 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                     if ty.attributes.declare_generic {
                         continue;
                     }
-                    if ty.attributes.hashable {
-                        let ty_name = ty.ty_name_ident();
-                        let hash_ty =
-                            format!("uint64_t __swift_bridge__${}$_hash(void* self);", ty_name);
-                        header += &hash_ty;
-                    }
                     let ty_name = ty.to_string();
 
                     if let Some(copy) = ty.attributes.copy {
@@ -332,6 +326,19 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         bookkeeping.includes.insert("stdbool.h");
                         header += &equal_ty;
                         header += "\n";
+                    }
+                    if ty.attributes.hashable {
+                        let ty_name = ty.ty_name_ident();
+                        let hash_ty = format!(
+                            "uint64_t __swift_bridge__${ty_name}$_hash({c_ffi_type}* self);",
+                            ty_name = ty_name,
+                            c_ffi_type = if ty.attributes.copy.is_some() {
+                                &ty.ffi_repr_name_string()
+                            } else {
+                                "void"
+                            },
+                        );
+                        header += &hash_ty;
                     }
 
                     // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
