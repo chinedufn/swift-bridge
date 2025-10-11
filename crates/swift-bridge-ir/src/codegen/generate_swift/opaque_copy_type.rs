@@ -80,6 +80,16 @@ fn generate_struct_definition(
     func intoSwiftRepr() -> {type_name} {{
         {type_name}(bytes: self)
     }}
+}}
+
+extension {prefix}$Option${type_name} {{
+    func intoSwiftRepr() -> {type_name}? {{
+        if is_some {{
+            return val.intoSwiftRepr()
+        }} else {{
+            return nil
+        }}
+    }}
 }}"#,
             prefix = SWIFT_BRIDGE_PREFIX,
             type_name = type_name,

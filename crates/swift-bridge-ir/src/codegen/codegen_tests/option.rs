@@ -1118,17 +1118,7 @@ mod extern_rust_fn_return_option_opaque_copy_rust_type {
         ExpectedRustTokens::Contains(quote! {
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function() -> __swift_bridge__Option_SomeType {
-                if let Some(val) = super::some_function() {
-                    __swift_bridge__Option_SomeType {
-                        is_some: true,
-                        val: std::mem::MaybeUninit::new(__swift_bridge__SomeType::from_rust_repr(val))
-                    }
-                } else {
-                    __swift_bridge__Option_SomeType {
-                        is_some: false,
-                        val: std::mem::MaybeUninit::uninit()
-                    }
-                }
+                __swift_bridge__Option_SomeType::from_rust_repr(super::some_function())
             }
         })
     }
@@ -1250,17 +1240,7 @@ mod extern_rust_fn_return_option_generic_opaque_copy_rust_type {
         ExpectedRustTokens::Contains(quote! {
             #[export_name = "__swift_bridge__$some_function"]
             pub extern "C" fn __swift_bridge__some_function() -> __swift_bridge__Option_SomeType_u32 {
-                if let Some(val) = super::some_function() {
-                    __swift_bridge__Option_SomeType_u32 {
-                        is_some: true,
-                        val: std::mem::MaybeUninit::new(__swift_bridge__SomeType_u32::from_rust_repr(val))
-                    }
-                } else {
-                    __swift_bridge__Option_SomeType_u32 {
-                        is_some: false,
-                        val: std::mem::MaybeUninit::uninit()
-                    }
-                }
+                __swift_bridge__Option_SomeType_u32::from_rust_repr(super::some_function())
             }
         })
     }
