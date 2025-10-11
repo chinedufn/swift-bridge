@@ -1,10 +1,10 @@
 error[E0308]: mismatched types
   --> tests/ui/incorrect-return-type.rs:6:1
    |
-6  |   #[swift_bridge::bridge]
+ 6 |   #[swift_bridge::bridge]
    |   ^^^^^^^^^^^^^^^^^^^^^^^ expected `SomeType`, found `&SomeType`
 ...
-9  |           type SomeType;
+ 9 |           type SomeType;
    |  ______________-
 10 | |
 11 | |         #[swift_bridge(rust_name = "some_function")]
@@ -15,10 +15,10 @@ error[E0308]: mismatched types
 error[E0308]: mismatched types
   --> tests/ui/incorrect-return-type.rs:6:1
    |
-6  |   #[swift_bridge::bridge]
+ 6 |   #[swift_bridge::bridge]
    |   ^^^^^^^^^^^^^^^^^^^^^^^ expected `SomeType`, found `Option<SomeType>`
 ...
-9  |           type SomeType;
+ 9 |           type SomeType;
    |  ______________-
 10 | |
 11 | |         #[swift_bridge(rust_name = "some_function")]
@@ -31,5 +31,5 @@ error[E0308]: mismatched types
    = note: this error originates in the attribute macro `swift_bridge::bridge` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: consider using `Option::expect` to unwrap the `Option<SomeType>` value, panicking if the value is an `Option::None`
    |
-6  | #[swift_bridge::bridge].expect("REASON")
+ 6 | #[swift_bridge::bridge].expect("REASON")
    |                        +++++++++++++++++
