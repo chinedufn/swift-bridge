@@ -35,3 +35,4 @@
     - [Code Generation](./contributing/internal-design/codegen/README.md)
   - [Adding support for a signature](./contributing/adding-support-for-a-signature/README.md)
   - [Adding compile time errors](./contributing/adding-compile-time-errors/README.md)
+  - [Pull Requests](./contributing/pull-requests/README.md)
