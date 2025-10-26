@@ -395,10 +395,12 @@ void __swift_bridge__$SomeType$some_method_ref(struct __swift_bridge__$SomeType 
     }
 }
 
-/// Verify that we properly generate an Equatable extension for a Copy opaque Rust type.
+/// Verify that we properly generate Equatable and Hashable extensions for a Copy opaque Rust type.
 ///
 /// In May 2025 it was discovered that the Swift `Equatable` protocol was not being implemented for
 /// Rust `Copy` types. This test case confirms tht we emit an `Equatable` protocol implementation.
+/// Furthermore, in October 2025 it was discovered that the Swift `Hashable` protocol was not being implemented for
+/// Rust `Copy` types. This test case confirms tht we emit an `Hashable` protocol implementation.
 mod extern_rust_copy_type_equatable {
     use super::*;
 
@@ -406,7 +408,7 @@ mod extern_rust_copy_type_equatable {
         quote! {
             mod ffi {
                 extern "Rust" {
-                    #[swift_bridge(Copy(16), Equatable)]
+                    #[swift_bridge(Copy(16), Equatable, Hashable)]
                     type SomeType;
                 }
             }
@@ -434,6 +436,17 @@ extension SomeType: Equatable {
         })
     }
 }
+
+extension SomeType: Hashable {
+    public func hash(into hasher: inout Hasher){
+        var this = self
+        return withUnsafePointer(to: &this.bytes, {(ptr: UnsafePointer<__swift_bridge__$SomeType>) in
+            hasher.combine(__swift_bridge__$SomeType$_hash(
+                UnsafeMutablePointer(mutating: ptr)
+            ))
+        })
+    }
+}
 "#,
         )
     }
@@ -446,6 +459,9 @@ extension SomeType: Equatable {
 "#,
             r#"
 bool __swift_bridge__$SomeType$_partial_eq(__swift_bridge__$SomeType* lhs, __swift_bridge__$SomeType* rhs);
+"#,
+            r#"
+uint64_t __swift_bridge__$SomeType$_hash(__swift_bridge__$SomeType* self);
 "#,
         ])
     }

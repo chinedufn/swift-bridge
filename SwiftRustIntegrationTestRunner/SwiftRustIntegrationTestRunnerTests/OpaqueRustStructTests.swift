@@ -136,7 +136,48 @@ class OpaqueRustStructTests: XCTestCase {
             var table: [RustHashableType: String] = [:]
             table[val1] = "hello"
             table[val2] = "world"
-
+            
+            //Should not be overwritten
+            if let element = table[val1] {
+                XCTAssertEqual(element, "hello")
+            }else {
+                XCTFail()
+            }
+            if let element = table[val2] {
+                XCTAssertEqual(element, "world")
+            }else {
+                XCTFail()
+            }
+        }
+    }
+    
+    func testOpaqueRustCopyTypeImplHashable() throws {
+        XCTContext.runActivity(named: "Same hash value"){
+            _ in
+            let val1 = RustCopyHashableType(10)
+            let val2 = RustCopyHashableType(10)
+            
+            var table: [RustCopyHashableType: String] = [:]
+            table[val1] = "hello"
+            table[val2] = "world"
+            
+            //Should be overwritten.
+            if let element = table[val1] {
+                XCTAssertEqual(element, "world")
+            }else {
+                XCTFail()
+            }
+        }
+        
+        XCTContext.runActivity(named: "Not same hash value"){
+            _ in
+            let val1 = RustCopyHashableType(10)
+            let val2 = RustCopyHashableType(100)
+            
+            var table: [RustCopyHashableType: String] = [:]
+            table[val1] = "hello"
+            table[val2] = "world"
+            
             //Should not be overwritten
             if let element = table[val1] {
                 XCTAssertEqual(element, "hello")

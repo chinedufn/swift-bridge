@@ -137,13 +137,31 @@ extension {type_name}: Equatable {{
         String::new()
     };
 
+    let ext_hashable = if ty.attributes.hashable {
+        format!(
+            r#"
+extension {type_name}: Hashable {{
+    public func hash(into hasher: inout Hasher){{
+        var this = self
+        return withUnsafePointer(to: &this.bytes, {{(ptr: UnsafePointer<{ffi_repr_name}>) in
+            hasher.combine(__swift_bridge__${type_name}$_hash(
+                UnsafeMutablePointer(mutating: ptr)
+            ))
+        }})
+    }}
+}}
+"#,
+            type_name = type_name,
+            ffi_repr_name = ty.ffi_repr_name_string()
+        )
+    } else {
+        String::new()
+    };
+
     format!(
         r#"{declare_struct}
 {ffi_repr_conversion}
-{ext_equatable}"#,
-        declare_struct = declare_struct,
-        ffi_repr_conversion = ffi_repr_conversion,
-        ext_equatable = ext_equatable,
+{ext_equatable}{ext_hashable}"#,
     )
 }
 
