@@ -87,6 +87,38 @@ class VecTests: XCTestCase {
         XCTAssertEqual(reflected.get(index: 0)!.text().toString(), "hello world")
     }
     
+    func testVecOfOpaqueRustCopyTypeLen() throws {
+        let vec = RustVec<ARustCopyTypeInsideVecT>()
+        XCTAssertEqual(vec.len(), 0)
+        vec.push(value: ARustCopyTypeInsideVecT(42))
+        XCTAssertEqual(vec.len(), 1)
+    }
+    func testVecOfOpaqueRustCopyTypeGet() throws {
+        let vec: RustVec<ARustCopyTypeInsideVecT> = RustVec()
+        vec.push(value: ARustCopyTypeInsideVecT(42))
+        XCTAssertEqual(vec.get(index: 0)!.value(), 42)
+    }
+    func testVecOfOpaqueRustCopyTypePop() throws {
+        let vec: RustVec<ARustCopyTypeInsideVecT> = RustVec()
+        vec.push(value: ARustCopyTypeInsideVecT(42))
+        
+        XCTAssertEqual(vec.len(), 1)
+        let popped = vec.pop()
+        XCTAssertEqual(popped?.value(), 42)
+        XCTAssertEqual(vec.len(), 0)
+    }
+    
+    /// Verify that a Vec<T> of opaque Rust copy types can be used as an argument and return
+    /// type for extern "Rust" functions.
+    func testReflectVecOfOpaqueRustCopyType() throws {
+        let vec: RustVec<ARustCopyTypeInsideVecT> = RustVec()
+        vec.push(value: ARustCopyTypeInsideVecT(42))
+        
+        let reflected = rust_reflect_vec_opaque_rust_copy_type(vec)
+        XCTAssertEqual(reflected.len(), 1)
+        XCTAssertEqual(reflected.get(index: 0)!.value(), 42)
+    }
+    
     /// Verify that a Vec<T> of transparent enums can be used as an argument and return
     /// type for extern "Rust" functions.
     func testReflectVecOfTransparentEnum() throws {
