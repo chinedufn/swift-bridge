@@ -1,4 +1,4 @@
-use crate::bridged_type::BridgedType;
+use crate::bridged_type::{BridgeableType, BridgedType};
 use crate::parse::{HostLang, OpaqueCopy, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::{GetField, GetFieldDirect, GetFieldWith, ParsedExternFn};
 use proc_macro2::{Ident, Span, TokenStream};
@@ -110,9 +110,50 @@ impl ParsedExternFn {
                 }
             }
             HostLang::Swift => {
-                quote! {
-                    #[link_name = #link_name]
-                    fn #prefixed_fn_name ( #params ) #ret;
+                let is_async = self.sig.asyncness.is_some();
+
+                if !is_async {
+                    quote! {
+                        #[link_name = #link_name]
+                        fn #prefixed_fn_name ( #params ) #ret;
+                    }
+                } else {
+                    // For async Swift functions, we need callback parameters
+                    let maybe_return_ty =
+                        self.maybe_async_rust_fn_return_ty(swift_bridge_path, types);
+
+                    // Check if this is a Result type for two-callback pattern
+                    let return_ty = self.return_ty_built_in(types);
+                    let maybe_result = return_ty.as_ref().and_then(|ty| ty.as_result());
+
+                    if let Some(result) = maybe_result {
+                        // For Result types, generate two callbacks: on_success and on_error
+                        let ok_ty = result
+                            .ok_ty
+                            .to_ffi_compatible_rust_type(swift_bridge_path, types);
+                        let err_ty = result
+                            .err_ty
+                            .to_ffi_compatible_rust_type(swift_bridge_path, types);
+
+                        quote! {
+                            #[link_name = #link_name]
+                            fn #prefixed_fn_name (
+                                callback_wrapper: *mut std::ffi::c_void,
+                                on_success: extern "C" fn(*mut std::ffi::c_void, #ok_ty),
+                                on_error: extern "C" fn(*mut std::ffi::c_void, #err_ty),
+                                #params
+                            );
+                        }
+                    } else {
+                        quote! {
+                            #[link_name = #link_name]
+                            fn #prefixed_fn_name (
+                                callback_wrapper: *mut std::ffi::c_void,
+                                callback: extern "C" fn(*mut std::ffi::c_void #maybe_return_ty),
+                                #params
+                            );
+                        }
+                    }
                 }
             }
         }

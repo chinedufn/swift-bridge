@@ -51,3 +51,6 @@ extension AsyncResultOkEnum: @unchecked Sendable {}
 
 extension AsyncResultErrEnum: @unchecked Sendable {}
 extension AsyncResultErrEnum: Error {}
+
+extension SwiftAsyncError: @unchecked Sendable {}
+extension SwiftAsyncError: Error {}

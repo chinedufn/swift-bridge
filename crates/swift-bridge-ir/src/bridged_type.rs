@@ -634,12 +634,12 @@ impl BridgeableType for BridgedType {
 
     fn convert_ffi_expression_to_rust_type(
         &self,
-        _expression: &TokenStream,
-        _span: Span,
-        _swift_bridge_path: &Path,
-        _types: &TypeDeclarations,
+        expression: &TokenStream,
+        span: Span,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
     ) -> TokenStream {
-        todo!()
+        self.convert_ffi_expression_to_rust_type(expression, span, swift_bridge_path, types)
     }
 
     fn convert_ffi_option_expression_to_rust_type(&self, _expression: &TokenStream) -> TokenStream {

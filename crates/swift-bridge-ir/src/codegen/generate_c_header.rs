@@ -329,11 +329,12 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                     }
                     if ty.attributes.hashable {
                         let ty_name = ty.ty_name_ident();
+                        let ffi_repr_name = ty.ffi_repr_name_string();
                         let hash_ty = format!(
                             "uint64_t __swift_bridge__${ty_name}$_hash({c_ffi_type}* self);",
                             ty_name = ty_name,
                             c_ffi_type = if ty.attributes.copy.is_some() {
-                                &ty.ffi_repr_name_string()
+                                &ffi_repr_name
                             } else {
                                 "void"
                             },

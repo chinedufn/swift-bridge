@@ -20,3 +20,4 @@ swift-bridge-build = {path = "../swift-bridge-build"}
 
 [dependencies]
 swift-bridge = {path = "../../", features = ["async"]}
+tokio = { version = "1", features = ["rt-multi-thread"] }
