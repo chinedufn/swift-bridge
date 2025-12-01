@@ -173,6 +173,7 @@ impl SwiftBridgeModule {
 
             #[repr(C)]
             #[doc(hidden)]
+            #[allow(non_camel_case_types)]
             pub enum #enum_ffi_name {
                 #(#enum_ffi_variants),*
             }
@@ -203,6 +204,7 @@ impl SwiftBridgeModule {
 
             #[repr(C)]
             #[doc(hidden)]
+            #[allow(non_camel_case_types)]
             pub struct #option_enum {
                 is_some: bool,
                 val: std::mem::MaybeUninit<#enum_ffi_name>,

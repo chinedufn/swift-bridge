@@ -29,6 +29,7 @@ mod generates_enum_to_and_from_ffi_conversions_no_data {
 
             #[repr(C)]
             #[doc(hidden)]
+            #[allow(non_camel_case_types)]
             pub enum __swift_bridge__SomeEnum {
                 Variant1,
                 Variant2
@@ -202,6 +203,7 @@ mod extern_rust_option_enum {
             quote! {
                 #[repr(C)]
                 #[doc(hidden)]
+                #[allow(non_camel_case_types)]
                 pub struct __swift_bridge__Option_SomeEnum {
                     is_some: bool,
                     val: std::mem::MaybeUninit<__swift_bridge__SomeEnum>,
@@ -372,6 +374,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_unnamed_data_and_no_fields {
 
             #[repr(C)]
             #[doc(hidden)]
+            #[allow(non_camel_case_types)]
             pub enum __swift_bridge__SomeEnum {
                 Variant1(i32),
                 Variant2
@@ -490,6 +493,7 @@ mod generates_enum_to_and_from_ffi_conversions_unnamed_data_and_two_unnamed_data
 
             #[repr(C)]
             #[doc(hidden)]
+            #[allow(non_camel_case_types)]
             pub enum __swift_bridge__SomeEnum {
                 A(i32, u32),
                 B(*mut swift_bridge::string::RustString)
@@ -619,6 +623,7 @@ mod generates_enum_to_and_from_ffi_conversions_one_named_data_and_two_named_data
 
             #[repr(C)]
             #[doc(hidden)]
+            #[allow(non_camel_case_types)]
             pub enum __swift_bridge__SomeEnum {
                 A {
                     data1: i32,
@@ -746,6 +751,7 @@ mod generates_enum_with_opaque_rust_data {
 
             #[repr(C)]
             #[doc(hidden)]
+            #[allow(non_camel_case_types)]
             pub enum __swift_bridge__SomeEnum {
                 Unnamed (*mut super::SomeType),
                 Named {

@@ -79,6 +79,7 @@ impl SwiftBridgeModule {
             quote! {
                 #[repr(C)]
                 #[doc(hidden)]
+                #[allow(non_camel_case_types)]
                 pub struct #struct_ffi_name {
                     _private: u8
                 }
@@ -87,6 +88,7 @@ impl SwiftBridgeModule {
             quote! {
                 #[repr(C)]
                 #[doc(hidden)]
+                #[allow(non_camel_case_types)]
                 pub struct #struct_ffi_name #repr_c_struct_fields
             }
         };
@@ -121,6 +123,7 @@ impl SwiftBridgeModule {
 
             #[repr(C)]
             #[doc(hidden)]
+            #[allow(non_camel_case_types)]
             pub struct #option_struct {
                 is_some: bool,
                 val: std::mem::MaybeUninit<#struct_ffi_name>,
