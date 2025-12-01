@@ -1049,3 +1049,417 @@ void __swift_bridge__$some_function(void* callback_wrapper, void __swift_bridge_
         .test();
     }
 }
+
+/// Verify that we generate the correct code for extern "Swift" async functions that do not return
+/// a value.
+mod extern_swift_async_function_no_return {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Swift" {
+                    async fn some_function();
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            // The extern "C" declaration with callback
+            quote! {
+                extern "C" {
+                    #[link_name = "__swift_bridge__$some_function"]
+                    fn __swift_bridge__some_function(
+                        callback_wrapper: *mut std::ffi::c_void,
+                        callback: extern "C" fn(*mut std::ffi::c_void),
+                    );
+                }
+            },
+            // The async wrapper function
+            quote! {
+                pub async fn some_function() {
+                    let (future, callback_wrapper) =
+                        swift_bridge::async_swift_support::create_swift_async_call::<()>();
+                    extern "C" fn callback(callback_wrapper: *mut std::ffi::c_void) {
+                        unsafe {
+                            swift_bridge::async_swift_support::complete_swift_async(callback_wrapper, ());
+                        }
+                    }
+                    unsafe { __swift_bridge__some_function(callback_wrapper, callback) };
+                    future.await
+                }
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ callbackWrapper: UnsafeMutableRawPointer, _ callback: @escaping @convention(c) (UnsafeMutableRawPointer) -> Void) {
+    Task {
+        let _ = await some_function()
+        callback(callbackWrapper)
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        // No C header needed for extern "Swift" functions
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_async_function_no_return() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we generate the correct code for extern "Swift" async functions that return a u8.
+mod extern_swift_async_function_returns_u8 {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Swift" {
+                    async fn some_function() -> u8;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            // The extern "C" declaration with callback
+            quote! {
+                extern "C" {
+                    #[link_name = "__swift_bridge__$some_function"]
+                    fn __swift_bridge__some_function(
+                        callback_wrapper: *mut std::ffi::c_void,
+                        callback: extern "C" fn(*mut std::ffi::c_void, u8),
+                    );
+                }
+            },
+            // The async wrapper function
+            quote! {
+                pub async fn some_function() -> u8 {
+                    let (future, callback_wrapper) =
+                        swift_bridge::async_swift_support::create_swift_async_call::<u8>();
+                    extern "C" fn callback(callback_wrapper: *mut std::ffi::c_void, result_val: u8) {
+                        let result_val = result_val;
+                        unsafe {
+                            swift_bridge::async_swift_support::complete_swift_async(callback_wrapper, result_val);
+                        }
+                    }
+                    unsafe { __swift_bridge__some_function(callback_wrapper, callback) };
+                    future.await
+                }
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ callbackWrapper: UnsafeMutableRawPointer, _ callback: @escaping @convention(c) (UnsafeMutableRawPointer, UInt8) -> Void) {
+    Task {
+        let result = await some_function()
+        callback(callbackWrapper, result)
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_async_function_returns_u8() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we generate the correct code for extern "Swift" async functions with arguments.
+mod extern_swift_async_function_with_args {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Swift" {
+                    async fn some_function(arg: u32) -> u8;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            // The extern "C" declaration with callback and args
+            quote! {
+                extern "C" {
+                    #[link_name = "__swift_bridge__$some_function"]
+                    fn __swift_bridge__some_function(
+                        callback_wrapper: *mut std::ffi::c_void,
+                        callback: extern "C" fn(*mut std::ffi::c_void, u8),
+                        arg: u32
+                    );
+                }
+            },
+            // The async wrapper function
+            quote! {
+                pub async fn some_function(arg: u32) -> u8 {
+                    let (future, callback_wrapper) =
+                        swift_bridge::async_swift_support::create_swift_async_call::<u8>();
+                    extern "C" fn callback(callback_wrapper: *mut std::ffi::c_void, result_val: u8) {
+                        let result_val = result_val;
+                        unsafe {
+                            swift_bridge::async_swift_support::complete_swift_async(callback_wrapper, result_val);
+                        }
+                    }
+                    unsafe { __swift_bridge__some_function(callback_wrapper, callback, arg) };
+                    future.await
+                }
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ callbackWrapper: UnsafeMutableRawPointer, _ callback: @escaping @convention(c) (UnsafeMutableRawPointer, UInt8) -> Void, _ arg: UInt32) {
+    Task {
+        let result = await some_function(arg: arg)
+        callback(callbackWrapper, result)
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_async_function_with_args() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we generate the correct code for extern "Swift" async functions that return
+/// Result<T, E> (mapping to async throws in Swift).
+mod extern_swift_async_function_returns_result {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type ErrorType;
+                }
+                extern "Swift" {
+                    async fn some_function() -> Result<u32, ErrorType>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            // The extern "C" declaration with two callbacks
+            quote! {
+                extern "C" {
+                    #[link_name = "__swift_bridge__$some_function"]
+                    fn __swift_bridge__some_function(
+                        callback_wrapper: *mut std::ffi::c_void,
+                        on_success: extern "C" fn(*mut std::ffi::c_void, u32),
+                        on_error: extern "C" fn(*mut std::ffi::c_void, *mut super::ErrorType),
+                    );
+                }
+            },
+            // The async wrapper function
+            quote! {
+                pub async fn some_function() -> Result<u32, super::ErrorType> {
+                    let (future, callback_wrapper) =
+                        swift_bridge::async_swift_support::create_swift_async_call::<std::result::Result<u32, super::ErrorType>>();
+                    extern "C" fn on_success(callback_wrapper: *mut std::ffi::c_void, ok_val: u32) {
+                        let ok_val: u32 = ok_val;
+                        unsafe {
+                            swift_bridge::async_swift_support::complete_swift_async(callback_wrapper, std::result::Result::<u32, super::ErrorType>::Ok(ok_val));
+                        }
+                    }
+                    extern "C" fn on_error(callback_wrapper: *mut std::ffi::c_void, err_val: *mut super::ErrorType) {
+                        let err_val: super::ErrorType = unsafe { *Box::from_raw(err_val) };
+                        unsafe {
+                            swift_bridge::async_swift_support::complete_swift_async(callback_wrapper, std::result::Result::<u32, super::ErrorType>::Err(err_val));
+                        }
+                    }
+                    unsafe { __swift_bridge__some_function(callback_wrapper, on_success, on_error) };
+                    future.await
+                }
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ callbackWrapper: UnsafeMutableRawPointer, _ onSuccess: @escaping @convention(c) (UnsafeMutableRawPointer, UInt32) -> Void, _ onError: @escaping @convention(c) (UnsafeMutableRawPointer, UnsafeMutableRawPointer) -> Void) {
+    Task {
+        do {
+            let result = try await some_function()
+            onSuccess(callbackWrapper, result)
+        } catch let error as ErrorType {
+            onError(callbackWrapper, {error.isOwned = false; return error.ptr;}())
+        }
+    }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_: ErrorType.Type) async throws(ErrorType) {
+    _ = try await some_function()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_async_function_returns_result() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Verify that we generate the correct code for extern "Swift" async functions that return
+/// Result<T, E> and have arguments.
+mod extern_swift_async_function_returns_result_with_args {
+    use super::*;
+
+    fn bridge_module() -> TokenStream {
+        quote! {
+            #[swift_bridge::bridge]
+            mod ffi {
+                extern "Rust" {
+                    type ErrorType;
+                }
+                extern "Swift" {
+                    async fn some_function(arg: u32) -> Result<u32, ErrorType>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            // The extern "C" declaration with two callbacks and args
+            quote! {
+                extern "C" {
+                    #[link_name = "__swift_bridge__$some_function"]
+                    fn __swift_bridge__some_function(
+                        callback_wrapper: *mut std::ffi::c_void,
+                        on_success: extern "C" fn(*mut std::ffi::c_void, u32),
+                        on_error: extern "C" fn(*mut std::ffi::c_void, *mut super::ErrorType),
+                        arg: u32
+                    );
+                }
+            },
+            // The async wrapper function
+            quote! {
+                pub async fn some_function(arg: u32) -> Result<u32, super::ErrorType> {
+                    let (future, callback_wrapper) =
+                        swift_bridge::async_swift_support::create_swift_async_call::<std::result::Result<u32, super::ErrorType>>();
+                    extern "C" fn on_success(callback_wrapper: *mut std::ffi::c_void, ok_val: u32) {
+                        let ok_val: u32 = ok_val;
+                        unsafe {
+                            swift_bridge::async_swift_support::complete_swift_async(callback_wrapper, std::result::Result::<u32, super::ErrorType>::Ok(ok_val));
+                        }
+                    }
+                    extern "C" fn on_error(callback_wrapper: *mut std::ffi::c_void, err_val: *mut super::ErrorType) {
+                        let err_val: super::ErrorType = unsafe { *Box::from_raw(err_val) };
+                        unsafe {
+                            swift_bridge::async_swift_support::complete_swift_async(callback_wrapper, std::result::Result::<u32, super::ErrorType>::Err(err_val));
+                        }
+                    }
+                    unsafe { __swift_bridge__some_function(callback_wrapper, on_success, on_error, arg) };
+                    future.await
+                }
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ callbackWrapper: UnsafeMutableRawPointer, _ onSuccess: @escaping @convention(c) (UnsafeMutableRawPointer, UInt32) -> Void, _ onError: @escaping @convention(c) (UnsafeMutableRawPointer, UnsafeMutableRawPointer) -> Void, _ arg: UInt32) {
+    Task {
+        do {
+            let result = try await some_function(arg: arg)
+            onSuccess(callbackWrapper, result)
+        } catch let error as ErrorType {
+            onError(callbackWrapper, {error.isOwned = false; return error.ptr;}())
+        }
+    }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_ arg: UInt32, _: ErrorType.Type) async throws(ErrorType) {
+    _ = try await some_function(arg: arg)
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_async_function_returns_result_with_args() {
+        CodegenTest {
+            bridge_module: bridge_module().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

@@ -59,6 +59,7 @@
 		C926E4E0294F18C50027E7E2 /* FunctionAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */; };
 		DE9444DC2D5241AD007A83A4 /* SendableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9444DB2D5241A8007A83A4 /* SendableTests.swift */; };
 		DE9444DE2D527C3B007A83A4 /* SendableAttribute.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9444DD2D527C31007A83A4 /* SendableAttribute.swift */; };
+		AA0000012D5C000100000001 /* AsyncSwiftFunctions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000012D5C000100000002 /* AsyncSwiftFunctions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -130,6 +131,7 @@
 		C926E4DF294F18C50027E7E2 /* FunctionAttributeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FunctionAttributeTests.swift; sourceTree = "<group>"; };
 		DE9444DB2D5241A8007A83A4 /* SendableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendableTests.swift; sourceTree = "<group>"; };
 		DE9444DD2D527C31007A83A4 /* SendableAttribute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendableAttribute.swift; sourceTree = "<group>"; };
+		AA0000012D5C000100000002 /* AsyncSwiftFunctions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncSwiftFunctions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -198,6 +200,7 @@
 				C926E4DD294F07AA0027E7E2 /* FunctionAttributes.swift */,
 				1784BE2729CE86D600AE5A4A /* Tuple.swift */,
 				22F7CF292A42EA7800517966 /* Vec.swift */,
+				AA0000012D5C000100000002 /* AsyncSwiftFunctions.swift */,
 			);
 			path = SwiftRustIntegrationTestRunner;
 			sourceTree = "<group>";
@@ -417,6 +420,7 @@
 				22BC10F82799A3A000A0D046 /* SharedStructAttributes.swift in Sources */,
 				22EE4E0928B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift in Sources */,
 				228FE60C2740F42000805D9E /* ASwiftStack.swift in Sources */,
+				AA0000012D5C000100000001 /* AsyncSwiftFunctions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

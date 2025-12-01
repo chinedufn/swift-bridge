@@ -36,6 +36,7 @@ impl ParsedExternFn {
     ) -> TokenStream {
         let sig = &self.func.sig;
         let fn_name = &sig.ident;
+        let is_async = sig.asyncness.is_some();
 
         let ret = &sig.output;
 
@@ -59,24 +60,230 @@ impl ParsedExternFn {
         let call_args = self.to_call_rust_args(swift_bridge_path, types);
         let linked_fn_name = self.extern_swift_linked_fn_new();
 
-        let mut inner = quote! {
-            unsafe { #linked_fn_name(#call_args) }
+        if is_async {
+            self.generate_async_rust_fn_that_calls_swift(
+                fn_name,
+                &ret,
+                &params,
+                &call_args,
+                &linked_fn_name,
+                swift_bridge_path,
+                types,
+            )
+        } else {
+            let mut inner = quote! {
+                unsafe { #linked_fn_name(#call_args) }
+            };
+
+            if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
+                inner = built_in.convert_ffi_expression_to_rust_type(
+                    &inner,
+                    sig.output.span(),
+                    swift_bridge_path,
+                    types,
+                );
+            } else {
+                todo!("Push to ParsedErrors")
+            }
+
+            quote! {
+                pub fn #fn_name(#params) #ret {
+                    #inner
+                }
+            }
+        }
+    }
+
+    /// Generate an async Rust function that calls an async Swift function.
+    ///
+    /// The pattern is:
+    /// 1. Create a oneshot channel
+    /// 2. Define callback(s) that send result through the channel
+    /// 3. Call Swift with callback wrapper and callback fn pointer(s)
+    /// 4. Await the receiver and convert result to Rust type
+    fn generate_async_rust_fn_that_calls_swift(
+        &self,
+        fn_name: &Ident,
+        ret: &TokenStream,
+        params: &TokenStream,
+        call_args: &TokenStream,
+        linked_fn_name: &Ident,
+        swift_bridge_path: &Path,
+        types: &TypeDeclarations,
+    ) -> TokenStream {
+        let sig = &self.func.sig;
+        let return_ty = BridgedType::new_with_return_type(&sig.output, types);
+        let maybe_result = return_ty.as_ref().and_then(|ty| ty.as_result());
+
+        // Check if we need to pass self
+        let maybe_self_arg = if self.is_method() {
+            quote! { #swift_bridge_path::PointerToSwiftType(self.0), }
+        } else {
+            quote! {}
         };
 
-        if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
-            inner = built_in.convert_ffi_expression_to_rust_type(
-                &inner,
+        // Generate comma before call_args if there are any
+        let maybe_comma_call_args = if call_args.is_empty() {
+            quote! {}
+        } else {
+            quote! { , #call_args }
+        };
+
+        if let Some(result) = maybe_result {
+            // Result type: use two callbacks (on_success and on_error)
+            let ok_ffi_ty = result
+                .ok_ty
+                .to_ffi_compatible_rust_type(swift_bridge_path, types);
+            let err_ffi_ty = result
+                .err_ty
+                .to_ffi_compatible_rust_type(swift_bridge_path, types);
+
+            let ok_convert = result.ok_ty.convert_ffi_expression_to_rust_type(
+                &quote! { ok_val },
                 sig.output.span(),
                 swift_bridge_path,
                 types,
             );
-        } else {
-            todo!("Push to ParsedErrors")
-        }
+            let err_convert = result.err_ty.convert_ffi_expression_to_rust_type(
+                &quote! { err_val },
+                sig.output.span(),
+                swift_bridge_path,
+                types,
+            );
 
-        quote! {
-            pub fn #fn_name(#params) #ret {
-                #inner
+            let rust_ok_ty = result.ok_ty.to_rust_type_path(types);
+            let rust_err_ty = result.err_ty.to_rust_type_path(types);
+
+            quote! {
+                pub async fn #fn_name(#params) #ret {
+                    let (future, callback_wrapper) = #swift_bridge_path::async_swift_support::create_swift_async_call::<
+                        std::result::Result<#rust_ok_ty, #rust_err_ty>
+                    >();
+
+                    extern "C" fn on_success(
+                        callback_wrapper: *mut std::ffi::c_void,
+                        ok_val: #ok_ffi_ty
+                    ) {
+                        let ok_val: #rust_ok_ty = #ok_convert;
+                        unsafe {
+                            #swift_bridge_path::async_swift_support::complete_swift_async(
+                                callback_wrapper,
+                                std::result::Result::<#rust_ok_ty, #rust_err_ty>::Ok(ok_val)
+                            );
+                        }
+                    }
+
+                    extern "C" fn on_error(
+                        callback_wrapper: *mut std::ffi::c_void,
+                        err_val: #err_ffi_ty
+                    ) {
+                        let err_val: #rust_err_ty = #err_convert;
+                        unsafe {
+                            #swift_bridge_path::async_swift_support::complete_swift_async(
+                                callback_wrapper,
+                                std::result::Result::<#rust_ok_ty, #rust_err_ty>::Err(err_val)
+                            );
+                        }
+                    }
+
+                    unsafe {
+                        #linked_fn_name(
+                            #maybe_self_arg
+                            callback_wrapper,
+                            on_success,
+                            on_error
+                            #maybe_comma_call_args
+                        )
+                    };
+
+                    future.await
+                }
+            }
+        } else {
+            // Non-Result type: use single callback
+            let (callback_params, ffi_ty_for_channel, convert_and_complete, final_result) =
+                if let Some(built_in) = return_ty.as_ref() {
+                    if built_in.can_be_encoded_with_zero_bytes() {
+                        // () return type
+                        (
+                            quote! { callback_wrapper: *mut std::ffi::c_void },
+                            quote! { () },
+                            quote! {
+                                unsafe {
+                                    #swift_bridge_path::async_swift_support::complete_swift_async(
+                                        callback_wrapper,
+                                        ()
+                                    );
+                                }
+                            },
+                            quote! { future.await },
+                        )
+                    } else {
+                        let ffi_ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path, types);
+                        let rust_ty = built_in.to_rust_type_path(types);
+                        let convert = built_in.convert_ffi_expression_to_rust_type(
+                            &quote! { result_val },
+                            sig.output.span(),
+                            swift_bridge_path,
+                            types,
+                        );
+
+                        (
+                            quote! {
+                                callback_wrapper: *mut std::ffi::c_void,
+                                result_val: #ffi_ty
+                            },
+                            rust_ty,
+                            quote! {
+                                let result_val = #convert;
+                                unsafe {
+                                    #swift_bridge_path::async_swift_support::complete_swift_async(
+                                        callback_wrapper,
+                                        result_val
+                                    );
+                                }
+                            },
+                            quote! { future.await },
+                        )
+                    }
+                } else {
+                    // No return type
+                    (
+                        quote! { callback_wrapper: *mut std::ffi::c_void },
+                        quote! { () },
+                        quote! {
+                            unsafe {
+                                #swift_bridge_path::async_swift_support::complete_swift_async(
+                                    callback_wrapper,
+                                    ()
+                                );
+                            }
+                        },
+                        quote! { future.await },
+                    )
+                };
+
+            quote! {
+                pub async fn #fn_name(#params) #ret {
+                    let (future, callback_wrapper) = #swift_bridge_path::async_swift_support::create_swift_async_call::<
+                        #ffi_ty_for_channel
+                    >();
+
+                    extern "C" fn callback(#callback_params) {
+                        #convert_and_complete
+                    }
+
+                    unsafe {
+                        #linked_fn_name(
+                            #maybe_self_arg
+                            callback_wrapper,
+                            callback
+                            #maybe_comma_call_args
+                        )
+                    };
+
+                    #final_result
+                }
             }
         }
     }

@@ -211,13 +211,252 @@ fn gen_function_exposes_swift_to_rust(
     types: &TypeDeclarations,
     swift_bridge_path: &Path,
 ) -> String {
-    let link_name = func.link_name();
-    let prefixed_fn_name = func.prefixed_fn_name();
-    let fn_name = if let Some(swift_name) = func.swift_name_override.as_ref() {
-        swift_name.value()
+    let is_async = func.sig.asyncness.is_some();
+
+    if is_async {
+        gen_async_function_exposes_swift_to_rust(func, types, swift_bridge_path)
     } else {
-        func.sig.ident.to_string()
+        gen_sync_function_exposes_swift_to_rust(func, types, swift_bridge_path)
+    }
+}
+
+/// Common metadata extracted from a ParsedExternFn for generating Swift wrappers.
+struct SwiftFnMetadata {
+    /// The link name used in @_cdecl (e.g., "__swift_bridge__$some_function")
+    link_name: String,
+    /// The prefixed function name (e.g., "__swift_bridge__some_function")
+    prefixed_fn_name: String,
+    /// The Swift function name to call (respects swift_name_override)
+    fn_name: String,
+}
+
+impl SwiftFnMetadata {
+    fn from_parsed_extern_fn(func: &ParsedExternFn) -> Self {
+        let link_name = func.link_name();
+        let prefixed_fn_name = func.prefixed_fn_name().to_string();
+        let fn_name = if let Some(swift_name) = func.swift_name_override.as_ref() {
+            swift_name.value()
+        } else {
+            func.sig.ident.to_string()
+        };
+        Self {
+            link_name,
+            prefixed_fn_name,
+            fn_name,
+        }
+    }
+}
+
+/// Build the Swift call expression for calling a method or function.
+///
+/// For methods, this generates code like:
+/// `Unmanaged<TypeName>.fromOpaque(this).takeUnretainedValue().fn_name(args)`
+///
+/// For static methods:
+/// `TypeName::fn_name(args)`
+///
+/// For freestanding functions:
+/// `fn_name(args)`
+fn build_swift_call_expression(func: &ParsedExternFn, fn_name: &str, args: &str) -> String {
+    if let Some(associated_type) = func.associated_type.as_ref() {
+        let ty_name = match associated_type {
+            TypeDeclaration::Shared(_) => todo!(),
+            TypeDeclaration::Opaque(associated_type) => associated_type.to_string(),
+        };
+
+        if func.is_method() {
+            format!("Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{fn_name}({args})")
+        } else {
+            format!("{ty_name}::{fn_name}({args})")
+        }
+    } else {
+        format!("{fn_name}({args})")
+    }
+}
+
+/// Generate Swift code that exposes an async Swift function to Rust.
+///
+/// For async functions, we generate a wrapper that:
+/// 1. Takes callback wrapper and callback function pointer(s) as parameters
+/// 2. Spawns a Task to call the async Swift function
+/// 3. When the async function completes, calls the Rust callback with the result
+fn gen_async_function_exposes_swift_to_rust(
+    func: &ParsedExternFn,
+    types: &TypeDeclarations,
+    swift_bridge_path: &Path,
+) -> String {
+    let metadata = SwiftFnMetadata::from_parsed_extern_fn(func);
+    let link_name = &metadata.link_name;
+    let prefixed_fn_name = &metadata.prefixed_fn_name;
+    let fn_name = &metadata.fn_name;
+
+    // Get the original function arguments (excluding callback params which we add)
+    let original_params = func.to_swift_param_names_and_types(true, types, swift_bridge_path);
+    let args = func.to_swift_call_args(false, true, types, swift_bridge_path);
+
+    // Check if this is a Result type
+    let return_ty = BridgedType::new_with_return_type(&func.sig.output, types);
+    let maybe_result = return_ty.as_ref().and_then(|ty| ty.as_result());
+
+    // Build the async call expression
+    let call_expression = build_swift_call_expression(func, fn_name, &args);
+
+    // Build params_str, task_body, and optional typed_throws_check based on whether this is a Result type or not
+    let (params_str, task_body, typed_throws_check) = if let Some(result) = maybe_result {
+        // Result type: generate two callbacks (on_success and on_error)
+
+        // For the catch clause, we need the actual Swift wrapper type name (e.g., "ErrorType"),
+        // not the FFI type ("UnsafeMutableRawPointer"). Using HostLang::Rust gives us the
+        // Swift wrapper class name that conforms to Error.
+        let err_swift_ty = result.err_ty.to_swift_type(
+            TypePosition::FnReturn(HostLang::Rust),
+            types,
+            swift_bridge_path,
+        );
+
+        let ok_ffi_convert = result.ok_ty.convert_swift_expression_to_ffi_type(
+            "result",
+            types,
+            TypePosition::FnReturn(func.host_lang),
+        );
+        let err_ffi_convert = result.err_ty.convert_swift_expression_to_ffi_type(
+            "error",
+            types,
+            TypePosition::FnReturn(func.host_lang),
+        );
+
+        // Get FFI types for ok and error values
+        let ok_ffi_ty = result.ok_ty.to_swift_type(
+            TypePosition::FnReturn(func.host_lang),
+            types,
+            swift_bridge_path,
+        );
+        let err_ffi_ty = result.err_ty.to_swift_type(
+            TypePosition::FnReturn(func.host_lang),
+            types,
+            swift_bridge_path,
+        );
+
+        // Build params: this (if method), callbackWrapper, onSuccess, onError, then original params
+        let mut all_params = Vec::new();
+        if func.is_method() {
+            all_params.push("_ this: UnsafeMutableRawPointer".to_string());
+        }
+        all_params.push("_ callbackWrapper: UnsafeMutableRawPointer".to_string());
+        all_params.push(format!(
+            "_ onSuccess: @escaping @convention(c) (UnsafeMutableRawPointer, {ok_ffi_ty}) -> Void"
+        ));
+        all_params.push(format!(
+            "_ onError: @escaping @convention(c) (UnsafeMutableRawPointer, {err_ffi_ty}) -> Void"
+        ));
+        if !original_params.is_empty() {
+            all_params.push(original_params.clone());
+        }
+
+        let task_body = format!(
+            r#"do {{
+            let result = try await {call_expression}
+            onSuccess(callbackWrapper, {ok_ffi_convert})
+        }} catch let error as {err_swift_ty} {{
+            onError(callbackWrapper, {err_ffi_convert})
+        }}"#
+        );
+
+        // Generate a typed throw checker function that verifies at compile-time
+        // that the Swift function only throws the expected error type.
+        // This uses Swift's typed throws feature (Swift 5.9+).
+        let checker_params = if original_params.is_empty() {
+            "_: ".to_string() + &err_swift_ty + ".Type"
+        } else {
+            original_params.clone() + ", _: " + &err_swift_ty + ".Type"
+        };
+        let typed_throws_check = format!(
+            r#"
+func {prefixed_fn_name}__TypedThrowsCheck({checker_params}) async throws({err_swift_ty}) {{
+    _ = try await {call_expression}
+}}"#
+        );
+
+        (all_params.join(", "), task_body, Some(typed_throws_check))
+    } else {
+        // Non-Result type: single callback
+        let return_ty_ref = return_ty.as_ref();
+        let has_return_value = return_ty_ref
+            .map(|ty| !ty.can_be_encoded_with_zero_bytes())
+            .unwrap_or(false);
+
+        let callback_signature = if has_return_value {
+            let built_in = return_ty_ref.unwrap();
+            let swift_return_ty = built_in.to_swift_type(
+                TypePosition::FnReturn(func.host_lang),
+                types,
+                swift_bridge_path,
+            );
+            format!(
+                "_ callback: @escaping @convention(c) (UnsafeMutableRawPointer, {}) -> Void",
+                swift_return_ty
+            )
+        } else {
+            "_ callback: @escaping @convention(c) (UnsafeMutableRawPointer) -> Void".to_string()
+        };
+
+        // Build params: this (if method), callbackWrapper, callback, then original params
+        let mut all_params = Vec::new();
+        if func.is_method() {
+            all_params.push("_ this: UnsafeMutableRawPointer".to_string());
+        }
+        all_params.push("_ callbackWrapper: UnsafeMutableRawPointer".to_string());
+        all_params.push(callback_signature);
+        if !original_params.is_empty() {
+            all_params.push(original_params.clone());
+        }
+
+        let callback_call = if has_return_value {
+            let built_in = return_ty_ref.unwrap();
+            let convert = built_in.convert_swift_expression_to_ffi_type(
+                "result",
+                types,
+                TypePosition::FnReturn(func.host_lang),
+            );
+            format!("callback(callbackWrapper, {convert})")
+        } else {
+            "callback(callbackWrapper)".to_string()
+        };
+
+        let result_binding = if has_return_value {
+            "let result = "
+        } else {
+            "let _ = "
+        };
+
+        let task_body = format!("{result_binding}await {call_expression}\n        {callback_call}");
+
+        (all_params.join(", "), task_body, None)
     };
+
+    let maybe_typed_throws_check = typed_throws_check.unwrap_or_default();
+
+    format!(
+        r#"@_cdecl("{link_name}")
+func {prefixed_fn_name} ({params_str}) {{
+    Task {{
+        {task_body}
+    }}
+}}{maybe_typed_throws_check}
+"#
+    )
+}
+
+/// Generate Swift code that exposes a synchronous Swift function to Rust.
+fn gen_sync_function_exposes_swift_to_rust(
+    func: &ParsedExternFn,
+    types: &TypeDeclarations,
+    swift_bridge_path: &Path,
+) -> String {
+    let metadata = SwiftFnMetadata::from_parsed_extern_fn(func);
+    let link_name = &metadata.link_name;
+    let prefixed_fn_name = &metadata.prefixed_fn_name;
+    let fn_name = &metadata.fn_name;
 
     let params = func.to_swift_param_names_and_types(true, types, swift_bridge_path);
     let ret = func.to_swift_return_type(types, swift_bridge_path);

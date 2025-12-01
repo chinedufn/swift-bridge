@@ -32,15 +32,15 @@ func add(lhs: UInt, rhs: UInt) -> UInt {
 }
 ```
 
-## Async Rust Functions
+## Async Functions
 
-`swift-bridge` supports async/await between Swift and Rust.
+`swift-bridge` supports async/await between Swift and Rust in both directions.
 
-_Calling an async Rust function from Swift is supported. Calling an async Swift function from Rust is not yet supported._
+### Async Rust Functions (called from Swift)
 
 ```rust
 #[swift_bridge::bridge]
-mod ffi {    
+mod ffi {
     extern "Rust" {
         type User;
         type ApiError;
@@ -62,6 +62,68 @@ do {
     // ... error handling ...
 }
 ```
+
+### Async Swift Functions (called from Rust)
+
+You can call async Swift functions from Rust. The Swift function is declared with
+`async` in the `extern "Swift"` block, and `swift-bridge` generates the necessary
+callback-based FFI to bridge Swift's async/await to Rust's async/await.
+
+```rust
+#[swift_bridge::bridge]
+mod ffi {
+    enum NetworkError {
+        Timeout,
+        NotFound,
+    }
+
+    extern "Swift" {
+        async fn fetch_user_count() -> u32;
+        async fn fetch_data(succeed: bool) -> Result<u32, NetworkError>;
+    }
+}
+
+async fn example() {
+    // Call async Swift function that returns a value
+    let count = ffi::fetch_user_count().await;
+
+    // Call async Swift function that can throw (returns Result in Rust)
+    match ffi::fetch_data(true).await {
+        Ok(data) => println!("Got data: {}", data),
+        Err(e) => println!("Error: {:?}", e),
+    }
+}
+```
+
+```swift
+// Swift
+
+// Shared enums need Error conformance to be thrown
+extension NetworkError: Error {}
+
+func fetch_user_count() async -> UInt32 {
+    // ... async work ...
+    return 42
+}
+
+// IMPORTANT: Use typed throws to specify the exact error type
+func fetch_data(succeed: Bool) async throws(NetworkError) -> UInt32 {
+    // ... async work that might fail ...
+    if !succeed {
+        throw NetworkError.Timeout
+    }
+    return 123
+}
+```
+
+When a Swift function returns `Result<T, E>` in the bridge definition:
+- The Swift function **must** use typed throws: `throws(E)` (requires Swift 5.9+)
+- Throwing an error in Swift maps to `Err(E)` in Rust
+- A successful return maps to `Ok(T)`
+- Shared enums used as error types need `Error` conformance: `extension MyError: Error {}`
+
+The typed throws requirement ensures compile-time verification that your Swift function
+only throws the expected error type, preventing runtime errors from type mismatches.
 
 ## Function Attributes
 

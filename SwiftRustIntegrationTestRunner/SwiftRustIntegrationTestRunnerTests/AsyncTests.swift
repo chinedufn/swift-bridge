@@ -183,13 +183,47 @@ class AsyncTests: XCTestCase {
     
     func testSwiftCallsRustAsyncFnReturnResultNullOpaqueRust() async throws {
         try await rust_async_func_return_result_null_opaque_rust(true)
-        
+
         do {
             try await rust_async_func_return_result_null_opaque_rust(false)
             XCTFail()
         } catch let error as AsyncResultOpaqueRustType2 {
             XCTAssertEqual(error.val(), 111)
         }
+    }
+
+    // =========================================================================
+    // Tests for Rust calling async Swift functions
+    // =========================================================================
+
+    /// Test that Rust can call an async Swift function that returns void
+    func testRustCallsSwiftAsyncVoid() throws {
+        let result = rust_calls_swift_async_void()
+        XCTAssertTrue(result)
+    }
+
+    /// Test that Rust can call an async Swift function that returns u32
+    func testRustCallsSwiftAsyncReturnU32() throws {
+        let result = rust_calls_swift_async_return_u32()
+        XCTAssertEqual(result, 42)
+    }
+
+    /// Test that Rust can call an async Swift function that returns String
+    func testRustCallsSwiftAsyncReturnString() throws {
+        let result = rust_calls_swift_async_return_string()
+        XCTAssertEqual(result.toString(), "Hello from Swift async!")
+    }
+
+    /// Test that Rust can call an async Swift function that throws - success case
+    func testRustCallsSwiftAsyncThrowsOk() throws {
+        let result = rust_calls_swift_async_throws_ok()
+        XCTAssertEqual(result, 123)
+    }
+
+    /// Test that Rust can call an async Swift function that throws - error case
+    func testRustCallsSwiftAsyncThrowsErr() throws {
+        let result = rust_calls_swift_async_throws_err()
+        XCTAssertEqual(result, 456)
     }
 }
 

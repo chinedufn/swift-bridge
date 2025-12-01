@@ -13,6 +13,10 @@ pub use self::std_bridge::{option, result, string};
 pub mod async_support;
 
 #[doc(hidden)]
+#[cfg(feature = "async")]
+pub mod async_swift_support;
+
+#[doc(hidden)]
 pub mod boxed_fn_support;
 
 #[doc(hidden)]

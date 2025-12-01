@@ -22,8 +22,11 @@ swift-bridge-macro = {version = "0.1.57", path = "crates/swift-bridge-macro"}
 ################################################################################
 # Optional features used for async function support.
 ################################################################################
-tokio = {optional = true, version = "1", features = ["rt-multi-thread"]}
+tokio = {optional = true, version = "1", features = ["rt-multi-thread", "sync"]}
 once_cell = {optional = true, version = "1.9"}
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
 
 [workspace]
 members = [
