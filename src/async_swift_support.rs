@@ -14,7 +14,7 @@ use tokio::sync::oneshot;
 /// This struct is generic over the result type T, which allows it to work
 /// with any return type from async Swift functions.
 pub struct SwiftAsyncCallback<T> {
-    sender: Option<oneshot::Sender<T>>,
+    sender: oneshot::Sender<T>,
 }
 
 /// Create a oneshot channel for an async Swift callback.
@@ -25,6 +25,16 @@ pub struct SwiftAsyncCallback<T> {
 ///
 /// The wrapper pointer must be passed to `complete_swift_async` exactly once
 /// to avoid memory leaks.
+///
+/// # Panics
+///
+/// The returned future will panic if the sender is dropped without sending a result.
+/// This can happen if:
+/// - Swift never calls the callback (e.g., the wrapper pointer was leaked)
+/// - `complete_swift_async` was called with a mismatched type parameter `T`,
+///   causing it to reconstruct and drop a different `SwiftAsyncCallback<U>`
+///
+/// Both cases indicate a bug in generated code or misuse of the unsafe API.
 ///
 /// # Example (generated code pattern)
 ///
@@ -49,7 +59,7 @@ pub struct SwiftAsyncCallback<T> {
 pub fn create_swift_async_call<T: Send + 'static>(
 ) -> (impl std::future::Future<Output = T>, *mut std::ffi::c_void) {
     let (tx, rx) = oneshot::channel::<T>();
-    let wrapper = Box::new(SwiftAsyncCallback { sender: Some(tx) });
+    let wrapper = Box::new(SwiftAsyncCallback { sender: tx });
     let ptr = Box::into_raw(wrapper) as *mut std::ffi::c_void;
 
     let future = async move {
@@ -71,12 +81,10 @@ pub fn create_swift_async_call<T: Send + 'static>(
 /// - This function must be called exactly once per `create_swift_async_call` call
 /// - The type parameter T must match the type used in `create_swift_async_call`
 pub unsafe fn complete_swift_async<T>(wrapper_ptr: *mut std::ffi::c_void, result: T) {
-    let mut wrapper = Box::from_raw(wrapper_ptr as *mut SwiftAsyncCallback<T>);
-    if let Some(sender) = wrapper.sender.take() {
-        // Ignore send errors - the receiver may have been dropped if the
-        // Rust future was cancelled
-        let _ = sender.send(result);
-    }
+    let wrapper = Box::from_raw(wrapper_ptr as *mut SwiftAsyncCallback<T>);
+    // Ignore send errors - the receiver may have been dropped if the
+    // Rust future was cancelled
+    let _ = wrapper.sender.send(result);
 }
 
 #[cfg(test)]
