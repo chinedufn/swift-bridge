@@ -301,8 +301,8 @@ fn gen_async_function_exposes_swift_to_rust(
     // Build the async call expression
     let call_expression = build_swift_call_expression(func, fn_name, &args);
 
-    // Build params_str and task_body based on whether this is a Result type or not
-    let (params_str, task_body) = if let Some(result) = maybe_result {
+    // Build params_str, task_body, and optional typed_throws_check based on whether this is a Result type or not
+    let (params_str, task_body, typed_throws_check) = if let Some(result) = maybe_result {
         // Result type: generate two callbacks (on_success and on_error)
 
         // For the catch clause, we need the actual Swift wrapper type name (e.g., "ErrorType"),
@@ -353,21 +353,31 @@ fn gen_async_function_exposes_swift_to_rust(
             all_params.push(original_params.clone());
         }
 
-        // This `fatalError` can occur if the Swift function throws a type that cannot be cast to the
-        // error type in the user's bridge module. See the "Functions" chapter in the internal book for
-        // more documentation.
         let task_body = format!(
             r#"do {{
             let result = try await {call_expression}
             onSuccess(callbackWrapper, {ok_ffi_convert})
         }} catch let error as {err_swift_ty} {{
             onError(callbackWrapper, {err_ffi_convert})
-        }} catch {{
-            fatalError("Error could not be cast to {err_swift_ty}")
         }}"#
         );
 
-        (all_params.join(", "), task_body)
+        // Generate a typed throw checker function that verifies at compile-time
+        // that the Swift function only throws the expected error type.
+        // This uses Swift's typed throws feature (Swift 5.9+).
+        let checker_params = if original_params.is_empty() {
+            "_: ".to_string() + &err_swift_ty + ".Type"
+        } else {
+            original_params.clone() + ", _: " + &err_swift_ty + ".Type"
+        };
+        let typed_throws_check = format!(
+            r#"
+func {prefixed_fn_name}__TypedThrowsCheck({checker_params}) async throws({err_swift_ty}) {{
+    _ = try await {call_expression}
+}}"#
+        );
+
+        (all_params.join(", "), task_body, Some(typed_throws_check))
     } else {
         // Non-Result type: single callback
         let return_ty_ref = return_ty.as_ref();
@@ -421,8 +431,10 @@ fn gen_async_function_exposes_swift_to_rust(
 
         let task_body = format!("{result_binding}await {call_expression}\n        {callback_call}");
 
-        (all_params.join(", "), task_body)
+        (all_params.join(", "), task_body, None)
     };
+
+    let maybe_typed_throws_check = typed_throws_check.unwrap_or_default();
 
     format!(
         r#"@_cdecl("{link_name}")
@@ -430,7 +442,7 @@ func {prefixed_fn_name} ({params_str}) {{
     Task {{
         {task_body}
     }}
-}}
+}}{maybe_typed_throws_check}
 "#
     )
 }

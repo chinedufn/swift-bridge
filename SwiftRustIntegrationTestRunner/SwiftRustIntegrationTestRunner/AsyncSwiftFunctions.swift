@@ -26,7 +26,8 @@ func swift_async_return_string() async -> RustString {
 }
 
 /// An async Swift function that can throw an error (maps to Result<T, E> in Rust)
-func swift_async_throws(succeed: Bool) async throws -> UInt32 {
+/// Uses typed throws (Swift 5.9+) to ensure compile-time verification of error type
+func swift_async_throws(succeed: Bool) async throws(SwiftAsyncError) -> UInt32 {
     try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
     if succeed {
         return 123

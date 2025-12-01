@@ -106,7 +106,8 @@ func fetch_user_count() async -> UInt32 {
     return 42
 }
 
-func fetch_data(succeed: Bool) async throws -> UInt32 {
+// IMPORTANT: Use typed throws to specify the exact error type
+func fetch_data(succeed: Bool) async throws(NetworkError) -> UInt32 {
     // ... async work that might fail ...
     if !succeed {
         throw NetworkError.Timeout
@@ -115,9 +116,14 @@ func fetch_data(succeed: Bool) async throws -> UInt32 {
 }
 ```
 
-When a Swift function is declared with `async throws` and returns `Result<T, E>` in the
-bridge definition, throwing an error in Swift maps to `Err(E)` in Rust, while a successful
-return maps to `Ok(T)`.
+When a Swift function returns `Result<T, E>` in the bridge definition:
+- The Swift function **must** use typed throws: `throws(E)` (requires Swift 5.9+)
+- Throwing an error in Swift maps to `Err(E)` in Rust
+- A successful return maps to `Ok(T)`
+- Shared enums used as error types need `Error` conformance: `extension MyError: Error {}`
+
+The typed throws requirement ensures compile-time verification that your Swift function
+only throws the expected error type, preventing runtime errors from type mismatches.
 
 ## Function Attributes
 
