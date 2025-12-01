@@ -242,8 +242,7 @@ impl ParsedExternFn {
                             quote! { future.await },
                         )
                     } else {
-                        let ffi_ty =
-                            built_in.to_ffi_compatible_rust_type(swift_bridge_path, types);
+                        let ffi_ty = built_in.to_ffi_compatible_rust_type(swift_bridge_path, types);
                         let rust_ty = built_in.to_rust_type_path(types);
                         let convert = built_in.convert_ffi_expression_to_rust_type(
                             &quote! { result_val },

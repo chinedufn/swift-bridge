@@ -257,11 +257,7 @@ impl SwiftFnMetadata {
 ///
 /// For freestanding functions:
 /// `fn_name(args)`
-fn build_swift_call_expression(
-    func: &ParsedExternFn,
-    fn_name: &str,
-    args: &str,
-) -> String {
+fn build_swift_call_expression(func: &ParsedExternFn, fn_name: &str, args: &str) -> String {
     if let Some(associated_type) = func.associated_type.as_ref() {
         let ty_name = match associated_type {
             TypeDeclaration::Shared(_) => todo!(),
@@ -269,9 +265,7 @@ fn build_swift_call_expression(
         };
 
         if func.is_method() {
-            format!(
-                "Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{fn_name}({args})"
-            )
+            format!("Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{fn_name}({args})")
         } else {
             format!("{ty_name}::{fn_name}({args})")
         }
@@ -359,6 +353,9 @@ fn gen_async_function_exposes_swift_to_rust(
             all_params.push(original_params.clone());
         }
 
+        // This `fatalError` can occur if the Swift function throws a type that cannot be cast to the
+        // error type in the user's bridge module. See the "Functions" chapter in the internal book for
+        // more documentation.
         let task_body = format!(
             r#"do {{
             let result = try await {call_expression}
@@ -366,7 +363,7 @@ fn gen_async_function_exposes_swift_to_rust(
         }} catch let error as {err_swift_ty} {{
             onError(callbackWrapper, {err_ffi_convert})
         }} catch {{
-            fatalError("Unexpected error type")
+            fatalError("Error could not be cast to {err_swift_ty}")
         }}"#
         );
 
