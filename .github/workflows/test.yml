@@ -61,6 +61,10 @@ jobs:
         with:
           toolchain: stable
 
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
       - name: Add rust targets
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
