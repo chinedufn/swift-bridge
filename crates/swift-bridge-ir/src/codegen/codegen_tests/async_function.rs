@@ -1344,10 +1344,11 @@ func __swift_bridge__some_function (_ callbackWrapper: UnsafeMutableRawPointer, 
             onSuccess(callbackWrapper, result)
         } catch let error as ErrorType {
             onError(callbackWrapper, {error.isOwned = false; return error.ptr;}())
-        } catch {
-            fatalError("Error could not be cast to ErrorType")
         }
     }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_: ErrorType.Type) async throws(ErrorType) {
+    _ = try await some_function()
 }
 "#,
         )
@@ -1437,10 +1438,11 @@ func __swift_bridge__some_function (_ callbackWrapper: UnsafeMutableRawPointer, 
             onSuccess(callbackWrapper, result)
         } catch let error as ErrorType {
             onError(callbackWrapper, {error.isOwned = false; return error.ptr;}())
-        } catch {
-            fatalError("Error could not be cast to ErrorType")
         }
     }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_ arg: UInt32, _: ErrorType.Type) async throws(ErrorType) {
+    _ = try await some_function(arg: arg)
 }
 "#,
         )
