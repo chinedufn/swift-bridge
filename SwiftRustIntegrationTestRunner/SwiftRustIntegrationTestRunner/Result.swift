@@ -63,7 +63,8 @@ extension SwiftSyncError: @unchecked Sendable {}
 extension SwiftSyncError: Error {}
 
 /// Sync Swift function that throws, returning u32 on success
-func swift_sync_throws_u32(succeed: Bool) throws -> UInt32 {
+/// Uses typed throws (Swift 5.9+) to ensure compile-time verification of error type
+func swift_sync_throws_u32(succeed: Bool) throws(SwiftSyncError) -> UInt32 {
     if succeed {
         return 42
     } else {
@@ -72,7 +73,8 @@ func swift_sync_throws_u32(succeed: Bool) throws -> UInt32 {
 }
 
 /// Sync Swift function that throws, returning String on success
-func swift_sync_throws_string(succeed: Bool) throws -> RustString {
+/// Uses typed throws (Swift 5.9+) to ensure compile-time verification of error type
+func swift_sync_throws_string(succeed: Bool) throws(SwiftSyncError) -> RustString {
     if succeed {
         return "Success from Swift".intoRustString()
     } else {

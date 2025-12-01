@@ -655,9 +655,7 @@ fn gen_sync_result_function_exposes_swift_to_rust(
         };
 
         if func.is_method() {
-            format!(
-                "Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{fn_name}({args})"
-            )
+            format!("Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{fn_name}({args})")
         } else {
             format!("{ty_name}::{fn_name}({args})")
         }
@@ -692,10 +690,7 @@ fn gen_sync_result_function_exposes_swift_to_rust(
         }
     } else if ok_is_void {
         // Result<(), E> - return nil for Ok, pointer for Err
-        (
-            "nil".to_string(),
-            err_ffi_convert.clone(),
-        )
+        ("nil".to_string(), err_ffi_convert.clone())
     } else {
         // Standard ResultPtrAndPtr
         (
@@ -721,15 +716,28 @@ fn gen_sync_result_function_exposes_swift_to_rust(
         )
     };
 
+    // Generate a typed throw checker function that verifies at compile-time
+    // that the Swift function only throws the expected error type.
+    // This uses Swift's typed throws feature (Swift 5.9+).
+    let checker_params = if params.is_empty() {
+        format!("_: {err_swift_ty}.Type")
+    } else {
+        format!("{params}, _: {err_swift_ty}.Type")
+    };
+    let typed_throws_check = format!(
+        r#"
+func {prefixed_fn_name}__TypedThrowsCheck({checker_params}) throws({err_swift_ty}) {{
+    _ = try {call_expr}
+}}"#
+    );
+
     format!(
         r#"@_cdecl("{link_name}")
 func {prefixed_fn_name} ({params}) -> {ret_ty} {{
     {do_block} catch let error as {err_swift_ty} {{
         return {err_return}
-    }} catch {{
-        fatalError("Unexpected error type")
     }}
-}}
+}}{typed_throws_check}
 "#
     )
 }
