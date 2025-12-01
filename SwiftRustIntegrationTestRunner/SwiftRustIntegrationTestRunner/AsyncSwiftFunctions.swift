@@ -31,6 +31,6 @@ func swift_async_throws(succeed: Bool) async throws -> UInt32 {
     if succeed {
         return 123
     } else {
-        throw SwiftAsyncError.ErrorWithValue(123)
+        throw SwiftAsyncError.ErrorWithValue(456)
     }
 }
