@@ -220,6 +220,66 @@ fn gen_function_exposes_swift_to_rust(
     }
 }
 
+/// Common metadata extracted from a ParsedExternFn for generating Swift wrappers.
+struct SwiftFnMetadata {
+    /// The link name used in @_cdecl (e.g., "__swift_bridge__$some_function")
+    link_name: String,
+    /// The prefixed function name (e.g., "__swift_bridge__some_function")
+    prefixed_fn_name: String,
+    /// The Swift function name to call (respects swift_name_override)
+    fn_name: String,
+}
+
+impl SwiftFnMetadata {
+    fn from_parsed_extern_fn(func: &ParsedExternFn) -> Self {
+        let link_name = func.link_name();
+        let prefixed_fn_name = func.prefixed_fn_name().to_string();
+        let fn_name = if let Some(swift_name) = func.swift_name_override.as_ref() {
+            swift_name.value()
+        } else {
+            func.sig.ident.to_string()
+        };
+        Self {
+            link_name,
+            prefixed_fn_name,
+            fn_name,
+        }
+    }
+}
+
+/// Build the Swift call expression for calling a method or function.
+///
+/// For methods, this generates code like:
+/// `Unmanaged<TypeName>.fromOpaque(this).takeUnretainedValue().fn_name(args)`
+///
+/// For static methods:
+/// `TypeName::fn_name(args)`
+///
+/// For freestanding functions:
+/// `fn_name(args)`
+fn build_swift_call_expression(
+    func: &ParsedExternFn,
+    fn_name: &str,
+    args: &str,
+) -> String {
+    if let Some(associated_type) = func.associated_type.as_ref() {
+        let ty_name = match associated_type {
+            TypeDeclaration::Shared(_) => todo!(),
+            TypeDeclaration::Opaque(associated_type) => associated_type.to_string(),
+        };
+
+        if func.is_method() {
+            format!(
+                "Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{fn_name}({args})"
+            )
+        } else {
+            format!("{ty_name}::{fn_name}({args})")
+        }
+    } else {
+        format!("{fn_name}({args})")
+    }
+}
+
 /// Generate Swift code that exposes an async Swift function to Rust.
 ///
 /// For async functions, we generate a wrapper that:
@@ -231,13 +291,10 @@ fn gen_async_function_exposes_swift_to_rust(
     types: &TypeDeclarations,
     swift_bridge_path: &Path,
 ) -> String {
-    let link_name = func.link_name();
-    let prefixed_fn_name = func.prefixed_fn_name();
-    let fn_name = if let Some(swift_name) = func.swift_name_override.as_ref() {
-        swift_name.value()
-    } else {
-        func.sig.ident.to_string()
-    };
+    let metadata = SwiftFnMetadata::from_parsed_extern_fn(func);
+    let link_name = &metadata.link_name;
+    let prefixed_fn_name = &metadata.prefixed_fn_name;
+    let fn_name = &metadata.fn_name;
 
     // Get the original function arguments (excluding callback params which we add)
     let original_params = func.to_swift_param_names_and_types(true, types, swift_bridge_path);
@@ -248,25 +305,7 @@ fn gen_async_function_exposes_swift_to_rust(
     let maybe_result = return_ty.as_ref().and_then(|ty| ty.as_result());
 
     // Build the async call expression
-    let (await_call, _convert_result) = if let Some(associated_type) = func.associated_type.as_ref()
-    {
-        let ty_name = match associated_type {
-            TypeDeclaration::Shared(_) => todo!(),
-            TypeDeclaration::Opaque(associated_type) => associated_type.to_string(),
-        };
-
-        if func.is_method() {
-            let call = format!(
-                "Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{fn_name}({args})"
-            );
-            (call, true)
-        } else {
-            let call = format!("{ty_name}::{fn_name}({args})");
-            (call, true)
-        }
-    } else {
-        (format!("{fn_name}({args})"), true)
-    };
+    let call_expression = build_swift_call_expression(func, fn_name, &args);
 
     if let Some(result) = maybe_result {
         // Result type: generate two callbacks (on_success and on_error)
@@ -329,7 +368,7 @@ fn gen_async_function_exposes_swift_to_rust(
 func {prefixed_fn_name} ({params_str}) {{
     Task {{
         do {{
-            let result = try await {await_call}
+            let result = try await {call_expression}
             onSuccess(callbackWrapper, {ok_ffi_convert})
         }} catch let error as {err_swift_ty} {{
             onError(callbackWrapper, {err_ffi_convert})
@@ -396,7 +435,7 @@ func {prefixed_fn_name} ({params_str}) {{
             r#"@_cdecl("{link_name}")
 func {prefixed_fn_name} ({params_str}) {{
     Task {{
-        {result_binding}await {await_call}
+        {result_binding}await {call_expression}
         {callback_call}
     }}
 }}
@@ -411,13 +450,10 @@ fn gen_sync_function_exposes_swift_to_rust(
     types: &TypeDeclarations,
     swift_bridge_path: &Path,
 ) -> String {
-    let link_name = func.link_name();
-    let prefixed_fn_name = func.prefixed_fn_name();
-    let fn_name = if let Some(swift_name) = func.swift_name_override.as_ref() {
-        swift_name.value()
-    } else {
-        func.sig.ident.to_string()
-    };
+    let metadata = SwiftFnMetadata::from_parsed_extern_fn(func);
+    let link_name = &metadata.link_name;
+    let prefixed_fn_name = &metadata.prefixed_fn_name;
+    let fn_name = &metadata.fn_name;
 
     let params = func.to_swift_param_names_and_types(true, types, swift_bridge_path);
     let ret = func.to_swift_return_type(types, swift_bridge_path);
