@@ -353,6 +353,9 @@ fn gen_async_function_exposes_swift_to_rust(
             all_params.push(original_params.clone());
         }
 
+        // This `fatalError` can occur if the Swift function throws a type that cannot be cast to the
+        // error type in the user's bridge module. See the "Functions" chapter in the internal book for
+        // more documentation.
         let task_body = format!(
             r#"do {{
             let result = try await {call_expression}
@@ -360,7 +363,7 @@ fn gen_async_function_exposes_swift_to_rust(
         }} catch let error as {err_swift_ty} {{
             onError(callbackWrapper, {err_ffi_convert})
         }} catch {{
-            fatalError("Unexpected error type")
+            fatalError("Error could not be cast to {err_swift_ty}")
         }}"#
         );
 

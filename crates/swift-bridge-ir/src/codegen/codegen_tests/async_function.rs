@@ -1345,7 +1345,7 @@ func __swift_bridge__some_function (_ callbackWrapper: UnsafeMutableRawPointer, 
         } catch let error as ErrorType {
             onError(callbackWrapper, {error.isOwned = false; return error.ptr;}())
         } catch {
-            fatalError("Unexpected error type")
+            fatalError("Error could not be cast to ErrorType")
         }
     }
 }
@@ -1438,7 +1438,7 @@ func __swift_bridge__some_function (_ callbackWrapper: UnsafeMutableRawPointer, 
         } catch let error as ErrorType {
             onError(callbackWrapper, {error.isOwned = false; return error.ptr;}())
         } catch {
-            fatalError("Unexpected error type")
+            fatalError("Error could not be cast to ErrorType")
         }
     }
 }
