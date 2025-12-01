@@ -307,13 +307,10 @@ fn gen_async_function_exposes_swift_to_rust(
     // Build the async call expression
     let call_expression = build_swift_call_expression(func, fn_name, &args);
 
-    if let Some(result) = maybe_result {
+    // Build params_str and task_body based on whether this is a Result type or not
+    let (params_str, task_body) = if let Some(result) = maybe_result {
         // Result type: generate two callbacks (on_success and on_error)
-        let _ok_swift_ty = result.ok_ty.to_swift_type(
-            TypePosition::FnReturn(func.host_lang),
-            types,
-            swift_bridge_path,
-        );
+
         // For the catch clause, we need the actual Swift wrapper type name (e.g., "ErrorType"),
         // not the FFI type ("UnsafeMutableRawPointer"). Using HostLang::Rust gives us the
         // Swift wrapper class name that conforms to Error.
@@ -361,24 +358,19 @@ fn gen_async_function_exposes_swift_to_rust(
         if !original_params.is_empty() {
             all_params.push(original_params.clone());
         }
-        let params_str = all_params.join(", ");
 
-        format!(
-            r#"@_cdecl("{link_name}")
-func {prefixed_fn_name} ({params_str}) {{
-    Task {{
-        do {{
+        let task_body = format!(
+            r#"do {{
             let result = try await {call_expression}
             onSuccess(callbackWrapper, {ok_ffi_convert})
         }} catch let error as {err_swift_ty} {{
             onError(callbackWrapper, {err_ffi_convert})
         }} catch {{
             fatalError("Unexpected error type")
-        }}
-    }}
-}}
-"#
-        )
+        }}"#
+        );
+
+        (all_params.join(", "), task_body)
     } else {
         // Non-Result type: single callback
         let return_ty_ref = return_ty.as_ref();
@@ -411,7 +403,6 @@ func {prefixed_fn_name} ({params_str}) {{
         if !original_params.is_empty() {
             all_params.push(original_params.clone());
         }
-        let params_str = all_params.join(", ");
 
         let callback_call = if has_return_value {
             let built_in = return_ty_ref.unwrap();
@@ -431,17 +422,20 @@ func {prefixed_fn_name} ({params_str}) {{
             "let _ = "
         };
 
-        format!(
-            r#"@_cdecl("{link_name}")
+        let task_body = format!("{result_binding}await {call_expression}\n        {callback_call}");
+
+        (all_params.join(", "), task_body)
+    };
+
+    format!(
+        r#"@_cdecl("{link_name}")
 func {prefixed_fn_name} ({params_str}) {{
     Task {{
-        {result_binding}await {call_expression}
-        {callback_call}
+        {task_body}
     }}
 }}
 "#
-        )
-    }
+    )
 }
 
 /// Generate Swift code that exposes a synchronous Swift function to Rust.
