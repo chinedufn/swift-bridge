@@ -891,9 +891,10 @@ func __swift_bridge__some_function () -> __swift_bridge__$ResultStringAndSomeErr
         return __swift_bridge__$ResultStringAndSomeError(tag: __swift_bridge__$ResultStringAndSomeError$ResultOk, payload: __swift_bridge__$ResultStringAndSomeError$Fields(ok: { let rustString = result.intoRustString(); rustString.isOwned = false; return rustString.ptr }()))
     } catch let error as SomeError {
         return __swift_bridge__$ResultStringAndSomeError(tag: __swift_bridge__$ResultStringAndSomeError$ResultErr, payload: __swift_bridge__$ResultStringAndSomeError$Fields(err: error.intoFfiRepr()))
-    } catch {
-        fatalError("Unexpected error type")
     }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_: SomeError.Type) throws(SomeError) {
+    _ = try some_function()
 }
 "#,
         )
@@ -959,9 +960,10 @@ func __swift_bridge__some_function () -> __swift_bridge__$ResultU32AndSomeError 
         return __swift_bridge__$ResultU32AndSomeError(tag: __swift_bridge__$ResultU32AndSomeError$ResultOk, payload: __swift_bridge__$ResultU32AndSomeError$Fields(ok: result))
     } catch let error as SomeError {
         return __swift_bridge__$ResultU32AndSomeError(tag: __swift_bridge__$ResultU32AndSomeError$ResultErr, payload: __swift_bridge__$ResultU32AndSomeError$Fields(err: error.intoFfiRepr()))
-    } catch {
-        fatalError("Unexpected error type")
     }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_: SomeError.Type) throws(SomeError) {
+    _ = try some_function()
 }
 "#,
         )
@@ -1026,9 +1028,10 @@ func __swift_bridge__some_function (_ success: Bool) -> __swift_bridge__$ResultV
         return __swift_bridge__$ResultVoidAndSomeError(tag: __swift_bridge__$ResultVoidAndSomeError$ResultOk, payload: __swift_bridge__$ResultVoidAndSomeError$Fields())
     } catch let error as SomeError {
         return __swift_bridge__$ResultVoidAndSomeError(tag: __swift_bridge__$ResultVoidAndSomeError$ResultErr, payload: __swift_bridge__$ResultVoidAndSomeError$Fields(err: error.intoFfiRepr()))
-    } catch {
-        fatalError("Unexpected error type")
     }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_ success: Bool, _: SomeError.Type) throws(SomeError) {
+    _ = try some_function(success: success)
 }
 "#,
         )
