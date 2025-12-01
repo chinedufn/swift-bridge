@@ -26,6 +26,16 @@ pub struct SwiftAsyncCallback<T> {
 /// The wrapper pointer must be passed to `complete_swift_async` exactly once
 /// to avoid memory leaks.
 ///
+/// # Panics
+///
+/// The returned future will panic if the sender is dropped without sending a result.
+/// This can happen if:
+/// - Swift never calls the callback (e.g., the wrapper pointer was leaked)
+/// - `complete_swift_async` was called with a mismatched type parameter `T`,
+///   causing it to reconstruct and drop a different `SwiftAsyncCallback<U>`
+///
+/// Both cases indicate a bug in generated code or misuse of the unsafe API.
+///
 /// # Example (generated code pattern)
 ///
 /// ```ignore
