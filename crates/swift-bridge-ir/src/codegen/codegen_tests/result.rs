@@ -847,3 +847,205 @@ typedef struct __swift_bridge__$ResultVoidAndSomeErrStruct{__swift_bridge__$Resu
         .test();
     }
 }
+
+/// Test code generation for synchronous Swift function that returns a Result<T, E>
+/// where T is String and E is a shared enum. This tests the Rust-calling-Swift pattern with Result.
+mod extern_swift_fn_return_result_string {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                enum SomeError {
+                    SomeVariant
+                }
+
+                extern "Swift" {
+                    fn some_function() -> Result<String, SomeError>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            // The extern "C" declaration should use custom result enum
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function() -> ResultStringAndSomeError;
+            },
+            // The Rust wrapper should have Result return type
+            quote! {
+                pub fn some_function() -> Result<String, SomeError>
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function () -> __swift_bridge__$ResultStringAndSomeError {
+    do {
+        let result = try some_function()
+        return __swift_bridge__$ResultStringAndSomeError(tag: __swift_bridge__$ResultStringAndSomeError$ResultOk, payload: __swift_bridge__$ResultStringAndSomeError$Fields(ok: { let rustString = result.intoRustString(); rustString.isOwned = false; return rustString.ptr }()))
+    } catch let error as SomeError {
+        return __swift_bridge__$ResultStringAndSomeError(tag: __swift_bridge__$ResultStringAndSomeError$ResultErr, payload: __swift_bridge__$ResultStringAndSomeError$Fields(err: error.intoFfiRepr()))
+    } catch {
+        fatalError("Unexpected error type")
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        // No C header needed for extern "Swift" functions
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_fn_return_result_string() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for synchronous Swift function that returns a Result<u32, E>
+/// where u32 is a primitive (uses custom result type since primitives aren't passed via pointer).
+mod extern_swift_fn_return_result_u32 {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                enum SomeError {
+                    SomeVariant
+                }
+
+                extern "Swift" {
+                    fn some_function() -> Result<u32, SomeError>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            // The extern "C" declaration should use custom result enum
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function() -> ResultU32AndSomeError;
+            },
+            // The Rust wrapper should have Result return type
+            quote! {
+                pub fn some_function() -> Result<u32, SomeError>
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function () -> __swift_bridge__$ResultU32AndSomeError {
+    do {
+        let result = try some_function()
+        return __swift_bridge__$ResultU32AndSomeError(tag: __swift_bridge__$ResultU32AndSomeError$ResultOk, payload: __swift_bridge__$ResultU32AndSomeError$Fields(ok: result))
+    } catch let error as SomeError {
+        return __swift_bridge__$ResultU32AndSomeError(tag: __swift_bridge__$ResultU32AndSomeError$ResultErr, payload: __swift_bridge__$ResultU32AndSomeError$Fields(err: error.intoFfiRepr()))
+    } catch {
+        fatalError("Unexpected error type")
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        // No C header needed for extern "Swift" functions
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_fn_return_result_u32() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test code generation for synchronous Swift function that returns a Result<(), E>
+/// where E is a shared enum. This tests that the Ok case doesn't try to capture or use
+/// a result value from a void function.
+mod extern_swift_fn_return_result_void_shared_enum {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                enum SomeError {
+                    SomeVariant
+                }
+
+                extern "Swift" {
+                    fn some_function(success: bool) -> Result<(), SomeError>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(success: bool) -> ResultVoidAndSomeError;
+            },
+            quote! {
+                pub fn some_function(success: bool) -> Result<(), SomeError>
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ success: Bool) -> __swift_bridge__$ResultVoidAndSomeError {
+    do {
+        try some_function(success: success)
+        return __swift_bridge__$ResultVoidAndSomeError(tag: __swift_bridge__$ResultVoidAndSomeError$ResultOk, payload: __swift_bridge__$ResultVoidAndSomeError$Fields())
+    } catch let error as SomeError {
+        return __swift_bridge__$ResultVoidAndSomeError(tag: __swift_bridge__$ResultVoidAndSomeError$ResultErr, payload: __swift_bridge__$ResultVoidAndSomeError$Fields(err: error.intoFfiRepr()))
+    } catch {
+        fatalError("Unexpected error type")
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_fn_return_result_void_shared_enum() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

@@ -280,3 +280,60 @@ impl ThrowingInitializer {
         self.val
     }
 }
+
+// =============================================================================
+// Tests for Rust calling sync Swift functions that return Result
+// =============================================================================
+
+#[swift_bridge::bridge]
+mod ffi_swift_sync_result {
+    // Shared enum error type for sync throws tests
+    enum SwiftSyncError {
+        ErrorWithValue(u32),
+        ErrorWithMessage(String),
+    }
+
+    extern "Rust" {
+        // Rust functions that call Swift sync throwing functions - called from Swift tests
+        fn rust_calls_swift_sync_throws_u32_ok() -> u32;
+        fn rust_calls_swift_sync_throws_u32_err() -> u32;
+        fn rust_calls_swift_sync_throws_string_ok() -> String;
+        fn rust_calls_swift_sync_throws_string_err() -> String;
+    }
+
+    extern "Swift" {
+        // Sync Swift throwing functions (mapped to throws in Swift)
+        fn swift_sync_throws_u32(succeed: bool) -> Result<u32, SwiftSyncError>;
+        fn swift_sync_throws_string(succeed: bool) -> Result<String, SwiftSyncError>;
+    }
+}
+
+fn rust_calls_swift_sync_throws_u32_ok() -> u32 {
+    match ffi_swift_sync_result::swift_sync_throws_u32(true) {
+        Ok(val) => val,
+        Err(_) => panic!("Expected Ok, got Err"),
+    }
+}
+
+fn rust_calls_swift_sync_throws_u32_err() -> u32 {
+    match ffi_swift_sync_result::swift_sync_throws_u32(false) {
+        Ok(_) => panic!("Expected Err, got Ok"),
+        Err(ffi_swift_sync_result::SwiftSyncError::ErrorWithValue(val)) => val,
+        Err(_) => panic!("Wrong error variant"),
+    }
+}
+
+fn rust_calls_swift_sync_throws_string_ok() -> String {
+    match ffi_swift_sync_result::swift_sync_throws_string(true) {
+        Ok(val) => val,
+        Err(_) => panic!("Expected Ok, got Err"),
+    }
+}
+
+fn rust_calls_swift_sync_throws_string_err() -> String {
+    match ffi_swift_sync_result::swift_sync_throws_string(false) {
+        Ok(_) => panic!("Expected Err, got Ok"),
+        Err(ffi_swift_sync_result::SwiftSyncError::ErrorWithMessage(msg)) => msg,
+        Err(_) => panic!("Wrong error variant"),
+    }
+}

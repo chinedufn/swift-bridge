@@ -54,3 +54,28 @@ extension AsyncResultErrEnum: Error {}
 
 extension SwiftAsyncError: @unchecked Sendable {}
 extension SwiftAsyncError: Error {}
+
+// ============================================================================
+// Sync Swift throwing functions (called from Rust)
+// ============================================================================
+
+extension SwiftSyncError: @unchecked Sendable {}
+extension SwiftSyncError: Error {}
+
+/// Sync Swift function that throws, returning u32 on success
+func swift_sync_throws_u32(succeed: Bool) throws -> UInt32 {
+    if succeed {
+        return 42
+    } else {
+        throw SwiftSyncError.ErrorWithValue(123)
+    }
+}
+
+/// Sync Swift function that throws, returning String on success
+func swift_sync_throws_string(succeed: Bool) throws -> RustString {
+    if succeed {
+        return "Success from Swift".intoRustString()
+    } else {
+        throw SwiftSyncError.ErrorWithMessage("Error message from Swift".intoRustString())
+    }
+}

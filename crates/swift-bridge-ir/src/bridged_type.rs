@@ -10,7 +10,7 @@ use syn::{FnArg, Pat, PatType, Path, ReturnType, Type};
 pub(crate) use self::bridged_opaque_type::OpaqueForeignType;
 use crate::bridged_type::boxed_fn::BridgeableBoxedFnOnce;
 use crate::bridged_type::bridgeable_pointer::{BuiltInPointer, Pointee, PointerKind};
-use crate::bridged_type::bridgeable_result::BuiltInResult;
+pub(crate) use crate::bridged_type::bridgeable_result::BuiltInResult;
 use crate::bridged_type::bridgeable_string::BridgedString;
 use crate::bridged_type::built_in_tuple::BuiltInTuple;
 
@@ -1725,6 +1725,18 @@ impl BridgedType {
             BridgedType::Bridgeable(b) => {
                 b.convert_ffi_result_ok_value_to_rust_value(ok_ffi_value, swift_bridge_path, types)
             }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
+                let ffi_repr_name = shared_enum.ffi_name_tokens();
+                quote! {
+                    unsafe { (#ok_ffi_value.ok_or_err as #ffi_repr_name).into_rust_repr() }
+                }
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                let ffi_repr_name = shared_struct.ffi_name_tokens();
+                quote! {
+                    unsafe { (#ok_ffi_value.ok_or_err as #ffi_repr_name).into_rust_repr() }
+                }
+            }
             _ => unimplemented!(),
         }
     }
@@ -1741,6 +1753,18 @@ impl BridgedType {
                 swift_bridge_path,
                 types,
             ),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
+                let ffi_repr_name = shared_enum.ffi_name_tokens();
+                quote! {
+                    unsafe { (#err_ffi_value.ok_or_err as #ffi_repr_name).into_rust_repr() }
+                }
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                let ffi_repr_name = shared_struct.ffi_name_tokens();
+                quote! {
+                    unsafe { (#err_ffi_value.ok_or_err as #ffi_repr_name).into_rust_repr() }
+                }
+            }
             _ => unimplemented!(),
         }
     }

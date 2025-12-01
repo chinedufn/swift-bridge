@@ -288,4 +288,32 @@ class ResultTests: XCTestCase {
             XCTAssertEqual(throwingInitializer.val(), 123)
         }
     }
+
+    // =========================================================================
+    // Tests for sync Swift throwing functions called from Rust
+    // =========================================================================
+
+    /// Verify that Rust can call a sync Swift throwing function and receive Ok(u32)
+    func testRustCallsSwiftSyncThrowsU32Ok() throws {
+        let result = rust_calls_swift_sync_throws_u32_ok()
+        XCTAssertEqual(result, 42)
+    }
+
+    /// Verify that Rust can call a sync Swift throwing function and receive Err
+    func testRustCallsSwiftSyncThrowsU32Err() throws {
+        let result = rust_calls_swift_sync_throws_u32_err()
+        XCTAssertEqual(result, 123)
+    }
+
+    /// Verify that Rust can call a sync Swift throwing function and receive Ok(String)
+    func testRustCallsSwiftSyncThrowsStringOk() throws {
+        let result = rust_calls_swift_sync_throws_string_ok()
+        XCTAssertEqual(result.toString(), "Success from Swift")
+    }
+
+    /// Verify that Rust can call a sync Swift throwing function and receive Err(String)
+    func testRustCallsSwiftSyncThrowsStringErr() throws {
+        let result = rust_calls_swift_sync_throws_string_err()
+        XCTAssertEqual(result.toString(), "Error message from Swift")
+    }
 }
