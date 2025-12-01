@@ -257,11 +257,7 @@ impl SwiftFnMetadata {
 ///
 /// For freestanding functions:
 /// `fn_name(args)`
-fn build_swift_call_expression(
-    func: &ParsedExternFn,
-    fn_name: &str,
-    args: &str,
-) -> String {
+fn build_swift_call_expression(func: &ParsedExternFn, fn_name: &str, args: &str) -> String {
     if let Some(associated_type) = func.associated_type.as_ref() {
         let ty_name = match associated_type {
             TypeDeclaration::Shared(_) => todo!(),
@@ -269,9 +265,7 @@ fn build_swift_call_expression(
         };
 
         if func.is_method() {
-            format!(
-                "Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{fn_name}({args})"
-            )
+            format!("Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{fn_name}({args})")
         } else {
             format!("{ty_name}::{fn_name}({args})")
         }
