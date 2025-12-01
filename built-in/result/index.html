@@ -195,6 +195,49 @@ func run(arg: (RustResult&lt;SomeRustType, String&gt;) -&gt; ()) {
     arg(.Err(&quot;Something went wrong&quot;))
 }
 </code></pre>
+<h2 id="returning-result-from-swift---rust-async"><a class="header" href="#returning-result-from-swift---rust-async">Returning Result from Swift -&gt; Rust (async)</a></h2>
+<p>When an <code>extern &quot;Swift&quot;</code> async function returns <code>Result&lt;T, E&gt;</code>, the Swift implementation
+must use typed throws (Swift 5.9+).</p>
+<pre><pre class="playground"><code class="language-rust no_run">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Rust
+
+#[swift_bridge::bridge]
+mod ffi {
+    enum MyError {
+        SomethingWentWrong,
+    }
+
+    extern &quot;Swift&quot; {
+        async fn fetch_data() -&gt; Result&lt;u32, MyError&gt;;
+    }
+}
+
+async fn example() {
+    match ffi::fetch_data().await {
+        Ok(data) =&gt; println!(&quot;Got: {}&quot;, data),
+        Err(e) =&gt; println!(&quot;Error: {:?}&quot;, e),
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// Swift
+
+// Shared enums need Error conformance
+extension MyError: Error {}
+
+// IMPORTANT: Must use typed throws (Swift 5.9+)
+func fetch_data() async throws(MyError) -&gt; UInt32 {
+    throw MyError.SomethingWentWrong
+}
+</code></pre>
+<p><strong>Key requirements:</strong></p>
+<ul>
+<li>Use <code>throws(E)</code> (typed throws) instead of just <code>throws</code></li>
+<li>Add <code>Error</code> conformance to shared enums: <code>extension MyError: Error {}</code></li>
+<li>Requires Swift 5.9 or later</li>
+</ul>
 
                     </main>
 

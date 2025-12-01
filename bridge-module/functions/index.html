@@ -178,14 +178,14 @@ func add(lhs: UInt, rhs: UInt) -&gt; UInt {
     lhs + rhs
 }
 </code></pre>
-<h2 id="async-rust-functions"><a class="header" href="#async-rust-functions">Async Rust Functions</a></h2>
-<p><code>swift-bridge</code> supports async/await between Swift and Rust.</p>
-<p><em>Calling an async Rust function from Swift is supported. Calling an async Swift function from Rust is not yet supported.</em></p>
+<h2 id="async-functions"><a class="header" href="#async-functions">Async Functions</a></h2>
+<p><code>swift-bridge</code> supports async/await between Swift and Rust in both directions.</p>
+<h3 id="async-rust-functions-called-from-swift"><a class="header" href="#async-rust-functions-called-from-swift">Async Rust Functions (called from Swift)</a></h3>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[swift_bridge::bridge]
-mod ffi {    
+mod ffi {
     extern &quot;Rust&quot; {
         type User;
         type ApiError;
@@ -206,6 +206,66 @@ do {
     // ... error handling ...
 }
 </code></pre>
+<h3 id="async-swift-functions-called-from-rust"><a class="header" href="#async-swift-functions-called-from-rust">Async Swift Functions (called from Rust)</a></h3>
+<p>You can call async Swift functions from Rust. The Swift function is declared with
+<code>async</code> in the <code>extern &quot;Swift&quot;</code> block, and <code>swift-bridge</code> generates the necessary
+callback-based FFI to bridge Swift's async/await to Rust's async/await.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[swift_bridge::bridge]
+mod ffi {
+    enum NetworkError {
+        Timeout,
+        NotFound,
+    }
+
+    extern &quot;Swift&quot; {
+        async fn fetch_user_count() -&gt; u32;
+        async fn fetch_data(succeed: bool) -&gt; Result&lt;u32, NetworkError&gt;;
+    }
+}
+
+async fn example() {
+    // Call async Swift function that returns a value
+    let count = ffi::fetch_user_count().await;
+
+    // Call async Swift function that can throw (returns Result in Rust)
+    match ffi::fetch_data(true).await {
+        Ok(data) =&gt; println!(&quot;Got data: {}&quot;, data),
+        Err(e) =&gt; println!(&quot;Error: {:?}&quot;, e),
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<pre><code class="language-swift">// Swift
+
+// Shared enums need Error conformance to be thrown
+extension NetworkError: Error {}
+
+func fetch_user_count() async -&gt; UInt32 {
+    // ... async work ...
+    return 42
+}
+
+// IMPORTANT: Use typed throws to specify the exact error type
+func fetch_data(succeed: Bool) async throws(NetworkError) -&gt; UInt32 {
+    // ... async work that might fail ...
+    if !succeed {
+        throw NetworkError.Timeout
+    }
+    return 123
+}
+</code></pre>
+<p>When a Swift function returns <code>Result&lt;T, E&gt;</code> in the bridge definition:</p>
+<ul>
+<li>The Swift function <strong>must</strong> use typed throws: <code>throws(E)</code> (requires Swift 5.9+)</li>
+<li>Throwing an error in Swift maps to <code>Err(E)</code> in Rust</li>
+<li>A successful return maps to <code>Ok(T)</code></li>
+<li>Shared enums used as error types need <code>Error</code> conformance: <code>extension MyError: Error {}</code></li>
+</ul>
+<p>The typed throws requirement ensures compile-time verification that your Swift function
+only throws the expected error type, preventing runtime errors from type mismatches.</p>
 <h2 id="function-attributes"><a class="header" href="#function-attributes">Function Attributes</a></h2>
 <h4 id="swift_bridgeinit"><a class="header" href="#swift_bridgeinit">#[swift_bridge(init)]</a></h4>
 <p>Used to generate a Swift initializer for Opaque Types.</p>
