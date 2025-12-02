@@ -26,7 +26,7 @@ impl BuiltInResult {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
-        if self.is_custom_result_type(types) {
+        if self.is_custom_result_type() {
             let ty = format_ident!("{}", self.custom_c_struct_name(types));
             return quote! {
                 #ty
@@ -72,7 +72,7 @@ impl BuiltInResult {
             span,
         );
 
-        if self.is_custom_result_type(types) {
+        if self.is_custom_result_type() {
             if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!();
             }
@@ -146,7 +146,7 @@ impl BuiltInResult {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
-        if self.is_custom_result_type(types) {
+        if self.is_custom_result_type() {
             // Custom result type: Rust enum like ResultOkAndErr::Ok(ok_val) / ResultOkAndErr::Err(err_val)
             let ffi_enum_name = self.to_ffi_compatible_rust_type(swift_bridge_path, types);
             let (ok_pattern, convert_ok) = if self.ok_ty.can_be_encoded_with_zero_bytes() {
@@ -241,7 +241,7 @@ impl BuiltInResult {
                 if self.err_ty.can_be_encoded_with_zero_bytes() {
                     todo!()
                 }
-                if self.is_custom_result_type(types) {
+                if self.is_custom_result_type() {
                     return format!(
                         "{}${}",
                         SWIFT_BRIDGE_PREFIX,
@@ -264,7 +264,7 @@ impl BuiltInResult {
         types: &TypeDeclarations,
         swift_bridge_path: &Path,
     ) -> String {
-        if self.is_custom_result_type(types) {
+        if self.is_custom_result_type() {
             if self.err_ty.can_be_encoded_with_zero_bytes() {
                 todo!();
             }
@@ -391,7 +391,7 @@ impl BuiltInResult {
     }
 
     pub fn to_c(&self, types: &TypeDeclarations) -> String {
-        if self.is_custom_result_type(types) {
+        if self.is_custom_result_type() {
             return format!(
                 "struct {}${}",
                 SWIFT_BRIDGE_PREFIX,
@@ -413,7 +413,7 @@ impl BuiltInResult {
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> Option<Vec<TokenStream>> {
-        if !self.is_custom_result_type(types) {
+        if !self.is_custom_result_type() {
             return None;
         }
         if self.err_ty.can_be_encoded_with_zero_bytes() {
@@ -464,7 +464,7 @@ impl BuiltInResult {
     }
 
     pub fn generate_custom_c_ffi_types(&self, types: &TypeDeclarations) -> Option<CFfiStruct> {
-        if !self.is_custom_result_type(types) {
+        if !self.is_custom_result_type() {
             return None;
         }
         if self.err_ty.can_be_encoded_with_zero_bytes() {
@@ -512,7 +512,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         return Some(custom_c_ffi_type);
     }
 
-    pub fn is_custom_result_type(&self, _types: &TypeDeclarations) -> bool {
+    pub fn is_custom_result_type(&self) -> bool {
         // ResultPtrAndPtr
         if self.ok_ty.is_passed_via_pointer() && self.err_ty.is_passed_via_pointer() {
             return false;
@@ -535,7 +535,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         types: &TypeDeclarations,
         swift_bridge_path: &Path,
     ) -> String {
-        if self.is_custom_result_type(types) {
+        if self.is_custom_result_type() {
             let ok = if self.ok_ty.can_be_encoded_with_zero_bytes() {
                 "()".to_string()
             } else {
