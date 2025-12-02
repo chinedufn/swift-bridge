@@ -138,13 +138,6 @@ impl ParsedExternFn {
         let return_ty = BridgedType::new_with_return_type(&sig.output, types);
         let maybe_result = return_ty.as_ref().and_then(|ty| ty.as_result());
 
-        // Check if we need to pass self
-        let maybe_self_arg = if self.is_method() {
-            quote! { #swift_bridge_path::PointerToSwiftType(self.0), }
-        } else {
-            quote! {}
-        };
-
         // Generate comma before call_args if there are any
         let maybe_comma_call_args = if call_args.is_empty() {
             quote! {}
@@ -236,7 +229,6 @@ impl ParsedExternFn {
 
                     unsafe {
                         #linked_fn_name(
-                            #maybe_self_arg
                             callback_wrapper,
                             on_success,
                             on_error
@@ -323,7 +315,6 @@ impl ParsedExternFn {
 
                     unsafe {
                         #linked_fn_name(
-                            #maybe_self_arg
                             callback_wrapper,
                             callback
                             #maybe_comma_call_args

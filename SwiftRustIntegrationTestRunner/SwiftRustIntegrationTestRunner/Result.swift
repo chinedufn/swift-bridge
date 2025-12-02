@@ -58,6 +58,9 @@ extension SwiftAsyncError: Error {}
 extension SwiftAsyncVoidError: @unchecked Sendable {}
 extension SwiftAsyncVoidError: Error {}
 
+extension SwiftAsyncMethodError: @unchecked Sendable {}
+extension SwiftAsyncMethodError: Error {}
+
 // ============================================================================
 // Sync Swift throwing functions (called from Rust)
 // ============================================================================

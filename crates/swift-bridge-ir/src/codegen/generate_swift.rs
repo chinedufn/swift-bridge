@@ -327,11 +327,8 @@ fn gen_async_function_exposes_swift_to_rust(
             swift_bridge_path,
         );
 
-        // Build params: this (if method), callbackWrapper, onSuccess, onError, then original params
+        // Build params: callbackWrapper, onSuccess, onError, then original params (which includes this for methods)
         let mut all_params = Vec::new();
-        if func.is_method() {
-            all_params.push("_ this: UnsafeMutableRawPointer".to_string());
-        }
         all_params.push("_ callbackWrapper: UnsafeMutableRawPointer".to_string());
 
         // Handle Result<(), E> where ok_ty can be encoded with zero bytes
@@ -422,11 +419,8 @@ func {prefixed_fn_name}__TypedThrowsCheck({checker_params}) async throws({err_sw
             "_ callback: @escaping @convention(c) (UnsafeMutableRawPointer) -> Void".to_string()
         };
 
-        // Build params: this (if method), callbackWrapper, callback, then original params
+        // Build params: callbackWrapper, callback, then original params (which includes this for methods)
         let mut all_params = Vec::new();
-        if func.is_method() {
-            all_params.push("_ this: UnsafeMutableRawPointer".to_string());
-        }
         all_params.push("_ callbackWrapper: UnsafeMutableRawPointer".to_string());
         all_params.push(callback_signature);
         if !original_params.is_empty() {

@@ -237,5 +237,45 @@ class AsyncTests: XCTestCase {
         let result = rust_calls_swift_async_throws_void_err()
         XCTAssertEqual(result, 789)
     }
+
+    // =========================================================================
+    // Tests for Rust calling async Swift methods with &self
+    // =========================================================================
+
+    /// Test that Rust can call an async Swift method that returns u32
+    func testRustCallsSwiftAsyncMethodReturnU32() throws {
+        let result = rust_calls_swift_async_method_return_u32()
+        XCTAssertEqual(result, 42)
+    }
+
+    /// Test that Rust can call an async Swift method with arguments
+    func testRustCallsSwiftAsyncMethodWithArgs() throws {
+        let result = rust_calls_swift_async_method_with_args()
+        XCTAssertEqual(result, 150) // 100 + 50
+    }
+
+    /// Test that Rust can call an async Swift method that throws - success case
+    func testRustCallsSwiftAsyncMethodThrowsOk() throws {
+        let result = rust_calls_swift_async_method_throws_ok()
+        XCTAssertEqual(result, 999)
+    }
+
+    /// Test that Rust can call an async Swift method that throws - error case
+    func testRustCallsSwiftAsyncMethodThrowsErr() throws {
+        let result = rust_calls_swift_async_method_throws_err()
+        XCTAssertEqual(result, 123) // The value stored in the object
+    }
+
+    /// Test that Rust can call an async Swift method that throws void (Result<(), E>) - success case
+    func testRustCallsSwiftAsyncMethodThrowsVoidOk() throws {
+        let result = rust_calls_swift_async_method_throws_void_ok()
+        XCTAssertTrue(result)
+    }
+
+    /// Test that Rust can call an async Swift method that throws void (Result<(), E>) - error case
+    func testRustCallsSwiftAsyncMethodThrowsVoidErr() throws {
+        let result = rust_calls_swift_async_method_throws_void_err()
+        XCTAssertEqual(result, 555)
+    }
 }
 
