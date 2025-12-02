@@ -263,3 +263,45 @@ fn rust_calls_swift_async_throws_err() -> u32 {
         }
     })
 }
+
+// =============================================================================
+// Tests for Rust calling async Swift functions that return Result<(), E>
+// =============================================================================
+
+#[swift_bridge::bridge]
+mod ffi_swift_async_result_void {
+    extern "Rust" {
+        // Rust functions that call Swift async functions returning Result<(), E>
+        fn rust_calls_swift_async_throws_void_ok() -> bool;
+        fn rust_calls_swift_async_throws_void_err() -> u32;
+    }
+
+    // Shared enum error type for async throws tests
+    enum SwiftAsyncVoidError {
+        ErrorWithValue(u32),
+    }
+
+    extern "Swift" {
+        async fn swift_async_throws_void(succeed: bool) -> Result<(), SwiftAsyncVoidError>;
+    }
+}
+
+fn rust_calls_swift_async_throws_void_ok() -> bool {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        match ffi_swift_async_result_void::swift_async_throws_void(true).await {
+            Ok(()) => true,
+            Err(_) => panic!("Expected Ok(()), got Err"),
+        }
+    })
+}
+
+fn rust_calls_swift_async_throws_void_err() -> u32 {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        match ffi_swift_async_result_void::swift_async_throws_void(false).await {
+            Ok(()) => panic!("Expected Err, got Ok"),
+            Err(ffi_swift_async_result_void::SwiftAsyncVoidError::ErrorWithValue(val)) => val,
+        }
+    })
+}

@@ -225,5 +225,17 @@ class AsyncTests: XCTestCase {
         let result = rust_calls_swift_async_throws_err()
         XCTAssertEqual(result, 456)
     }
+
+    /// Test that Rust can call an async Swift function that throws void (Result<(), E>) - success case
+    func testRustCallsSwiftAsyncThrowsVoidOk() throws {
+        let result = rust_calls_swift_async_throws_void_ok()
+        XCTAssertTrue(result)
+    }
+
+    /// Test that Rust can call an async Swift function that throws void (Result<(), E>) - error case
+    func testRustCallsSwiftAsyncThrowsVoidErr() throws {
+        let result = rust_calls_swift_async_throws_void_err()
+        XCTAssertEqual(result, 789)
+    }
 }
 

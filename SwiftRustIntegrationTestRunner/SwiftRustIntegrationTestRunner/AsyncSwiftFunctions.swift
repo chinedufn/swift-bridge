@@ -35,3 +35,13 @@ func swift_async_throws(succeed: Bool) async throws(SwiftAsyncError) -> UInt32 {
         throw SwiftAsyncError.ErrorWithValue(456)
     }
 }
+
+/// An async Swift function that throws but returns void (maps to Result<(), E> in Rust)
+/// Uses typed throws (Swift 5.9+) to ensure compile-time verification of error type
+func swift_async_throws_void(succeed: Bool) async throws(SwiftAsyncVoidError) {
+    try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
+    if !succeed {
+        throw SwiftAsyncVoidError.ErrorWithValue(789)
+    }
+    // On success, just return (void)
+}
