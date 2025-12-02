@@ -21,6 +21,22 @@ mod ffi {
     }
 
     extern "Rust" {
+        #[swift_bridge(Copy(4))]
+        type ARustCopyTypeInsideVecT;
+
+        #[swift_bridge(init)]
+        fn new(value: i32) -> ARustCopyTypeInsideVecT;
+
+        fn value(&self) -> i32;
+    }
+
+    extern "Rust" {
+        fn rust_reflect_vec_opaque_rust_copy_type(
+            arg: Vec<ARustCopyTypeInsideVecT>,
+        ) -> Vec<ARustCopyTypeInsideVecT>;
+    }
+
+    extern "Rust" {
         fn rust_reflect_vec_transparent_enum(
             arg: Vec<TransparentEnumInsideVecT>,
         ) -> Vec<TransparentEnumInsideVecT>;
@@ -66,6 +82,25 @@ impl ARustTypeInsideVecT {
 }
 
 fn rust_reflect_vec_opaque_rust_type(arg: Vec<ARustTypeInsideVecT>) -> Vec<ARustTypeInsideVecT> {
+    arg
+}
+
+#[derive(Clone, Copy)]
+pub struct ARustCopyTypeInsideVecT {
+    x: i32,
+}
+
+impl ARustCopyTypeInsideVecT {
+    fn new(x: i32) -> Self {
+        Self { x }
+    }
+
+    fn value(&self) -> i32 {
+        self.x
+    }
+}
+
+fn rust_reflect_vec_opaque_rust_copy_type(arg: Vec<ARustCopyTypeInsideVecT>) -> Vec<ARustCopyTypeInsideVecT> {
     arg
 }
 

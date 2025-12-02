@@ -6,6 +6,7 @@ use proc_macro2::TokenStream;
 use quote::ToTokens;
 use quote::{quote, quote_spanned};
 
+use self::vec::vec_of_opaque_rust_copy_type::generate_vec_of_opaque_rust_copy_type_functions;
 use self::vec::vec_of_opaque_rust_type::generate_vec_of_opaque_rust_type_functions;
 use crate::bridge_module_attributes::CfgAttr;
 use crate::parse::{
@@ -189,6 +190,29 @@ impl ToTokens for SwiftBridgeModule {
                                         is_some: bool,
                                         val: std::mem::MaybeUninit<#copy_ty_name>
                                     }
+                                    impl #option_copy_ty_name {
+                                        #[inline(always)]
+                                        fn into_rust_repr(self) -> Option<super:: #ty_name #generics> {
+                                            if self.is_some {
+                                                Some(unsafe { self.val.assume_init() }.into_rust_repr())
+                                            } else {
+                                                None
+                                            }
+                                        }
+                                        #[inline(always)]
+                                        fn from_rust_repr(repr: Option<super:: #ty_name #generics>) -> Self {
+                                            match repr {
+                                                Some(val) => Self {
+                                                    is_some: true,
+                                                    val: std::mem::MaybeUninit::new(#copy_ty_name ::from_rust_repr(val)),
+                                                },
+                                                None => Self {
+                                                    is_some: false,
+                                                    val: std::mem::MaybeUninit::uninit(),
+                                                },
+                                            }
+                                        }
+                                    }
                                 };
 
                                 extern_rust_fn_tokens.push(assert_size);
@@ -196,41 +220,55 @@ impl ToTokens for SwiftBridgeModule {
                             }
 
                             if !ty.attributes.already_declared {
-                                if ty.attributes.copy.is_none() {
-                                    let generics = ty
-                                        .generics
-                                        .angle_bracketed_concrete_generics_tokens(&self.types);
+                                match ty.attributes.copy {
+                                    None => {
+                                        let generics = ty
+                                            .generics
+                                            .angle_bracketed_concrete_generics_tokens(&self.types);
 
-                                    let free = quote! {
-                                        #[export_name = #link_name]
-                                        pub extern "C" fn #free_mem_func_name (this: *mut super::#this #generics) {
-                                            let this = unsafe { Box::from_raw(this) };
-                                            drop(this);
+                                        let free = quote! {
+                                            #[export_name = #link_name]
+                                            pub extern "C" fn #free_mem_func_name (this: *mut super::#this #generics) {
+                                                let this = unsafe { Box::from_raw(this) };
+                                                drop(this);
+                                            }
+                                        };
+
+                                        extern_rust_fn_tokens.push(free);
+
+                                        // TODO: Support Vec<GenericOpaqueRustType
+                                        if ty.generics.len() == 0 {
+                                            let vec_functions =
+                                                generate_vec_of_opaque_rust_type_functions(ty_name);
+                                            extern_rust_fn_tokens.push(vec_functions);
                                         }
-                                    };
 
-                                    extern_rust_fn_tokens.push(free);
+                                        if ty.attributes.sendable {
+                                            if !has_encountered_at_least_one_rust_sendable_type {
+                                                extern_rust_fn_tokens.push(
+                                                    generate_extern_rust_type_send_sync_checker(),
+                                                );
 
-                                    // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
-                                    //  make them pass.
-                                    // TODO: Support Vec<GenericOpaqueRustType
-                                    if ty.generics.len() == 0 {
-                                        let vec_functions =
-                                            generate_vec_of_opaque_rust_type_functions(ty_name);
-                                        extern_rust_fn_tokens.push(vec_functions);
-                                    }
+                                                has_encountered_at_least_one_rust_sendable_type =
+                                                    true;
+                                            }
 
-                                    if ty.attributes.sendable {
-                                        if !has_encountered_at_least_one_rust_sendable_type {
                                             extern_rust_fn_tokens.push(
-                                                generate_extern_rust_type_send_sync_checker()
+                                                generate_extern_rust_type_send_sync_check(ty),
                                             );
-
-                                            has_encountered_at_least_one_rust_sendable_type = true;
                                         }
-
-                                        extern_rust_fn_tokens
-                                            .push(generate_extern_rust_type_send_sync_check(ty));
+                                    }
+                                    Some(_) => {
+                                        // TODO: Support Vec<GenericOpaqueRustType
+                                        if ty.generics.len() == 0 {
+                                            let vec_functions =
+                                                generate_vec_of_opaque_rust_copy_type_functions(
+                                                    ty_name,
+                                                    &ty.ffi_copy_repr_ident(),
+                                                    &ty.ffi_option_copy_repr_ident(),
+                                                );
+                                            extern_rust_fn_tokens.push(vec_functions);
+                                        }
                                     }
                                 }
                             }
