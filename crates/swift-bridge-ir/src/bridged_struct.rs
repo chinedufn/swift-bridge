@@ -28,6 +28,244 @@ fn swift_bridge_path() -> syn::Path {
     syn::parse_quote!(swift_bridge)
 }
 
+/// Information about a parsed custom type (not recognized by BridgedType).
+enum CustomTypeInfo {
+    /// Vec<T> where T is a custom type
+    Vec { inner_type: String },
+    /// Option<Vec<T>> where T is a custom type - uses nullable pointer pattern
+    OptionVec { inner_type: String },
+    /// Option<T> where T is a custom type (not Vec) - uses is_some struct pattern
+    Option { inner_type: String },
+    /// A plain custom type (another bridged struct)
+    Plain { type_name: String },
+}
+
+impl CustomTypeInfo {
+    /// Parse a syn::Type that BridgedType couldn't recognize.
+    fn from_type(ty: &Type) -> Self {
+        let type_str = quote::quote!(#ty).to_string().replace(' ', "");
+
+        if type_str.starts_with("Vec<") && type_str.ends_with('>') {
+            let inner = &type_str[4..type_str.len() - 1];
+            CustomTypeInfo::Vec {
+                inner_type: inner.to_string(),
+            }
+        } else if type_str.starts_with("Option<Vec<") && type_str.ends_with(">>") {
+            // Option<Vec<T>> - extract T from "Option<Vec<T>>"
+            let inner = &type_str[11..type_str.len() - 2];
+            CustomTypeInfo::OptionVec {
+                inner_type: inner.to_string(),
+            }
+        } else if type_str.starts_with("Option<") && type_str.ends_with('>') {
+            let inner = &type_str[7..type_str.len() - 1];
+            CustomTypeInfo::Option {
+                inner_type: inner.to_string(),
+            }
+        } else {
+            CustomTypeInfo::Plain {
+                type_name: type_str,
+            }
+        }
+    }
+
+    /// Get the Swift type for this custom type.
+    fn to_swift_type(&self) -> String {
+        match self {
+            CustomTypeInfo::Vec { inner_type } => format!("[{}]", inner_type),
+            CustomTypeInfo::OptionVec { inner_type } => format!("[{}]?", inner_type),
+            CustomTypeInfo::Option { inner_type } => format!("{}?", inner_type),
+            CustomTypeInfo::Plain { type_name } => type_name.clone(),
+        }
+    }
+
+    /// Get the FFI Rust type for this custom type.
+    fn to_ffi_rust_type(&self) -> TokenStream {
+        match self {
+            CustomTypeInfo::Vec { inner_type } => {
+                let ffi_inner = format_ident!("{}{}", SWIFT_BRIDGE_PREFIX, inner_type);
+                quote! { *mut Vec<#ffi_inner> }
+            }
+            CustomTypeInfo::OptionVec { inner_type } => {
+                // Option<Vec<T>> uses nullable pointer pattern
+                let ffi_inner = format_ident!("{}{}", SWIFT_BRIDGE_PREFIX, inner_type);
+                quote! { *mut Vec<#ffi_inner> }
+            }
+            CustomTypeInfo::Option { inner_type } => {
+                let ffi_option = format_ident!("{}Option_{}", SWIFT_BRIDGE_PREFIX, inner_type);
+                quote! { #ffi_option }
+            }
+            CustomTypeInfo::Plain { type_name } => {
+                let ffi_name = format_ident!("{}{}", SWIFT_BRIDGE_PREFIX, type_name);
+                quote! { #ffi_name }
+            }
+        }
+    }
+
+    /// Get the C type for this custom type.
+    fn to_c_type(&self) -> String {
+        match self {
+            CustomTypeInfo::Vec { inner_type } => {
+                // Vec is passed as a pointer
+                format!("void* /* Vec<{}> */", inner_type)
+            }
+            CustomTypeInfo::OptionVec { inner_type } => {
+                // Option<Vec<T>> uses nullable pointer pattern
+                format!("void* /* Option<Vec<{}>> */", inner_type)
+            }
+            CustomTypeInfo::Option { inner_type } => {
+                format!("{}$Option${}", SWIFT_BRIDGE_PREFIX, inner_type)
+            }
+            CustomTypeInfo::Plain { type_name } => {
+                format!("{}${}", SWIFT_BRIDGE_PREFIX, type_name)
+            }
+        }
+    }
+
+    /// Generate Rust code to convert from Rust type to FFI type.
+    fn rust_to_ffi_conversion(&self, expr: &TokenStream) -> TokenStream {
+        match self {
+            CustomTypeInfo::Vec { inner_type: _ } => {
+                quote! {
+                    Box::into_raw(Box::new(
+                        #expr.into_iter().map(|v| v.into_ffi_repr()).collect::<Vec<_>>()
+                    ))
+                }
+            }
+            CustomTypeInfo::OptionVec { inner_type: _ } => {
+                // Option<Vec<T>> uses nullable pointer pattern
+                quote! {
+                    if let Some(val) = #expr {
+                        Box::into_raw(Box::new(
+                            val.into_iter().map(|v| v.into_ffi_repr()).collect::<Vec<_>>()
+                        ))
+                    } else {
+                        std::ptr::null_mut()
+                    }
+                }
+            }
+            CustomTypeInfo::Option { inner_type } => {
+                let ffi_option = format_ident!("{}Option_{}", SWIFT_BRIDGE_PREFIX, inner_type);
+                quote! {
+                    if let Some(val) = #expr {
+                        #ffi_option { is_some: true, val: val.into_ffi_repr() }
+                    } else {
+                        #ffi_option { is_some: false, val: unsafe { std::mem::zeroed() } }
+                    }
+                }
+            }
+            CustomTypeInfo::Plain { type_name: _ } => {
+                quote! { #expr.into_ffi_repr() }
+            }
+        }
+    }
+
+    /// Generate Rust code to convert from FFI type to Rust type.
+    fn ffi_to_rust_conversion(&self, expr: &TokenStream) -> TokenStream {
+        match self {
+            CustomTypeInfo::Vec { inner_type } => {
+                let inner_ident = format_ident!("{}", inner_type);
+                quote! {
+                    unsafe { *Box::from_raw(#expr) }
+                        .into_iter()
+                        .map(|v| v.into_rust_repr())
+                        .collect::<Vec<#inner_ident>>()
+                }
+            }
+            CustomTypeInfo::OptionVec { inner_type } => {
+                // Option<Vec<T>> uses nullable pointer pattern
+                let inner_ident = format_ident!("{}", inner_type);
+                quote! {
+                    if #expr.is_null() {
+                        None
+                    } else {
+                        Some(
+                            unsafe { *Box::from_raw(#expr) }
+                                .into_iter()
+                                .map(|v| v.into_rust_repr())
+                                .collect::<Vec<#inner_ident>>()
+                        )
+                    }
+                }
+            }
+            CustomTypeInfo::Option { inner_type } => {
+                let inner_ident = format_ident!("{}", inner_type);
+                quote! {
+                    if #expr.is_some {
+                        Some(#expr.val.into_rust_repr())
+                    } else {
+                        None::<#inner_ident>
+                    }
+                }
+            }
+            CustomTypeInfo::Plain { type_name: _ } => {
+                quote! { #expr.into_rust_repr() }
+            }
+        }
+    }
+
+    /// Generate Swift code to convert from Swift type to FFI type.
+    fn swift_to_ffi_conversion(&self, expr: &str) -> String {
+        match self {
+            CustomTypeInfo::Vec { inner_type } => {
+                // Create a Vec on the Rust side by calling a helper
+                format!(
+                    "{{ let arr = {expr}; var vec = RustVec<__swift_bridge__${inner_type}>(); for item in arr {{ vec.push(value: item.intoFfiRepr()) }}; vec.isOwned = false; return vec.ptr }}()",
+                    expr = expr,
+                    inner_type = inner_type
+                )
+            }
+            CustomTypeInfo::OptionVec { inner_type } => {
+                // Option<Vec<T>> uses nullable pointer pattern
+                format!(
+                    "{{ if let arr = {expr} {{ var vec = RustVec<__swift_bridge__${inner_type}>(); for item in arr {{ vec.push(value: item.intoFfiRepr()) }}; vec.isOwned = false; return vec.ptr }} else {{ return nil }} }}()",
+                    expr = expr,
+                    inner_type = inner_type
+                )
+            }
+            CustomTypeInfo::Option { inner_type } => {
+                format!(
+                    "{{ if let val = {expr} {{ return __swift_bridge__$Option${inner_type}(is_some: true, val: val.intoFfiRepr()) }} else {{ return __swift_bridge__$Option${inner_type}(is_some: false, val: __swift_bridge__${inner_type}()) }} }}()",
+                    expr = expr,
+                    inner_type = inner_type
+                )
+            }
+            CustomTypeInfo::Plain { type_name: _ } => {
+                format!("{}.intoFfiRepr()", expr)
+            }
+        }
+    }
+
+    /// Generate Swift code to convert from FFI type to Swift type.
+    fn ffi_to_swift_conversion(&self, expr: &str) -> String {
+        match self {
+            CustomTypeInfo::Vec { inner_type } => {
+                format!(
+                    "{{ let vec = RustVec<__swift_bridge__${inner_type}>(ptr: {expr}); var arr: [{inner_type}] = []; for i in 0..<Int(vec.len()) {{ arr.append(vec.get(index: UInt(i))!.intoSwiftRepr()) }}; return arr }}()",
+                    expr = expr,
+                    inner_type = inner_type
+                )
+            }
+            CustomTypeInfo::OptionVec { inner_type } => {
+                // Option<Vec<T>> uses nullable pointer pattern
+                format!(
+                    "{{ let val = {expr}; if val != nil {{ let vec = RustVec<__swift_bridge__${inner_type}>(ptr: val!); var arr: [{inner_type}] = []; for i in 0..<Int(vec.len()) {{ arr.append(vec.get(index: UInt(i))!.intoSwiftRepr()) }}; return arr }} else {{ return nil }} }}()",
+                    expr = expr,
+                    inner_type = inner_type
+                )
+            }
+            CustomTypeInfo::Option { inner_type: _ } => {
+                format!(
+                    "{{ let opt = {expr}; if opt.is_some {{ return opt.val.intoSwiftRepr() }} else {{ return nil }} }}()",
+                    expr = expr
+                )
+            }
+            CustomTypeInfo::Plain { type_name: _ } => {
+                format!("{}.intoSwiftRepr()", expr)
+            }
+        }
+    }
+}
+
 /// Generate tokens for a struct annotated with `#[swift_bridge::bridged]`.
 pub fn generate_bridged_struct_tokens(item: ItemStruct) -> TokenStream {
     let struct_name = &item.ident;
@@ -186,9 +424,8 @@ fn generate_ffi_fields(fields: &[ParsedField]) -> TokenStream {
             let ffi_ty = if let Some(bridged_type) = BridgedType::new_with_type(&field.ty, &types) {
                 bridged_type.to_ffi_compatible_rust_type(&swift_bridge_path, &types)
             } else {
-                // Fallback for unknown types - assume it's another bridged type
-                let ty = &field.ty;
-                quote! { #ty }
+                // Fallback for custom types (other bridged structs, Vec<CustomType>, etc.)
+                CustomTypeInfo::from_type(&field.ty).to_ffi_rust_type()
             };
             quote! { #name: #ffi_ty }
         })
@@ -223,8 +460,8 @@ fn generate_into_ffi_body(fields: &[ParsedField], struct_name: &Ident) -> TokenS
                         Span::call_site(),
                     )
                 } else {
-                    // Fallback - assume the type has into_ffi_repr method
-                    quote! { #field_access.into_ffi_repr() }
+                    // Fallback for custom types (other bridged structs, Vec<CustomType>, etc.)
+                    CustomTypeInfo::from_type(&field.ty).rust_to_ffi_conversion(&field_access)
                 };
             quote! { #name: #conversion }
         })
@@ -261,8 +498,8 @@ fn generate_into_rust_body(fields: &[ParsedField], struct_name: &Ident) -> Token
                         &types,
                     )
                 } else {
-                    // Fallback - assume the type has into_rust_repr method
-                    quote! { #field_access.into_rust_repr() }
+                    // Fallback for custom types (other bridged structs, Vec<CustomType>, etc.)
+                    CustomTypeInfo::from_type(&field.ty).ffi_to_rust_conversion(&field_access)
                 };
             quote! { #name: #conversion }
         })
@@ -295,7 +532,8 @@ fn generate_swift_code(struct_name: &str, fields: &[ParsedField]) -> String {
                     &swift_bridge_path,
                 )
             } else {
-                "Any".to_string()
+                // Fallback for custom types (other bridged structs, Vec<CustomType>, etc.)
+                CustomTypeInfo::from_type(&f.ty).to_swift_type()
             };
             format!("    public var {}: {}", f.name, swift_ty)
         })
@@ -317,7 +555,8 @@ fn generate_swift_code(struct_name: &str, fields: &[ParsedField]) -> String {
                     &swift_bridge_path,
                 )
             } else {
-                "Any".to_string()
+                // Fallback for custom types (other bridged structs, Vec<CustomType>, etc.)
+                CustomTypeInfo::from_type(&f.ty).to_swift_type()
             };
             format!("{}: {}", f.name, swift_ty)
         })
@@ -347,7 +586,8 @@ fn generate_swift_code(struct_name: &str, fields: &[ParsedField]) -> String {
                     TypePosition::SharedStructField,
                 )
             } else {
-                format!("{}.intoFfiRepr()", expr)
+                // Fallback for custom types (other bridged structs, Vec<CustomType>, etc.)
+                CustomTypeInfo::from_type(&f.ty).swift_to_ffi_conversion(&expr)
             };
             format!("{}: {}", f.name, conversion)
         })
@@ -375,7 +615,8 @@ fn generate_swift_code(struct_name: &str, fields: &[ParsedField]) -> String {
                     &swift_bridge_path,
                 )
             } else {
-                format!("{}.intoSwiftRepr()", expr)
+                // Fallback for custom types (other bridged structs, Vec<CustomType>, etc.)
+                CustomTypeInfo::from_type(&f.ty).ffi_to_swift_conversion(&expr)
             };
             format!("{}: {}", f.name, conversion)
         })
@@ -453,7 +694,8 @@ fn generate_c_header(struct_name: &str, fields: &[ParsedField]) -> String {
                 let c_ty = if let Some(bridged_type) = BridgedType::new_with_type(&f.ty, &types) {
                     bridged_type.to_c_type(&types)
                 } else {
-                    "void*".to_string()
+                    // Fallback for custom types (other bridged structs, Vec<CustomType>, etc.)
+                    CustomTypeInfo::from_type(&f.ty).to_c_type()
                 };
                 format!("{} {}", c_ty, f.name)
             })
@@ -649,5 +891,109 @@ mod tests {
         assert!(codegen.swift.contains("RustVec<Int32>"));
         // Conversion should use RustVec(ptr:) - Swift infers the generic type from context
         assert!(codegen.swift.contains("RustVec(ptr:"));
+    }
+
+    #[test]
+    fn test_vec_custom_type() {
+        // Test Vec<CustomType> where CustomType is another bridged struct
+        let input: ItemStruct = syn::parse_quote! {
+            pub struct Container {
+                pub items: Vec<Product>,
+            }
+        };
+
+        let tokens = generate_bridged_struct_tokens(input);
+        let output = tokens.to_string();
+
+        // FFI type should be *mut Vec<__swift_bridge__Product>
+        assert!(output.contains("* mut Vec < __swift_bridge__Product >"));
+        // Conversion should iterate and call into_ffi_repr
+        assert!(output.contains("into_ffi_repr"));
+        assert!(output.contains("into_rust_repr"));
+    }
+
+    #[test]
+    fn test_swift_code_generation_vec_custom_type() {
+        let input: ItemStruct = syn::parse_quote! {
+            pub struct Container {
+                pub items: Vec<Product>,
+            }
+        };
+
+        let codegen = generate_bridged_swift_and_c(&input).unwrap();
+
+        // Swift type should be [Product] (Swift array)
+        assert!(codegen.swift.contains("[Product]"));
+        // Conversion should use intoFfiRepr/intoSwiftRepr
+        assert!(codegen.swift.contains("intoFfiRepr"));
+        assert!(codegen.swift.contains("intoSwiftRepr"));
+    }
+
+    #[test]
+    fn test_option_custom_type() {
+        // Test Option<CustomType> where CustomType is another bridged struct
+        let input: ItemStruct = syn::parse_quote! {
+            pub struct MaybeProduct {
+                pub product: Option<Product>,
+            }
+        };
+
+        let tokens = generate_bridged_struct_tokens(input);
+        let output = tokens.to_string();
+
+        // FFI type should be __swift_bridge__Option_Product
+        assert!(output.contains("__swift_bridge__Option_Product"));
+        // Conversion should check is_some
+        assert!(output.contains("is_some"));
+    }
+
+    #[test]
+    fn test_swift_code_generation_option_custom_type() {
+        let input: ItemStruct = syn::parse_quote! {
+            pub struct MaybeProduct {
+                pub product: Option<Product>,
+            }
+        };
+
+        let codegen = generate_bridged_swift_and_c(&input).unwrap();
+
+        // Swift type should be Product? (optional)
+        assert!(codegen.swift.contains("Product?"));
+    }
+
+    #[test]
+    fn test_option_vec_custom_type() {
+        // Test Option<Vec<CustomType>> where CustomType is another bridged struct
+        let input: ItemStruct = syn::parse_quote! {
+            pub struct MaybeProducts {
+                pub products: Option<Vec<Product>>,
+            }
+        };
+
+        let tokens = generate_bridged_struct_tokens(input);
+        let output = tokens.to_string();
+
+        // FFI type should be *mut Vec<__swift_bridge__Product> (nullable pointer)
+        assert!(output.contains("* mut Vec < __swift_bridge__Product >"));
+        // Conversion should use null_mut for None
+        assert!(output.contains("null_mut"));
+        // Conversion should check is_null
+        assert!(output.contains("is_null"));
+    }
+
+    #[test]
+    fn test_swift_code_generation_option_vec_custom_type() {
+        let input: ItemStruct = syn::parse_quote! {
+            pub struct MaybeProducts {
+                pub products: Option<Vec<Product>>,
+            }
+        };
+
+        let codegen = generate_bridged_swift_and_c(&input).unwrap();
+
+        // Swift type should be [Product]? (optional array)
+        assert!(codegen.swift.contains("[Product]?"));
+        // C type should be void* (nullable pointer)
+        assert!(codegen.c_header.contains("void*"));
     }
 }
