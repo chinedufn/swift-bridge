@@ -1118,3 +1118,69 @@ func __swift_bridge__some_function__TypedThrowsCheck(_ success: Bool, _: SomeErr
         .test();
     }
 }
+
+/// Test extern "Swift" function returning Result<OpaqueRustType, OpaqueRustType>.
+/// This exercises the ResultPtrAndPtr code path where both ok and err are pointers.
+mod extern_swift_fn_return_result_opaque_both {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+                }
+
+                extern "Swift" {
+                    fn some_function(success: bool) -> Result<SomeType, SomeType>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(success: bool) -> swift_bridge::result::ResultPtrAndPtr;
+            },
+            quote! {
+                pub fn some_function(success: bool) -> Result<super::SomeType, super::SomeType>
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ success: Bool) -> __private__ResultPtrAndPtr {
+    do {
+        let result = try some_function(success: success)
+        return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {result.isOwned = false; return result.ptr;}())
+    } catch let error as SomeType {
+        return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {error.isOwned = false; return error.ptr;}())
+    }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_ success: Bool, _: SomeType.Type) throws(SomeType) {
+    _ = try some_function(success: success)
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_fn_return_result_opaque_both() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
