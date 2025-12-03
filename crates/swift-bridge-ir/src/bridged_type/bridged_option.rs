@@ -321,7 +321,7 @@ impl BridgedOption {
                     TypePosition::SharedStructField => {
                         todo!()
                     }
-                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                    TypePosition::ResultFfiReturnType => {
                         todo!()
                     }
                     TypePosition::ThrowingInit(_) => todo!(),
@@ -395,7 +395,7 @@ impl BridgedOption {
                     self.ty.to_swift_type(type_pos, types, swift_bridge_path)
                 )
             }
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+            TypePosition::ResultFfiReturnType => {
                 unimplemented!()
             }
             TypePosition::ThrowingInit(_) => unimplemented!(),

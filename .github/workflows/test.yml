@@ -61,7 +61,8 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Set Xcode version 
+      # Xcode 16.2 provides Swift 5.9+ which is required for typed throws.
+      - name: Set Xcode version
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
       - name: Add rust targets

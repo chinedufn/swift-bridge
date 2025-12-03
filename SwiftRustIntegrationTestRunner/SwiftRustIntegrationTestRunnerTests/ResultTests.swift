@@ -316,4 +316,40 @@ class ResultTests: XCTestCase {
         let result = rust_calls_swift_sync_throws_string_err()
         XCTAssertEqual(result.toString(), "Error message from Swift")
     }
+
+    /// Verify that Rust can call a sync Swift throwing function with void Ok type
+    func testRustCallsSwiftSyncThrowsVoidOk() throws {
+        let result = rust_calls_swift_sync_throws_void_ok()
+        XCTAssertTrue(result)
+    }
+
+    /// Verify that Rust can call a sync Swift throwing function with void Ok and receive Err
+    func testRustCallsSwiftSyncThrowsVoidErr() throws {
+        let result = rust_calls_swift_sync_throws_void_err()
+        XCTAssertEqual(result, 456)
+    }
+
+    /// Verify that Rust can call a sync Swift throwing function with opaque error and receive Ok
+    func testRustCallsSwiftSyncThrowsOpaqueErrOk() throws {
+        let result = rust_calls_swift_sync_throws_opaque_err_ok()
+        XCTAssertEqual(result, 789)
+    }
+
+    /// Verify that Rust can call a sync Swift throwing function with opaque error and receive Err
+    func testRustCallsSwiftSyncThrowsOpaqueErrErr() throws {
+        let result = rust_calls_swift_sync_throws_opaque_err_err()
+        XCTAssertEqual(result, 999)
+    }
+
+    /// Verify that Rust can call a sync Swift throwing function with opaque Ok and Err types and receive Ok
+    func testRustCallsSwiftSyncThrowsOpaqueBothOk() throws {
+        let result = rust_calls_swift_sync_throws_opaque_both_ok()
+        XCTAssertEqual(result, 111)
+    }
+
+    /// Verify that Rust can call a sync Swift throwing function with opaque Ok and Err types and receive Err
+    func testRustCallsSwiftSyncThrowsOpaqueBothErr() throws {
+        let result = rust_calls_swift_sync_throws_opaque_both_err()
+        XCTAssertEqual(result, 222)
+    }
 }

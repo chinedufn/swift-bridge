@@ -237,7 +237,7 @@ impl BuiltInResult {
                         .to_swift_type(type_pos, types, swift_bridge_path),
                 )
             }
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+            TypePosition::ResultFfiReturnType => {
                 if self.err_ty.can_be_encoded_with_zero_bytes() {
                     todo!()
                 }
@@ -299,7 +299,7 @@ impl BuiltInResult {
                     err_swift_type = err_swift_type
                 ),
                 TypePosition::SharedStructField => todo!(),
-                TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
+                TypePosition::ResultFfiReturnType => todo!(),
                 TypePosition::ThrowingInit(lang) => {
                     match lang {
                         HostLang::Rust => format!(

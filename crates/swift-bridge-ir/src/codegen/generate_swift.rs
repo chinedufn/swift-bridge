@@ -679,12 +679,8 @@ fn gen_sync_result_function_exposes_swift_to_rust(
         format!("{fn_name}({args})")
     };
 
-    // Use SwiftCallsRustAsyncOnCompleteReturnTy to get the FFI return type (not the Ok type)
-    let ret_ty = result.to_swift_type(
-        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
-        types,
-        swift_bridge_path,
-    );
+    // Use ResultFfiReturnType to get the FFI return type (not the Ok type)
+    let ret_ty = result.to_swift_type(TypePosition::ResultFfiReturnType, types, swift_bridge_path);
 
     // Generate the return statements based on whether this is a custom result type
     let ok_is_void = result.ok_ty.can_be_encoded_with_zero_bytes();
