@@ -746,7 +746,7 @@ func {prefixed_fn_name}__TypedThrowsCheck({checker_params}) throws({err_swift_ty
     format!(
         r#"@_cdecl("{link_name}")
 func {prefixed_fn_name} ({params}) -> {ret_ty} {{
-    {do_block} catch let error as {err_swift_ty} {{
+    {do_block} catch let error {{
         return {err_return}
     }}
 }}{typed_throws_check}
