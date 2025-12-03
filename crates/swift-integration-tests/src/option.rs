@@ -19,8 +19,8 @@ mod ffi {
         f32: Option<f32>,
         f64: Option<f64>,
         boolean: Option<bool>,
-        // TODO: Support test more types:
-        // string: Option<String>,
+        string: Option<String>,
+        // TODO: Support more types:
         // str: Option<&'static str>,
     }
 
