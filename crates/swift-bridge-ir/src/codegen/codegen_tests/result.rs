@@ -1066,7 +1066,7 @@ mod extern_swift_fn_return_result_void_opaque_rust {
                 }
 
                 extern "Swift" {
-                    fn some_function(success: bool) -> Result<(), SomeError>;
+                    fn some_function() -> Result<(), SomeError>;
                 }
             }
         }
@@ -1076,10 +1076,10 @@ mod extern_swift_fn_return_result_void_opaque_rust {
         ExpectedRustTokens::ContainsMany(vec![
             quote! {
                 #[link_name = "__swift_bridge__$some_function"]
-                fn __swift_bridge__some_function(success: bool) -> *mut super::SomeError;
+                fn __swift_bridge__some_function() -> *mut super::SomeError;
             },
             quote! {
-                pub fn some_function(success: bool) -> Result<(), super::SomeError>
+                pub fn some_function() -> Result<(), super::SomeError>
             },
         ])
     }
@@ -1088,16 +1088,16 @@ mod extern_swift_fn_return_result_void_opaque_rust {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ success: Bool) -> UnsafeMutableRawPointer? {
+func __swift_bridge__some_function () -> UnsafeMutableRawPointer? {
     do {
-        try some_function(success: success)
+        try some_function()
         return nil
     } catch let error as SomeError {
         return {error.isOwned = false; return error.ptr;}()
     }
 }
-func __swift_bridge__some_function__TypedThrowsCheck(_ success: Bool, _: SomeError.Type) throws(SomeError) {
-    _ = try some_function(success: success)
+func __swift_bridge__some_function__TypedThrowsCheck(_: SomeError.Type) throws(SomeError) {
+    _ = try some_function()
 }
 "#,
         )
@@ -1109,6 +1109,72 @@ func __swift_bridge__some_function__TypedThrowsCheck(_ success: Bool, _: SomeErr
 
     #[test]
     fn extern_swift_fn_return_result_void_opaque_rust() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test extern "Swift" function returning Result with arguments.
+/// This exercises the code path that includes params in the TypedThrowsCheck function.
+mod extern_swift_fn_return_result_with_args {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    type SomeError;
+                }
+
+                extern "Swift" {
+                    fn some_function(arg: u32) -> Result<(), SomeError>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(arg: u32) -> *mut super::SomeError;
+            },
+            quote! {
+                pub fn some_function(arg: u32) -> Result<(), super::SomeError>
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ arg: UInt32) -> UnsafeMutableRawPointer? {
+    do {
+        try some_function(arg: arg)
+        return nil
+    } catch let error as SomeError {
+        return {error.isOwned = false; return error.ptr;}()
+    }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_ arg: UInt32, _: SomeError.Type) throws(SomeError) {
+    _ = try some_function(arg: arg)
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_fn_return_result_with_args() {
         CodegenTest {
             bridge_module: bridge_module_tokens().into(),
             expected_rust_tokens: expected_rust_tokens(),
