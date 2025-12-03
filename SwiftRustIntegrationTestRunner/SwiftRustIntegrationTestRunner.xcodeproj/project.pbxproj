@@ -60,6 +60,8 @@
 		DE9444DC2D5241AD007A83A4 /* SendableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9444DB2D5241A8007A83A4 /* SendableTests.swift */; };
 		DE9444DE2D527C3B007A83A4 /* SendableAttribute.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9444DD2D527C31007A83A4 /* SendableAttribute.swift */; };
 		AA0000012D5C000100000001 /* AsyncSwiftFunctions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000012D5C000100000002 /* AsyncSwiftFunctions.swift */; };
+		BB0000012D5C000100000001 /* BridgedStruct.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000012D5C000100000002 /* BridgedStruct.swift */; };
+		BB0000022D5C000100000001 /* BridgedStructTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000022D5C000100000002 /* BridgedStructTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -132,6 +134,8 @@
 		DE9444DB2D5241A8007A83A4 /* SendableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendableTests.swift; sourceTree = "<group>"; };
 		DE9444DD2D527C31007A83A4 /* SendableAttribute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendableAttribute.swift; sourceTree = "<group>"; };
 		AA0000012D5C000100000002 /* AsyncSwiftFunctions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncSwiftFunctions.swift; sourceTree = "<group>"; };
+		BB0000012D5C000100000002 /* BridgedStruct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgedStruct.swift; sourceTree = "<group>"; };
+		BB0000022D5C000100000002 /* BridgedStructTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgedStructTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -201,6 +205,7 @@
 				1784BE2729CE86D600AE5A4A /* Tuple.swift */,
 				22F7CF292A42EA7800517966 /* Vec.swift */,
 				AA0000012D5C000100000002 /* AsyncSwiftFunctions.swift */,
+				BB0000012D5C000100000002 /* BridgedStruct.swift */,
 			);
 			path = SwiftRustIntegrationTestRunner;
 			sourceTree = "<group>";
@@ -243,6 +248,7 @@
 				22EE4E0A28B538A700FEC83C /* SwiftFnUsesOpaqueSwiftTypeTests.swift */,
 				1745111429BE189B00B96A1A /* TupleTests.swift */,
 				22043292274A8FDF00BAE645 /* VecTests.swift */,
+				BB0000022D5C000100000002 /* BridgedStructTests.swift */,
 			);
 			path = SwiftRustIntegrationTestRunnerTests;
 			sourceTree = "<group>";
@@ -421,6 +427,7 @@
 				22EE4E0928B5388000FEC83C /* SwiftFnUsesOpaqueSwiftType.swift in Sources */,
 				228FE60C2740F42000805D9E /* ASwiftStack.swift in Sources */,
 				AA0000012D5C000100000001 /* AsyncSwiftFunctions.swift in Sources */,
+				BB0000012D5C000100000001 /* BridgedStruct.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -455,6 +462,7 @@
 				22D092A327B7E865009A4C2B /* AsyncTests.swift in Sources */,
 				1745111529BE189B00B96A1A /* TupleTests.swift in Sources */,
 				22046383282B4E3F00A09119 /* FunctionAttributeGetTests.swift in Sources */,
+				BB0000022D5C000100000001 /* BridgedStructTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

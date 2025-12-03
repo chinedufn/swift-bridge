@@ -3,6 +3,7 @@
 #![deny(missing_docs)]
 
 pub use swift_bridge_macro::bridge;
+pub use swift_bridge_macro::bridged;
 
 mod std_bridge;
 
