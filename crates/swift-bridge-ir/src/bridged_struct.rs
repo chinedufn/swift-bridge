@@ -267,9 +267,18 @@ impl CustomTypeInfo {
 }
 
 /// Generate tokens for a struct annotated with `#[swift_bridge::bridged]`.
-pub fn generate_bridged_struct_tokens(item: ItemStruct) -> TokenStream {
+///
+/// # Arguments
+///
+/// * `item` - The parsed struct
+/// * `swift_name` - Optional Swift name override. If None, uses the Rust struct name.
+pub fn generate_bridged_struct_tokens(
+    item: ItemStruct,
+    swift_name: Option<String>,
+) -> TokenStream {
     let struct_name = &item.ident;
     let struct_name_string = struct_name.to_string();
+    let swift_struct_name = swift_name.unwrap_or_else(|| struct_name_string.clone());
     let ffi_struct_name = format_ident!("{}{}", SWIFT_BRIDGE_PREFIX, struct_name);
     let option_ffi_name = format_ident!("{}Option_{}", SWIFT_BRIDGE_PREFIX, struct_name);
 
@@ -309,7 +318,8 @@ pub fn generate_bridged_struct_tokens(item: ItemStruct) -> TokenStream {
     let into_rust_body = generate_into_rust_body(&fields, struct_name);
 
     // Generate Swift code as string constant
-    let swift_code = generate_swift_code(&struct_name_string, &fields);
+    // Swift code uses swift_struct_name, but FFI types use struct_name_string
+    let swift_code = generate_swift_code(&swift_struct_name, &struct_name_string, &fields);
     let swift_const_name = format_ident!(
         "__SWIFT_BRIDGE_BRIDGED_SWIFT_{}",
         struct_name_string.to_uppercase()
@@ -514,9 +524,16 @@ fn generate_into_rust_body(fields: &[ParsedField], struct_name: &Ident) -> Token
 
 /// Generate Swift code for the struct.
 /// Uses BridgedType infrastructure for consistency with bridge module codegen.
-fn generate_swift_code(struct_name: &str, fields: &[ParsedField]) -> String {
-    let ffi_name = format!("{}${}", SWIFT_BRIDGE_PREFIX, struct_name);
-    let option_ffi_name = format!("{}$Option${}", SWIFT_BRIDGE_PREFIX, struct_name);
+///
+/// # Arguments
+///
+/// * `swift_name` - The name for the Swift struct
+/// * `rust_name` - The Rust struct name (used for FFI types)
+/// * `fields` - The struct fields
+fn generate_swift_code(swift_name: &str, rust_name: &str, fields: &[ParsedField]) -> String {
+    // FFI types always use the Rust name
+    let ffi_name = format!("{}${}", SWIFT_BRIDGE_PREFIX, rust_name);
+    let option_ffi_name = format!("{}$Option${}", SWIFT_BRIDGE_PREFIX, rust_name);
 
     let types = TypeDeclarations::default();
     let swift_bridge_path = swift_bridge_path();
@@ -622,17 +639,17 @@ fn generate_swift_code(struct_name: &str, fields: &[ParsedField]) -> String {
         })
         .collect();
     let swift_conversion_str = if swift_field_conversions.is_empty() {
-        format!("{}()", struct_name)
+        format!("{}()", swift_name)
     } else {
         format!(
             "{{ let val = self; return {}({}); }}()",
-            struct_name,
+            swift_name,
             swift_field_conversions.join(", ")
         )
     };
 
     format!(
-        r#"public struct {struct_name} {{{fields}
+        r#"public struct {swift_name} {{{fields}
     public init({init_params}) {{{init_body}}}
 
     @inline(__always)
@@ -642,13 +659,13 @@ fn generate_swift_code(struct_name: &str, fields: &[ParsedField]) -> String {
 }}
 extension {ffi_name} {{
     @inline(__always)
-    func intoSwiftRepr() -> {struct_name} {{
+    func intoSwiftRepr() -> {swift_name} {{
         {swift_conversion}
     }}
 }}
 extension {option_ffi_name} {{
     @inline(__always)
-    func intoSwiftRepr() -> Optional<{struct_name}> {{
+    func intoSwiftRepr() -> Optional<{swift_name}> {{
         if self.is_some {{
             return self.val.intoSwiftRepr()
         }} else {{
@@ -657,7 +674,7 @@ extension {option_ffi_name} {{
     }}
 
     @inline(__always)
-    static func fromSwiftRepr(_ val: Optional<{struct_name}>) -> {option_ffi_name} {{
+    static func fromSwiftRepr(_ val: Optional<{swift_name}>) -> {option_ffi_name} {{
         if let v = val {{
             return {option_ffi_name}(is_some: true, val: v.intoFfiRepr())
         }} else {{
@@ -665,7 +682,7 @@ extension {option_ffi_name} {{
         }}
     }}
 }}"#,
-        struct_name = struct_name,
+        swift_name = swift_name,
         fields = fields_str,
         init_params = init_params_str,
         init_body = init_body_str,
@@ -730,13 +747,18 @@ pub struct BridgedStructCodegen {
 /// # Arguments
 ///
 /// * `item` - The parsed struct item
+/// * `swift_name` - Optional Swift name override. If None, uses the Rust struct name.
 ///
 /// # Returns
 ///
 /// Returns `Some(BridgedStructCodegen)` if the struct can be processed,
 /// or `None` if it's not a valid bridged struct (e.g., tuple struct).
-pub fn generate_bridged_swift_and_c(item: &ItemStruct) -> Option<BridgedStructCodegen> {
-    let struct_name = item.ident.to_string();
+pub fn generate_bridged_swift_and_c(
+    item: &ItemStruct,
+    swift_name: Option<String>,
+) -> Option<BridgedStructCodegen> {
+    let rust_name = item.ident.to_string();
+    let swift_name = swift_name.unwrap_or_else(|| rust_name.clone());
 
     // Parse fields
     let fields = match &item.fields {
@@ -753,8 +775,8 @@ pub fn generate_bridged_swift_and_c(item: &ItemStruct) -> Option<BridgedStructCo
         Fields::Unit => vec![],
     };
 
-    let swift = generate_swift_code(&struct_name, &fields);
-    let c_header = generate_c_header(&struct_name, &fields);
+    let swift = generate_swift_code(&swift_name, &rust_name, &fields);
+    let c_header = generate_c_header(&rust_name, &fields);
 
     Some(BridgedStructCodegen { swift, c_header })
 }
@@ -772,7 +794,7 @@ mod tests {
             }
         };
 
-        let tokens = generate_bridged_struct_tokens(input);
+        let tokens = generate_bridged_struct_tokens(input, None);
         let output = tokens.to_string();
 
         assert!(output.contains("pub struct BasicStruct"));
@@ -786,7 +808,7 @@ mod tests {
             pub struct EmptyStruct {}
         };
 
-        let tokens = generate_bridged_struct_tokens(input);
+        let tokens = generate_bridged_struct_tokens(input, None);
         let output = tokens.to_string();
 
         assert!(output.contains("_private : u8"));
@@ -800,7 +822,7 @@ mod tests {
             }
         };
 
-        let tokens = generate_bridged_struct_tokens(input);
+        let tokens = generate_bridged_struct_tokens(input, None);
         let output = tokens.to_string();
 
         // FFI type should use OptionU32 (from swift_bridge::option)
@@ -821,7 +843,7 @@ mod tests {
             }
         };
 
-        let tokens = generate_bridged_struct_tokens(input);
+        let tokens = generate_bridged_struct_tokens(input, None);
         let output = tokens.to_string();
 
         // FFI type should be nullable pointer
@@ -838,7 +860,7 @@ mod tests {
             }
         };
 
-        let codegen = generate_bridged_swift_and_c(&input).unwrap();
+        let codegen = generate_bridged_swift_and_c(&input, None).unwrap();
 
         // Swift type should be Optional<Int32>
         assert!(codegen.swift.contains("Optional<Int32>"));
@@ -852,7 +874,7 @@ mod tests {
             }
         };
 
-        let codegen = generate_bridged_swift_and_c(&input).unwrap();
+        let codegen = generate_bridged_swift_and_c(&input, None).unwrap();
 
         // C type should be struct __private__OptionU64
         assert!(codegen.c_header.contains("__private__OptionU64"));
@@ -866,7 +888,7 @@ mod tests {
             }
         };
 
-        let tokens = generate_bridged_struct_tokens(input);
+        let tokens = generate_bridged_struct_tokens(input, None);
         let output = tokens.to_string();
 
         // FFI type should be *mut Vec<u32>
@@ -885,7 +907,7 @@ mod tests {
             }
         };
 
-        let codegen = generate_bridged_swift_and_c(&input).unwrap();
+        let codegen = generate_bridged_swift_and_c(&input, None).unwrap();
 
         // Swift type should be RustVec<Int32>
         assert!(codegen.swift.contains("RustVec<Int32>"));
@@ -902,7 +924,7 @@ mod tests {
             }
         };
 
-        let tokens = generate_bridged_struct_tokens(input);
+        let tokens = generate_bridged_struct_tokens(input, None);
         let output = tokens.to_string();
 
         // FFI type should be *mut Vec<__swift_bridge__Product>
@@ -920,7 +942,7 @@ mod tests {
             }
         };
 
-        let codegen = generate_bridged_swift_and_c(&input).unwrap();
+        let codegen = generate_bridged_swift_and_c(&input, None).unwrap();
 
         // Swift type should be [Product] (Swift array)
         assert!(codegen.swift.contains("[Product]"));
@@ -938,7 +960,7 @@ mod tests {
             }
         };
 
-        let tokens = generate_bridged_struct_tokens(input);
+        let tokens = generate_bridged_struct_tokens(input, None);
         let output = tokens.to_string();
 
         // FFI type should be __swift_bridge__Option_Product
@@ -955,7 +977,7 @@ mod tests {
             }
         };
 
-        let codegen = generate_bridged_swift_and_c(&input).unwrap();
+        let codegen = generate_bridged_swift_and_c(&input, None).unwrap();
 
         // Swift type should be Product? (optional)
         assert!(codegen.swift.contains("Product?"));
@@ -970,7 +992,7 @@ mod tests {
             }
         };
 
-        let tokens = generate_bridged_struct_tokens(input);
+        let tokens = generate_bridged_struct_tokens(input, None);
         let output = tokens.to_string();
 
         // FFI type should be *mut Vec<__swift_bridge__Product> (nullable pointer)
@@ -989,11 +1011,69 @@ mod tests {
             }
         };
 
-        let codegen = generate_bridged_swift_and_c(&input).unwrap();
+        let codegen = generate_bridged_swift_and_c(&input, None).unwrap();
 
         // Swift type should be [Product]? (optional array)
         assert!(codegen.swift.contains("[Product]?"));
         // C type should be void* (nullable pointer)
         assert!(codegen.c_header.contains("void*"));
+    }
+
+    #[test]
+    fn test_swift_name_attribute() {
+        let input: ItemStruct = syn::parse_quote! {
+            pub struct RustProduct {
+                pub id: u32,
+            }
+        };
+
+        // With swift_name override
+        let codegen =
+            generate_bridged_swift_and_c(&input, Some("SwiftProduct".to_string())).unwrap();
+
+        // Swift struct should use the override name
+        assert!(codegen.swift.contains("public struct SwiftProduct"));
+        // Swift intoSwiftRepr should return the override name
+        assert!(codegen.swift.contains("-> SwiftProduct"));
+        // FFI types should still use the Rust name
+        assert!(codegen.swift.contains("__swift_bridge__$RustProduct"));
+        assert!(codegen.c_header.contains("__swift_bridge__$RustProduct"));
+    }
+
+    #[test]
+    fn test_swift_name_attribute_tokens() {
+        let input: ItemStruct = syn::parse_quote! {
+            pub struct RustProduct {
+                pub id: u32,
+            }
+        };
+
+        // With swift_name override
+        let tokens = generate_bridged_struct_tokens(input, Some("SwiftProduct".to_string()));
+        let output = tokens.to_string();
+
+        // Rust struct should keep the original name
+        assert!(output.contains("pub struct RustProduct"));
+        // FFI struct should use the Rust name
+        assert!(output.contains("__swift_bridge__RustProduct"));
+        // Swift code constant should use the Swift name
+        assert!(output.contains("SwiftProduct"));
+    }
+
+    #[test]
+    fn test_swift_name_none_uses_rust_name() {
+        let input: ItemStruct = syn::parse_quote! {
+            pub struct Product {
+                pub id: u32,
+            }
+        };
+
+        // Without swift_name override
+        let codegen = generate_bridged_swift_and_c(&input, None).unwrap();
+
+        // Swift struct should use the Rust name
+        assert!(codegen.swift.contains("public struct Product"));
+        // FFI types should also use the Rust name
+        assert!(codegen.swift.contains("__swift_bridge__$Product"));
     }
 }

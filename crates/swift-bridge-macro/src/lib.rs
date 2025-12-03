@@ -1,6 +1,7 @@
 use quote::quote;
 use swift_bridge_ir::{SwiftBridgeModule, SwiftBridgeModuleAttr, SwiftBridgeModuleAttrs};
-use syn::parse_macro_input;
+use syn::parse::{Parse, ParseStream};
+use syn::{parse_macro_input, Ident, LitStr, Token};
 
 #[proc_macro_attribute]
 pub fn bridge(
@@ -62,15 +63,32 @@ pub fn bridge(
 ///
 /// Enum support is planned but not yet implemented. Using `#[swift_bridge::bridged]` on an enum
 /// will currently produce a compile error.
+///
+/// ## Attributes
+///
+/// - `swift_name = "SwiftName"`: Use a different name for the Swift struct.
+///
+/// ```ignore
+/// #[swift_bridge::bridged(swift_name = "SwiftProduct")]
+/// pub struct RustProduct {
+///     pub id: u32,
+/// }
+/// // Generates Swift struct "SwiftProduct" while FFI uses "RustProduct"
+/// ```
 #[proc_macro_attribute]
 pub fn bridged(
-    _attr: proc_macro::TokenStream,
+    attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
+    let attrs = parse_macro_input!(attr as BridgedAttrs);
     let item = parse_macro_input!(item as syn::Item);
     match item {
         syn::Item::Struct(item_struct) => {
-            swift_bridge_ir::bridged_struct::generate_bridged_struct_tokens(item_struct).into()
+            swift_bridge_ir::bridged_struct::generate_bridged_struct_tokens(
+                item_struct,
+                attrs.swift_name,
+            )
+            .into()
         }
         syn::Item::Enum(item_enum) => syn::Error::new_spanned(
             item_enum,
@@ -84,6 +102,36 @@ pub fn bridged(
         )
         .to_compile_error()
         .into(),
+    }
+}
+
+/// Parsed attributes for the `#[swift_bridge::bridged]` macro.
+struct BridgedAttrs {
+    swift_name: Option<String>,
+}
+
+impl Parse for BridgedAttrs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut swift_name = None;
+
+        while !input.is_empty() {
+            let ident: Ident = input.parse()?;
+            if ident == "swift_name" {
+                input.parse::<Token![=]>()?;
+                let lit: LitStr = input.parse()?;
+                swift_name = Some(lit.value());
+            } else {
+                return Err(syn::Error::new(
+                    ident.span(),
+                    format!("unknown attribute: {}", ident),
+                ));
+            }
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(BridgedAttrs { swift_name })
     }
 }
 

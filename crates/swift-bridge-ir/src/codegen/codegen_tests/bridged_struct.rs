@@ -12,7 +12,7 @@ fn bridged_struct_basic() {
         }
     };
 
-    let tokens = generate_bridged_struct_tokens(input);
+    let tokens = generate_bridged_struct_tokens(input, None);
     let output = tokens.to_string();
 
     // Verify original struct is preserved
@@ -49,7 +49,7 @@ fn bridged_struct_empty() {
         pub struct EmptyStruct {}
     };
 
-    let tokens = generate_bridged_struct_tokens(input);
+    let tokens = generate_bridged_struct_tokens(input, None);
     let output = tokens.to_string();
 
     // Empty structs need a private field for FFI safety
@@ -65,7 +65,7 @@ fn bridged_struct_with_string() {
         }
     };
 
-    let tokens = generate_bridged_struct_tokens(input);
+    let tokens = generate_bridged_struct_tokens(input, None);
     let output = tokens.to_string();
 
     // String fields should be converted to RustString pointers in FFI
@@ -82,7 +82,7 @@ fn bridged_struct_preserves_attributes() {
         }
     };
 
-    let tokens = generate_bridged_struct_tokens(input);
+    let tokens = generate_bridged_struct_tokens(input, None);
     let output = tokens.to_string();
 
     // Original derive attributes should be preserved (with quote! spacing)
@@ -99,7 +99,7 @@ fn bridged_struct_swift_code() {
         }
     };
 
-    let tokens = generate_bridged_struct_tokens(input);
+    let tokens = generate_bridged_struct_tokens(input, None);
     let output = tokens.to_string();
 
     // The Swift code should be in the constant
@@ -120,7 +120,7 @@ fn bridged_struct_c_header() {
         }
     };
 
-    let tokens = generate_bridged_struct_tokens(input);
+    let tokens = generate_bridged_struct_tokens(input, None);
     let output = tokens.to_string();
 
     // The C header should be in the constant
@@ -136,7 +136,7 @@ fn bridged_struct_rejects_unnamed() {
         pub struct TupleStruct(u32, bool);
     };
 
-    let tokens = generate_bridged_struct_tokens(input);
+    let tokens = generate_bridged_struct_tokens(input, None);
     let output = tokens.to_string();
 
     // Should contain a compile error

@@ -270,7 +270,9 @@ fn parse_file_contents(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule
                     .iter()
                     .any(|a| is_swift_bridge_attribute(a, "bridged"))
                 {
-                    if let Some(codegen) = generate_bridged_swift_and_c(&item_struct) {
+                    // Note: swift_name attribute is processed by the macro at compile time.
+                    // The build script just needs to detect the struct, not parse attributes.
+                    if let Some(codegen) = generate_bridged_swift_and_c(&item_struct, None) {
                         generated.bridged_swift.push(codegen.swift);
                         generated.bridged_c_header.push(codegen.c_header);
                     }
