@@ -201,7 +201,7 @@ mod extern_swift_argument_label_custom {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (firstArg arg1: Int32, secondArg arg2: UInt32) {
+func __swift_bridge__some_function (_ arg1: Int32, _ arg2: UInt32) {
     some_function(firstArg: arg1, secondArg: arg2)
 }
 "#,
@@ -256,7 +256,7 @@ mod extern_swift_argument_label_mixed {
         ExpectedSwiftCode::ContainsAfterTrim(
             r#"
 @_cdecl("__swift_bridge__$some_function")
-func __swift_bridge__some_function (_ arg1: Int32, customLabel arg2: UInt32, _ arg3: Int64) {
+func __swift_bridge__some_function (_ arg1: Int32, _ arg2: UInt32, _ arg3: Int64) {
     some_function(arg1, customLabel: arg2, arg3: arg3)
 }
 "#,

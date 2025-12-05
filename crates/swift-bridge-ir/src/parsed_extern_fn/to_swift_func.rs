@@ -12,6 +12,21 @@ impl ParsedExternFn {
         types: &TypeDeclarations,
         swift_bridge_path: &Path,
     ) -> String {
+        self.to_swift_param_names_and_types_with_labels(
+            include_receiver_if_present,
+            true,
+            types,
+            swift_bridge_path,
+        )
+    }
+
+    pub fn to_swift_param_names_and_types_with_labels(
+        &self,
+        include_receiver_if_present: bool,
+        include_argument_labels: bool,
+        types: &TypeDeclarations,
+        swift_bridge_path: &Path,
+    ) -> String {
         let mut params: Vec<String> = vec![];
 
         for (arg_idx, arg) in self.func.sig.inputs.iter().enumerate() {
@@ -50,10 +65,14 @@ impl ParsedExternFn {
                         todo!("Push to ParsedErrors")
                     };
 
-                    if let Some(argument_label) =
-                        self.argument_labels.get(&format_ident!("{}", arg_name))
-                    {
-                        format!("{} {}: {}", argument_label.value().as_str(), arg_name, ty)
+                    if include_argument_labels {
+                        if let Some(argument_label) =
+                            self.argument_labels.get(&format_ident!("{}", arg_name))
+                        {
+                            format!("{} {}: {}", argument_label.value().as_str(), arg_name, ty)
+                        } else {
+                            format!("_ {}: {}", arg_name, ty)
+                        }
                     } else {
                         format!("_ {}: {}", arg_name, ty)
                     }
