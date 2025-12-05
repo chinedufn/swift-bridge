@@ -71,24 +71,47 @@ impl ParsedExternFn {
                 types,
             )
         } else {
-            let mut inner = quote! {
-                unsafe { #linked_fn_name(#call_args) }
-            };
+            // Check if this is a Result type
+            let return_ty = BridgedType::new_with_return_type(&sig.output, types);
+            let maybe_result = return_ty.as_ref().and_then(|ty| ty.as_result());
 
-            if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
-                inner = built_in.convert_ffi_expression_to_rust_type(
-                    &inner,
+            if let Some(result) = maybe_result {
+                // Result type: call Swift and convert FFI result to Rust Result
+                let ffi_result_expr = quote! {
+                    unsafe { #linked_fn_name(#call_args) }
+                };
+                let convert_result = result.convert_ffi_value_to_rust_value(
+                    &ffi_result_expr,
                     sig.output.span(),
                     swift_bridge_path,
                     types,
                 );
-            } else {
-                todo!("Push to ParsedErrors")
-            }
 
-            quote! {
-                pub fn #fn_name(#params) #ret {
-                    #inner
+                quote! {
+                    pub fn #fn_name(#params) #ret {
+                        #convert_result
+                    }
+                }
+            } else {
+                let mut inner = quote! {
+                    unsafe { #linked_fn_name(#call_args) }
+                };
+
+                if let Some(built_in) = BridgedType::new_with_return_type(&sig.output, types) {
+                    inner = built_in.convert_ffi_expression_to_rust_type(
+                        &inner,
+                        sig.output.span(),
+                        swift_bridge_path,
+                        types,
+                    );
+                } else {
+                    todo!("Push to ParsedErrors")
+                }
+
+                quote! {
+                    pub fn #fn_name(#params) #ret {
+                        #inner
+                    }
                 }
             }
         }

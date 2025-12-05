@@ -10,7 +10,7 @@ use syn::{FnArg, Pat, PatType, Path, ReturnType, Type};
 pub(crate) use self::bridged_opaque_type::OpaqueForeignType;
 use crate::bridged_type::boxed_fn::BridgeableBoxedFnOnce;
 use crate::bridged_type::bridgeable_pointer::{BuiltInPointer, Pointee, PointerKind};
-use crate::bridged_type::bridgeable_result::BuiltInResult;
+pub(crate) use crate::bridged_type::bridgeable_result::BuiltInResult;
 use crate::bridged_type::bridgeable_string::BridgedString;
 use crate::bridged_type::built_in_tuple::BuiltInTuple;
 
@@ -410,7 +410,7 @@ pub(crate) enum TypePosition {
     FnArg(HostLang, usize),
     FnReturn(HostLang),
     SharedStructField,
-    SwiftCallsRustAsyncOnCompleteReturnTy,
+    ResultFfiReturnType,
     ThrowingInit(HostLang),
 }
 
@@ -1175,7 +1175,7 @@ impl BridgedType {
                             //
                             unimplemented!()
                         }
-                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        TypePosition::ResultFfiReturnType => {
                             unimplemented!()
                         }
                         TypePosition::ThrowingInit(_) => unimplemented!(),
@@ -1192,7 +1192,7 @@ impl BridgedType {
                     }
                     TypePosition::FnReturn(_func_host_lang) => "RustStr".to_string(),
                     TypePosition::SharedStructField => "RustStr".to_string(),
-                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                    TypePosition::ResultFfiReturnType => {
                         unimplemented!()
                     }
                     TypePosition::ThrowingInit(_) => unimplemented!(),
@@ -1244,9 +1244,7 @@ impl BridgedType {
                         }
                     }
                     TypePosition::SharedStructField => shared_struct.swift_name_string(),
-                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
-                        shared_struct.ffi_name_string()
-                    }
+                    TypePosition::ResultFfiReturnType => shared_struct.ffi_name_string(),
                     TypePosition::ThrowingInit(_) => unimplemented!(),
                 }
             }
@@ -1261,7 +1259,7 @@ impl BridgedType {
                         }
                     }
                     TypePosition::SharedStructField => shared_enum.swift_name_string(),
-                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                    TypePosition::ResultFfiReturnType => {
                         unimplemented!()
                     }
                     TypePosition::ThrowingInit(_) => unimplemented!(),
@@ -1570,7 +1568,7 @@ impl BridgedType {
                             TypePosition::SharedStructField => {
                                 format!("UnsafeRawPointer({}!)", expression)
                             }
-                            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                            TypePosition::ResultFfiReturnType => {
                                 unimplemented!()
                             }
                             TypePosition::ThrowingInit(_) => unimplemented!(),
@@ -1664,7 +1662,7 @@ impl BridgedType {
                         TypePosition::SharedStructField => {
                             todo!("Pointers in shared struct fields are not yet supported")
                         }
-                        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                        TypePosition::ResultFfiReturnType => {
                             unimplemented!()
                         }
                         TypePosition::ThrowingInit(_) => unimplemented!(),
@@ -1682,7 +1680,7 @@ impl BridgedType {
                     TypePosition::SharedStructField => {
                         todo!("&str in shared struct fields is not yet supported")
                     }
-                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                    TypePosition::ResultFfiReturnType => {
                         unimplemented!()
                     }
                     TypePosition::ThrowingInit(_) => unimplemented!(),
@@ -1725,6 +1723,18 @@ impl BridgedType {
             BridgedType::Bridgeable(b) => {
                 b.convert_ffi_result_ok_value_to_rust_value(ok_ffi_value, swift_bridge_path, types)
             }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
+                let ffi_repr_name = shared_enum.ffi_name_tokens();
+                quote! {
+                    unsafe { (#ok_ffi_value.ok_or_err as #ffi_repr_name).into_rust_repr() }
+                }
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                let ffi_repr_name = shared_struct.ffi_name_tokens();
+                quote! {
+                    unsafe { (#ok_ffi_value.ok_or_err as #ffi_repr_name).into_rust_repr() }
+                }
+            }
             _ => unimplemented!(),
         }
     }
@@ -1741,6 +1751,18 @@ impl BridgedType {
                 swift_bridge_path,
                 types,
             ),
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Enum(shared_enum))) => {
+                let ffi_repr_name = shared_enum.ffi_name_tokens();
+                quote! {
+                    unsafe { (#err_ffi_value.ok_or_err as #ffi_repr_name).into_rust_repr() }
+                }
+            }
+            BridgedType::Foreign(CustomBridgedType::Shared(SharedType::Struct(shared_struct))) => {
+                let ffi_repr_name = shared_struct.ffi_name_tokens();
+                quote! {
+                    unsafe { (#err_ffi_value.ok_or_err as #ffi_repr_name).into_rust_repr() }
+                }
+            }
             _ => unimplemented!(),
         }
     }

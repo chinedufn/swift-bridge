@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use syn::Path;
 
-use crate::bridged_type::{BridgeableType, BridgedType, TypePosition};
+use crate::bridged_type::{BridgeableType, BridgedType, BuiltInResult, TypePosition};
 use crate::codegen::generate_swift::generate_function_swift_calls_rust::gen_func_swift_calls_rust;
 use crate::codegen::generate_swift::opaque_copy_type::generate_opaque_copy_struct;
 use crate::codegen::generate_swift::swift_class::generate_swift_class;
@@ -459,9 +459,29 @@ fn gen_sync_function_exposes_swift_to_rust(
     let fn_name = &metadata.fn_name;
 
     let params = func.to_swift_param_names_and_types(true, types, swift_bridge_path);
+    let args = func.to_swift_call_args(false, true, types, swift_bridge_path);
+
+    // Check if this is a Result type
+    let return_ty = BridgedType::new_with_return_type(&func.sig.output, types);
+    let maybe_result = return_ty.as_ref().and_then(|ty| ty.as_result());
+
+    // Handle Result types with do/try/catch wrapper
+    if let Some(result) = maybe_result {
+        return gen_sync_result_function_exposes_swift_to_rust(
+            func,
+            types,
+            swift_bridge_path,
+            result,
+            &link_name,
+            &prefixed_fn_name.to_string(),
+            &fn_name,
+            &params,
+            &args,
+        );
+    }
+
     let ret = func.to_swift_return_type(types, swift_bridge_path);
 
-    let args = func.to_swift_call_args(false, true, types, swift_bridge_path);
     let mut call_fn = format!("{}({})", fn_name, args);
     if let Some(built_in) = BridgedType::new_with_return_type(&func.sig.output, types) {
         if let Some(associated_type) = func.associated_type.as_ref() {
@@ -592,6 +612,130 @@ func {prefixed_fn_name} ({params}){ret} {{
     );
 
     generated_func
+}
+
+/// Generate Swift code that exposes a synchronous Swift function that returns Result to Rust.
+/// This wraps the Swift throwing function in a do/try/catch and returns an appropriate FFI struct.
+fn gen_sync_result_function_exposes_swift_to_rust(
+    func: &ParsedExternFn,
+    types: &TypeDeclarations,
+    swift_bridge_path: &Path,
+    result: &BuiltInResult,
+    link_name: &str,
+    prefixed_fn_name: &str,
+    fn_name: &str,
+    params: &str,
+    args: &str,
+) -> String {
+    // For the catch clause, we need the actual Swift wrapper type name (e.g., "ErrorType"),
+    // not the FFI type ("UnsafeMutableRawPointer"). Using HostLang::Rust gives us the
+    // Swift wrapper class name that conforms to Error.
+    let err_swift_ty = result.err_ty.to_swift_type(
+        TypePosition::FnReturn(HostLang::Rust),
+        types,
+        swift_bridge_path,
+    );
+
+    let ok_ffi_convert = result.ok_ty.convert_swift_expression_to_ffi_type(
+        "result",
+        types,
+        TypePosition::FnReturn(func.host_lang),
+    );
+    let err_ffi_convert = result.err_ty.convert_swift_expression_to_ffi_type(
+        "error",
+        types,
+        TypePosition::FnReturn(func.host_lang),
+    );
+
+    // Build the call expression
+    let call_expr = if let Some(associated_type) = func.associated_type.as_ref() {
+        let ty_name = match associated_type {
+            TypeDeclaration::Shared(_) => todo!(),
+            TypeDeclaration::Opaque(associated_type) => associated_type.to_string(),
+        };
+
+        if func.is_method() {
+            format!("Unmanaged<{ty_name}>.fromOpaque(this).takeUnretainedValue().{fn_name}({args})")
+        } else {
+            format!("{ty_name}::{fn_name}({args})")
+        }
+    } else {
+        format!("{fn_name}({args})")
+    };
+
+    // Use ResultFfiReturnType to get the FFI return type (not the Ok type)
+    let ret_ty = result.to_swift_type(TypePosition::ResultFfiReturnType, types, swift_bridge_path);
+
+    // Generate the return statements based on whether this is a custom result type
+    let ok_is_void = result.ok_ty.can_be_encoded_with_zero_bytes();
+    let (ok_return, err_return) = if result.is_custom_result_type() {
+        let c_ok_tag = result.c_ok_tag_name(types);
+        let c_err_tag = result.c_err_tag_name(types);
+        let c_fields = result.c_fields_name(types);
+        if ok_is_void {
+            // Result<(), E> with custom type - Ok variant has no payload field
+            (
+                format!("{ret_ty}(tag: {c_ok_tag}, payload: {c_fields}())"),
+                format!("{ret_ty}(tag: {c_err_tag}, payload: {c_fields}(err: {err_ffi_convert}))"),
+            )
+        } else {
+            (
+                format!("{ret_ty}(tag: {c_ok_tag}, payload: {c_fields}(ok: {ok_ffi_convert}))"),
+                format!("{ret_ty}(tag: {c_err_tag}, payload: {c_fields}(err: {err_ffi_convert}))"),
+            )
+        }
+    } else if ok_is_void {
+        // Result<(), E> - return nil for Ok, pointer for Err
+        ("nil".to_string(), err_ffi_convert.clone())
+    } else {
+        // Standard ResultPtrAndPtr
+        (
+            format!("__private__ResultPtrAndPtr(is_ok: true, ok_or_err: {ok_ffi_convert})"),
+            format!("__private__ResultPtrAndPtr(is_ok: false, ok_or_err: {err_ffi_convert})"),
+        )
+    };
+
+    // For Result<(), E>, don't capture the result since Swift throws functions return Void
+    let do_block = if ok_is_void {
+        format!(
+            r#"do {{
+        try {call_expr}
+        return {ok_return}
+    }}"#
+        )
+    } else {
+        format!(
+            r#"do {{
+        let result = try {call_expr}
+        return {ok_return}
+    }}"#
+        )
+    };
+
+    // Generate a typed throw checker function that verifies at compile-time
+    // that the Swift function only throws the expected error type.
+    // This uses Swift's typed throws feature (Swift 5.9+).
+    let checker_params = if params.is_empty() {
+        format!("_: {err_swift_ty}.Type")
+    } else {
+        format!("{params}, _: {err_swift_ty}.Type")
+    };
+    let typed_throws_check = format!(
+        r#"
+func {prefixed_fn_name}__TypedThrowsCheck({checker_params}) throws({err_swift_ty}) {{
+    _ = try {call_expr}
+}}"#
+    );
+
+    format!(
+        r#"@_cdecl("{link_name}")
+func {prefixed_fn_name} ({params}) -> {ret_ty} {{
+    {do_block} catch let error as {err_swift_ty} {{
+        return {err_return}
+    }}
+}}{typed_throws_check}
+"#
+    )
 }
 
 struct ClassMethods {
