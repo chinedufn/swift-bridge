@@ -126,7 +126,7 @@ impl BridgeableType for OpaqueForeignType {
                             )
                     )
                 }
-                TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                TypePosition::ResultFfiReturnType => {
                     unimplemented!()
                 }
                 TypePosition::ThrowingInit(_) => unimplemented!(),
@@ -144,7 +144,7 @@ impl BridgeableType for OpaqueForeignType {
                     //
                     unimplemented!()
                 }
-                TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                TypePosition::ResultFfiReturnType => {
                     unimplemented!()
                 }
                 TypePosition::ThrowingInit(_) => unimplemented!(),
@@ -395,7 +395,7 @@ impl BridgeableType for OpaqueForeignType {
                             expression, expression
                         )
                     }
-                    TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                    TypePosition::ResultFfiReturnType => {
                         unimplemented!()
                     }
                     TypePosition::ThrowingInit(_) => unimplemented!(),
@@ -420,7 +420,7 @@ impl BridgeableType for OpaqueForeignType {
                 TypePosition::SharedStructField => {
                     todo!("Opaque types in shared struct fields are not yet supported")
                 }
-                TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+                TypePosition::ResultFfiReturnType => {
                     unimplemented!()
                 }
                 TypePosition::ThrowingInit(_) => unimplemented!(),

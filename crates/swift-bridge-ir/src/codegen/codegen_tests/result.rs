@@ -1052,3 +1052,201 @@ func __swift_bridge__some_function__TypedThrowsCheck(_ success: Bool, _: SomeErr
         .test();
     }
 }
+
+/// Test extern "Swift" function returning Result<(), OpaqueRustType>.
+/// This exercises the code path that returns nil for Ok and pointer for Err.
+mod extern_swift_fn_return_result_void_opaque_rust {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    type SomeError;
+                }
+
+                extern "Swift" {
+                    fn some_function() -> Result<(), SomeError>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function() -> *mut super::SomeError;
+            },
+            quote! {
+                pub fn some_function() -> Result<(), super::SomeError>
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function () -> UnsafeMutableRawPointer? {
+    do {
+        try some_function()
+        return nil
+    } catch let error as SomeError {
+        return {error.isOwned = false; return error.ptr;}()
+    }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_: SomeError.Type) throws(SomeError) {
+    _ = try some_function()
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_fn_return_result_void_opaque_rust() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test extern "Swift" function returning Result with arguments.
+/// This exercises the code path that includes params in the TypedThrowsCheck function.
+mod extern_swift_fn_return_result_with_args {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    type SomeError;
+                }
+
+                extern "Swift" {
+                    fn some_function(arg: u32) -> Result<(), SomeError>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(arg: u32) -> *mut super::SomeError;
+            },
+            quote! {
+                pub fn some_function(arg: u32) -> Result<(), super::SomeError>
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ arg: UInt32) -> UnsafeMutableRawPointer? {
+    do {
+        try some_function(arg: arg)
+        return nil
+    } catch let error as SomeError {
+        return {error.isOwned = false; return error.ptr;}()
+    }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_ arg: UInt32, _: SomeError.Type) throws(SomeError) {
+    _ = try some_function(arg: arg)
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_fn_return_result_with_args() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
+/// Test extern "Swift" function returning Result<OpaqueRustType, OpaqueRustType>.
+/// This exercises the ResultPtrAndPtr code path where both ok and err are pointers.
+mod extern_swift_fn_return_result_opaque_both {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    type SomeType;
+                }
+
+                extern "Swift" {
+                    fn some_function(success: bool) -> Result<SomeType, SomeType>;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::ContainsMany(vec![
+            quote! {
+                #[link_name = "__swift_bridge__$some_function"]
+                fn __swift_bridge__some_function(success: bool) -> swift_bridge::result::ResultPtrAndPtr;
+            },
+            quote! {
+                pub fn some_function(success: bool) -> Result<super::SomeType, super::SomeType>
+            },
+        ])
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+@_cdecl("__swift_bridge__$some_function")
+func __swift_bridge__some_function (_ success: Bool) -> __private__ResultPtrAndPtr {
+    do {
+        let result = try some_function(success: success)
+        return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {result.isOwned = false; return result.ptr;}())
+    } catch let error as SomeType {
+        return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {error.isOwned = false; return error.ptr;}())
+    }
+}
+func __swift_bridge__some_function__TypedThrowsCheck(_ success: Bool, _: SomeType.Type) throws(SomeType) {
+    _ = try some_function(success: success)
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::SkipTest
+    }
+
+    #[test]
+    fn extern_swift_fn_return_result_opaque_both() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}

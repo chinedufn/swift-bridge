@@ -73,9 +73,7 @@ impl BridgeableType for BridgedString {
                 }
             }
             TypePosition::SharedStructField => "RustString".to_string(),
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
-                "UnsafeMutableRawPointer?".to_string()
-            }
+            TypePosition::ResultFfiReturnType => "UnsafeMutableRawPointer?".to_string(),
             TypePosition::ThrowingInit(_) => todo!(),
         }
     }
@@ -128,7 +126,7 @@ impl BridgeableType for BridgedString {
             TypePosition::SharedStructField => {
                 todo!()
             }
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+            TypePosition::ResultFfiReturnType => {
                 todo!()
             }
             TypePosition::ThrowingInit(_) => todo!(),
@@ -204,7 +202,7 @@ impl BridgeableType for BridgedString {
             TypePosition::SharedStructField => {
                 todo!("Option<String> fields in structs are not yet supported.")
             }
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+            TypePosition::ResultFfiReturnType => {
                 unimplemented!()
             }
             TypePosition::ThrowingInit(_) => todo!(),
@@ -250,7 +248,7 @@ impl BridgeableType for BridgedString {
             | TypePosition::SharedStructField => {
                 format!("RustString(ptr: {})", expression)
             }
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+            TypePosition::ResultFfiReturnType => {
                 format!("RustString(ptr: {}!)", expression)
             }
             TypePosition::ThrowingInit(_) => todo!(),
