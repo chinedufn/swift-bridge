@@ -134,7 +134,7 @@ impl BridgeableType for BuiltInTuple {
                 }
             }
             TypePosition::SharedStructField => todo!(),
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
+            TypePosition::ResultFfiReturnType => todo!(),
             TypePosition::ThrowingInit(_) => todo!(),
         }
     }
@@ -227,7 +227,7 @@ impl BridgeableType for BuiltInTuple {
                 }
             }
             TypePosition::SharedStructField => todo!(),
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
+            TypePosition::ResultFfiReturnType => todo!(),
             TypePosition::ThrowingInit(_) => todo!(),
         }
     }

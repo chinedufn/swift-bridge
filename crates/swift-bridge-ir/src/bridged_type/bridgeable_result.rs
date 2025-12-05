@@ -139,30 +139,75 @@ impl BuiltInResult {
         }
     }
 
-    pub(super) fn convert_ffi_value_to_rust_value(
+    pub fn convert_ffi_value_to_rust_value(
         &self,
         expression: &TokenStream,
         span: Span,
         swift_bridge_path: &Path,
         types: &TypeDeclarations,
     ) -> TokenStream {
-        let convert_ok = self.ok_ty.convert_ffi_result_ok_value_to_rust_value(
-            expression,
-            swift_bridge_path,
-            types,
-        );
-
-        let convert_err = self.err_ty.convert_ffi_result_err_value_to_rust_value(
-            expression,
-            swift_bridge_path,
-            types,
-        );
-
-        quote_spanned! {span=>
-            if #expression.is_ok {
-                std::result::Result::Ok(#convert_ok)
+        if self.is_custom_result_type() {
+            // Custom result type: Rust enum like ResultOkAndErr::Ok(ok_val) / ResultOkAndErr::Err(err_val)
+            let ffi_enum_name = self.to_ffi_compatible_rust_type(swift_bridge_path, types);
+            let (ok_pattern, convert_ok) = if self.ok_ty.can_be_encoded_with_zero_bytes() {
+                (quote! {}, quote! { () })
             } else {
-                std::result::Result::Err(#convert_err)
+                let convert = self.ok_ty.convert_ffi_expression_to_rust_type(
+                    &quote! { ok },
+                    span,
+                    swift_bridge_path,
+                    types,
+                );
+                (quote! { (ok) }, convert)
+            };
+            let convert_err = self.err_ty.convert_ffi_expression_to_rust_type(
+                &quote! { err },
+                span,
+                swift_bridge_path,
+                types,
+            );
+
+            quote_spanned! {span=>
+                match #expression {
+                    #ffi_enum_name::Ok #ok_pattern => std::result::Result::Ok(#convert_ok),
+                    #ffi_enum_name::Err(err) => std::result::Result::Err(#convert_err),
+                }
+            }
+        } else if self.ok_ty.can_be_encoded_with_zero_bytes() {
+            // Result<(), E> - null pointer for Ok, pointer for Err
+            let convert_err = self.err_ty.convert_ffi_result_err_value_to_rust_value(
+                expression,
+                swift_bridge_path,
+                types,
+            );
+
+            quote_spanned! {span=>
+                if #expression.is_null() {
+                    std::result::Result::Ok(())
+                } else {
+                    std::result::Result::Err(#convert_err)
+                }
+            }
+        } else {
+            // Standard ResultPtrAndPtr
+            let convert_ok = self.ok_ty.convert_ffi_result_ok_value_to_rust_value(
+                expression,
+                swift_bridge_path,
+                types,
+            );
+
+            let convert_err = self.err_ty.convert_ffi_result_err_value_to_rust_value(
+                expression,
+                swift_bridge_path,
+                types,
+            );
+
+            quote_spanned! {span=>
+                if #expression.is_ok {
+                    std::result::Result::Ok(#convert_ok)
+                } else {
+                    std::result::Result::Err(#convert_err)
+                }
             }
         }
     }
@@ -192,7 +237,7 @@ impl BuiltInResult {
                         .to_swift_type(type_pos, types, swift_bridge_path),
                 )
             }
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+            TypePosition::ResultFfiReturnType => {
                 if self.err_ty.can_be_encoded_with_zero_bytes() {
                     todo!()
                 }
@@ -254,7 +299,7 @@ impl BuiltInResult {
                     err_swift_type = err_swift_type
                 ),
                 TypePosition::SharedStructField => todo!(),
-                TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => todo!(),
+                TypePosition::ResultFfiReturnType => todo!(),
                 TypePosition::ThrowingInit(lang) => {
                     match lang {
                         HostLang::Rust => format!(
@@ -467,7 +512,7 @@ typedef struct {c_enum_name}{{{c_tag_name} tag; union {c_fields_name} payload;}}
         return Some(custom_c_ffi_type);
     }
 
-    fn is_custom_result_type(&self) -> bool {
+    pub fn is_custom_result_type(&self) -> bool {
         // ResultPtrAndPtr
         if self.ok_ty.is_passed_via_pointer() && self.err_ty.is_passed_via_pointer() {
             return false;
@@ -578,7 +623,7 @@ impl BuiltInResult {
 
         format!("Result{ok}And{err}")
     }
-    fn c_ok_tag_name(&self, types: &TypeDeclarations) -> String {
+    pub fn c_ok_tag_name(&self, types: &TypeDeclarations) -> String {
         format!(
             "{}${}$ResultOk",
             SWIFT_BRIDGE_PREFIX,
@@ -586,9 +631,17 @@ impl BuiltInResult {
         )
     }
 
-    fn c_err_tag_name(&self, types: &TypeDeclarations) -> String {
+    pub fn c_err_tag_name(&self, types: &TypeDeclarations) -> String {
         format!(
             "{}${}$ResultErr",
+            SWIFT_BRIDGE_PREFIX,
+            self.custom_c_struct_name(types)
+        )
+    }
+
+    pub fn c_fields_name(&self, types: &TypeDeclarations) -> String {
+        format!(
+            "{}${}$Fields",
             SWIFT_BRIDGE_PREFIX,
             self.custom_c_struct_name(types)
         )

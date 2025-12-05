@@ -280,3 +280,145 @@ impl ThrowingInitializer {
         self.val
     }
 }
+
+// =============================================================================
+// Tests for Rust calling sync Swift functions that return Result
+// =============================================================================
+
+#[swift_bridge::bridge]
+mod ffi_swift_sync_result {
+    // Shared enum error type for sync throws tests
+    enum SwiftSyncError {
+        ErrorWithValue(u32),
+        ErrorWithMessage(String),
+    }
+
+    extern "Rust" {
+        type SyncResultOpaqueRustType;
+
+        #[swift_bridge(init)]
+        fn new(val: u32) -> SyncResultOpaqueRustType;
+        fn val(&self) -> u32;
+    }
+
+    extern "Rust" {
+        // Rust functions that call Swift sync throwing functions - called from Swift tests
+        fn rust_calls_swift_sync_throws_u32_ok() -> u32;
+        fn rust_calls_swift_sync_throws_u32_err() -> u32;
+        fn rust_calls_swift_sync_throws_string_ok() -> String;
+        fn rust_calls_swift_sync_throws_string_err() -> String;
+        // Test Result<(), SharedEnum>
+        fn rust_calls_swift_sync_throws_void_ok() -> bool;
+        fn rust_calls_swift_sync_throws_void_err() -> u32;
+        // Test Result<Primitive, OpaqueRustType>
+        fn rust_calls_swift_sync_throws_opaque_err_ok() -> u32;
+        fn rust_calls_swift_sync_throws_opaque_err_err() -> u32;
+        // Test Result<OpaqueRustType, OpaqueRustType>
+        fn rust_calls_swift_sync_throws_opaque_both_ok() -> u32;
+        fn rust_calls_swift_sync_throws_opaque_both_err() -> u32;
+    }
+
+    extern "Swift" {
+        // Sync Swift throwing functions (mapped to throws in Swift)
+        fn swift_sync_throws_u32(succeed: bool) -> Result<u32, SwiftSyncError>;
+        fn swift_sync_throws_string(succeed: bool) -> Result<String, SwiftSyncError>;
+        // Result<(), SharedEnum> - void ok with shared enum error
+        fn swift_sync_throws_void(succeed: bool) -> Result<(), SwiftSyncError>;
+        // Result<Primitive, OpaqueRustType> - primitive ok with opaque error
+        fn swift_sync_throws_opaque_err(succeed: bool) -> Result<u32, SyncResultOpaqueRustType>;
+        // Result<OpaqueRustType, OpaqueRustType> - opaque for both
+        fn swift_sync_throws_opaque_both(
+            succeed: bool,
+        ) -> Result<SyncResultOpaqueRustType, SyncResultOpaqueRustType>;
+    }
+}
+
+fn rust_calls_swift_sync_throws_u32_ok() -> u32 {
+    match ffi_swift_sync_result::swift_sync_throws_u32(true) {
+        Ok(val) => val,
+        Err(_) => panic!("Expected Ok, got Err"),
+    }
+}
+
+fn rust_calls_swift_sync_throws_u32_err() -> u32 {
+    match ffi_swift_sync_result::swift_sync_throws_u32(false) {
+        Ok(_) => panic!("Expected Err, got Ok"),
+        Err(ffi_swift_sync_result::SwiftSyncError::ErrorWithValue(val)) => val,
+        Err(_) => panic!("Wrong error variant"),
+    }
+}
+
+fn rust_calls_swift_sync_throws_string_ok() -> String {
+    match ffi_swift_sync_result::swift_sync_throws_string(true) {
+        Ok(val) => val,
+        Err(_) => panic!("Expected Ok, got Err"),
+    }
+}
+
+fn rust_calls_swift_sync_throws_string_err() -> String {
+    match ffi_swift_sync_result::swift_sync_throws_string(false) {
+        Ok(_) => panic!("Expected Err, got Ok"),
+        Err(ffi_swift_sync_result::SwiftSyncError::ErrorWithMessage(msg)) => msg,
+        Err(_) => panic!("Wrong error variant"),
+    }
+}
+
+// Result<(), SharedEnum> tests
+fn rust_calls_swift_sync_throws_void_ok() -> bool {
+    match ffi_swift_sync_result::swift_sync_throws_void(true) {
+        Ok(()) => true,
+        Err(_) => panic!("Expected Ok, got Err"),
+    }
+}
+
+fn rust_calls_swift_sync_throws_void_err() -> u32 {
+    match ffi_swift_sync_result::swift_sync_throws_void(false) {
+        Ok(_) => panic!("Expected Err, got Ok"),
+        Err(ffi_swift_sync_result::SwiftSyncError::ErrorWithValue(val)) => val,
+        Err(_) => panic!("Wrong error variant"),
+    }
+}
+
+// Result<Primitive, OpaqueRustType> tests
+fn rust_calls_swift_sync_throws_opaque_err_ok() -> u32 {
+    match ffi_swift_sync_result::swift_sync_throws_opaque_err(true) {
+        Ok(val) => val,
+        Err(_) => panic!("Expected Ok, got Err"),
+    }
+}
+
+fn rust_calls_swift_sync_throws_opaque_err_err() -> u32 {
+    match ffi_swift_sync_result::swift_sync_throws_opaque_err(false) {
+        Ok(_) => panic!("Expected Err, got Ok"),
+        Err(err) => err.val(),
+    }
+}
+
+// Result<OpaqueRustType, OpaqueRustType> tests
+fn rust_calls_swift_sync_throws_opaque_both_ok() -> u32 {
+    match ffi_swift_sync_result::swift_sync_throws_opaque_both(true) {
+        Ok(val) => val.val(),
+        Err(_) => panic!("Expected Ok, got Err"),
+    }
+}
+
+fn rust_calls_swift_sync_throws_opaque_both_err() -> u32 {
+    match ffi_swift_sync_result::swift_sync_throws_opaque_both(false) {
+        Ok(_) => panic!("Expected Err, got Ok"),
+        Err(err) => err.val(),
+    }
+}
+
+pub struct SyncResultOpaqueRustType {
+    val: u32,
+}
+
+impl SyncResultOpaqueRustType {
+    fn new(val: u32) -> Self {
+        SyncResultOpaqueRustType { val }
+    }
+
+    fn val(&self) -> u32 {
+        self.val
+    }
+}
