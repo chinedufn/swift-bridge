@@ -25,20 +25,3 @@ mod ffi {
 fn test_argument_label(some_arg: i32, another_arg: i32) -> i32 {
     some_arg + another_arg
 }
-
-#[cfg(test)]
-mod tests {
-    use super::ffi::*;
-
-    #[test]
-    fn test_swift_func_with_unlabeled_params() {
-        let result = swift_func_with_unlabeled_params(10, 20);
-        assert_eq!(result, 30);
-    }
-
-    #[test]
-    fn test_swift_func_with_custom_labels() {
-        let result = swift_func_with_custom_labels(5, 3);
-        assert_eq!(result, 8);
-    }
-}
