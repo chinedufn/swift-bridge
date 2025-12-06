@@ -291,9 +291,7 @@ fn gen_async_function_exposes_swift_to_rust(
     let fn_name = &metadata.fn_name;
 
     // Get the original function arguments (excluding callback params which we add)
-    // Don't include argument labels in FFI wrapper - labels are only for calling the actual Swift function
-    let original_params =
-        func.to_swift_param_names_and_types_with_labels(true, false, types, swift_bridge_path);
+    let original_params = func.to_swift_param_names_and_types(true, types, swift_bridge_path);
     let args = func.to_swift_call_args(false, true, types, swift_bridge_path);
 
     // Check if this is a Result type
@@ -460,9 +458,7 @@ fn gen_sync_function_exposes_swift_to_rust(
     let prefixed_fn_name = &metadata.prefixed_fn_name;
     let fn_name = &metadata.fn_name;
 
-    // Don't include argument labels in FFI wrapper - labels are only for calling the actual Swift function
-    let params =
-        func.to_swift_param_names_and_types_with_labels(true, false, types, swift_bridge_path);
+    let params = func.to_swift_param_names_and_types(true, types, swift_bridge_path);
     let args = func.to_swift_call_args(false, true, types, swift_bridge_path);
 
     // Check if this is a Result type
