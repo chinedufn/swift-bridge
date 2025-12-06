@@ -889,7 +889,7 @@ func __swift_bridge__some_function () -> __swift_bridge__$ResultStringAndSomeErr
     do {
         let result = try some_function()
         return __swift_bridge__$ResultStringAndSomeError(tag: __swift_bridge__$ResultStringAndSomeError$ResultOk, payload: __swift_bridge__$ResultStringAndSomeError$Fields(ok: { let rustString = result.intoRustString(); rustString.isOwned = false; return rustString.ptr }()))
-    } catch let error as SomeError {
+    } catch let error {
         return __swift_bridge__$ResultStringAndSomeError(tag: __swift_bridge__$ResultStringAndSomeError$ResultErr, payload: __swift_bridge__$ResultStringAndSomeError$Fields(err: error.intoFfiRepr()))
     }
 }
@@ -958,7 +958,7 @@ func __swift_bridge__some_function () -> __swift_bridge__$ResultU32AndSomeError 
     do {
         let result = try some_function()
         return __swift_bridge__$ResultU32AndSomeError(tag: __swift_bridge__$ResultU32AndSomeError$ResultOk, payload: __swift_bridge__$ResultU32AndSomeError$Fields(ok: result))
-    } catch let error as SomeError {
+    } catch let error {
         return __swift_bridge__$ResultU32AndSomeError(tag: __swift_bridge__$ResultU32AndSomeError$ResultErr, payload: __swift_bridge__$ResultU32AndSomeError$Fields(err: error.intoFfiRepr()))
     }
 }
@@ -1026,7 +1026,7 @@ func __swift_bridge__some_function (_ success: Bool) -> __swift_bridge__$ResultV
     do {
         try some_function(success: success)
         return __swift_bridge__$ResultVoidAndSomeError(tag: __swift_bridge__$ResultVoidAndSomeError$ResultOk, payload: __swift_bridge__$ResultVoidAndSomeError$Fields())
-    } catch let error as SomeError {
+    } catch let error {
         return __swift_bridge__$ResultVoidAndSomeError(tag: __swift_bridge__$ResultVoidAndSomeError$ResultErr, payload: __swift_bridge__$ResultVoidAndSomeError$Fields(err: error.intoFfiRepr()))
     }
 }
@@ -1092,7 +1092,7 @@ func __swift_bridge__some_function () -> UnsafeMutableRawPointer? {
     do {
         try some_function()
         return nil
-    } catch let error as SomeError {
+    } catch let error {
         return {error.isOwned = false; return error.ptr;}()
     }
 }
@@ -1158,7 +1158,7 @@ func __swift_bridge__some_function (_ arg: UInt32) -> UnsafeMutableRawPointer? {
     do {
         try some_function(arg: arg)
         return nil
-    } catch let error as SomeError {
+    } catch let error {
         return {error.isOwned = false; return error.ptr;}()
     }
 }
@@ -1224,7 +1224,7 @@ func __swift_bridge__some_function (_ success: Bool) -> __private__ResultPtrAndP
     do {
         let result = try some_function(success: success)
         return __private__ResultPtrAndPtr(is_ok: true, ok_or_err: {result.isOwned = false; return result.ptr;}())
-    } catch let error as SomeType {
+    } catch let error {
         return __private__ResultPtrAndPtr(is_ok: false, ok_or_err: {error.isOwned = false; return error.ptr;}())
     }
 }

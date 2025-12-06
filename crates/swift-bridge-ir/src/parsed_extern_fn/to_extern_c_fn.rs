@@ -128,18 +128,27 @@ impl ParsedExternFn {
 
                     if let Some(result) = maybe_result {
                         // For Result types, generate two callbacks: on_success and on_error
-                        let ok_ty = result
-                            .ok_ty
-                            .to_ffi_compatible_rust_type(swift_bridge_path, types);
                         let err_ty = result
                             .err_ty
                             .to_ffi_compatible_rust_type(swift_bridge_path, types);
+
+                        // Handle Result<(), E> where ok_ty can be encoded with zero bytes
+                        let on_success_sig = if result.ok_ty.can_be_encoded_with_zero_bytes() {
+                            // Result<(), E>: on_success callback has no ok_val parameter
+                            quote! { extern "C" fn(*mut std::ffi::c_void) }
+                        } else {
+                            // Result<T, E> where T is not (): on_success has ok_val parameter
+                            let ok_ty = result
+                                .ok_ty
+                                .to_ffi_compatible_rust_type(swift_bridge_path, types);
+                            quote! { extern "C" fn(*mut std::ffi::c_void, #ok_ty) }
+                        };
 
                         quote! {
                             #[link_name = #link_name]
                             fn #prefixed_fn_name (
                                 callback_wrapper: *mut std::ffi::c_void,
-                                on_success: extern "C" fn(*mut std::ffi::c_void, #ok_ty),
+                                on_success: #on_success_sig,
                                 on_error: extern "C" fn(*mut std::ffi::c_void, #err_ty),
                                 #params
                             );
