@@ -225,7 +225,10 @@ mod ffi {
     // Import opaque Swift classes and functions for Rust to use.
     extern &quot;Swift&quot; {
         type CustomFileManager;
-        fn save_file(&amp;self, name: &amp;str, contents: &amp;[u8]);
+        type CustomIoError;
+
+        // Async functions are supported.
+        async fn save_file(self: &amp;CustomFileManager, name: &amp;str, contents: &amp;[u8]) -&gt; Result&lt;(), CustomIoError&gt;;
     }
 }
 
