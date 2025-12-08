@@ -31,6 +31,7 @@ mod already_declared_attribute;
 mod argument_label;
 mod async_function;
 mod boxed_fnonce;
+mod bridged_struct;
 mod built_in_tuple;
 mod c_header_declaration_order;
 mod conditional_compilation;

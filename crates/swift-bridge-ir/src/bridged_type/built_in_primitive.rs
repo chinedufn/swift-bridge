@@ -1,7 +1,8 @@
 use crate::bridged_type::StdLibType;
 
 /// Primitive types such as `()`, `u8` and `bool`.
-pub(crate) enum BuiltInPrimitive {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BuiltInPrimitive {
     Null,
     U8,
     I8,

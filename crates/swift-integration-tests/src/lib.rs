@@ -3,6 +3,7 @@ mod import_opaque_swift_class;
 
 mod async_function;
 mod boxed_functions;
+mod bridged_struct;
 mod conditional_compilation;
 mod generics;
 mod option;

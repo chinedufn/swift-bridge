@@ -27,6 +27,9 @@ mod parsed_extern_fn;
 
 mod codegen;
 
+/// Module for the `#[swift_bridge::bridged]` attribute macro.
+pub mod bridged_struct;
+
 #[cfg(test)]
 mod test_utils;
 
