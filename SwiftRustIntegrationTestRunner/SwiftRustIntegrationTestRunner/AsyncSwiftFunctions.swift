@@ -35,3 +35,57 @@ func swift_async_throws(succeed: Bool) async throws(SwiftAsyncError) -> UInt32 {
         throw SwiftAsyncError.ErrorWithValue(456)
     }
 }
+
+/// An async Swift function that throws but returns void (maps to Result<(), E> in Rust)
+/// Uses typed throws (Swift 5.9+) to ensure compile-time verification of error type
+func swift_async_throws_void(succeed: Bool) async throws(SwiftAsyncVoidError) {
+    try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
+    if !succeed {
+        throw SwiftAsyncVoidError.ErrorWithValue(789)
+    }
+    // On success, just return (void)
+}
+
+// =============================================================================
+// Async Swift class with methods that can be called from Rust
+// =============================================================================
+
+/// A Swift class with async methods for testing async method calls from Rust
+class AsyncSwiftType {
+    private let value: UInt32
+
+    init(value: UInt32) {
+        self.value = value
+    }
+
+    /// Simple async method returning the stored value
+    func get_value() async -> UInt32 {
+        try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
+        return value
+    }
+
+    /// Async method with an argument that adds to the stored value
+    func add_to_value(amount: UInt32) async -> UInt32 {
+        try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
+        return value + amount
+    }
+
+    /// Async method that can throw an error (maps to Result<T, E> in Rust)
+    func maybe_get_value(succeed: Bool) async throws(SwiftAsyncMethodError) -> UInt32 {
+        try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
+        if succeed {
+            return value
+        } else {
+            throw SwiftAsyncMethodError.ErrorWithValue(value)
+        }
+    }
+
+    /// Async method that throws but returns void (maps to Result<(), E> in Rust)
+    func maybe_succeed(succeed: Bool) async throws(SwiftAsyncMethodError) {
+        try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
+        if !succeed {
+            throw SwiftAsyncMethodError.ErrorWithValue(555)
+        }
+        // On success, just return (void)
+    }
+}
