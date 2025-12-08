@@ -138,13 +138,6 @@ impl ParsedExternFn {
         let return_ty = BridgedType::new_with_return_type(&sig.output, types);
         let maybe_result = return_ty.as_ref().and_then(|ty| ty.as_result());
 
-        // Check if we need to pass self
-        let maybe_self_arg = if self.is_method() {
-            quote! { #swift_bridge_path::PointerToSwiftType(self.0), }
-        } else {
-            quote! {}
-        };
-
         // Generate comma before call_args if there are any
         let maybe_comma_call_args = if call_args.is_empty() {
             quote! {}
@@ -154,19 +147,10 @@ impl ParsedExternFn {
 
         if let Some(result) = maybe_result {
             // Result type: use two callbacks (on_success and on_error)
-            let ok_ffi_ty = result
-                .ok_ty
-                .to_ffi_compatible_rust_type(swift_bridge_path, types);
             let err_ffi_ty = result
                 .err_ty
                 .to_ffi_compatible_rust_type(swift_bridge_path, types);
 
-            let ok_convert = result.ok_ty.convert_ffi_expression_to_rust_type(
-                &quote! { ok_val },
-                sig.output.span(),
-                swift_bridge_path,
-                types,
-            );
             let err_convert = result.err_ty.convert_ffi_expression_to_rust_type(
                 &quote! { err_val },
                 sig.output.span(),
@@ -177,23 +161,57 @@ impl ParsedExternFn {
             let rust_ok_ty = result.ok_ty.to_rust_type_path(types);
             let rust_err_ty = result.err_ty.to_rust_type_path(types);
 
+            // Handle Result<(), E> where ok_ty can be encoded with zero bytes
+            let (on_success_params, on_success_body) =
+                if result.ok_ty.can_be_encoded_with_zero_bytes() {
+                    // Result<(), E>: on_success callback has no ok_val parameter
+                    (
+                        quote! { callback_wrapper: *mut std::ffi::c_void },
+                        quote! {
+                            unsafe {
+                                #swift_bridge_path::async_swift_support::complete_swift_async(
+                                    callback_wrapper,
+                                    std::result::Result::<#rust_ok_ty, #rust_err_ty>::Ok(())
+                                );
+                            }
+                        },
+                    )
+                } else {
+                    // Result<T, E> where T is not (): on_success has ok_val parameter
+                    let ok_ffi_ty = result
+                        .ok_ty
+                        .to_ffi_compatible_rust_type(swift_bridge_path, types);
+                    let ok_convert = result.ok_ty.convert_ffi_expression_to_rust_type(
+                        &quote! { ok_val },
+                        sig.output.span(),
+                        swift_bridge_path,
+                        types,
+                    );
+                    (
+                        quote! {
+                            callback_wrapper: *mut std::ffi::c_void,
+                            ok_val: #ok_ffi_ty
+                        },
+                        quote! {
+                            let ok_val: #rust_ok_ty = #ok_convert;
+                            unsafe {
+                                #swift_bridge_path::async_swift_support::complete_swift_async(
+                                    callback_wrapper,
+                                    std::result::Result::<#rust_ok_ty, #rust_err_ty>::Ok(ok_val)
+                                );
+                            }
+                        },
+                    )
+                };
+
             quote! {
                 pub async fn #fn_name(#params) #ret {
                     let (future, callback_wrapper) = #swift_bridge_path::async_swift_support::create_swift_async_call::<
                         std::result::Result<#rust_ok_ty, #rust_err_ty>
                     >();
 
-                    extern "C" fn on_success(
-                        callback_wrapper: *mut std::ffi::c_void,
-                        ok_val: #ok_ffi_ty
-                    ) {
-                        let ok_val: #rust_ok_ty = #ok_convert;
-                        unsafe {
-                            #swift_bridge_path::async_swift_support::complete_swift_async(
-                                callback_wrapper,
-                                std::result::Result::<#rust_ok_ty, #rust_err_ty>::Ok(ok_val)
-                            );
-                        }
+                    extern "C" fn on_success(#on_success_params) {
+                        #on_success_body
                     }
 
                     extern "C" fn on_error(
@@ -211,7 +229,6 @@ impl ParsedExternFn {
 
                     unsafe {
                         #linked_fn_name(
-                            #maybe_self_arg
                             callback_wrapper,
                             on_success,
                             on_error
@@ -298,7 +315,6 @@ impl ParsedExternFn {
 
                     unsafe {
                         #linked_fn_name(
-                            #maybe_self_arg
                             callback_wrapper,
                             callback
                             #maybe_comma_call_args
