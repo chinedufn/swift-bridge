@@ -272,10 +272,7 @@ impl CustomTypeInfo {
 ///
 /// * `item` - The parsed struct
 /// * `swift_name` - Optional Swift name override. If None, uses the Rust struct name.
-pub fn generate_bridged_struct_tokens(
-    item: ItemStruct,
-    swift_name: Option<String>,
-) -> TokenStream {
+pub fn generate_bridged_struct_tokens(item: ItemStruct, swift_name: Option<String>) -> TokenStream {
     let struct_name = &item.ident;
     let struct_name_string = struct_name.to_string();
     let swift_struct_name = swift_name.unwrap_or_else(|| struct_name_string.clone());
