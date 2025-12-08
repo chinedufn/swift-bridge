@@ -133,7 +133,21 @@ impl ParsedExternFn {
                             todo!("Push to ParsedErrors")
                         };
                     let arg = if include_var_name {
-                        format!("{}: {}", arg_name, arg)
+                        if let Some(label) =
+                            self.argument_labels.get(&format_ident!("{}", arg_name))
+                        {
+                            let label_str = label.value();
+                            if label_str == "_" {
+                                // No label - just the value
+                                arg
+                            } else {
+                                // Custom label
+                                format!("{}: {}", label_str, arg)
+                            }
+                        } else {
+                            // Default: use parameter name as label
+                            format!("{}: {}", arg_name, arg)
+                        }
                     } else {
                         arg
                     };
