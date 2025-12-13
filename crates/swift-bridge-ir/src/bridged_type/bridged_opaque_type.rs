@@ -290,21 +290,10 @@ impl BridgeableType for OpaqueForeignType {
         _swift_bridge_path: &Path,
     ) -> TokenStream {
         if self.has_swift_bridge_copy_annotation {
-            let copy_repr = self.copy_rust_repr_type();
             let option_copy_repr = self.option_copy_rust_repr_type();
 
             quote! {
-                if let Some(val) = #expression {
-                    #option_copy_repr {
-                        is_some: true,
-                        val: std::mem::MaybeUninit::new(#copy_repr::from_rust_repr(val))
-                    }
-                } else {
-                    #option_copy_repr {
-                        is_some: false,
-                        val: std::mem::MaybeUninit::uninit()
-                    }
-                }
+                #option_copy_repr::from_rust_repr(#expression)
             }
         } else if self.reference {
             let ty = &self.ty;
