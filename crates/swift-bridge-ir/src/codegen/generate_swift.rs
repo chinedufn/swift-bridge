@@ -314,38 +314,57 @@ fn gen_async_function_exposes_swift_to_rust(
             swift_bridge_path,
         );
 
-        let ok_ffi_convert = result.ok_ty.convert_swift_expression_to_ffi_type(
-            "result",
-            types,
-            TypePosition::FnReturn(func.host_lang),
-        );
         let err_ffi_convert = result.err_ty.convert_swift_expression_to_ffi_type(
             "error",
             types,
             TypePosition::FnReturn(func.host_lang),
         );
 
-        // Get FFI types for ok and error values
-        let ok_ffi_ty = result.ok_ty.to_swift_type(
-            TypePosition::FnReturn(func.host_lang),
-            types,
-            swift_bridge_path,
-        );
+        // Get FFI type for error value
         let err_ffi_ty = result.err_ty.to_swift_type(
             TypePosition::FnReturn(func.host_lang),
             types,
             swift_bridge_path,
         );
 
-        // Build params: this (if method), callbackWrapper, onSuccess, onError, then original params
+        // Build params: callbackWrapper, onSuccess, onError, then original params (which includes this for methods)
         let mut all_params = Vec::new();
-        if func.is_method() {
-            all_params.push("_ this: UnsafeMutableRawPointer".to_string());
-        }
         all_params.push("_ callbackWrapper: UnsafeMutableRawPointer".to_string());
-        all_params.push(format!(
-            "_ onSuccess: @escaping @convention(c) (UnsafeMutableRawPointer, {ok_ffi_ty}) -> Void"
-        ));
+
+        // Handle Result<(), E> where ok_ty can be encoded with zero bytes
+        let (on_success_signature, on_success_call, result_binding) = if result
+            .ok_ty
+            .can_be_encoded_with_zero_bytes()
+        {
+            // Result<(), E>: onSuccess callback has no ok_val parameter, use _ = to discard void
+            (
+                "_ onSuccess: @escaping @convention(c) (UnsafeMutableRawPointer) -> Void"
+                    .to_string(),
+                "onSuccess(callbackWrapper)".to_string(),
+                "_ = ",
+            )
+        } else {
+            // Result<T, E> where T is not (): onSuccess has ok_val parameter
+            let ok_ffi_ty = result.ok_ty.to_swift_type(
+                TypePosition::FnReturn(func.host_lang),
+                types,
+                swift_bridge_path,
+            );
+            let ok_ffi_convert = result.ok_ty.convert_swift_expression_to_ffi_type(
+                "result",
+                types,
+                TypePosition::FnReturn(func.host_lang),
+            );
+            (
+                format!(
+                    "_ onSuccess: @escaping @convention(c) (UnsafeMutableRawPointer, {ok_ffi_ty}) -> Void"
+                ),
+                format!("onSuccess(callbackWrapper, {ok_ffi_convert})"),
+                "let result = ",
+            )
+        };
+
+        all_params.push(on_success_signature);
         all_params.push(format!(
             "_ onError: @escaping @convention(c) (UnsafeMutableRawPointer, {err_ffi_ty}) -> Void"
         ));
@@ -355,8 +374,8 @@ fn gen_async_function_exposes_swift_to_rust(
 
         let task_body = format!(
             r#"do {{
-            let result = try await {call_expression}
-            onSuccess(callbackWrapper, {ok_ffi_convert})
+            {result_binding}try await {call_expression}
+            {on_success_call}
         }} catch let error as {err_swift_ty} {{
             onError(callbackWrapper, {err_ffi_convert})
         }}"#
@@ -400,11 +419,8 @@ func {prefixed_fn_name}__TypedThrowsCheck({checker_params}) async throws({err_sw
             "_ callback: @escaping @convention(c) (UnsafeMutableRawPointer) -> Void".to_string()
         };
 
-        // Build params: this (if method), callbackWrapper, callback, then original params
+        // Build params: callbackWrapper, callback, then original params (which includes this for methods)
         let mut all_params = Vec::new();
-        if func.is_method() {
-            all_params.push("_ this: UnsafeMutableRawPointer".to_string());
-        }
         all_params.push("_ callbackWrapper: UnsafeMutableRawPointer".to_string());
         all_params.push(callback_signature);
         if !original_params.is_empty() {
@@ -663,16 +679,12 @@ fn gen_sync_result_function_exposes_swift_to_rust(
         format!("{fn_name}({args})")
     };
 
-    // Use SwiftCallsRustAsyncOnCompleteReturnTy to get the FFI return type (not the Ok type)
-    let ret_ty = result.to_swift_type(
-        TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy,
-        types,
-        swift_bridge_path,
-    );
+    // Use ResultFfiReturnType to get the FFI return type (not the Ok type)
+    let ret_ty = result.to_swift_type(TypePosition::ResultFfiReturnType, types, swift_bridge_path);
 
     // Generate the return statements based on whether this is a custom result type
     let ok_is_void = result.ok_ty.can_be_encoded_with_zero_bytes();
-    let (ok_return, err_return) = if result.is_custom_result_type(types) {
+    let (ok_return, err_return) = if result.is_custom_result_type() {
         let c_ok_tag = result.c_ok_tag_name(types);
         let c_err_tag = result.c_err_tag_name(types);
         let c_fields = result.c_fields_name(types);
@@ -734,7 +746,7 @@ func {prefixed_fn_name}__TypedThrowsCheck({checker_params}) throws({err_swift_ty
     format!(
         r#"@_cdecl("{link_name}")
 func {prefixed_fn_name} ({params}) -> {ret_ty} {{
-    {do_block} catch let error as {err_swift_ty} {{
+    {do_block} catch let error {{
         return {err_return}
     }}
 }}{typed_throws_check}

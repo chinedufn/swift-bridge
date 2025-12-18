@@ -27,7 +27,7 @@ impl BridgeableType for BridgedString {
     }
 
     fn as_option(&self) -> Option<&super::bridged_option::BridgedOption> {
-        todo!()
+        None
     }
 
     fn is_passed_via_pointer(&self) -> bool {
@@ -73,9 +73,7 @@ impl BridgeableType for BridgedString {
                 }
             }
             TypePosition::SharedStructField => "RustString".to_string(),
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
-                "UnsafeMutableRawPointer?".to_string()
-            }
+            TypePosition::ResultFfiReturnType => "UnsafeMutableRawPointer?".to_string(),
             TypePosition::ThrowingInit(_) => todo!(),
         }
     }
@@ -125,10 +123,8 @@ impl BridgeableType for BridgedString {
                     "UnsafeMutableRawPointer?".to_string()
                 }
             }
-            TypePosition::SharedStructField => {
-                todo!()
-            }
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+            TypePosition::SharedStructField => "UnsafeMutableRawPointer?".to_string(),
+            TypePosition::ResultFfiReturnType => {
                 todo!()
             }
             TypePosition::ThrowingInit(_) => todo!(),
@@ -202,9 +198,12 @@ impl BridgeableType for BridgedString {
                 }
             }
             TypePosition::SharedStructField => {
-                todo!("Option<String> fields in structs are not yet supported.")
+                format!(
+                    "{{ if let rustString = optionalStringIntoRustString({expression}) {{ rustString.isOwned = false; return rustString.ptr }} else {{ return nil }} }}()",
+                    expression = expression
+                )
             }
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+            TypePosition::ResultFfiReturnType => {
                 unimplemented!()
             }
             TypePosition::ThrowingInit(_) => todo!(),
@@ -250,7 +249,7 @@ impl BridgeableType for BridgedString {
             | TypePosition::SharedStructField => {
                 format!("RustString(ptr: {})", expression)
             }
-            TypePosition::SwiftCallsRustAsyncOnCompleteReturnTy => {
+            TypePosition::ResultFfiReturnType => {
                 format!("RustString(ptr: {}!)", expression)
             }
             TypePosition::ThrowingInit(_) => todo!(),
@@ -292,10 +291,7 @@ impl BridgeableType for BridgedString {
             rust: quote! {
                 std::ptr::null::<#swift_bridge_path::string::RustString>() as *mut #swift_bridge_path::string::RustString
             },
-            // TODO: Add integration tests:
-            //  Rust: crates/swift-integration-tests/src/option.rs
-            //  Swift: OptionTests.swift
-            swift: "TODO_SWIFT_OPTIONAL_STRING_SUPPORT".to_string(),
+            swift: "nil".to_string(),
         }
     }
 

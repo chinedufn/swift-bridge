@@ -55,12 +55,21 @@ extension AsyncResultErrEnum: Error {}
 extension SwiftAsyncError: @unchecked Sendable {}
 extension SwiftAsyncError: Error {}
 
+extension SwiftAsyncVoidError: @unchecked Sendable {}
+extension SwiftAsyncVoidError: Error {}
+
+extension SwiftAsyncMethodError: @unchecked Sendable {}
+extension SwiftAsyncMethodError: Error {}
+
 // ============================================================================
 // Sync Swift throwing functions (called from Rust)
 // ============================================================================
 
 extension SwiftSyncError: @unchecked Sendable {}
 extension SwiftSyncError: Error {}
+
+extension SyncResultOpaqueRustType: @unchecked Sendable {}
+extension SyncResultOpaqueRustType: Error {}
 
 /// Sync Swift function that throws, returning u32 on success
 /// Uses typed throws (Swift 5.9+) to ensure compile-time verification of error type
@@ -79,5 +88,33 @@ func swift_sync_throws_string(succeed: Bool) throws(SwiftSyncError) -> RustStrin
         return "Success from Swift".intoRustString()
     } else {
         throw SwiftSyncError.ErrorWithMessage("Error message from Swift".intoRustString())
+    }
+}
+
+/// Sync Swift function that throws with void Ok type
+/// Uses typed throws (Swift 5.9+) to ensure compile-time verification of error type
+func swift_sync_throws_void(succeed: Bool) throws(SwiftSyncError) {
+    if !succeed {
+        throw SwiftSyncError.ErrorWithValue(456)
+    }
+}
+
+/// Sync Swift function with opaque Rust type as error
+/// Uses typed throws (Swift 5.9+) to ensure compile-time verification of error type
+func swift_sync_throws_opaque_err(succeed: Bool) throws(SyncResultOpaqueRustType) -> UInt32 {
+    if succeed {
+        return 789
+    } else {
+        throw SyncResultOpaqueRustType(999)
+    }
+}
+
+/// Sync Swift function with opaque Rust type for both Ok and Err
+/// Uses typed throws (Swift 5.9+) to ensure compile-time verification of error type
+func swift_sync_throws_opaque_both(succeed: Bool) throws(SyncResultOpaqueRustType) -> SyncResultOpaqueRustType {
+    if succeed {
+        return SyncResultOpaqueRustType(111)
+    } else {
+        throw SyncResultOpaqueRustType(222)
     }
 }

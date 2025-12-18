@@ -5,6 +5,10 @@ mod ffi {
             #[swift_bridge(label = "someArg")] some_arg: i32,
             another_arg: i32,
         ) -> i32;
+
+        fn rust_calls_swift_with_unlabeled_params(a: i32, b: i32) -> i32;
+
+        fn rust_calls_swift_with_custom_labels(a: i32, b: i32) -> i32;
     }
 
     extern "Swift" {
@@ -26,19 +30,10 @@ fn test_argument_label(some_arg: i32, another_arg: i32) -> i32 {
     some_arg + another_arg
 }
 
-#[cfg(test)]
-mod tests {
-    use super::ffi::*;
+fn rust_calls_swift_with_unlabeled_params(a: i32, b: i32) -> i32 {
+    ffi::swift_func_with_unlabeled_params(a, b)
+}
 
-    #[test]
-    fn test_swift_func_with_unlabeled_params() {
-        let result = swift_func_with_unlabeled_params(10, 20);
-        assert_eq!(result, 30);
-    }
-
-    #[test]
-    fn test_swift_func_with_custom_labels() {
-        let result = swift_func_with_custom_labels(5, 3);
-        assert_eq!(result, 8);
-    }
+fn rust_calls_swift_with_custom_labels(a: i32, b: i32) -> i32 {
+    ffi::swift_func_with_custom_labels(a, b)
 }

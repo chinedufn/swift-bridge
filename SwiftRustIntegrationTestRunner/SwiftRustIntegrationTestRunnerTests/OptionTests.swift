@@ -157,7 +157,7 @@ class OptionTests: XCTestCase {
             u8: 123, i8: 123, u16: 123, i16: 123,
             u32: 123, i32: 123, u64: 123, i64: 123,
             usize: 123, isize: 123, f32: 123.4, f64: 123.4,
-            boolean: true
+            boolean: true, string: "hello".intoRustString()
         )
         let reflected = rust_reflect_struct_with_option_fields(val)
         XCTAssertEqual(reflected.u8, 123)
@@ -173,6 +173,7 @@ class OptionTests: XCTestCase {
         XCTAssertEqual(reflected.f32, 123.4)
         XCTAssertEqual(reflected.f64, 123.4)
         XCTAssertEqual(reflected.boolean, true)
+        XCTAssertEqual(reflected.string!.toString(), "hello")
     }
 
     func testStructWithOptionFieldsNone() {
@@ -180,7 +181,7 @@ class OptionTests: XCTestCase {
             u8: nil, i8: nil, u16: nil, i16: nil,
             u32: nil, i32: nil, u64: nil, i64: nil,
             usize: nil, isize: nil, f32: nil, f64: nil,
-            boolean: nil
+            boolean: nil, string: nil
         )
         let reflected = rust_reflect_struct_with_option_fields(val)
         XCTAssertEqual(reflected.i8, nil)
@@ -195,6 +196,7 @@ class OptionTests: XCTestCase {
         XCTAssertEqual(reflected.f32, nil)
         XCTAssertEqual(reflected.f64, nil)
         XCTAssertEqual(reflected.boolean, nil)
+        XCTAssertNil(reflected.string)
     }
 
     func testEnumWhereVariantsHaveNoData() {

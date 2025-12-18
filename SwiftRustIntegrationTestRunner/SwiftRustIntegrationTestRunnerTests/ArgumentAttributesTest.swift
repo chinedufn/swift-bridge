@@ -18,4 +18,16 @@ final class ArgumentAttributesTest: XCTestCase {
         XCTAssertEqual(test_argument_label(someArg: 10, 100), 110)
     }
 
+    /// Verify that Rust can call extern "Swift" functions with unlabeled params (`label = "_"`).
+    func testRustCallsSwiftWithUnlabeledParams() throws {
+        // Rust function calls Swift: swift_func_with_unlabeled_params(10, 20)
+        XCTAssertEqual(rust_calls_swift_with_unlabeled_params(10, 20), 30)
+    }
+
+    /// Verify that Rust can call extern "Swift" functions with custom labels.
+    func testRustCallsSwiftWithCustomLabels() throws {
+        // Rust function calls Swift: swift_func_with_custom_labels(first: 5, second: 3)
+        XCTAssertEqual(rust_calls_swift_with_custom_labels(5, 3), 8)
+    }
+
 }
