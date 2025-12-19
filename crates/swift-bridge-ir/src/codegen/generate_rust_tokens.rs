@@ -325,7 +325,7 @@ impl ToTokens for SwiftBridgeModule {
         };
 
         let t = quote! {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, non_camel_case_types)]
             #(#module_attributes)*
             #vis mod #mod_name {
                 #module_inner
@@ -459,7 +459,7 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, non_camel_case_types)]
             mod foo {
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function () {
@@ -482,7 +482,7 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, non_camel_case_types)]
             mod foo {
                 pub fn some_function() {
                     unsafe { __swift_bridge__some_function() }
@@ -511,7 +511,7 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, non_camel_case_types)]
             mod foo {
                 pub fn some_function(start: bool) {
                     unsafe { __swift_bridge__some_function(start) }
@@ -539,7 +539,7 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, non_camel_case_types)]
             mod foo {
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function (bar: u8) {
@@ -616,7 +616,7 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, non_camel_case_types)]
             mod foo {
                 #[export_name = "__swift_bridge__$some_function"]
                 pub extern "C" fn __swift_bridge__some_function () -> u8 {
@@ -1108,7 +1108,7 @@ mod tests {
             }
         };
         let expected = quote! {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, non_camel_case_types)]
             pub(super) mod foo {
             }
         };

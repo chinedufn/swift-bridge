@@ -561,7 +561,7 @@ mod extern_swift_fn_return_vec_of_primitive_rust_type {
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, non_camel_case_types)]
             mod ffi {
                 pub fn some_function() -> Vec<u8> {
                     unsafe { *Box::from_raw(unsafe { __swift_bridge__some_function() }) }
@@ -620,7 +620,7 @@ mod extern_swift_fn_arg_vec_of_primitive_rust_type {
 
     fn expected_rust_tokens() -> ExpectedRustTokens {
         ExpectedRustTokens::Contains(quote! {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, non_camel_case_types)]
             mod ffi {
                 pub fn some_function(arg: Vec<u8>) {
                     unsafe { __swift_bridge__some_function(Box::into_raw(Box::new(arg))) }
