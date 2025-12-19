@@ -23,7 +23,6 @@ mod generates_struct_to_and_from_ffi_conversions_no_fields {
 
             #[repr(C)]
             #[doc(hidden)]
-            #[allow(non_camel_case_types)]
             pub struct __swift_bridge__SomeStruct {
                 _private: u8
             }
@@ -121,7 +120,6 @@ mod generates_struct_to_and_from_ffi_conversions_with_fields {
 
             #[repr(C)]
             #[doc(hidden)]
-            #[allow(non_camel_case_types)]
             pub struct __swift_bridge__SomeStruct {
                 field: u8
             }
@@ -221,7 +219,6 @@ mod struct_with_primitive_field {
 
                 #[repr(C)]
                 #[doc(hidden)]
-                #[allow(non_camel_case_types)]
                 pub struct __swift_bridge__SomeStruct {
                     field: u8
                 }
@@ -231,7 +228,6 @@ mod struct_with_primitive_field {
 
                 #[repr(C)]
                 #[doc(hidden)]
-                #[allow(non_camel_case_types)]
                 pub struct __swift_bridge__AnotherStruct(u8);
             },
         ])
@@ -611,7 +607,6 @@ mod extern_rust_option_struct {
             quote! {
                 #[repr(C)]
                 #[doc(hidden)]
-                #[allow(non_camel_case_types)]
                 pub struct __swift_bridge__Option_SomeStruct {
                     is_some: bool,
                     val: std::mem::MaybeUninit<__swift_bridge__SomeStruct>,
