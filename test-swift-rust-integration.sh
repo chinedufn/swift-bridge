@@ -21,7 +21,15 @@ touch ./Generated/SwiftBridgeCore.{h,swift}
 mkdir -p ./Generated/swift-integration-tests
 touch ./Generated/swift-integration-tests/swift-integration-tests.{h,swift}
 
+# Build settings override (e.g., SWIFT_VERSION=6.0)
+EXTRA_BUILD_SETTINGS=""
+if [ -n "$SWIFT_VERSION" ]; then
+  EXTRA_BUILD_SETTINGS="SWIFT_VERSION=$SWIFT_VERSION"
+  echo "Using Swift version: $SWIFT_VERSION"
+fi
+
 xcodebuild \
   -project SwiftRustIntegrationTestRunner.xcodeproj \
   -scheme SwiftRustIntegrationTestRunner \
-  clean test
+  clean test \
+  $EXTRA_BUILD_SETTINGS
