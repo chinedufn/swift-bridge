@@ -53,6 +53,11 @@ jobs:
   integration-test:
     runs-on: macos-14
     timeout-minutes: 30
+    strategy:
+      matrix:
+        # NOTE: As explained in `README.md`, the minimum supported Swift version is currently `6.0`.
+        #   If supporting `5.0` ever becomes difficult we can consider removing it from the test matrix.
+        swift_version: ['5.0', '6.0']
 
     steps:
       - uses: actions/checkout@v2
@@ -61,15 +66,16 @@ jobs:
         with:
           toolchain: stable
 
-      # Xcode 16.2 provides Swift 5.9+ which is required for typed throws.
+      # Xcode 16.2 provides Swift 5.9+ and Swift 6.0, which we make use of in the test matrix above.
+      #  If we need to support other versions in the future we can change this Xcode version.
       - name: Set Xcode version
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
       - name: Add rust targets
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
-      - name: Run integration tests
-        run: ./test-swift-rust-integration.sh
+      - name: Run integration tests (Swift ${{ matrix.swift_version }})
+        run: SWIFT_VERSION=${{ matrix.swift_version }} ./test-swift-rust-integration.sh
 
   build-examples:
     runs-on: macos-14

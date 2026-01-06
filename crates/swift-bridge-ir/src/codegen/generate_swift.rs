@@ -301,8 +301,10 @@ fn gen_async_function_exposes_swift_to_rust(
     // Build the async call expression
     let call_expression = build_swift_call_expression(func, fn_name, &args);
 
-    // Build params_str, task_body, and optional typed_throws_check based on whether this is a Result type or not
-    let (params_str, task_body, typed_throws_check) = if let Some(result) = maybe_result {
+    // Build params_str, task_body, optional typed_throws_check, and pre_task_bindings based on whether this is a Result type or not
+    let (params_str, task_body, typed_throws_check, pre_task_bindings) = if let Some(result) =
+        maybe_result
+    {
         // Result type: generate two callbacks (on_success and on_error)
 
         // For the catch clause, we need the actual Swift wrapper type name (e.g., "ErrorType"),
@@ -372,15 +374,6 @@ fn gen_async_function_exposes_swift_to_rust(
             all_params.push(original_params.clone());
         }
 
-        let task_body = format!(
-            r#"do {{
-            {result_binding}try await {call_expression}
-            {on_success_call}
-        }} catch let error as {err_swift_ty} {{
-            onError(callbackWrapper, {err_ffi_convert})
-        }}"#
-        );
-
         // Generate a typed throw checker function that verifies at compile-time
         // that the Swift function only throws the expected error type.
         // This uses Swift's typed throws feature (Swift 5.9+).
@@ -396,7 +389,26 @@ func {prefixed_fn_name}__TypedThrowsCheck({checker_params}) async throws({err_sw
 }}"#
         );
 
-        (all_params.join(", "), task_body, Some(typed_throws_check))
+        // Pre-task wrapper for Swift 6 sendability - wrap callbacks in UncheckedSendable
+        let pre_task_bindings =
+            "let __callbacks = __private__UncheckedSendable((callbackWrapper, onSuccess, onError))";
+        // Destructure at start of Task body
+        let task_body = format!(
+            r#"let (callbackWrapper, onSuccess, onError) = __callbacks.value
+        do {{
+            {result_binding}try await {call_expression}
+            {on_success_call}
+        }} catch let error as {err_swift_ty} {{
+            onError(callbackWrapper, {err_ffi_convert})
+        }}"#
+        );
+
+        (
+            all_params.join(", "),
+            task_body,
+            Some(typed_throws_check),
+            pre_task_bindings.to_string(),
+        )
     } else {
         // Non-Result type: single callback
         let return_ty_ref = return_ty.as_ref();
@@ -445,16 +457,61 @@ func {prefixed_fn_name}__TypedThrowsCheck({checker_params}) async throws({err_sw
             "let _ = "
         };
 
-        let task_body = format!("{result_binding}await {call_expression}\n        {callback_call}");
+        // Pre-task wrapper for Swift 6 sendability
+        let pre_task_bindings =
+            "let __callbacks = __private__UncheckedSendable((callbackWrapper, callback))";
+        // Destructure at start of Task body
+        let task_body = format!("let (callbackWrapper, callback) = __callbacks.value\n        {result_binding}await {call_expression}\n        {callback_call}");
 
-        (all_params.join(", "), task_body, None)
+        (
+            all_params.join(", "),
+            task_body,
+            None,
+            pre_task_bindings.to_string(),
+        )
     };
 
     let maybe_typed_throws_check = typed_throws_check.unwrap_or_default();
 
+    // Check if this is a method (has associated_type) - if so, we need to include 'this' in the wrapper
+    let (pre_task_bindings, task_body) = if func.associated_type.is_some() {
+        // For methods, we need to wrap 'this' as well
+        let is_result = maybe_result.is_some();
+        if is_result {
+            // Result case: wrap callbackWrapper, onSuccess, onError, this
+            let wrapper = "let __captures = __private__UncheckedSendable((callbackWrapper, onSuccess, onError, this))";
+            let destructure =
+                "let (callbackWrapper, onSuccess, onError, this) = __captures.value\n        ";
+            (
+                wrapper.to_string(),
+                destructure.to_string()
+                    + &task_body.trim_start().replace(
+                        "let (callbackWrapper, onSuccess, onError) = __callbacks.value\n        ",
+                        "",
+                    ),
+            )
+        } else {
+            // Non-result case: wrap callbackWrapper, callback, this
+            let wrapper =
+                "let __captures = __private__UncheckedSendable((callbackWrapper, callback, this))";
+            let destructure = "let (callbackWrapper, callback, this) = __captures.value\n        ";
+            (
+                wrapper.to_string(),
+                destructure.to_string()
+                    + &task_body.trim_start().replace(
+                        "let (callbackWrapper, callback) = __callbacks.value\n        ",
+                        "",
+                    ),
+            )
+        }
+    } else {
+        (pre_task_bindings.clone(), task_body.clone())
+    };
+
     format!(
         r#"@_cdecl("{link_name}")
 func {prefixed_fn_name} ({params_str}) {{
+    {pre_task_bindings}
     Task {{
         {task_body}
     }}

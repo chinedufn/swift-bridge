@@ -8,6 +8,7 @@
 import XCTest
 @testable import SwiftRustIntegrationTestRunner
 
+@MainActor
 class OpaqueRustStructTests: XCTestCase {
     
     override func setUpWithError() throws {

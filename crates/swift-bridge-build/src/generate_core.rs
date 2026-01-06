@@ -72,6 +72,7 @@ fn core_swift() -> String {
 
     core_swift += &generic_freer();
     core_swift += &generic_copy_type_ffi_repr();
+    core_swift += &unchecked_sendable_wrapper();
 
     core_swift
 }
@@ -210,5 +211,16 @@ protocol SwiftBridgeGenericFreer {
 fn generic_copy_type_ffi_repr() -> &'static str {
     r#"
 protocol SwiftBridgeGenericCopyTypeFfiRepr {}
+"#
+}
+
+/// A wrapper type that makes any value Sendable for use in Task closures.
+/// This is used for FFI callbacks that we know are safe to use across Task boundaries.
+fn unchecked_sendable_wrapper() -> &'static str {
+    r#"
+public struct __private__UncheckedSendable<T>: @unchecked Sendable {
+    public let value: T
+    @inlinable public init(_ value: T) { self.value = value }
+}
 "#
 }

@@ -11,6 +11,7 @@ import XCTest
 @testable import SwiftRustIntegrationTestRunner
 
 /// Tests tuples
+@MainActor
 final class TupleTest: XCTestCase {
     /// Verify that we can pass and return Rust tuples.
     func testSwiftCallsRustTuples() throws {

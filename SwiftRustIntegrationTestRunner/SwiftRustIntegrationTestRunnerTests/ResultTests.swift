@@ -7,6 +7,7 @@
 import XCTest
 @testable import SwiftRustIntegrationTestRunner
 
+@MainActor
 class ResultTests: XCTestCase {
     /// Verify that we can pass a Result<String, String> from Swift -> Rust
     func testSwiftCallRustResultString() throws {
