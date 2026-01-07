@@ -342,11 +342,12 @@ typedef struct {option_ffi_name} {{ bool is_some; {ffi_name} val; }} {option_ffi
                         header += &hash_ty;
                     }
 
-                    // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
-                    //  make them pass.
                     // TODO: Support Vec<GenericOpaqueRustType
-                    if ty.attributes.copy.is_none() && ty.generics.len() == 0 {
-                        let vec_functions = vec_opaque_rust_type_c_support(&ty_name);
+                    if ty.generics.len() == 0 {
+                        let vec_functions = match ty.attributes.copy {
+                            None => vec_opaque_rust_type_c_support(&ty_name),
+                            Some(_) => vec_opaque_rust_copy_type_c_support(&ty_name),
+                        };
 
                         header += &vec_functions;
                         header += "\n";
@@ -414,6 +415,22 @@ void* __swift_bridge__$Vec_{ty_name}$get(void* vec_ptr, uintptr_t index);
 void* __swift_bridge__$Vec_{ty_name}$get_mut(void* vec_ptr, uintptr_t index);
 uintptr_t __swift_bridge__$Vec_{ty_name}$len(void* vec_ptr);
 void* __swift_bridge__$Vec_{ty_name}$as_ptr(void* vec_ptr);
+"#,
+        ty_name = ty_name
+    )
+}
+
+fn vec_opaque_rust_copy_type_c_support(ty_name: &str) -> String {
+    format!(
+        r#"
+void* __swift_bridge__$Vec_{ty_name}$new(void);
+void __swift_bridge__$Vec_{ty_name}$drop(void* vec_ptr);
+void __swift_bridge__$Vec_{ty_name}$push(void* vec_ptr, __swift_bridge__${ty_name} item);
+__swift_bridge__$Option${ty_name} __swift_bridge__$Vec_{ty_name}$pop(void* vec_ptr);
+__swift_bridge__$Option${ty_name} __swift_bridge__$Vec_{ty_name}$get(void* vec_ptr, uintptr_t index);
+__swift_bridge__$Option${ty_name} __swift_bridge__$Vec_{ty_name}$get_mut(void* vec_ptr, uintptr_t index);
+uintptr_t __swift_bridge__$Vec_{ty_name}$len(void* vec_ptr);
+__swift_bridge__${ty_name}* __swift_bridge__$Vec_{ty_name}$as_ptr(void* vec_ptr);
 "#,
         ty_name = ty_name
     )

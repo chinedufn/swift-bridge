@@ -5,7 +5,7 @@ use crate::bridged_type::{BridgeableType, BridgedType, BuiltInResult, TypePositi
 use crate::codegen::generate_swift::generate_function_swift_calls_rust::gen_func_swift_calls_rust;
 use crate::codegen::generate_swift::opaque_copy_type::generate_opaque_copy_struct;
 use crate::codegen::generate_swift::swift_class::generate_swift_class;
-use crate::codegen::generate_swift::vec::generate_vectorizable_extension;
+use crate::codegen::generate_swift::vec::{copy_type, generate_vectorizable_extension};
 use crate::codegen::CodegenConfig;
 use crate::parse::{
     HostLang, OpaqueForeignTypeDeclaration, SharedTypeDeclaration, TypeDeclaration,
@@ -133,9 +133,18 @@ impl SwiftBridgeModule {
                                 // TODO: Support Vec<OpaqueCopyType>. Add codegen tests and then
                                 //  make them pass.
                                 // TODO: Support Vec<GenericOpaqueRustType
-                                if ty.attributes.copy.is_none() && ty.generics.len() == 0 {
-                                    swift += &generate_vectorizable_extension(&ty);
-                                    swift += "\n";
+                                if ty.generics.len() == 0 {
+                                    match ty.attributes.copy {
+                                        None => {
+                                            swift += &generate_vectorizable_extension(&ty);
+                                            swift += "\n";
+                                        }
+                                        Some(_) => {
+                                            swift +=
+                                                &copy_type::generate_vectorizable_extension(&ty);
+                                            swift += "\n";
+                                        }
+                                    }
                                 }
                             }
 

@@ -174,6 +174,155 @@ void* __swift_bridge__$Vec_MyRustType$as_ptr(void* vec_ptr);
     }
 }
 
+/// Verify that we emit Rust, Swift and C header code that allows an extern "Rust" type
+/// that is also Copy be used within a Vec<T>.
+mod extern_rust_copy_type_vec_support {
+    use super::*;
+
+    fn bridge_module_tokens() -> TokenStream {
+        quote! {
+            mod ffi {
+                extern "Rust" {
+                    #[swift_bridge(Copy(4))]
+                    type MyRustType;
+                }
+            }
+        }
+    }
+
+    fn expected_rust_tokens() -> ExpectedRustTokens {
+        ExpectedRustTokens::Contains(quote! {
+            const _: () = {
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$new"]
+                pub extern "C" fn _new() -> *mut Vec<super::MyRustType> {
+                    Box::into_raw(Box::new(Vec::new()))
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$drop"]
+                pub extern "C" fn _drop(vec: *mut Vec<super::MyRustType>) {
+                    let vec = unsafe { Box::from_raw(vec) };
+                    drop(vec)
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$len"]
+                pub extern "C" fn _len(vec: *const Vec<super::MyRustType>) -> usize {
+                    unsafe { &*vec }.len()
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$get"]
+                pub extern "C" fn _get(vec: *const Vec<super::MyRustType>, index: usize) -> __swift_bridge__Option_MyRustType {
+                    __swift_bridge__Option_MyRustType::from_rust_repr(
+                        unsafe { & *vec }.get(index).copied()
+                    )
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$get_mut"]
+                pub extern "C" fn _get_mut(vec: *mut Vec<super::MyRustType>, index: usize) -> __swift_bridge__Option_MyRustType {
+                    __swift_bridge__Option_MyRustType::from_rust_repr(
+                        unsafe { &mut *vec }.get_mut(index).copied()
+                    )
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$push"]
+                pub extern "C" fn _push(vec: *mut Vec<super::MyRustType>, val: __swift_bridge__MyRustType) {
+                    unsafe { &mut *vec }.push(val.into_rust_repr())
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$pop"]
+                pub extern "C" fn _pop(vec: *mut Vec<super::MyRustType>) -> __swift_bridge__Option_MyRustType {
+                    __swift_bridge__Option_MyRustType::from_rust_repr(
+                        unsafe { &mut *vec }.pop()
+                    )
+                }
+
+                #[doc(hidden)]
+                #[export_name = "__swift_bridge__$Vec_MyRustType$as_ptr"]
+                pub extern "C" fn _as_ptr(vec: *const Vec<super::MyRustType>) -> *const __swift_bridge__MyRustType {
+                    unsafe { (&*vec).as_ptr().cast() }
+                }
+            };
+        })
+    }
+
+    fn expected_swift_code() -> ExpectedSwiftCode {
+        ExpectedSwiftCode::ContainsAfterTrim(
+            r#"
+extension MyRustType: Vectorizable {
+    public static func vecOfSelfNew() -> UnsafeMutableRawPointer {
+        __swift_bridge__$Vec_MyRustType$new()
+    }
+
+    public static func vecOfSelfFree(vecPtr: UnsafeMutableRawPointer) {
+        __swift_bridge__$Vec_MyRustType$drop(vecPtr)
+    }
+
+    public static func vecOfSelfPush(vecPtr: UnsafeMutableRawPointer, value: MyRustType) {
+        __swift_bridge__$Vec_MyRustType$push(vecPtr, value.bytes)
+    }
+
+    public static func vecOfSelfPop(vecPtr: UnsafeMutableRawPointer) -> Self? {
+        __swift_bridge__$Vec_MyRustType$pop(vecPtr).intoSwiftRepr()
+    }
+
+    public static func vecOfSelfGet(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Self? {
+        __swift_bridge__$Vec_MyRustType$get(vecPtr, index).intoSwiftRepr()
+    }
+
+    public static func vecOfSelfGetMut(vecPtr: UnsafeMutableRawPointer, index: UInt) -> Self? {
+        __swift_bridge__$Vec_MyRustType$get_mut(vecPtr, index).intoSwiftRepr()
+    }
+
+    public static func vecOfSelfAsPtr(vecPtr: UnsafeMutableRawPointer) -> UnsafePointer<Self> {
+        UnsafePointer<Self>(OpaquePointer(__swift_bridge__$Vec_MyRustType$as_ptr(vecPtr)))
+    }
+
+    public static func vecOfSelfLen(vecPtr: UnsafeMutableRawPointer) -> UInt {
+        __swift_bridge__$Vec_MyRustType$len(vecPtr)
+    }
+}
+"#,
+        )
+    }
+
+    fn expected_c_header() -> ExpectedCHeader {
+        ExpectedCHeader::ExactAfterTrim(
+            r#"
+#include <stdint.h>
+#include <stdbool.h>
+typedef struct __swift_bridge__$MyRustType { uint8_t bytes[4]; } __swift_bridge__$MyRustType;
+typedef struct __swift_bridge__$Option$MyRustType { bool is_some; __swift_bridge__$MyRustType val; } __swift_bridge__$Option$MyRustType;
+
+void* __swift_bridge__$Vec_MyRustType$new(void);
+void __swift_bridge__$Vec_MyRustType$drop(void* vec_ptr);
+void __swift_bridge__$Vec_MyRustType$push(void* vec_ptr, __swift_bridge__$MyRustType item);
+__swift_bridge__$Option$MyRustType __swift_bridge__$Vec_MyRustType$pop(void* vec_ptr);
+__swift_bridge__$Option$MyRustType __swift_bridge__$Vec_MyRustType$get(void* vec_ptr, uintptr_t index);
+__swift_bridge__$Option$MyRustType __swift_bridge__$Vec_MyRustType$get_mut(void* vec_ptr, uintptr_t index);
+uintptr_t __swift_bridge__$Vec_MyRustType$len(void* vec_ptr);
+__swift_bridge__$MyRustType* __swift_bridge__$Vec_MyRustType$as_ptr(void* vec_ptr);
+"#,
+        )
+    }
+
+    #[test]
+    fn extern_rust_type_vec_support() {
+        CodegenTest {
+            bridge_module: bridge_module_tokens().into(),
+            expected_rust_tokens: expected_rust_tokens(),
+            expected_swift_code: expected_swift_code(),
+            expected_c_header: expected_c_header(),
+        }
+        .test();
+    }
+}
+
 /// Test code generation for Rust function that returns a Vec<T> where T is an opaque Rust type.
 mod extern_rust_fn_return_vec_of_opaque_rust_type {
     use super::*;
