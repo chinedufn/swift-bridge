@@ -8,6 +8,9 @@ let package = Package(
         .library(
             name: "swift-package-test-package",
             targets: ["swift-package-test-package"]),
+        .executable(
+            name: "swift-package-test-packageTestsRunner",
+            targets: ["swift-package-test-packageTestsRunner"]),
     ],
     dependencies: [
         .package(path: "../swift-package-rust-library-fixture/MySwiftPackage")
@@ -16,6 +19,9 @@ let package = Package(
         .target(
             name: "swift-package-test-package",
             dependencies: []),
+        .executableTarget(
+            name: "swift-package-test-packageTestsRunner",
+            dependencies: ["MySwiftPackage"]),
         .testTarget(
             name: "swift-package-test-packageTests",
             dependencies: ["swift-package-test-package", "MySwiftPackage"]),
