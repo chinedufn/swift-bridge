@@ -1982,8 +1982,29 @@ impl BridgedType {
                 StdLibType::Bool => "Bool".to_string(),
                 StdLibType::F32 => "F32".to_string(),
                 StdLibType::F64 => "F64".to_string(),
+                StdLibType::U64 => "U64".to_string(),
+                StdLibType::I64 => "I64".to_string(),
                 StdLibType::Tuple(ty) => ty.to_alpha_numeric_underscore_name(types),
-                _ => todo!(),
+                StdLibType::Str => "Str".to_string(),
+                StdLibType::Vec(v) => {
+                    format!("Vec_{}", v.ty.to_alpha_numeric_underscore_name(types))
+                }
+                StdLibType::Option(o) => {
+                    format!("Option_{}", o.ty.to_alpha_numeric_underscore_name(types))
+                }
+                StdLibType::RefSlice(r) => {
+                    format!("RefSlice_{}", r.ty.to_alpha_numeric_underscore_name(types))
+                }
+                StdLibType::Pointer(p) => {
+                    use crate::bridged_type::bridgeable_pointer::Pointee;
+                    match &p.pointee {
+                        Pointee::BuiltIn(ty) => {
+                            format!("Ptr_{}", ty.to_alpha_numeric_underscore_name(types))
+                        }
+                        Pointee::Void(_) => "Ptr_Void".to_string(),
+                    }
+                }
+                StdLibType::BoxedFnOnce(_) => todo!("BoxedFnOnce in alpha_numeric name"),
             },
             BridgedType::Foreign(ty) => match ty {
                 CustomBridgedType::Shared(ty) => match ty {
