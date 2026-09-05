@@ -1,5 +1,7 @@
 use proc_macro2::Ident;
 
+pub mod copy_type;
+
 /// Generate the `extension MyRustType: Vectorizable {}` for the Swift side.
 pub(super) fn generate_vectorizable_extension(ty: &Ident) -> String {
     format!(
@@ -52,7 +54,6 @@ pub(super) fn generate_vectorizable_extension(ty: &Ident) -> String {
     }}
 }}
 "#,
-        ty = ty.to_string()
     )
 }
 

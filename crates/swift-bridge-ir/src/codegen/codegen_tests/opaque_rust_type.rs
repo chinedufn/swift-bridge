@@ -261,6 +261,30 @@ mod extern_rust_copy_type {
                         is_some: bool,
                         val: std::mem::MaybeUninit<__swift_bridge__SomeType>
                     }
+                    impl __swift_bridge__Option_SomeType {
+                        #[inline(always)]
+                        fn into_rust_repr(self) -> Option<super::SomeType> {
+                            if self.is_some {
+                                Some(unsafe { self.val.assume_init() }.into_rust_repr())
+                            } else {
+                                None
+                            }
+                        }
+
+                        #[inline(always)]
+                        fn from_rust_repr(repr: Option<super::SomeType>) -> Self {
+                            match repr {
+                                Some(val) => Self {
+                                    is_some: true,
+                                    val: std::mem::MaybeUninit::new(__swift_bridge__SomeType::from_rust_repr(val)),
+                                },
+                                None => Self {
+                                    is_some: false,
+                                    val: std::mem::MaybeUninit::uninit(),
+                                },
+                            }
+                        }
+                    }
                 },
             ],
             // Copy types don't need a function for freeing memory.
@@ -285,6 +309,17 @@ public struct SomeType {
 extension __swift_bridge__$SomeType {
     func intoSwiftRepr() -> SomeType {
         SomeType(bytes: self)
+    }
+}
+"#,
+            r#"
+extension __swift_bridge__$Option$SomeType {
+    func intoSwiftRepr() -> SomeType? {
+        if is_some {
+            return val.intoSwiftRepr()
+        } else {
+            return nil
+        }
     }
 }
 "#,
