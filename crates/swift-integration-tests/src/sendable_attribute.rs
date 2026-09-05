@@ -55,6 +55,6 @@ const TEST_SENDABLE_SWIFT_TYPE_SEND_SYNC: () = {
 /// causing a compile-time error.
 /// This compile-time error was reported in https://github.com/chinedufn/swift-bridge/issues/335
 #[derive(Copy, Clone)]
-pub struct RustCopySendableOne(u8);
+pub struct RustCopySendableOne(#[allow(unused)] u8);
 #[derive(Copy, Clone)]
-pub struct RustCopySendableTwo(u32);
+pub struct RustCopySendableTwo(#[allow(unused)] u32);
