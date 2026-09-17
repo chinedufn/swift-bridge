@@ -15,7 +15,7 @@ swift-bridge-build = {path = "../../crates/swift-bridge-build"}
 [dependencies]
 crossbeam-channel = "0.5"
 proc-macro2 = "1"
-syn = "1"
+syn = "2"
 swift-bridge = {path = "../../"}
 swift-bridge-ir = {path = "../../crates/swift-bridge-ir"}
 quote = "1"

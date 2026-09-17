@@ -122,7 +122,7 @@ fn parse_file_contents(file: &str) -> syn::Result<GeneratedFromSwiftBridgeModule
                 // TODO: Move this check into the `impl Parse for SwiftBridgeModule`.. Modify our
                 //  tests in swift-bridge-ir to annotate modules with `#[swift_bridge::bridge]`
                 if module.attrs.iter().any(|a| {
-                    let attrib = a.path.to_token_stream().to_string();
+                    let attrib = a.path().to_token_stream().to_string();
                     attrib == "swift_bridge :: bridge" || attrib == "swift_bridge_macro :: bridge"
                 }) {
                     let module: SwiftBridgeModule = syn::parse2(module.to_token_stream())?;

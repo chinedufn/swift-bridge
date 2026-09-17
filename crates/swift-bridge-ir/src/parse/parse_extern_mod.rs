@@ -1,7 +1,7 @@
 use self::argument_attributes::ArgumentAttributes;
 pub(crate) use self::opaque_type_attributes::OpaqueTypeAllAttributes;
 use crate::bridged_type::{
-    bridgeable_type_from_fn_arg, pat_type_pat_is_self, BridgeableType, BridgedType,
+    bridgeable_type_from_fn_arg, typed_self_type, BridgeableType, BridgedType,
 };
 use crate::errors::{FunctionAttributeParseError, IdentifiableParseError, ParseError, ParseErrors};
 use crate::parse::parse_extern_mod::function_attributes::FunctionAttributes;
@@ -82,12 +82,45 @@ impl<'a> ForeignModParser<'a> {
                         }
                     }
 
+                    // syn parses `type Foo<A>;` inside an `extern` block as a
+                    // `ForeignItem::Type` carrying generics, so a generic opaque type
+                    // arrives here rather than through the `Verbatim` arm below, and it
+                    // is declared under its generic name: `Foo<A>`.
+                    let generics = if foreign_ty.generics.params.is_empty() {
+                        OpaqueRustTypeGenerics::new()
+                    } else {
+                        OpaqueRustTypeGenerics {
+                            generics: foreign_ty
+                                .generics
+                                .params
+                                .clone()
+                                .into_iter()
+                                .map(|p| match p {
+                                    GenericParam::Type(generic_ty) => generic_ty,
+                                    _ => todo!("Push a ParseError for non-concrete generic types"),
+                                })
+                                .collect(),
+                        }
+                    };
+                    let generic_names: Vec<String> = generics
+                        .generics
+                        .iter()
+                        .map(|g| g.ident.to_string())
+                        .collect();
+
                     let foreign_type = OpaqueForeignTypeDeclaration {
                         ty: foreign_ty.ident.clone(),
                         host_lang,
                         attributes: OpaqueTypeAllAttributes::from_attributes(&foreign_ty.attrs)?,
-                        generics: OpaqueRustTypeGenerics::new(),
+                        generics,
                     };
+
+                    let ty_name = if generic_names.is_empty() {
+                        ty_name
+                    } else {
+                        format!("{}<{}>", ty_name, generic_names.join(","))
+                    };
+
                     self.type_declarations.insert(
                         ty_name.clone(),
                         TypeDeclaration::Opaque(foreign_type.clone()),
@@ -143,14 +176,15 @@ impl<'a> ForeignModParser<'a> {
 
                         let mut is_ref_self_no_args = args.len() == 1;
                         if is_ref_self_no_args {
-                            is_ref_self_no_args = match args.iter().next().unwrap() {
-                                FnArg::Receiver(receiver) => {
-                                    receiver.reference.is_some() && receiver.mutability.is_none()
-                                }
-                                FnArg::Typed(pat_ty) => {
-                                    pat_type_pat_is_self(pat_ty)
-                                        && pat_ty.ty.to_token_stream().to_string().starts_with("&")
-                                }
+                            let arg = args.iter().next().unwrap();
+                            is_ref_self_no_args = match typed_self_type(arg) {
+                                Some(ty) => ty.to_token_stream().to_string().starts_with("&"),
+                                None => match arg {
+                                    FnArg::Receiver(receiver) => {
+                                        receiver.reference.is_some() && receiver.mutability.is_none()
+                                    }
+                                    FnArg::Typed(_) => false,
+                                },
                             };
                         }
 
@@ -314,6 +348,23 @@ impl<'a> ForeignModParser<'a> {
                     self.errors.push(ParseError::InvalidAssociatedTo {
                         self_: first.unwrap().clone(),
                     })
+                }
+                // `self: &Foo` names its type, so it needs no inference from the
+                // surrounding block, unlike `&self`.
+                if recv.colon_token.is_some() {
+                    let self_ty = match recv.ty.deref() {
+                        Type::Path(ty_path) => ty_path.path.segments.to_token_stream(),
+                        Type::Reference(type_ref) => type_ref.elem.deref().to_token_stream(),
+                        _ => {
+                            todo!("Add a test that hits this branch")
+                        }
+                    };
+
+                    // Handles generics. i.e. "SomeType< u32, u64 >" -> "SomeType<u32,u64>";
+                    let self_ty_string = self_ty.to_string().replace(" ", "");
+
+                    let ty = self.type_declarations.get(&self_ty_string).unwrap();
+                    return Ok(Some(ty.clone()));
                 }
                 if local_type_declarations.len() == 1 {
                     let ty = local_type_declarations.iter_mut().next().unwrap().1;
@@ -837,7 +888,7 @@ mod tests {
     #[test]
     fn error_if_mutable_opaque_copy_type() {
         let tokens = quote! {
-            #[swift_bridge:bridge]
+            #[swift_bridge::bridge]
             mod foo {
                 extern "Rust" {
                     #[swift_bridge(Copy(2))]

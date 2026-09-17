@@ -14,7 +14,7 @@ mod tests {
     #[test]
     fn parse_generic_extern_rust_type() {
         let tokens = quote! {
-            #[swift_bridge:bridge]
+            #[swift_bridge::bridge]
             mod foo {
                 extern "Rust" {
                     type AnotherType;
@@ -32,7 +32,7 @@ mod tests {
     #[test]
     fn multiple_generics() {
         let tokens = quote! {
-            #[swift_bridge:bridge]
+            #[swift_bridge::bridge]
             mod foo {
                 extern "Rust" {
                     #[swift_bridge(declare_generic)]

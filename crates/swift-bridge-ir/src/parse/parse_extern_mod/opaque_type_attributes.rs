@@ -55,14 +55,16 @@ impl OpaqueTypeAllAttributes {
         let mut attributes = OpaqueTypeAllAttributes::default();
 
         for attr in attribs.iter() {
-            let attribute_name = attr.path.to_token_stream().to_string();
+            let attribute_name = attr.path().to_token_stream().to_string();
 
             match attribute_name.as_str() {
                 "doc" => {
-                    let meta = attr.parse_meta()?;
-                    let doc = match meta {
-                        Meta::NameValue(name_val) => match name_val.lit {
-                            syn::Lit::Str(comment) => comment.value(),
+                    let doc = match &attr.meta {
+                        Meta::NameValue(name_val) => match &name_val.value {
+                            syn::Expr::Lit(syn::ExprLit {
+                                lit: syn::Lit::Str(comment),
+                                ..
+                            }) => comment.value(),
                             _ => {
                                 todo!("Push parse error that doc attribute is in incorrect format")
                             }

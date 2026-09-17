@@ -147,22 +147,30 @@ impl ParsedExternFn {
     }
 
     pub fn self_reference(&self) -> Option<(Token![&], Option<Lifetime>)> {
-        match self.func.sig.receiver()? {
-            FnArg::Receiver(receiver) => receiver.reference.clone(),
-            FnArg::Typed(pat_ty) => match pat_ty.ty.deref() {
-                Type::Reference(type_ref) => Some((type_ref.and_token, type_ref.lifetime.clone())),
-                _ => None,
-            },
+        let receiver = self.func.sig.receiver()?;
+
+        // A typed receiver (`self: &Foo`) carries the reference in its type, and
+        // its own `reference` field is always `None`.
+        if receiver.colon_token.is_none() {
+            return receiver.reference.clone();
+        }
+
+        match receiver.ty.deref() {
+            Type::Reference(type_ref) => Some((type_ref.and_token, type_ref.lifetime.clone())),
+            _ => None,
         }
     }
 
     pub fn self_mutability(&self) -> Option<Token![mut]> {
-        match self.func.sig.receiver()? {
-            FnArg::Receiver(receiver) => receiver.mutability,
-            FnArg::Typed(pat_ty) => match pat_ty.ty.deref() {
-                Type::Reference(type_ref) => type_ref.mutability,
-                _ => None,
-            },
+        let receiver = self.func.sig.receiver()?;
+
+        if receiver.colon_token.is_none() {
+            return receiver.mutability;
+        }
+
+        match receiver.ty.deref() {
+            Type::Reference(type_ref) => type_ref.mutability,
+            _ => None,
         }
     }
 
@@ -672,6 +680,10 @@ impl Deref for ParsedExternFn {
 
 pub(crate) fn fn_arg_is_mutable_reference(fn_arg: &FnArg) -> bool {
     match fn_arg {
+        // `self: &mut Foo` keeps its mutability in the type, `&mut self` on the receiver.
+        FnArg::Receiver(receiver) if receiver.colon_token.is_some() => {
+            matches!(receiver.ty.deref(), Type::Reference(type_ref) if type_ref.mutability.is_some())
+        }
         FnArg::Receiver(receiver) => receiver.reference.is_some() && receiver.mutability.is_some(),
         FnArg::Typed(pat_ty) => match pat_ty.ty.deref() {
             Type::Reference(type_ref) => type_ref.mutability.is_some(),

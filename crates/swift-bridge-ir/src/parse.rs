@@ -65,9 +65,9 @@ impl Parse for SwiftBridgeModuleAndErrors {
             let mut cfg_attrs = vec![];
 
             for attr in item_mod.attrs {
-                match attr.path.to_token_stream().to_string().as_str() {
+                match attr.path().to_token_stream().to_string().as_str() {
                     "cfg" => {
-                        let cfg: CfgAttr = syn::parse2(attr.tokens)?;
+                        let cfg: CfgAttr = attr.parse_args()?;
                         cfg_attrs.push(cfg);
                     }
                     _ => {}
