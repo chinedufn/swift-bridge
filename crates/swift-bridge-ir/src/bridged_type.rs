@@ -451,6 +451,19 @@ pub(crate) fn pat_type_pat_is_self(pat_type: &PatType) -> bool {
     }
 }
 
+/// The type of an explicitly typed receiver, `self: &Foo` -> `&Foo`.
+///
+/// syn gives such a receiver as `FnArg::Receiver` carrying a `colon_token`,
+/// while `&self` and `self` carry none. `FnArg::Typed` is still matched so that a
+/// caller-constructed signature of that shape keeps working.
+pub(crate) fn typed_self_type(fn_arg: &FnArg) -> Option<&Type> {
+    match fn_arg {
+        FnArg::Receiver(receiver) if receiver.colon_token.is_some() => Some(receiver.ty.deref()),
+        FnArg::Typed(pat_ty) if pat_type_pat_is_self(pat_ty) => Some(pat_ty.ty.deref()),
+        _ => None,
+    }
+}
+
 /// foo: u8 -> Some("foo")
 pub(crate) fn fn_arg_name(fn_arg: &FnArg) -> Option<&Ident> {
     match fn_arg {

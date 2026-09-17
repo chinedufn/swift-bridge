@@ -84,7 +84,10 @@ impl ParsedExternFn {
             match arg {
                 FnArg::Receiver(receiver) => {
                     if include_receiver_if_present {
-                        self.push_receiver_as_arg(&mut args, receiver.reference.is_some());
+                        // `&self` carries the reference on the receiver, `self: &Foo` in its type.
+                        let is_reference = receiver.reference.is_some()
+                            || matches!(receiver.ty.deref(), Type::Reference(_));
+                        self.push_receiver_as_arg(&mut args, is_reference);
                     }
                 }
                 FnArg::Typed(pat_ty) => {

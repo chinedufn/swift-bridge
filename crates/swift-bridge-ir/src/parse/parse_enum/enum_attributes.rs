@@ -18,7 +18,7 @@ impl SharedEnumAllAttributes {
         let mut attributes = SharedEnumAllAttributes::default();
 
         for attr in attribs {
-            let attribute_name = attr.path.to_token_stream().to_string();
+            let attribute_name = attr.path().to_token_stream().to_string();
 
             match attribute_name.as_str() {
                 "derive" => {

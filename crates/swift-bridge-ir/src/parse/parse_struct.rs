@@ -6,7 +6,8 @@ use crate::parse::move_input_cursor_to_next_comma;
 use proc_macro2::Ident;
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
-use syn::{ItemStruct, LitStr, Meta, Token};
+use syn::punctuated::Punctuated;
+use syn::{ItemStruct, LitStr, Meta, Path, Token};
 
 pub(crate) struct SharedStructDeclarationParser<'a> {
     pub item_struct: ItemStruct,
@@ -94,7 +95,7 @@ impl<'a> SharedStructDeclarationParser<'a> {
         let mut attribs = StructAttribs::default();
 
         for attr in item_struct.attrs {
-            let attribute_name = attr.path.to_token_stream().to_string();
+            let attribute_name = attr.path().to_token_stream().to_string();
 
             match attribute_name.as_str() {
                 "swift_bridge" => {
@@ -127,9 +128,11 @@ impl<'a> SharedStructDeclarationParser<'a> {
                         };
                     }
                 }
-                "derive" => match attr.parse_meta()? {
+                "derive" => match &attr.meta {
                     Meta::List(meta_list) => {
-                        for derive in meta_list.nested {
+                        let derives = meta_list
+                            .parse_args_with(Punctuated::<Path, Token![,]>::parse_terminated)?;
+                        for derive in derives {
                             match derive.to_token_stream().to_string().as_str() {
                                 "Copy" => attribs.derives.copy = true,
                                 "Clone" => attribs.derives.clone = true,

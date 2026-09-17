@@ -10,5 +10,5 @@ license = "Apache-2.0/MIT"
 [dependencies]
 proc-macro2 = "1"
 swift-bridge-ir = {version = "0.1.59", path = "../swift-bridge-ir"}
-syn = {version = "1"}
+syn = {version = "2", features = ["full"]}
 tempfile = "3.3"

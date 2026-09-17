@@ -18,15 +18,15 @@ pub enum CfgAttr {
 }
 
 impl Parse for CfgAttr {
+    /// Parses the arguments INSIDE `#[cfg(...)]`. syn 2 hands a list attribute's
+    /// inner tokens to `Attribute::parse_args`, so the parentheses are already gone.
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        syn::parenthesized!(content in input);
-        let ident: Ident = content.parse()?;
+        let ident: Ident = input.parse()?;
 
         if &ident == "feature" {
-            content.parse::<Token![=]>()?;
+            input.parse::<Token![=]>()?;
 
-            let feature_name = content.parse::<LitStr>()?;
+            let feature_name = input.parse::<LitStr>()?;
 
             Ok(CfgAttr::Feature(feature_name))
         } else {

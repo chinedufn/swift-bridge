@@ -1,11 +1,10 @@
-use crate::bridged_type::{pat_type_pat_is_self, BridgeableType, BridgedType};
+use crate::bridged_type::{typed_self_type, BridgeableType, BridgedType};
 use crate::parse::{SharedTypeDeclaration, TypeDeclaration, TypeDeclarations};
 use crate::parsed_extern_fn::ParsedExternFn;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
-use std::ops::Deref;
 use syn::spanned::Spanned;
-use syn::{FnArg, PatType, Path, ReturnType, Type, TypeReference};
+use syn::{FnArg, Path, ReturnType, Type, TypeReference};
 
 /// Generates the
 ///
@@ -501,20 +500,7 @@ impl ParsedExternFn {
 // self: &Foo would return &Foo
 // _foo: &Foo would not return &Foo
 fn pat_ty_type_reference_if_arg_self(fn_arg: &FnArg) -> Option<&TypeReference> {
-    match fn_arg {
-        FnArg::Typed(pat_ty) if pat_type_pat_is_self(pat_ty) => {
-            if let Some(reference) = pat_ty_type_reference(pat_ty) {
-                Some(reference)
-            } else {
-                None
-            }
-        }
-        _ => None,
-    }
-}
-
-fn pat_ty_type_reference(pat_ty: &PatType) -> Option<&TypeReference> {
-    match pat_ty.ty.deref() {
+    match typed_self_type(fn_arg)? {
         Type::Reference(reference) => Some(reference),
         _ => None,
     }
