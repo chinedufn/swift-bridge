@@ -105,14 +105,20 @@ pub fn create_package(config: CreatePackageConfig) {
     }
 
     // Generate RustXcframework //
-    gen_xcframework(&output_dir, &config);
+    let rust_target = gen_xcframework(&output_dir, &config);
 
     // Generate Swift Package //
-    gen_package(&output_dir, &config);
+    gen_package(&output_dir, &config, rust_target);
+}
+
+#[derive(Copy, Clone)]
+enum RustTarget {
+    Xcframework,
+    SwiftpmTarget,
 }
 
 /// Generates the RustXcframework
-fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
+fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) -> RustTarget {
     // Create directories
     let temp_dir = tempdir().expect("Couldn't create temporary directory");
     let tmp_framework_path = &temp_dir.path().join("swiftbridge._tmp_framework");
@@ -229,16 +235,33 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
 
     let output = Command::new("xcodebuild")
         .current_dir(&tmp_framework_path)
-        .args(args)
+        .args(&args)
         .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed to spawn xcodebuild")
-        .wait_with_output()
-        .expect("Failed to execute xcodebuild");
-    if !output.status.success() {
-        let stderr = std::str::from_utf8(&output.stderr).unwrap();
-        panic!("{}", stderr);
-    }
+        .stderr(Stdio::piped())
+        .spawn();
+    let rust_target = match output {
+        Ok(child) => {
+            let output = child
+                .wait_with_output()
+                .expect("Failed to execute xcodebuild");
+            if !output.status.success() {
+                let stderr = std::str::from_utf8(&output.stderr).unwrap();
+                if stderr.contains("tool 'xcodebuild' not found") {
+                    gen_swiftpm_rust_target(output_dir, &tmp_framework_path, config);
+                    RustTarget::SwiftpmTarget
+                } else {
+                    panic!("{}", stderr);
+                }
+            } else {
+                RustTarget::Xcframework
+            }
+        }
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            gen_swiftpm_rust_target(output_dir, &tmp_framework_path, config);
+            RustTarget::SwiftpmTarget
+        }
+        Err(err) => panic!("Failed to spawn xcodebuild: {}", err),
+    };
 
     // Remove temporary directory
     let temp_dir_string = temp_dir.path().to_str().unwrap().to_string();
@@ -248,6 +271,55 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
             temp_dir_string, err
         );
     }
+
+    rust_target
+}
+
+fn gen_swiftpm_rust_target(
+    output_dir: &Path,
+    tmp_framework_path: &Path,
+    config: &CreatePackageConfig,
+) {
+    if config.paths.len() != 1 || !config.paths.contains_key(&ApplePlatform::MacOS) {
+        panic!("SwiftPM Rust target fallback only supports a single macOS library");
+    }
+
+    let xcframework_dir = output_dir.join("RustXcframework.xcframework");
+    if xcframework_dir.exists() {
+        fs::remove_dir_all(&xcframework_dir).expect("Couldn't delete unused xcframework directory");
+    }
+
+    let target_dir = output_dir.join("RustXcframework");
+    if target_dir.exists() {
+        fs::remove_dir_all(&target_dir).expect("Couldn't delete previous SwiftPM Rust target");
+    }
+    fs::create_dir_all(target_dir.join("include"))
+        .expect("Couldn't create SwiftPM Rust target include directory");
+    fs::create_dir_all(target_dir.join("lib"))
+        .expect("Couldn't create SwiftPM Rust target lib directory");
+    fs::write(
+        target_dir.join("shim.c"),
+        "void swift_bridge_static_library_linker_shim(void) {}\n",
+    )
+    .expect("Couldn't write SwiftPM Rust target shim");
+
+    for header in fs::read_dir(tmp_framework_path.join("include")).expect("Couldn't read headers") {
+        let header = header.expect("Couldn't read header").path();
+        fs::copy(
+            &header,
+            target_dir.join("include").join(header.file_name().unwrap()),
+        )
+        .expect("Couldn't copy header into SwiftPM Rust target");
+    }
+
+    let lib_path: &Path = config.paths.get(&ApplePlatform::MacOS).unwrap().as_ref();
+    fs::copy(
+        tmp_framework_path
+            .join(ApplePlatform::MacOS.dir_name())
+            .join(lib_path.file_name().unwrap()),
+        target_dir.join("lib").join(lib_path.file_name().unwrap()),
+    )
+    .expect("Couldn't copy library into SwiftPM Rust target");
 }
 
 /// Generates the Swift Package.
@@ -259,7 +331,7 @@ fn gen_xcframework(output_dir: &Path, config: &CreatePackageConfig) {
 /// The alternative would be to use something like `@_exported import RustXcframework`, but this
 /// would make the Rust xcframework (i.e. methods like __swift_bridge__$some_method) available to
 /// the Swift Package's consumer, which we don't want.
-fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
+fn gen_package(output_dir: &Path, config: &CreatePackageConfig, rust_target: RustTarget) {
     let sources_dir = output_dir.join("Sources").join(&config.package_name);
     if !sources_dir.exists() {
         fs::create_dir_all(&sources_dir).expect("Couldn't create directory for source files");
@@ -311,9 +383,41 @@ fn gen_package(output_dir: &Path, config: &CreatePackageConfig) {
 
     // Generate Package.swift
     let package_name = &config.package_name;
+    let package_directory = match rust_target {
+        RustTarget::Xcframework => "".to_string(),
+        RustTarget::SwiftpmTarget => {
+            "let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent().path\n"
+                .to_string()
+        }
+    };
+    let rust_target_package_swift = match rust_target {
+        RustTarget::Xcframework => r#"		.binaryTarget(
+			name: "RustXcframework",
+			path: "RustXcframework.xcframework"
+		),"#
+        .to_string(),
+        RustTarget::SwiftpmTarget => {
+            let lib_name = swiftpm_link_library_name(config);
+            r#"		.target(
+			name: "RustXcframework",
+			path: "RustXcframework",
+			publicHeadersPath: "include",
+			linkerSettings: [
+				.unsafeFlags([
+					"-L",
+					"\(packageDirectory)/RustXcframework/lib",
+					"-lLIB_NAME"
+				])
+			]
+		),"#
+            .replace("LIB_NAME", &lib_name)
+        }
+    };
     let package_swift = format!(
         r#"// swift-tools-version:5.5.0
 import PackageDescription
+import Foundation
+{package_directory}
 let package = Package(
 	name: "{package_name}",
 	products: [
@@ -323,10 +427,7 @@ let package = Package(
 	],
 	dependencies: [],
 	targets: [
-		.binaryTarget(
-			name: "RustXcframework",
-			path: "RustXcframework.xcframework"
-		),
+{rust_target_package_swift}
 		.target(
 			name: "{package_name}",
 			dependencies: ["RustXcframework"])
@@ -337,4 +438,14 @@ let package = Package(
 
     fs::write(output_dir.join("Package.swift"), package_swift)
         .expect("Couldn't write Package.swift file");
+}
+
+fn swiftpm_link_library_name(config: &CreatePackageConfig) -> String {
+    let lib_path: &Path = config.paths.get(&ApplePlatform::MacOS).unwrap().as_ref();
+    let file_name = lib_path.file_name().unwrap().to_str().unwrap();
+    let without_prefix = file_name.strip_prefix("lib").unwrap_or(file_name);
+    without_prefix
+        .strip_suffix(".a")
+        .unwrap_or(without_prefix)
+        .to_string()
 }

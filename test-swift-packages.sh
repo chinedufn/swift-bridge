@@ -13,10 +13,15 @@ ROOT_DIR="$THIS_DIR"
 cd $ROOT_DIR
 
 # Make a temp directory
-TEMP_DIR=$(mktemp -d)
+mkdir -p "$ROOT_DIR/target/test-tmp"
+TEMP_DIR=$(mktemp -d "$ROOT_DIR/target/test-tmp/test-swift-packages.XXXXXX")
 
 # Delete the temp directory before the shell exits
-trap 'rm -rf $TEMP_DIR' EXIT
+if [ -z "${KEEP_TEST_SWIFT_PACKAGES_TEMP:-}" ]; then
+  trap 'rm -rf $TEMP_DIR' EXIT
+else
+  echo "Keeping temp directory: $TEMP_DIR"
+fi
 
 # Copy directories related to all of the building and test running to the temp directory
 for DIR in crates src examples SwiftRustIntegrationTestRunner
@@ -36,4 +41,5 @@ cargo run -p integration-test-create-swift-package
 
 # Test Swift Package
 cd swift-package-test-package
-swift test
+swift-build --disable-sandbox --product swift-package-test-packageTestsRunner
+swift-run --disable-sandbox --skip-build swift-package-test-packageTestsRunner
